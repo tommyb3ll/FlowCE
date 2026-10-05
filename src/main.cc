@@ -575,6 +575,70 @@ static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x)
   return w.size()==1?w.front():gen(w,_SEQ__VECT);
 }
 
+#ifdef WITH_EQW
+// R3: results drawn in 2D in the console history. A result of k rows is its output line (the 1D
+// text: copy, history recall and saved sessions use it) followed by k-1 LINE_TYPE_CONT lines.
+// The layouts of the last drawn results are cached (parsing + layout take ~50-100 ms).
+static const int H2D_CACHE=4,H2D_W=LCD_WIDTH_PX-8;
+static const char * h2d_key[H2D_CACHE];
+static unsigned h2d_hash[H2D_CACHE];
+static giac::gen * h2d_layout; // allocated on first use: a static array of gens needs a static
+                               // constructor, which the app's relocation scheme cannot link
+static int h2d_next;
+static unsigned h2d_strhash(const char * s){
+  unsigned h=0;
+  for (;*s;++s)
+    h=h*31+(unsigned char)*s;
+  return h;
+}
+// puts the layout of history line s in the cache
+static void h2d_store(const char * s,const giac::gen & lay){
+  if (!h2d_layout)
+    h2d_layout=new giac::gen[H2D_CACHE];
+  h2d_key[h2d_next]=s;
+  h2d_hash[h2d_next]=h2d_strhash(s);
+  h2d_layout[h2d_next]=lay;
+  h2d_next=(h2d_next+1)%H2D_CACHE;
+}
+// rows of the console that result g takes in 2D (0: shown as text), and its layout
+static int console_rows2d(const giac::gen & g,giac::gen & lay){
+  using namespace giac;
+  if ((g.type!=_SYMB && g.type!=_FRAC && g.type!=_VECT) || g.is_symb_of_sommet(at_program) || taille(g,100)>=100)
+    return 0;
+#ifdef WITH_PLOT
+  if (xcas::ispnt(g))
+    return 0;
+#endif
+  lay=xcas::history_layout(g,H2D_W,5*CONSOLE_ROW_PX-2,contextptr);
+  if (is_undef(lay))
+    return 0;
+  return (xcas::Equation_total_size(lay).dy+2+CONSOLE_ROW_PX-1)/CONSOLE_ROW_PX;
+}
+// draws history result s in 2D, right-aligned in the block [top,top+height), nothing above
+// ymin; false if it can't (the console then prints the text)
+bool console_draw2d(const char * s,int top,int height,int ymin){
+  using namespace giac;
+  const unsigned h=h2d_strhash(s);
+  int k=0;
+  while (h2d_layout && k<H2D_CACHE && !(h2d_key[k]==s && h2d_hash[k]==h))
+    ++k;
+  if (!h2d_layout || k==H2D_CACHE){ // an older result: parse its text (not evaluated)
+    k=h2d_next;
+    stdostream * savelog=logptr(contextptr);
+    logptr(0,contextptr);
+    const gen g(s,contextptr);
+    logptr(savelog,contextptr);
+    h2d_store(s,xcas::history_layout(g,H2D_W,height,contextptr));
+  }
+  const gen & lay=h2d_layout[k];
+  if (is_undef(lay))
+    return false;
+  const eqwdata e=xcas::Equation_total_size(lay);
+  xcas::draw_layout_at(lay,LCD_WIDTH_PX-e.dx-4,top+(height-e.dy)/2,ymin);
+  return true;
+}
+#endif
+
 // f(x):=x^2+1 on one line (also typed f(x)=x^2+1): a math function, defined without giac's
 // program log ("// Parsing f // Success // compiling f"). Returns the length of "f(x)", or 0.
 static int simple_definition(const char * s){
@@ -1135,12 +1199,15 @@ void do_run(const char * s){
         msg=std::string(buf,defn)+"="+rhs;
       }
     }
+    int rows2d=0;
+    giac::gen lay2d;
     if (!msg.empty())
       Console_Output(msg.c_str());
     else {
 #ifdef WITH_EQW
+    rows2d=console_rows2d(g,lay2d);
     giac::gen gs;
-    int do_logo_graph_eqw=7;
+    int do_logo_graph_eqw=rows2d?6:7; // drawn in 2D in the history: no viewer
     xcas::check_do_graph(g,gs,do_logo_graph_eqw,contextptr);
 #endif
 #ifdef WITH_PLOT
@@ -1165,6 +1232,14 @@ void do_run(const char * s){
     }
     }
     Console_NewLine(LINE_TYPE_OUTPUT,1);
+#ifdef WITH_EQW
+    if (rows2d) // drawn from the evaluated result, not from its parsed text
+      h2d_store((const char *)Line[Last_Line-1].str,lay2d);
+#endif
+    for (int k=1;k<rows2d;++k){ // continuation rows of the 2D result
+      Console_Output((const Char *)"\x01");
+      Console_NewLine(LINE_TYPE_CONT,1);
+    }
   }
   else {
     execution_in_progress_py = 1;

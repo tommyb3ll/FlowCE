@@ -88,6 +88,7 @@ int dconsole_mode=1; // 0 disables dConsole commands
 
 #define Current_Line (Start_Line + Cursor.y)
 #define Current_Col (Line[Cursor.y + Start_Line].start_col + Cursor.x)
+static bool console_in_block(int l); // part of a result drawn in 2D
 
 int xthetat;
 
@@ -2481,7 +2482,9 @@ int Console_GetKey(){
       // redraw current line without selection console_displine();
       if (Console_MoveCursor(alph?CURSOR_ALPHA_UP:CURSOR_UP)==CONSOLE_MEM_ERR)
         return CONSOLE_MEM_ERR;
-      if (Start_Line!=prevstart){
+      while (Current_Line>0 && Line[Current_Line].type==LINE_TYPE_CONT) // a 2D result is one entry
+        Console_MoveCursor(CURSOR_UP);
+      if (Start_Line!=prevstart || console_in_block(prevstart+prevcursor) || console_in_block(Current_Line)){
         Console_Disp(1); // improve: scroll area and redraw line?
       }
       else {
@@ -2503,7 +2506,9 @@ int Console_GetKey(){
       int prevcursor=Cursor.y,prevstart=Start_Line;
       if (Console_MoveCursor(alph?CURSOR_ALPHA_DOWN:CURSOR_DOWN)==CONSOLE_MEM_ERR)
         return CONSOLE_MEM_ERR;
-      if (Start_Line!=prevstart){
+      while (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_CONT)
+        Console_MoveCursor(CURSOR_DOWN);
+      if (Start_Line!=prevstart || console_in_block(prevstart+prevcursor) || console_in_block(Current_Line)){
         Console_Disp(1); // improve: scroll area and redraw line?
       }
       else {
@@ -3124,7 +3129,44 @@ void Print(const Char * s,int color,bool colorsyntax){
 }
 
 
+// a line that belongs to a result drawn in 2D: its first line and LINE_TYPE_CONT rows
+static bool console_in_block(int l){
+  return l<=Last_Line && (Line[l].type==LINE_TYPE_CONT || (Line[l].type==LINE_TYPE_OUTPUT && l<Last_Line && Line[l+1].type==LINE_TYPE_CONT));
+}
+
 void console_displine(int i,int redraw_mode){
+#ifdef WITH_EQW
+  const int l=i+Start_Line;
+  if (console_in_block(l)){ // a 2D result: drawn once, from its first visible row
+    int head=l;
+    while (head>0 && Line[head].type==LINE_TYPE_CONT)
+      --head;
+    if (Line[head].type==LINE_TYPE_CONT || (head!=l && i>0) || (redraw_mode==0 && Current_Line!=head))
+      return; // orphan rows (first line scrolled out of the history), drawn with the head, or
+              // a minimal redraw (typing) that leaves the history as it is
+    int k=1;
+    while (head+k<=Last_Line && Line[head+k].type==LINE_TYPE_CONT)
+      ++k;
+    const int top=STATUS_AREA_PX+(i-(l-head))*vfontsize,height=k*vfontsize,ymax=STATUS_AREA_PX+LINE_DISP_MAX*vfontsize;
+    const int ymin=top<STATUS_AREA_PX?STATUS_AREA_PX:top;
+    drawRectangle(0,ymin,LCD_WIDTH_PX,(top+height<ymax?top+height:ymax)-ymin,_WHITE);
+    if (top+height>ymax || !console_draw2d((const char *)Line[head].str,top,height,ymin)){
+      if (top>=STATUS_AREA_PX){ // cut at the bottom: the text in the first row
+        locate(COL_DISP_MAX-Line[head].disp_len+1,i+1);
+        Print(Line[head].str,TEXT_COLOR_BLACK,false);
+      }
+    }
+    if (Current_Line==head){ // selected: a frame
+      const int y1=top+height-1<ymax?top+height-1:ymax-1;
+      if (top>=STATUS_AREA_PX)
+        draw_line(0,top,LCD_WIDTH_PX-1,top,COLOR_BLUE);
+      draw_line(0,y1,LCD_WIDTH_PX-1,y1,COLOR_BLUE);
+      draw_line(0,ymin,0,y1,COLOR_BLUE);
+      draw_line(LCD_WIDTH_PX-1,ymin,LCD_WIDTH_PX-1,y1,COLOR_BLUE);
+    }
+    return;
+  }
+#endif
   int print_y=i*vfontsize;
   //dbg_printf("ConsoleDisp loop i=%i\n",i);
   const line & curline=Line[i+Start_Line];

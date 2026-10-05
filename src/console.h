@@ -89,6 +89,7 @@ enum CONSOLE_SCREEN_SPEC{
   COL_DISP_MAX = 39,
   EDIT_LINE_MAX = 2048
 };
+#define CONSOLE_ROW_PX 15 // height of a console row (vfontsize in console.cc)
 
 struct location{
   int x;
@@ -117,7 +118,8 @@ enum CONSOLE_CURSOR_DIRECTION{
 
 enum CONSOLE_LINE_TYPE{
   LINE_TYPE_INPUT=0,
-  LINE_TYPE_OUTPUT=1
+  LINE_TYPE_OUTPUT=1,
+  LINE_TYPE_CONT=2 // continuation row of a result drawn in 2D (see console_displine)
 };
 
 enum CONSOLE_CASE{
