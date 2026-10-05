@@ -518,8 +518,36 @@ static bool simplify_candidate(const giac::gen & g){
   return simplify_candidate(f);
 }
 
+// true if g has a radical or fractional power of a non-numeric expression (sqrt(x^2+1))
+static bool has_symbolic_radical(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it){
+      if (has_symbolic_radical(*it))
+        return true;
+    }
+    return false;
+  }
+  if (g.type!=_SYMB)
+    return false;
+  const gen & f=g._SYMBptr->feuille;
+  // (not written as type!=_INT_ && !=_ZINT && !=_FRAC: ez80-clang turns that into an 11-bit
+  // mask it cannot legalize)
+  if (g._SYMBptr->sommet==at_sqrt && (f.type==_IDNT || f.type==_SYMB))
+    return true;
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_FRAC){
+    const gen & b=f._VECTptr->front();
+    if (b.type==_IDNT || b.type==_SYMB)
+      return true;
+  }
+  return has_symbolic_radical(f);
+}
+
 // The budget (RTC based, so 2 means 1 to 2 s) is enforced by xcas::timed_apply (kdisplay.cc).
-// Small results get 3: simplify(diff(sqrt(y/4),y)) needs about 2 s.
+// With a radical of a non-numeric expression, simplify() is slow, rationalizes (sqrt(x)/(2*x)
+// for 1/(2*sqrt(x))) and once exhausted the memory: diff(sqrt(x^2+1),x) exited the app after
+// 16 s. ratnormal treats the radical as a symbol instead: 2*x/(2*sqrt(x^2+1)) -> x/sqrt(x^2+1).
+// Small results get 3: simplify((x^2-1)/(x-1)) style results need up to 2 s.
 static giac::gen timed_simplify(const giac::gen & g){
   using namespace giac;
   if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,200)>=200)
@@ -533,7 +561,7 @@ static giac::gen timed_simplify(const giac::gen & g){
   if (!simplify_candidate(g))
     return g;
   bool timeout;
-  gen s=xcas::timed_apply(at_simplify,g,taille(g,40)<40?3:2,timeout,contextptr);
+  gen s=xcas::timed_apply(has_symbolic_radical(g)?at_ratnormal:at_simplify,g,taille(g,40)<40?3:2,timeout,contextptr);
   if (timeout || is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
     return g;
   return s;
