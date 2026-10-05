@@ -84,14 +84,16 @@ void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int 
       }
       break;
     }
-    case MI_INTEGRAL: // a tall S: stem, hooks at both ends
-      mi_line(x+3,y+2,x+3,y+h-3,x0,y0,x1,y1,MI_INK);
-      mi_line(x+4,y+2,x+4,y+h-3,x0,y0,x1,y1,MI_INK);
-      mi_line(x+4,y+1,x+5,y,x0,y0,x1,y1,MI_INK);
-      mi_line(x+5,y,x+6,y,x0,y0,x1,y1,MI_INK);
-      mi_line(x+2,y+h-2,x+3,y+h-2,x0,y0,x1,y1,MI_INK);
-      mi_line(x,y+h-1,x+2,y+h-1,x0,y0,x1,y1,MI_INK);
+    case MI_INTEGRAL: { // a tall S: stem, hooks at both ends, 3 px beyond the box each way
+      const int ya=y-3>=y0?y-3:y0,yz=y+h+2<y1?y+h+2:y1-1;
+      mi_line(x+3,ya+2,x+3,yz-2,x0,y0,x1,y1,MI_INK);
+      mi_line(x+4,ya+2,x+4,yz-2,x0,y0,x1,y1,MI_INK);
+      mi_line(x+4,ya+1,x+5,ya,x0,y0,x1,y1,MI_INK);
+      mi_line(x+5,ya,x+7,ya,x0,y0,x1,y1,MI_INK);
+      mi_line(x+2,yz-1,x+3,yz-1,x0,y0,x1,y1,MI_INK);
+      mi_line(x,yz,x+2,yz,x0,y0,x1,y1,MI_INK);
       break;
+    }
     case MI_SIGMA:
       mi_line(x,y,x+w-1,y,x0,y0,x1,y1,MI_INK);
       mi_line(x,y+h-1,x+w-1,y+h-1,x0,y0,x1,y1,MI_INK);
