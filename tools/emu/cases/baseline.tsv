@@ -1,0 +1,18 @@
+# name	input   (typed with the KhiCAS key map; π = 2nd+^ key)
+# --- implicit multiplication (user pain point) ---
+impl_pi_paren	pi(x+1)
+impl_frac_pow	(2/3)2^(3/2)
+impl_paren_paren	(x+1)(y-1)
+impl_2pir_key	2πr
+impl_sincos	sin(x)cos(x)
+impl_xy	xy+1
+# --- ugly / unsimplified results (user pain point) ---
+pow_3_2	2^(3/2)
+unsimplified	(4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2
+diff_sqrt	diff(sqrt(y/4),y)
+# --- wrong numbers (assessment) ---
+print_1050000	1050000.0
+print_neg_half	-0.5
+iegcd_2_25	iegcd(2^25,3)
+# --- speed ---
+integrate_rational	integrate(1/(x^4+1),x)

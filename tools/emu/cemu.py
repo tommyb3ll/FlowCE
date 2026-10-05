@@ -73,18 +73,28 @@ class Emu:
     def run(self, ms):
         self.cmd(f'run {ms}'); self.ms += ms
 
-    def key(self, name, hold=80):
-        self.cmd(f'key {name} {hold}'); self.run(KEY_GAP_MS); self.ms += hold
+    def key(self, name, hold=80, settle=False):
+        """Press+release. With settle=True, keep running until the screen stops changing
+        (KhiCAS polls the keypad, so a press made while it is still redrawing is lost).
+        Returns the settle latency in emulated ms (time until the last screen change)."""
+        self.cmd(f'key {name} {hold}'); self.ms += hold
+        if not settle:
+            self.run(KEY_GAP_MS)
+            return 0
+        return self.wait_stable(step=20, stable=4, timeout=5000)
 
-    def keys(self, names):
-        for n in names:
-            self.key(n)
+    def keys(self, names, settle=False):
+        return [self.key(n, settle=settle) for n in names]
 
-    def type(self, text):
+    def type(self, text, settle=True):
+        """Type text with the KhiCAS key map; returns per-key settle latencies (ms)."""
+        lat = []
         for c in text:
             if c not in CHARKEYS:
                 raise ValueError(f'no key mapping for {c!r}')
-            self.keys(CHARKEYS[c])
+            lat += self.keys(CHARKEYS[c], settle=settle)
+        self.key_latencies = getattr(self, 'key_latencies', []) + lat
+        return lat
 
     def hash(self):
         return self.cmd('screen-hash').split()[-1]
@@ -163,7 +173,9 @@ def main(argv):
             elif op == 'key':
                 name, _, hold = arg.partition(':'); e.key(name, int(hold) if hold else 80)
             elif op == 'keys': e.keys(arg.split(','))
-            elif op == 'type': e.type(arg)
+            elif op == 'type':
+                lat = e.type(arg)
+                print(f'typed {len(arg)} chars: key latency max {max(lat)} ms, mean {sum(lat) // len(lat)} ms')
             elif op == 'shot': print('shot', e.shot(arg))
             elif op == 'send':
                 dest, _, path = arg.partition(':'); e.send(path, dest)
