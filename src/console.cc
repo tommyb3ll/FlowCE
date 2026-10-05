@@ -2079,6 +2079,42 @@ static void console_autoclose(Char * s){
 }
 
 // called when the input line is committed with EXE, before it goes to history and evaluation
+// An empty slot left in the line (a template's box: integrate(,x), sqrt(), ()/(), limit(f,x,),
+// or an operator at the end: 2+): its position, or -1. ENTER then moves there instead of
+// evaluating, like an online calculator that points at the missing box.
+static int console_empty_slot(const char * s){
+  const int n=strlen(s);
+  bool str=false;
+  for (int i=0;i<n;++i){
+    const char c=s[i];
+    if (c=='"' && (i==0 || s[i-1]!='\\'))
+      str=!str;
+    if (str)
+      continue;
+    if ((c=='(' || c==',') && i+1<n && (s[i+1]==',' || (c==',' && s[i+1]==')')))
+      return i+1;
+    if (c=='(' && i+1<n && s[i+1]==')'){
+      int b=i;
+      while (b>0 && ((s[b-1]>='a' && s[b-1]<='z') || (s[b-1]>='0' && s[b-1]<='9')))
+        --b;
+      if (b==i)
+        return i+1; // ()/(): an empty group
+      // a template's function with nothing inside: " name " in this list
+      const char * p=" sqrt abs surd integrate int diff sum limit exp ln log log10 sin cos tan ";
+      for (;(p=strchr(p,' '))!=0 && p[1];++p){
+        if (!strncmp(p+1,s+b,i-b) && p[1+i-b]==' ')
+          return i+1;
+      }
+    }
+  }
+  int e=n;
+  while (e>0 && s[e-1]==' ')
+    --e;
+  if (e>0 && !str && strchr("+-*/^",s[e-1]))
+    return e;
+  return -1;
+}
+
 static void console_prepare_input(){
   if (!Edit_Line || !Edit_Line[0])
     return;
@@ -2644,6 +2680,16 @@ int Console_GetKey(){
 
     if (key == KEY_CTRL_EXE){
       if (Current_Line == Last_Line){
+        const int slot=Edit_Line?console_empty_slot((const char *)Edit_Line):-1;
+        if (slot>=0 && !console_python_mode()){
+          const int sc=slot>COL_DISP_MAX-1?slot-(COL_DISP_MAX-1):0;
+          Line[Current_Line].start_col=sc;
+          Cursor.x=slot-sc;
+          Console_Disp(1);
+          console_disp_status(0); // F-key bar
+          statuslinemsg(lang?"remplir la case vide":"fill in the empty box",COLOR_RED);
+          continue;
+        }
         console_prepare_input();
         return Console_NewLine(LINE_TYPE_INPUT, 1);
       }

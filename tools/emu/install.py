@@ -5,7 +5,7 @@
 Usage (WSL): install.py [variant=en] [state=base] [shotdir=/tmp]
 Needs: $KB/out/<variant>/AppIns*.8xv (tools/dev/build.sh), $KB/emu/arTIfiCE.8xp, the ROM ($KHICAS_ROM).
 """
-import glob, os, sys
+import glob, os, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cemu import Emu, KB, ROM
 
@@ -33,6 +33,15 @@ try:
     e.key('clear'); e.run(300); e.os_fake()
     e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:KhiCAS
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen
+    # KhiCAS must be running: its F-key bar (bottom rows) is pink, the TI home screen's is white.
+    # (One build hung at startup on 2026-10-05 and the old script saved the state anyway.)
+    bmp = f'/tmp/install_bar_{os.getpid()}.bmp'
+    e.cmd(f'screenshot {bmp}')
+    d = open(bmp, 'rb').read(); off = struct.unpack_from('<I', d, 10)[0]
+    bar = d[off: off + 6 * 320 * 3]                                     # BMP rows are bottom-up
+    if bar.count(255) > len(bar) * 0.95:
+        e.shot(f'install_{state}_notstarted')
+        sys.exit('KhiCAS did not start (see install_%s_notstarted.png)' % state)
     print('installed', len(apps), 'AppIns ->', e.shot(f'install_{state}'))
     e.save(f'{KB}/emu/states/{state}.ce')
 finally:
