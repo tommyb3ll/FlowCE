@@ -135,3 +135,6 @@ flycheck_*.el
 
 # Python bytecode (dev tooling)
 __pycache__/
+
+# Claude Code agent worktrees (isolated scratch checkouts)
+.claude/
