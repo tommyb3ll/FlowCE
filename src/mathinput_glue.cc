@@ -44,6 +44,26 @@ void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int 
       }
       if (x<x0 || x+o.w>x1 || y-f.asc<y0 || y+f.desc>y1)
         break; // text is drawn whole or not at all
+      if (o.lit && (!strcmp(o.lit,"pi") || !strcmp(o.lit,"oo"))){
+        // drawn here in one glyph cell: text_print's pi is ~12 px wide and overlapped
+        // the next glyph, oo would be two letters
+        const int a=f.adv,s2=o.small?1:2,top=y-(o.small?6:8);
+        if (o.lit[0]=='p'){ // pi: a bar on two legs, digit height
+          drawRectangle(x,top,a-1,s2,MI_INK);
+          drawRectangle(x+(o.small?1:1),top,s2,y-top,MI_INK);
+          drawRectangle(x+a-1-s2-(o.small?0:1),top,s2,y-top,MI_INK);
+        }
+        else { // infinity: two loops side by side
+          const int m=y-(o.small?3:4),r=o.small?1:2,h2=a/2;
+          for (int lp=0;lp<2;++lp){
+            const int xl=x+lp*h2;
+            draw_line(xl,m-r,xl+h2-1,m-r,MI_INK);
+            draw_line(xl,m+r,xl+h2-1,m+r,MI_INK);
+            draw_line(xl+(lp?h2-1:0),m-r,xl+(lp?h2-1:0),m+r,MI_INK);
+          }
+        }
+        break;
+      }
       xcas::text_print(o.small?12:18,t,x,y+(o.small?3:4),MI_INK,COLOR_WHITE,0);
       break;
     }

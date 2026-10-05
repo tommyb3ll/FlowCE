@@ -2129,9 +2129,8 @@ static int console_empty_slot(const char * s){
 static void console_prepare_input(){
   if (!Edit_Line || !Edit_Line[0])
     return;
-  console_autoclose(Edit_Line);
-  khicas_implicit_mult(Edit_Line,EDIT_LINE_MAX); // after auto-close: balanced input
-  Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+  console_autoclose(Edit_Line); // the pre-pass (khicas_implicit_mult) runs in do_run, so the
+  Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line); // history keeps what was typed
 }
 
 // MATH key: the structures of an online calculator's keypad, one key away. Each template is
@@ -2806,8 +2805,9 @@ int Console_GetKey(){
     }
     if (const char * ptr=keytostring(key,keyflag,false)){
       if (ptr){
-        if (ti_value_key(key) && console_prev_is_value())
-          Console_Input((const Char *)"*"); // TI-style: 2[pi] -> 2*pi, x[sin] -> x*sin( (not xsin()
+        if (ti_value_key(key) && console_prev_is_value() && console_python_mode())
+          Console_Input((const Char *)"*"); // Python: 2[pi] -> 2*pi; otherwise the pre-pass in do_run
+                                            // does it and the input keeps reading 2pi
         const int pl=strlen(ptr);
         if (console_input2d() && pl<60 && (!strcmp(ptr,"^") || (pl>1 && ptr[pl-1]=='('))){
           char buf[64]; // 2D: ^ -> ^(), sin( -> sin(), the caret inside

@@ -1145,7 +1145,8 @@ void ti_sprint_double(char * ch,double d){
 
 void do_run(const char * s){
   int S=strlen(s);
-  char * buf=(char *)malloc(max(S+1,256));
+  const int cap=max(2*S+32,256); // room for the paper-notation pre-pass (* := parentheses)
+  char * buf=(char *)malloc(cap);
   if (!buf){
     do_confirm("Memory full");
     return;
@@ -1162,6 +1163,9 @@ void do_run(const char * s){
         buf[i]=c;
     }
   }
+  // paper notation and TI implicit multiplication (2sinx -> 2*sin(x), f(x)=... -> f(x):=...)
+  // here and not in the console, so that the history keeps what the user typed
+  khicas_implicit_mult(buf,cap);
   S=strlen(buf);
   if (S==3 && buf[0]=='[' && buf[2]==']' && buf[1]>='A' && buf[1]<='I'){
     string mats=get_timatrix(buf[1]-'A');
@@ -1245,12 +1249,8 @@ void do_run(const char * s){
     }
     if (defn){
       giac::logptr(savelog,contextptr);
-      if (g.is_symb_of_sommet(giac::at_program)){ // f(x)=x^2+1 rather than (x)->x^2+1
-        const char * rhs=strstr(buf,":=")+2;
-        while (*rhs==' ')
-          ++rhs;
-        msg=std::string(buf,defn)+"="+rhs;
-      }
+      if (g.is_symb_of_sommet(giac::at_program)) // the 2D input above shows the function
+        msg=std::string(buf,defn)+" defined";
     }
     int rows2d=0;
     giac::gen lay2d;
