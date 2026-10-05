@@ -5,6 +5,7 @@
 #include "ui_gfx.h"
 #include "ui_font.h"
 #include "ui_fontdata.h"
+#include <stdlib.h>
 
 const unsigned char ui_math_sizes[UI_NSIZES] = {34, 28, 24, 20, 17, 14, 12, 10};
 static const ui_face * const MU[UI_NSIZES] = {&ui_mu34, &ui_mu28, &ui_mu24, &ui_mu20, &ui_mu17, &ui_mu14, &ui_mu12, &ui_mu10};
@@ -74,13 +75,14 @@ static int width_at(int lv, const char * s, int n, int st) {
 WFN(0) WFN(1) WFN(2) WFN(3) WFN(4) WFN(5) WFN(6) WFN(7)
 static const mi_wfn WF[UI_NSIZES] = {wf0, wf1, wf2, wf3, wf4, wf5, wf6, wf7};
 
-static mi_metrics MET[2][UI_NSIZES];
+static mi_metrics (*MET)[UI_NSIZES]; // heap: KhiCAS's static data must fit pixelShadow (8400 B)
 static int met_ready;
 
 const mi_metrics & ui_math_metrics(int lv, int flags) {
   if (lv < 0) lv = 0;
   if (lv >= UI_NSIZES) lv = UI_NSIZES - 1;
   if (!met_ready) {
+    MET = (mi_metrics (*)[UI_NSIZES])calloc(2 * UI_NSIZES, sizeof(mi_metrics));
     for (int k = 0; k < 2; ++k)
       for (int l = 0; l < UI_NSIZES; ++l) {
         mi_metrics & m = MET[k][l];
@@ -114,6 +116,22 @@ int ui_math_fit(const char * s, int n, int caret, int maxlv, int w, int h, int f
     mi_build(s, n, caret, ui_math_metrics(lv, flags), L);
     if ((L.width <= w && L.asc + L.desc <= h) || lv == UI_NSIZES - 1) return lv;
   }
+}
+
+int ui_math_refit(const char * s, int n, int caret, int maxlv, int lv0, int w, int h, int flags, mi_layout & L) {
+  int lv = lv0 < maxlv ? maxlv : lv0 >= UI_NSIZES ? UI_NSIZES - 1 : lv0;
+  mi_build(s, n, caret, ui_math_metrics(lv, flags), L);
+  if (L.width > w || L.asc + L.desc > h) // too big now: step down from here
+    return lv == UI_NSIZES - 1 ? lv : ui_math_fit(s, n, caret, lv + 1, w, h, flags, L);
+  if (lv > maxlv) { // room for one size up? (widths scale about linearly; 8% margin)
+    int a = ui_math_sizes[lv], b = ui_math_sizes[lv - 1];
+    if ((long)L.width * b * 108 <= (long)w * a * 100 && (long)(L.asc + L.desc) * b * 108 <= (long)h * a * 100) {
+      mi_layout U;
+      mi_build(s, n, caret, ui_math_metrics(lv - 1, flags), U);
+      if (U.width <= w && U.asc + U.desc <= h) { L.ops.swap(U.ops); L.width = U.width; L.asc = U.asc; L.desc = U.desc; L.cx = U.cx; L.cy = U.cy; L.ch = U.ch; return lv - 1; }
+    }
+  }
+  return lv;
 }
 
 static void draw_text(const mi_op & o, const char * s, int lv, int x, int y, const unsigned char * r) {
@@ -216,3 +234,4 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
 void ui_math_caret(const mi_layout & L, int x, int y, int bank, int acc) {
   ui_fill(x + L.cx, y + L.cy - 1, 2, L.ch + 2, ui_col(bank, acc));
 }
+

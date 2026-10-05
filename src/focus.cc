@@ -4,6 +4,7 @@
 // large right after an evaluation. Cursor moves into the history select an entry (its input or
 // its result). All text is drawn with ui_math (STIX Two, 4 shades) and ui_font (Atkinson).
 #include <string.h>
+#include <stdlib.h>
 #include "console.h"           // Line[], Last_Line, Cursor, menus; maps std to ustl
 #include "focus.h"
 #include "ui_gfx.h"
@@ -34,12 +35,14 @@ static const unsigned char * ramp(int fg, int bg) { return ui_ramp(0, fg, bg); }
 
 // ------------------------------------------------------------------ fitted layouts (cached)
 struct fitc { const char * p; unsigned hash; signed char maxlv, lv; short maxw, maxh, flags, w, a, d; };
-enum { NFC = 24 };
-static fitc FC[NFC];
+enum { NFC = 72 }; // history lines + the hero: a miss costs 1-3 mi_build
+// heap, allocated on first use: KhiCAS's static data must fit the 8400 bytes of pixelShadow
+static fitc * FC;
 static int fcn;
 static unsigned shash(const char * s) { unsigned h = 5381; while (*s) h = h * 33 + (unsigned char)*s++; return h; }
 static fitc fitted(const char * s, int maxlv, int maxw, int maxh, int flags) {
   unsigned h = shash(s);
+  if (!FC) FC = (fitc *)calloc(NFC, sizeof(fitc));
   for (int i = 0; i < NFC; ++i) {
     const fitc & c = FC[i];
     if (c.p == s && c.hash == h && c.maxlv == maxlv && c.maxw == maxw && c.maxh == maxh && c.flags == flags)
@@ -96,10 +99,11 @@ static int ui_text(const ui_face * f, const char * s, int x, int base, int fg, i
 
 // ------------------------------------------------------------------ entries
 struct fent { short in, out, m0; short h, inh, outh, msgs; };
-static fent E[MAXE];
+static fent * E; // heap (see FC)
 static int NE;
 static void scan() {
   NE = 0;
+  if (!E) E = (fent *)calloc(MAXE, sizeof(fent));
   for (int l = 0; l < Last_Line; ++l) {
     int t = Line[l].type;
     if (t == LINE_TYPE_CONT || !Line[l].str) continue;
@@ -183,16 +187,14 @@ static void key_hint(int x, int base, const char * k, const char * label) {
 }
 
 static void draw_hero(int y0, int h) {
-  ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
-  ui_fill(0, y0, UI_W, h, col(UC_BG));
   const char * s = (const char *)Console_GetEditLine();
   int caret = console_caret();
-  if (s && *s) {
-    if (!console_edit2d()) { // Python: plain text
-      ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
-    } else {
-      mi_layout L;
-      hero_lv = ui_math_fit(s, strlen(s), caret, HERO_LV, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
+  if (s && *s && console_edit2d()) { // the layout first, then clear and draw at once (no blank frame)
+    mi_layout L;
+    hero_lv = ui_math_refit(s, strlen(s), caret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
+    ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
+    ui_fill(0, y0, UI_W, h, col(UC_BG));
+    {
       int x = (UI_W - L.width) / 2, base = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
       if (L.width > 296) { // caret kept in view
         x = UI_W / 2 - L.cx;
@@ -202,6 +204,13 @@ static void draw_hero(int y0, int h) {
       ui_math_draw(L, s, hero_lv, x, base, 0, UC_INK, UC_BG, UC_ACC);
       if (caret >= 0) ui_math_caret(L, x, base, 0, UC_ACC);
     }
+    ui_noclip();
+    return;
+  }
+  ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
+  ui_fill(0, y0, UI_W, h, col(UC_BG));
+  if (s && *s) { // Python: plain text
+    ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
   } else if (hero_last && NE && E[NE - 1].out >= 0) {
     const fent & e = E[NE - 1];
     int top = y0 + 10;
@@ -326,7 +335,15 @@ void focus_bar(int keyflag) {
 // ------------------------------------------------------------------ the stage
 static int col_n, col_h, last_full_col_n = -1, last_hero_y = -1, last_mode = -1;
 
+static int fast_ok, last_LL = -1;
 void focus_disp(int mode) {
+  const char * es = (const char *)Console_GetEditLine();
+  int nonempty = es && *es;
+  if (!(mode & 1) && fast_ok && nonempty && console_caret() >= 0 && Last_Line == last_LL) {
+    draw_hero(last_hero_y, SBOT - last_hero_y); // typing: nothing above the edit line moved
+    return;
+  }
+  if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
   scan();
   int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // a history line, or -1
   int hist = cl >= 0 && cl < Last_Line && NE > 0;
@@ -358,12 +375,8 @@ void focus_disp(int mode) {
   }
   int hero_y = ST + col_h - scroll;
   if (!hist && hero_y < ST) hero_y = ST;
-  // typing: only the edit line changes (nothing above it moved)
-  if (!(mode & 1) && !hist && last_mode == 0 && col_n == last_full_col_n && hero_y == last_hero_y) {
-    draw_hero(hero_y, SBOT - hero_y);
-    return;
-  }
   last_mode = hist; last_full_col_n = col_n; last_hero_y = hero_y;
+  fast_ok = !hist && nonempty; last_LL = Last_Line;
   ui_set_theme(&ui_theme_paper); // cheap; repairs entries 128-255 if anything reset the palette
   focus_status();
   // entries, top to bottom (each draws its own background: no full clear, no flash)

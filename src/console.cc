@@ -3374,6 +3374,14 @@ static int console_edit_rows(const mi_layout & L){
 static bool console_input2d(){
   return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly && !console_python_mode();
 }
+// for focus.cc: label of F-key k (0-4) in layer 0 (plain), 1 (2nd) or 2 (alpha), unpadded
+const char * console_fkey_label(int layer,int k){
+  char * const t[15]={menu_f1,menu_f2,menu_f3,menu_f4,menu_f5,menu_f6,menu_f7,menu_f8,menu_f9,menu_f10,
+                      menu_f11,menu_f12,menu_f13,menu_f14,menu_f15}; // not static (see LOG: startup hang)
+  if (layer==0 && k==3) return (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT)?"forms":"chartab";
+  if (layer==0 && k==4) return lang?"Fichier":"File";
+  return t[(layer<0?0:layer>2?2:layer)*5+(k<0?0:k>4?4:k)];
+}
 // for focus.cc: the edit line is math (not Python); the caret in it (-1: the cursor is in the history)
 bool console_edit2d(){ return Edit_Line && !console_python_mode(); }
 int console_caret(){ return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly ? Current_Col : -1; }

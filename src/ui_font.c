@@ -52,21 +52,23 @@ int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned c
   int x0 = x + g->ox, y0 = y + g->oy, w = g->w, h = g->h;
   if (x0 >= ui_cx1 || y0 >= ui_cy1 || x0 + w <= ui_cx0 || y0 + h <= ui_cy0 || !w) return g->adv;
   const unsigned char * b = f->bits + g->off;
-  int i = 0, n = w * h;
-  for (int yy = 0; yy < h; ++yy) {
+  int xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w; // visible columns
+  unsigned i = 0;
+  for (int yy = 0; yy < h; ++yy, i += w) {
     int sy = y0 + yy;
-    if (sy < ui_cy0 || sy >= ui_cy1) { i += w; continue; }
-    unsigned char * row = ui_fb + sy * UI_W;
-    for (int xx = 0; xx < w; ++xx, ++i) {
-      int lv = (b[i >> 2] >> (6 - 2 * (i & 3))) & 3, sx = x0 + xx;
-      if (sx < ui_cx0 || sx >= ui_cx1) continue;
-      if (!lv) { if (opaque) row[sx] = ramp[0]; continue; }
-      unsigned char * p = row + sx, o = *p;
+    if (sy < ui_cy0 || sy >= ui_cy1) continue;
+    unsigned char * row = ui_fb + sy * UI_W + x0;
+    for (int xx = xa; xx < xb; ++xx) {
+      unsigned k = i + xx;
+      unsigned char byte = b[k >> 2];
+      if (!byte && !opaque) { xx += 3 - (k & 3); continue; } // 4 transparent pixels
+      int lv = (byte >> (6 - 2 * (k & 3))) & 3;
+      if (!lv) { if (opaque) row[xx] = ramp[0]; continue; }
+      unsigned char * p = row + xx, o = *p;
       int ol = o == ramp[3] ? 3 : o == ramp[2] ? 2 : o == ramp[1] ? 1 : 0; // overlaps keep the darker shade
       if (lv > ol) *p = ramp[lv];
     }
   }
-  (void)n;
   return g->adv;
 }
 

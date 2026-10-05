@@ -13,6 +13,9 @@ const mi_metrics & ui_math_metrics(int lv, int flags);
 // lays out s[0,n) at the largest level <= maxlv that fits w x h (the smallest level otherwise);
 // returns the level
 int ui_math_fit(const char * s, int n, int caret, int maxlv, int w, int h, int flags, mi_layout & L);
+// the same starting from level lv0 (the previous one): one build when the size does not change;
+// grows only when the layout would clearly fit one size up
+int ui_math_refit(const char * s, int n, int caret, int maxlv, int lv0, int w, int h, int flags, mi_layout & L);
 // draws L (built at level lv) with its baseline at y and left edge at x; ink over bg in bank;
 // placeholders in acc
 void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int bank, int ink, int bg, int acc);

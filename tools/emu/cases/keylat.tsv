@@ -1,0 +1,2 @@
+k_int	integrate(x^2,x)
+k_sqrt	sqrt(1-x^2)

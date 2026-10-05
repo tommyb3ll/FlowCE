@@ -156,15 +156,30 @@ void ui_seg16(int ax, int ay, int bx, int by, int th, const unsigned char * ramp
   if (y1 >= ui_cy1) y1 = ui_cy1 - 1;
   long dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
   long L = isqrt(len2);
-  for (int py = y0; py <= y1; ++py)
+  // shade thresholds on the distance d (1/8 px): 3 if d <= half-2, 2 if <= half+1, 1 if <= half+3;
+  // compared without square roots or divisions: |cross| against T*L inside the segment, the
+  // squared distance against T*T past its ends. Everything is updated by additions along a row.
+  long t3 = half - 2, t2 = half + 1, t1 = half + 3;
+  long c3 = t3 * L, c2 = t2 * L, c1 = t1 * L, s3 = t3 < 0 ? -1 : t3 * t3, s2 = t2 * t2, s1 = t1 * t1;
+  for (int py = y0; py <= y1; ++py) {
+    long cx = x0 * 8 + 4 - ax, cy = py * 8 + 4 - ay;
+    long t = cx * dx + cy * dy, cr = cx * dy - cy * dx;
+    long da = cx * cx + cy * cy, ex = cx - dx, ey = cy - dy, db = ex * ex + ey * ey;
+    unsigned char * row = ui_fb + py * UI_W;
     for (int px = x0; px <= x1; ++px) {
-      long cx = px * 8 + 4 - ax, cy = py * 8 + 4 - ay, t = cx * dx + cy * dy;
-      int d;
-      if (len2 == 0 || t <= 0) d = isqrt(cx * cx + cy * cy);
-      else if (t >= len2) { long ex = cx - dx, ey = cy - dy; d = isqrt(ex * ex + ey * ey); }
-      else { long cr = cx * dy - cy * dx; if (cr < 0) cr = -cr; d = (int)(cr / L); }
-      put(px, py, edge_level(d - half), ramp);
+      int lv;
+      if (len2 == 0 || t <= 0) lv = da <= s3 ? 3 : da <= s2 ? 2 : da <= s1 ? 1 : 0;
+      else if (t >= len2) lv = db <= s3 ? 3 : db <= s2 ? 2 : db <= s1 ? 1 : 0;
+      else { long a = cr < 0 ? -cr : cr; lv = a <= c3 ? 3 : a <= c2 ? 2 : a <= c1 ? 1 : 0; }
+      if (lv) {
+        unsigned char * p = row + px, o = *p;
+        int ol = o == ramp[3] ? 3 : o == ramp[2] ? 2 : o == ramp[1] ? 1 : 0;
+        if (lv > ol) *p = ramp[lv];
+      }
+      t += 8 * dx; cr += 8 * dy;              // next pixel: cx += 8
+      da += 16 * cx + 64; db += 16 * ex + 64; cx += 8; ex += 8;
     }
+  }
 }
 
 void ui_poly16(const int * xy, int n, int th, const unsigned char * ramp) {
