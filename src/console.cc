@@ -3399,9 +3399,14 @@ void console_displine(int i,int redraw_mode){
     int head=l;
     while (head>0 && Line[head].type==LINE_TYPE_CONT)
       --head;
-    if (Line[head].type==LINE_TYPE_CONT || (head!=l && i>0) || (redraw_mode==0 && Current_Line!=head))
-      return; // orphan rows (first line scrolled out of the history), drawn with the head, or
-              // a minimal redraw (typing) that leaves the history as it is
+    if (Line[head].type==LINE_TYPE_CONT || head!=l || (redraw_mode==0 && Current_Line!=head)){
+      // orphan rows (first line scrolled out of the history), rows drawn with their head, a
+      // block whose first row is scrolled off the top (left blank rather than sliced), or a
+      // minimal redraw (typing) that leaves the history as it is
+      if (head<Start_Line && (redraw_mode & 1)==0) // rows of a block cut at the top: blank
+        drawRectangle(0,STATUS_AREA_PX+i*vfontsize,LCD_WIDTH_PX,vfontsize,_WHITE);
+      return;
+    }
     int k=1;
     while (head+k<=Last_Line && Line[head+k].type==LINE_TYPE_CONT)
       ++k;
