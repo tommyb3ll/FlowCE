@@ -544,7 +544,12 @@ static giac::gen auto_simplify(const giac::gen & g){
     }
   }
   if (is_undef(s) || s.type==_STRNG || taille(s,1000)>=taille(g,1000)) // only if simpler: pi*(x+1) stays
-    return g;
+    s=g;
+  if (!trig && xcas::has_radical(s)){ // after a u-substitution: (p/u)*u^(3/2), not p*sqrt(u)
+    const gen m=xcas::merge_sqrt(s,contextptr);
+    if (!(m==s))
+      return m;
+  }
   return s;
 }
 
@@ -609,7 +614,7 @@ static int console_rows2d(const giac::gen & g,giac::gen & lay){
   if (xcas::ispnt(g))
     return 0;
 #endif
-  lay=xcas::history_layout(g,H2D_W,5*CONSOLE_ROW_PX-2,contextptr);
+  lay=xcas::history_layout(g,H2D_W,7*CONSOLE_ROW_PX-2,contextptr); // 7 rows: asin(x/3) in a fraction
   if (is_undef(lay))
     return 0;
   return (xcas::Equation_total_size(lay).dy+2+CONSOLE_ROW_PX-1)/CONSOLE_ROW_PX;
@@ -673,6 +678,8 @@ void console_cycle_form(int l){
       continue;
     statuslinemsg("computing...");
     r=(*ops[form_idx-1])(g,contextptr);
+    if (ops[form_idx-1]==at_factor && !is_undef(r) && r.type!=_STRNG)
+      r=xcas::merge_sqrt(r,contextptr); // (1-25*x^2)^(3/2), not (5*x+1)*(5*x-1)*sqrt(...)
     if (!is_undef(r) && r.type!=_STRNG){
       const std::string rt=r.print(contextptr);
       if (rt!=cur && rt!=*form_orig)
