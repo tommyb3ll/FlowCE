@@ -103,6 +103,17 @@ class Emu:
                 raise ValueError(f'no key mapping for {c!r}')
             lat += self.keys(CHARKEYS[c], settle=settle)
             i += 1
+            # 2D input: ^ opens an exponent template; as a user would, leave it with RIGHT after a
+            # one-token exponent (x^2+1). ^(...) needs nothing: ( reuses the group, ) leaves it.
+            if c == '^' and i < len(text) and text[i] not in '({':
+                j = i
+                while j < len(text) and (text[j].isalnum() or text[j] in '.π'):
+                    j += 1
+                if j > i:
+                    for cj in text[i:j]:
+                        lat += self.keys(CHARKEYS[cj], settle=settle)
+                    lat += self.keys(['right'], settle=settle)
+                    i = j
         self.key_latencies = getattr(self, 'key_latencies', []) + lat
         return lat
 

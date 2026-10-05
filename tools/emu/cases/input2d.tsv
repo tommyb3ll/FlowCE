@@ -1,0 +1,13 @@
+# 2D input typed as a MathPrint user would: templates and arrows (one fresh state per case)
+frac_key	{alpha,yequ}x+1{down}x-1
+frac_menu	{math}1x^2{down}2
+pow_exit	x^3+1
+sqrt_key	{2nd,sq}2{right}+1
+int_indef	{math}4x^2
+int_def	{math}5x^2{down}0{up}{up}1
+int_enter	{math}5x^2{enter}0{enter}1
+diff_tmpl	{math}6x^3
+bs_div	1/{del}2
+bs_pow	x^{del}+1
+sin_key	{sin}π/6
+paren	(x+1)(x-1)

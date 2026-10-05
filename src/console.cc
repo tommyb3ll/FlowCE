@@ -18,6 +18,7 @@ namespace xcas {
 #define std ustl
 #endif
 using namespace std;
+#include "mathinput.h" // after "#define std ustl": its vector is uSTL's
 
 #ifdef XLIGHT
 //const int lang=1;
@@ -89,6 +90,16 @@ int dconsole_mode=1; // 0 disables dConsole commands
 #define Current_Line (Start_Line + Cursor.y)
 #define Current_Col (Line[Cursor.y + Start_Line].start_col + Cursor.x)
 static bool console_in_block(int l); // part of a result drawn in 2D
+
+// MathPrint-style input (mathinput.cc, mathinput_glue.cc): the edit line is shown as 2D math
+// with the caret inside; editing stays on the 1D text (giac syntax), structure keys insert
+// templates (/ -> /(), ^ -> ^(), sin -> sin()), arrows and Backspace follow the 2D layout.
+extern const mi_metrics mi_device_metrics;
+void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int x1,int y1,bool caret);
+static bool console_input2d();
+static void console_set_caret(int p);
+static int input2d_rows=1; // rows of the 2D edit line at the last full redraw
+static int console_rows_of(const mi_layout & L);
 
 int xthetat;
 
@@ -2209,6 +2220,31 @@ int Console_GetKey(){
       Console_Disp(0);
       continue;
     }
+    // 2D input: ( inserts () with the caret inside, ) steps over a ) already there; ( right
+    // after an empty exponent ^(|) reuses its group (2^(3/2) typed as usual). / stays linear:
+    // 1/2+1 is 1/2 plus 1 (as on a TI), still drawn as a stacked fraction.
+    if (console_input2d() && (key=='(' || key==')')){
+      const char * s=(const char *)Edit_Line;
+      const int p=Current_Col;
+      if (key==')' && s[p]==')')
+        console_set_caret(p+1);
+      else if (key=='(' && p>=2 && s[p-2]=='^' && s[p-1]=='(' && s[p]==')')
+        ;
+      else {
+        Console_Input((const Char *)(key=='('?"()":")"));
+        if (key=='(')
+          Console_MoveCursor(CURSOR_LEFT); // inside the new ()
+      }
+      Console_Disp(0);
+      continue;
+    }
+    if (console_input2d() && key==KEY_CTRL_F11){ // ALPHA Y= (n/d on a TI): fraction template
+      Console_Input((const Char *)"()/()");
+      for (int k=0;k<4;++k)
+        Console_MoveCursor(CURSOR_LEFT);
+      Console_Disp(0);
+      continue;
+    }
     if (
         // key >= '.' && key <= '9'
         key>=' ' && key<=126
@@ -2579,6 +2615,16 @@ int Console_GetKey(){
       Console_Disp(1);
       continue;
     }
+    if (console_input2d() && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT || key==KEY_CTRL_UP || key==KEY_CTRL_DOWN)){
+      const char * s=(const char *)Edit_Line;
+      const int dir=key==KEY_CTRL_LEFT?0:key==KEY_CTRL_RIGHT?1:key==KEY_CTRL_UP?2:3;
+      const int p=mi_move(s,strlen(s),Current_Col,dir,mi_device_metrics);
+      if (p>=0){ // inside the 2D input; -1: up/down leave it (history, completion)
+        console_set_caret(p);
+        Console_Disp(0);
+        continue;
+      }
+    }
     if (key == KEY_CTRL_UP){
       int prevcursor=Cursor.y,prevstart=Start_Line;
       // redraw current line without selection console_displine();
@@ -2691,7 +2737,18 @@ int Console_GetKey(){
           continue;
         }
         console_prepare_input();
-        return Console_NewLine(LINE_TYPE_INPUT, 1);
+        int rows=1;
+        if (!console_python_mode()){ // rows of the input drawn in 2D in the history
+          mi_layout L;
+          mi_build((const char *)Edit_Line,strlen((const char *)Edit_Line),-1,mi_device_metrics,L);
+          rows=console_rows_of(L);
+        }
+        const int r=Console_NewLine(LINE_TYPE_INPUT, 1);
+        for (int k=1;k<rows && r==CONSOLE_NEW_LINE_SET;++k){
+          Console_Output((const Char *)"\x01");
+          Console_NewLine(LINE_TYPE_CONT,1);
+        }
+        return r;
       }
       tmp = Line[Current_Line].str;
 
@@ -2704,6 +2761,37 @@ int Console_GetKey(){
       return Console_Input(tmp);
     }
 
+    if (key == KEY_CTRL_DEL && console_input2d()){
+      char * s=(char *)Edit_Line;
+      const int len=strlen(s);
+      int from,to,p=Current_Col;
+      const bool name=p>=2 && ((s[p-2]>='a' && s[p-2]<='z') || (s[p-2]>='A' && s[p-2]<='Z') || (s[p-2]>='0' && s[p-2]<='9'));
+      if (p>=2 && p<len && (s[p-2]=='/' || s[p-2]=='^') && s[p-1]=='(' && s[p]==')'){
+        from=p-2; // x/(|) or x^(|): the fraction or power goes, x stays (as Symbolab)
+        to=p+1;
+        p=from;
+      }
+      else if (p>=1 && s[p-1]=='/'){ // a fraction bar typed with the / key: deleted like a char
+        from=p-1;
+        to=p;
+        p=from;
+      }
+      else if (p>=1 && p<len && s[p-1]=='(' && s[p]==')' && !name){
+        from=p-1; // an empty () group
+        to=p+1;
+        p=from;
+      }
+      else
+        p=mi_backspace(s,len,p,from,to,mi_device_metrics);
+      if (to>from){ // structure-aware: a glyph, or an empty template as a whole
+        memmove(s+from,s+to,len-to+1);
+        Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+        console_changed=1;
+      }
+      console_set_caret(p);
+      Console_Disp(0);
+      continue;
+    }
     if (key == KEY_CTRL_DEL){
       int ret=Console_Backspace();
       //if (ret!=CONSOLE_SUCCEEDED) return ret;
@@ -2720,7 +2808,16 @@ int Console_GetKey(){
       if (ptr){
         if (ti_value_key(key) && console_prev_is_value())
           Console_Input((const Char *)"*"); // TI-style: 2[pi] -> 2*pi, x[sin] -> x*sin( (not xsin()
-	Console_Input((const Char *)ptr);
+        const int pl=strlen(ptr);
+        if (console_input2d() && pl<60 && (!strcmp(ptr,"^") || (pl>1 && ptr[pl-1]=='('))){
+          char buf[64]; // 2D: ^ -> ^(), sin( -> sin(), the caret inside
+          strcpy(buf,ptr);
+          strcat(buf,ptr[pl-1]=='('?")":"()");
+          Console_Input((const Char *)buf);
+          Console_MoveCursor(CURSOR_LEFT);
+        }
+        else
+	  Console_Input((const Char *)ptr);
         if (key==KEY_CTRL_CATALOG || key==KEY_CTRL_SOLVE)
           Console_Disp(1);
         else
@@ -3243,10 +3340,59 @@ void Print(const Char * s,int color,bool colorsyntax){
 
 // a line that belongs to a result drawn in 2D: its first line and LINE_TYPE_CONT rows
 static bool console_in_block(int l){
-  return l<=Last_Line && (Line[l].type==LINE_TYPE_CONT || (Line[l].type==LINE_TYPE_OUTPUT && l<Last_Line && Line[l+1].type==LINE_TYPE_CONT));
+  if (l>=Last_Line || l<0)
+    return false;
+  if (Line[l].type==LINE_TYPE_CONT || (Line[l].type==LINE_TYPE_OUTPUT && Line[l+1].type==LINE_TYPE_CONT))
+    return true;
+  return Line[l].type==LINE_TYPE_INPUT && Line[l].readonly && !console_python_mode(); // inputs: 2D
+}
+
+// rows a 2D input takes in the console
+static int console_rows_of(const mi_layout & L){
+  int k=(L.asc+L.desc+1+vfontsize-1)/vfontsize; // 1 px margin: a plain line takes one row
+  return k<1?1:(k>LINE_DISP_MAX-2?LINE_DISP_MAX-2:k);
+}
+// The edit box has at least 3 rows (NumWorks-like input field, the expression vertically
+// centered): fractions, powers, roots, integrals with bounds fit, so typing them does not
+// change its height. A height change redraws the whole history, which is slow enough to lose
+// keys typed meanwhile (os_GetCSC keeps no key typed during a redraw).
+static const int INPUT2D_MIN_ROWS=3;
+static int console_edit_rows(const mi_layout & L){
+  const int k=console_rows_of(L);
+  return k<INPUT2D_MIN_ROWS?INPUT2D_MIN_ROWS:k;
+}
+
+static bool console_input2d(){
+  return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly && !console_python_mode();
+}
+
+static void console_set_caret(int p){
+  const int sc=p>COL_DISP_MAX-1?p-(COL_DISP_MAX-1):0;
+  Line[Current_Line].start_col=sc;
+  Cursor.x=p-sc;
+}
+
+// the edit line in 2D on rows i.. (input2d_rows of them), left-aligned, caret kept visible
+static void console_draw_input2d(int i){
+  mi_layout L;
+  const char * s=(const char *)Edit_Line;
+  mi_build(s,strlen(s),Current_Col,mi_device_metrics,L);
+  const int top=STATUS_AREA_PX+i*vfontsize,height=input2d_rows*vfontsize;
+  drawRectangle(0,top,LCD_WIDTH_PX,height,_WHITE);
+  int bx=4;
+  if (L.cx+bx>LCD_WIDTH_PX-8)
+    bx=LCD_WIDTH_PX-8-L.cx; // horizontal scroll to the caret
+  const int by=top+(height-(L.asc+L.desc))/2+L.asc; // vertically centered in the box
+  mi_draw(L,s,bx,by,0,top+1,LCD_WIDTH_PX,top+height,true);
+  if (i>0) // a light line between the history and the input
+    draw_line(0,top,LCD_WIDTH_PX-1,top,0xC618);
 }
 
 void console_displine(int i,int redraw_mode){
+  if (i==Cursor.y && console_input2d()){
+    console_draw_input2d(i);
+    return;
+  }
 #ifdef WITH_EQW
   const int l=i+Start_Line;
   if (console_in_block(l)){ // a 2D result: drawn once, from its first visible row
@@ -3262,7 +3408,22 @@ void console_displine(int i,int redraw_mode){
     const int top=STATUS_AREA_PX+(i-(l-head))*vfontsize,height=k*vfontsize,ymax=STATUS_AREA_PX+LINE_DISP_MAX*vfontsize;
     const int ymin=top<STATUS_AREA_PX?STATUS_AREA_PX:top;
     drawRectangle(0,ymin,LCD_WIDTH_PX,(top+height<ymax?top+height:ymax)-ymin,_WHITE);
-    if (top+height>ymax || !console_draw2d((const char *)Line[head].str,top,height,ymin)){
+    bool drawn=false;
+    if (top+height<=ymax && Line[head].type==LINE_TYPE_INPUT){ // an input, as it was typed in 2D
+      mi_layout L;
+      const char * s=(const char *)Line[head].str;
+      mi_build(s,strlen(s),-1,mi_device_metrics,L);
+      if (L.asc+L.desc+1<=height && L.width<=LCD_WIDTH_PX-4){
+        mi_draw(L,s,2,top+1+L.asc,0,ymin,LCD_WIDTH_PX,top+height,false);
+        drawn=true;
+      }
+      else if (top>=STATUS_AREA_PX){ // too big for its rows (older session): the text
+        locate(1,i+1);
+        Print(Line[head].str,TEXT_COLOR_BLACK,true);
+        drawn=true;
+      }
+    }
+    if (!drawn && (top+height>ymax || Line[head].type==LINE_TYPE_INPUT || !console_draw2d((const char *)Line[head].str,top,height,ymin))){
       if (top>=STATUS_AREA_PX){ // cut at the bottom: the text in the first row
         locate(COL_DISP_MAX-Line[head].disp_len+1,i+1);
         Print(Line[head].str,TEXT_COLOR_BLACK,false);
@@ -3461,6 +3622,26 @@ void console_displine(int i,int redraw_mode){
 
 // redraw_mode bit0=1 means redraw all
 int Console_Disp(int redraw_mode){
+  if (console_input2d()){
+    mi_layout L;
+    const char * s=(const char *)Edit_Line;
+    mi_build(s,strlen(s),-1,mi_device_metrics,L);
+    const int k=console_edit_rows(L);
+    const int start=Last_Line-(LINE_DISP_MAX-k)>0?Last_Line-(LINE_DISP_MAX-k):0;
+    if (k!=input2d_rows || start!=Start_Line){ // the input grew or shrank: scroll the history
+      input2d_rows=k;
+      Start_Line=start;
+      Cursor.y=Last_Line-Start_Line;
+      if (!(redraw_mode & 1)){
+        // every row redraws itself (no full clear: it would erase the F-key bar, and redrawing
+        // that is slow enough to lose the next key), then the rows below the input are cleared
+        redraw_mode=2;
+        const int below=Cursor.y+k;
+        if (below<LINE_DISP_MAX)
+          drawRectangle(0,STATUS_AREA_PX+below*vfontsize,LCD_WIDTH_PX,(LINE_DISP_MAX-below)*vfontsize,_WHITE);
+      }
+    }
+  }
   if (redraw_mode & 1)
     os_fill_rect(0,STATUS_AREA_PX,LCD_WIDTH_PX,LCD_HEIGHT_PX-STATUS_AREA_PX,SDK_WHITE); // Bdisp_AllClr_VRAM();
   //dbg_printf("ConsoleDisp\n");
@@ -3505,7 +3686,10 @@ const Char *Console_GetLine()
       if (return_val == -2) return "kill";
     } while (return_val != CONSOLE_NEW_LINE_SET);
 
-  return Line[Current_Line - 1].str;
+  int l=Current_Line-1;
+  while (l>0 && Line[l].type==LINE_TYPE_CONT) // rows of the input drawn in 2D
+    --l;
+  return Line[l].str;
 }
 
 /*

@@ -579,7 +579,7 @@ static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x)
 // R3: results drawn in 2D in the console history. A result of k rows is its output line (the 1D
 // text: copy, history recall and saved sessions use it) followed by k-1 LINE_TYPE_CONT lines.
 // The layouts of the last drawn results are cached (parsing + layout take ~50-100 ms).
-static const int H2D_CACHE=4,H2D_W=LCD_WIDTH_PX-8;
+static const int H2D_CACHE=8,H2D_W=LCD_WIDTH_PX-8; // 8: the results a screen shows
 static const char * h2d_key[H2D_CACHE];
 static unsigned h2d_hash[H2D_CACHE];
 static giac::gen * h2d_layout; // allocated on first use: a static array of gens needs a static
