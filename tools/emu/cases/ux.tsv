@@ -1,0 +1,13 @@
+# name	input   ({key} = raw emulator key; π = 2nd+^)   expected history line -> result
+# (-) key inserts a minus sign: "-5+2" -> 3
+neg_key	{(-)}5+2
+# auto-close on EXE: "sin(pi/2" -> "sin(pi/2)" -> 1
+autoclose_sin	{sin}π/2
+# auto-close nested: "sqrt(2*(3+4" -> "sqrt(2*(3+4))" -> sqrt(14)
+autoclose_nested	{2nd,sq}2*(3+4
+# key token after a value gets '*': "2" [pi] -> "2*pi"
+key_star_pi	2π
+# letter then [sin] key: "x*sin(x)" (auto-closed)
+key_star_sin	x{sin}x
+# function key right after '(' must not get '*': "(sin(x))"
+key_no_star	({sin}x))

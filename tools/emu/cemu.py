@@ -87,12 +87,21 @@ class Emu:
         return [self.key(n, settle=settle) for n in names]
 
     def type(self, text, settle=True):
-        """Type text with the KhiCAS key map; returns per-key settle latencies (ms)."""
+        """Type text with the KhiCAS key map; `{name}` or `{n1,n2}` presses raw emulator keys
+        (e.g. `{(-)}5`, `{sin}`, `{2nd,^}`, `{up}`). Returns per-key settle latencies (ms)."""
         lat = []
-        for c in text:
+        i = 0
+        while i < len(text):
+            c = text[i]
+            if c == '{' and '}' in text[i + 1:]:
+                j = text.index('}', i + 1)
+                lat += self.keys(text[i + 1:j].split(','), settle=settle)
+                i = j + 1
+                continue
             if c not in CHARKEYS:
                 raise ValueError(f'no key mapping for {c!r}')
             lat += self.keys(CHARKEYS[c], settle=settle)
+            i += 1
         self.key_latencies = getattr(self, 'key_latencies', []) + lat
         return lat
 

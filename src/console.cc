@@ -1150,6 +1150,11 @@ int Console_MoveCursor(int direction){
 	      free(Line[Current_Line].str);
 	      Line[Current_Line].str = Edit_Line;
 	    }
+	  // back on the input line: restore the column the user left (UP clamps it to shorter history lines)
+	  if (Current_Line==Last_Line){
+	    Cursor.x=editline_cursor;
+	    if (Cursor.x>Line[Current_Line].disp_len) Cursor.x=Line[Current_Line].disp_len;
+	  }
 	}
       break;
     case CURSOR_LEFT:
@@ -1559,12 +1564,16 @@ bool inputdouble(const char * msg1,double & d){
 	break;
     }
     // cmdname in buf+l
-    const char * cmdname=buf+l,*cmdnameorig=cmdname;
-    l=strlen(cmdname);
-    const int res=doCatalogMenu(buf,(char *)"Index",0,cmdname);
-    if (!res)
+    const string prefix(buf+l);
+    // the catalog writes the chosen entry at the start of its output buffer: use a separate one
+    // (reusing buf made "1+fac" + factor insert "1+facr("), delete the typed prefix, insert the full name
+    char out[256];
+    out[0]=0;
+    const int res=doCatalogMenu(out,(char *)"Index",0,prefix.c_str());
+    if (!res || !out[0])
       return "";
-    return cmdname+l;
+    back+=prefix.size();
+    return out;
   }
 
   static string print_INT_(int i) {
@@ -1676,7 +1685,7 @@ const char * trig(){
     case KEY_CHAR_MINUS:
       return "-";
     case KEY_CHAR_PMINUS:
-      return "_";
+      return "-"; // TI users expect (-) to negate; "_" (units) stays in chartab/catalog
     case KEY_CHAR_MULT:
       return "*";
     case KEY_CHAR_DIV:
@@ -1947,6 +1956,75 @@ string run_periodic_table(){
   return s;
 }
 #endif
+
+// keys that insert a value or a function name (pi, x, ans(), sin(, sqrt(...): after a value they
+// mean a product on a TI, so an explicit '*' is inserted first (plain letter/digit keys are not
+// concerned, typing a command name letter by letter must keep working)
+static bool ti_value_key(int key){
+  switch (key){
+  case KEY_CHAR_PI: case KEY_CTRL_XTT: case KEY_CHAR_ANS: case KEY_CHAR_EXP: case KEY_CHAR_IMGNRY:
+  case KEY_CHAR_SIN: case KEY_CHAR_COS: case KEY_CHAR_TAN: case KEY_CHAR_ASIN: case KEY_CHAR_ACOS: case KEY_CHAR_ATAN:
+  case KEY_CHAR_ROOT: case KEY_CHAR_LN: case KEY_CHAR_LOG: case KEY_CHAR_EXPN: case KEY_CHAR_EXPN10:
+    return true;
+  }
+  return false;
+}
+
+// is the char before the cursor the end of a value (digit, letter, closing bracket, factorial)?
+static bool console_prev_is_value(){
+  if (Line[Current_Line].readonly)
+    return false;
+  int pos=Console_GetActualPos(Edit_Line,Current_Col);
+  if (pos<=0)
+    return false;
+  const char c=Edit_Line[pos-1];
+  return (c>='0' && c<='9') || (c>='a' && c<='z') || (c>='A' && c<='Z') || c==')' || c==']' || c=='!';
+}
+
+// Close brackets left open on the input line, as TI-OS does on ENTER: "sin(x" -> "sin(x)".
+// Lines with strings left open, a // comment or a mismatched closer are left untouched.
+static void console_autoclose(Char * s){
+  char stack[64];
+  int n=0,l=strlen(s);
+  bool str=false;
+  for (int i=0;i<l;++i){
+    const char c=s[i];
+    if (str){
+      if (c=='\\')
+        ++i;
+      else if (c=='"')
+        str=false;
+      continue;
+    }
+    if (c=='"'){ str=true; continue; }
+    if (c=='/' && s[i+1]=='/')
+      return;
+    if (c=='(' || c=='[' || c=='{'){
+      if (n==int(sizeof(stack)))
+        return;
+      stack[n++]=c;
+    }
+    else if (c==')' || c==']' || c=='}'){
+      if (!n || stack[--n]!=(c==')'?'(':c==']'?'[':'{'))
+        return;
+    }
+  }
+  if (str || !n || l+n>=EDIT_LINE_MAX)
+    return;
+  while (n){
+    const char o=stack[--n];
+    s[l++]=(o=='('?')':o=='['?']':'}');
+  }
+  s[l]=0;
+}
+
+// called when the input line is committed with EXE, before it goes to history and evaluation
+static void console_prepare_input(){
+  if (!Edit_Line || !Edit_Line[0])
+    return;
+  console_autoclose(Edit_Line);
+  Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+}
 
 int Console_GetKey(){
   unsigned int key, move_line, move_col;
@@ -2434,8 +2512,10 @@ int Console_GetKey(){
     }
 
     if (key == KEY_CTRL_EXE){
-      if (Current_Line == Last_Line)
+      if (Current_Line == Last_Line){
+        console_prepare_input();
         return Console_NewLine(LINE_TYPE_INPUT, 1);
+      }
       tmp = Line[Current_Line].str;
 
       int x=editline_cursor;
@@ -2461,6 +2541,8 @@ int Console_GetKey(){
     }
     if (const char * ptr=keytostring(key,keyflag,false)){
       if (ptr){
+        if (ti_value_key(key) && console_prev_is_value())
+          Console_Input((const Char *)"*"); // TI-style: 2[pi] -> 2*pi, x[sin] -> x*sin( (not xsin()
 	Console_Input((const Char *)ptr);
         if (key==KEY_CTRL_CATALOG || key==KEY_CTRL_SOLVE)
           Console_Disp(1);
@@ -2528,7 +2610,7 @@ const char * console_menu(int key,Char* cfg_,int active_app){
   }
   if(entry.count > 0) {
     const char * ret=nullptr;
-    ret = Console_Draw_FMenu(key, &entry,cfg,active_app);
+    ret = Console_Draw_FMenu(key, &entry,cfg_,active_app); // cfg_ = start of the config (cfg is at its end here)
     // cout << "console0 " << (uintptr_t) ret << endl;
     if (!ret) return ret;
     if (strcmp(ret,"char table")==0){
