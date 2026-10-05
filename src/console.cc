@@ -19,6 +19,7 @@ namespace xcas {
 #endif
 using namespace std;
 #include "mathinput.h" // after "#define std ustl": its vector is uSTL's
+#include "focus.h"
 
 #ifdef XLIGHT
 //const int lang=1;
@@ -97,6 +98,7 @@ static bool console_in_block(int l); // part of a result drawn in 2D
 extern const mi_metrics mi_device_metrics;
 void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int x1,int y1,bool caret);
 static bool console_input2d();
+static const mi_metrics & edit_metrics();
 static void console_set_caret(int p);
 static int input2d_rows=1; // rows of the 2D edit line at the last full redraw
 static int console_rows_of(const mi_layout & L);
@@ -1967,6 +1969,11 @@ void get_current_console_menu(string & menu,string & shiftmenu,string & alphamen
 }
 
 void console_disp_status(int keyflag){
+  if (focus_on){
+    focus_bar(keyflag);
+    set_xcas_status();
+    return;
+  }
   Console_FMenu_Init();
   string menu(" "),shiftmenu=menu,alphamenu; int menucolorbg=12345;
   get_current_console_menu(menu,shiftmenu,alphamenu,menucolorbg,0);
@@ -2617,7 +2624,7 @@ int Console_GetKey(){
     if (console_input2d() && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT || key==KEY_CTRL_UP || key==KEY_CTRL_DOWN)){
       const char * s=(const char *)Edit_Line;
       const int dir=key==KEY_CTRL_LEFT?0:key==KEY_CTRL_RIGHT?1:key==KEY_CTRL_UP?2:3;
-      const int p=mi_move(s,strlen(s),Current_Col,dir,mi_device_metrics);
+      const int p=mi_move(s,strlen(s),Current_Col,dir,edit_metrics());
       if (p>=0){ // inside the 2D input; -1: up/down leave it (history, completion)
         console_set_caret(p);
         Console_Disp(0);
@@ -2707,6 +2714,8 @@ int Console_GetKey(){
       }
       if (Edit_Line[0]=='\0'){
         //return Console_Input((const Char *)"restart");
+        if (focus_on && focus_clear_hero()) // first the large result goes up into the history
+          continue;
         chk_clearscreen();
         continue;
       }
@@ -2737,7 +2746,7 @@ int Console_GetKey(){
         }
         console_prepare_input();
         int rows=1;
-        if (!console_python_mode()){ // rows of the input drawn in 2D in the history
+        if (!console_python_mode() && !focus_on){ // rows of the input drawn in 2D in the history
           mi_layout L;
           mi_build((const char *)Edit_Line,strlen((const char *)Edit_Line),-1,mi_device_metrics,L);
           rows=console_rows_of(L);
@@ -2781,7 +2790,7 @@ int Console_GetKey(){
         p=from;
       }
       else
-        p=mi_backspace(s,len,p,from,to,mi_device_metrics);
+        p=mi_backspace(s,len,p,from,to,edit_metrics());
       if (to>from){ // structure-aware: a glyph, or an empty template as a whole
         memmove(s+from,s+to,len-to+1);
         Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
@@ -3365,6 +3374,11 @@ static int console_edit_rows(const mi_layout & L){
 static bool console_input2d(){
   return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly && !console_python_mode();
 }
+// for focus.cc: the edit line is math (not Python); the caret in it (-1: the cursor is in the history)
+bool console_edit2d(){ return Edit_Line && !console_python_mode(); }
+int console_caret(){ return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly ? Current_Col : -1; }
+// metrics of the edit line as drawn: the caret moves in 2D on the drawn geometry
+static const mi_metrics & edit_metrics(){ return focus_on ? focus_metrics() : mi_device_metrics; }
 
 static void console_set_caret(int p){
   const int sc=p>COL_DISP_MAX-1?p-(COL_DISP_MAX-1):0;
@@ -3389,6 +3403,11 @@ static void console_draw_input2d(int i){
 }
 
 void console_displine(int i,int redraw_mode){
+  if (focus_on){ // the Focus interface redraws the history as a whole (selection, scroll)
+    if (i==Cursor.y)
+      focus_disp(1);
+    return;
+  }
   if (i==Cursor.y && console_input2d()){
     console_draw_input2d(i);
     return;
@@ -3627,6 +3646,10 @@ void console_displine(int i,int redraw_mode){
 
 // redraw_mode bit0=1 means redraw all
 int Console_Disp(int redraw_mode){
+  if (focus_on){
+    focus_disp(redraw_mode);
+    return CONSOLE_SUCCEEDED;
+  }
   if (console_input2d()){
     mi_layout L;
     const char * s=(const char *)Edit_Line;

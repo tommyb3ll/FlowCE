@@ -847,8 +847,13 @@ int os_draw_string(int x,int y,int c,int bg,const char * s,int fake){
 }
 #endif
 
+#include "focus.h"
+int os_key_flags(void){ // for the Focus status bar: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
+  return (shift?1:0)|(alpha?2:0)|(alphalock?4:0)|(alpha==2?8:0);
+}
 static const int statuscolor=2016;
 void statuslinemsg(const char * msg,int warncolor){
+  if (focus_on){ focus_status_msg(msg); return; }
   os_fill_rect(0,0,154,16,SDK_BLACK);
   const int l=strlen(msg);
   if (l<=22)
@@ -880,6 +885,7 @@ void get_time(int *h,int *m){
 }
 
 void display_time(){
+  if (focus_on) return;
   const int h=rtc_Hours,m=rtc_Minutes;
   char msg[10];
   msg[0]=' ';
@@ -897,6 +903,7 @@ void display_time(){
 }
 
 void display_flags(){
+  if (focus_on){ focus_status(); return; }
   const char *msg=0;
   if (alpha==2){
     msg=alphalock?"alock ":"alpha ";
@@ -914,6 +921,7 @@ void display_flags(){
 }  
 
 void statusflags(){
+  if (focus_on){ focus_status(); return; }
   os_fill_rect(150,0,LCD_WIDTH_PX-150,16,SDK_BLACK);
   display_flags();
   os_draw_string_medium(150,-STATUS_AREA_PX,statuscolor,SDK_BLACK,os_get_angle_unit()?" rad CAS  ":" deg CAS  ",false);

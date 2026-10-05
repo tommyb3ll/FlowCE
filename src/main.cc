@@ -16,6 +16,7 @@
 #include "textGUI.h"
 #include "file.h"
 #include "main.h"
+#include "focus.h"
 #include <giac/kdisplay.h>
 #if !defined std
 #define std ustl
@@ -1268,9 +1269,9 @@ void do_run(const char * s){
       Console_Output(msg.c_str());
     else {
 #ifdef WITH_EQW
-    rows2d=console_rows2d(g,lay2d);
+    rows2d=focus_on?0:console_rows2d(g,lay2d); // Focus draws results itself
     giac::gen gs;
-    int do_logo_graph_eqw=rows2d?6:7; // drawn in 2D in the history: no viewer
+    int do_logo_graph_eqw=(rows2d || focus_on)?6:7; // drawn in 2D in the history: no viewer
     xcas::check_do_graph(g,gs,do_logo_graph_eqw,contextptr);
 #endif
 #ifdef WITH_PLOT
@@ -1468,6 +1469,7 @@ int main1(){
   //do_confirm("after init");
   //load_config();
   //{int K; ck_getkey(&K); sdk_end(); return 0;}
+  focus_init();
   Console_Disp(1);
   init_locale();
   // { statuslinemsg("after console init"); int key; GetKey(&key); }
@@ -1505,6 +1507,7 @@ int main1(){
     else {
       save_console_state_smem("session.xw"); 
       run(expr);
+      focus_evaluated();
     }
     //print_mem_info();
     Console_NewLine(LINE_TYPE_OUTPUT,1);

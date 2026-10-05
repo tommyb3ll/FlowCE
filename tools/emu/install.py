@@ -33,13 +33,16 @@ try:
     e.key('clear'); e.run(300); e.os_fake()
     e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:KhiCAS
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen
-    # KhiCAS must be running: its F-key bar (bottom rows) is pink, the TI home screen's is white.
+    # KhiCAS must be running: its F-key bar (bottom rows) is pink (classic) or its status bar is
+    # light (Focus); the TI home screen has a white bottom and a dark status bar.
     # (One build hung at startup on 2026-10-05 and the old script saved the state anyway.)
     bmp = f'/tmp/install_bar_{os.getpid()}.bmp'
     e.cmd(f'screenshot {bmp}')
     d = open(bmp, 'rb').read(); off = struct.unpack_from('<I', d, 10)[0]
     bar = d[off: off + 6 * 320 * 3]                                     # BMP rows are bottom-up
-    if bar.count(255) > len(bar) * 0.95:
+    top = d[off + 226 * 320 * 3: off + 236 * 320 * 3]                   # status bar rows 4-13
+    focus_ui = sum(top) > len(top) * 200                                # Focus: a light status bar
+    if bar.count(255) > len(bar) * 0.95 and not focus_ui:
         e.shot(f'install_{state}_notstarted')
         sys.exit('KhiCAS did not start (see install_%s_notstarted.png)' % state)
     print('installed', len(apps), 'AppIns ->', e.shot(f'install_{state}'))

@@ -74,7 +74,7 @@ enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP
 enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF,
        K_EMPTY, K_ROW, K_GROUP, K_CALL, K_FRAC, K_POW,
        K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP };
-enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16 };
+enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64 };
 
 struct mi_node {
   unsigned char k, f;     // kind, flags
@@ -107,6 +107,25 @@ static int namec(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'
 static int gstart(int i) { return (ch(i) & 0xC0) != 0x80; }  // not a UTF-8 continuation byte
 static int digits(int i) { while (i < L && digit(ch(i))) ++i; return i; }
 static const mi_font & fnt(int sm) { return sm ? M->small : M->big; }
+// decoration sizes; the classic values when the metrics leave them 0
+static int dflt(int v, int d) { return v ? v : d; }
+#define BAR dflt(M->bar, 1)
+#define GAP dflt(M->gap, 2)
+#define RAD dflt(M->rad, 6)
+#define ISW dflt(M->isw, 6)
+static int tw(int i, int n, int sm, int st) { // width of the buffer glyphs [i, i+n)
+  if (M->wf) return n > 0 ? M->wf(S + i, n, sm, st) : 0;
+  int w = 0;
+  for (int j = i; j < i + n; ++j)
+    if (j == i || gstart(j)) w += fnt(sm).adv;
+  return w;
+}
+static int lw(const char * lit, int ng, int sm) { // width of a literal of ng glyphs
+  if (!M->wf) return ng * fnt(sm).adv;
+  int n = 0;
+  while (lit[n]) ++n;
+  return M->wf(lit, n, sm, MI_SYM);
+}
 
 // ---------------------------------------------------------------- lexer
 static void lex(int i) {
@@ -237,6 +256,7 @@ static int pcall(int nm) { // name( args ): normal or special call
   if (k) { T[cl].k = k; T[cl].kid = T[nm].nx; T[cl].c = T[nm].c; } // name is structure
   else {
     T[cl].kid = nm;
+    T[nm].f |= F_FN; // a function name: upright
     if (na == 1 && T[t].k == K_EMPTY) T[t].f |= F_NOBOX; // f(): no box
   }
   return cl;
@@ -249,6 +269,7 @@ static int primary() {
     n = leaf(K_TEXT); lex(tb);
     if (namei(n, "pi")) T[n].k = K_PI;
     else if (namei(n, "infinity")) T[n].k = K_INF;
+    else T[n].f |= F_NAME;
     return tt == '(' ? pcall(n) : n;
   }
   return otype(k) >= 0 ? pgroup() : 0;
@@ -298,10 +319,15 @@ static int prow(int stopc) {
     if (!lv) break;
     if (need && (nb || k != ';')) { n = box(ta); add(h, t, n, n); } // missing left operand
     if (k == '/') { // numerator = current term
-      int first = tp ? T[tp].nx : h, num, fr, den;
+      int first = tp ? T[tp].nx : h, last = t, num, fr, den;
       if (tp) T[tp].nx = 0; else h = 0;
-      num = wrap(first, t);
       t = tp;
+      if (M->wf && first != last && T[first].k == K_OPU && S[T[first].c] == '-') { // -a/b: minus before the bar
+        int m = first;
+        first = T[m].nx; T[m].nx = 0;
+        add(h, t, m, m);
+      }
+      num = wrap(first, last);
       fr = newnode(K_FRAC, T[num].a, 0, 1);
       lex(tb);
       den = pfactor();
@@ -350,6 +376,16 @@ static int parse() {
 }
 
 // ---------------------------------------------------------------- measure / geometry
+static int style(int n, int k) { // style of the text of leaf n of kind k: names italic, calls upright
+  return k == K_TEXT && (T[n].f & F_NAME) && !(T[n].f & F_FN) ? (int)MI_IT : (int)MI_UP;
+}
+static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication
+  if (!(M->flags & MI_F_IMPLDOT)) return 0;
+  int j = T[n].b;
+  while (j < L && blank(ch(j))) ++j;
+  return j < L && (namec(ch(j)) || ch(j) == '(');
+}
+
 static int slot(int n, int i) { // i-th slot content of a 2D construct (hidden parens removed)
   int c = T[n].kid;
   if (T[n].k == K_POW) c = T[c].nx;
@@ -371,10 +407,11 @@ static int needp(int n) { // diff(f,x): f needs parentheses (top level + - = , .
 
 // display ops (only when building)
 static mi_layout * OUT;
-static void op(int code, int sm, int x, int y, int w, int h, int pos, int len, const char * lit) {
+static void op(int code, int sm, int x, int y, int w, int h, int pos, int len, const char * lit, int st = MI_UP) {
   if (!OUT) return;
   mi_op o;
   o.code = code; o.small = sm; o.x = x; o.y = y; o.w = w; o.h = h; o.pos = pos; o.len = len; o.lit = lit;
+  o.style = (unsigned char)st;
   OUT->ops.push_back(o);
 }
 
@@ -395,7 +432,7 @@ static void dec(int code, int sm, int x, int y, int w, int h) { // decoration bo
 static void dtext(const char * lit, int ng, int sm, int x, int y) { // literal text, ng glyphs
   const mi_font & f = fnt(sm);
   if (gm == GM_MEASURE) { by0 = mn(by0, y - f.asc); by1 = mx(by1, y + f.desc); }
-  else if (gm == GM_DECO) op(MI_TEXT, sm, ox + x, oy + y, ng * f.adv, f.asc + f.desc, -1, ng, lit);
+  else if (gm == GM_DECO) op(MI_TEXT, sm, ox + x, oy + y, lw(lit, ng, sm), f.asc + f.desc, -1, ng, lit, MI_SYM);
 }
 
 static void cons(int n, int x, int y, int sm) {
@@ -406,26 +443,37 @@ static void cons(int n, int x, int y, int sm) {
   int ca = mx(f.asc, A.as), cd = mx(f.desc, A.ds); // content extent, at least the font
   ox = x; oy = y;
   switch (k) {
-  case K_FRAC: // bar at the axis, parts centered, 2 px gaps
-    cw = mx(A.w, B.w) + 4;
-    dec(MI_HLINE, sm, 0, -ax, cw, 1);
-    sl(0, (cw - A.w) / 2, -ax - 2 - A.ds, sm);
-    sl(1, (cw - B.w) / 2, -ax + 3 + B.as, sm);
-    break;
+  case K_FRAC: { // bar at the axis, parts centered, gaps g (classic: 1 px bar, 2 px gaps)
+    int g = GAP, b = BAR;
+    if (sm && M->wf) { // proportional fonts: a fraction in an exponent is inline, a/b
+      int sw = lw("/", 1, sm);
+      sl(0, 0, 0, sm);
+      dtext("/", 1, sm, A.w, 0);
+      sl(1, A.w + sw, 0, sm);
+      cw = A.w + sw + B.w;
+      break;
+    }
+    cw = mx(A.w, B.w) + 2 * g;
+    dec(MI_HLINE, sm, 0, -ax, cw, b);
+    sl(0, (cw - A.w) / 2, -ax - g - A.ds, sm);
+    sl(1, (cw - B.w) / 2, -ax + b + g + B.as, sm);
+  } break;
   case K_POW: case K_EXP: { // exponent bottom at 45% of the base ascent
-    int b = k == K_POW ? T[n].kid : 0, bw = b ? T[b].w : a, ba = b ? T[b].as : f.asc;
+    int b = k == K_POW ? T[n].kid : 0, bw = b ? T[b].w : lw("e", 1, sm), ba = b ? T[b].as : f.asc;
+    int eg = M->wf ? mx(1, a / 10) : 0; // proportional fonts: a hair between base and exponent
     if (b) { if (gm == GM_MEASURE) { by0 = mn(by0, -ba); by1 = mx(by1, T[b].ds); } }
     else dtext("e", 1, sm, 0, 0);
-    sl(0, bw, -(ba * 45 / 100) - A.ds, 1);
-    cw = bw + A.w;
+    sl(0, bw + eg, -(ba * 45 / 100) - A.ds, 1);
+    cw = bw + eg + A.w;
   } break;
-  case K_SQRT: case K_SURD: // sign 6 px + 1, overbar 1 px above the content, index overhang t
-    t = k == K_SURD ? mx(0, B.w - 3) : 0;
-    cw = t + A.w + 8;
-    dec(MI_SQRT, sm, t, -ca - 2, A.w + 8, ca + 2 + cd);
-    sl(0, t + 7, 0, sm);
-    if (k == K_SURD) sl(1, t + 3 - B.w, (cd - ca - 2) / 2 - 1 - B.ds, 1);
-    break;
+  case K_SQRT: case K_SURD: { // sign r px + 1, overbar g px above the content, index overhang t
+    int r = RAD, g = GAP;
+    t = k == K_SURD ? mx(0, B.w - r / 2) : 0;
+    cw = t + A.w + r + 2;
+    dec(MI_SQRT, sm, t, -ca - g, A.w + r + 2, ca + g + cd);
+    sl(0, t + r + 1, 0, sm);
+    if (k == K_SURD) sl(1, t + r / 2 - B.w, (cd - ca - g) / 2 - 1 - B.ds, 1);
+  } break;
   case K_ABS:
     t = mx(1, h - 1);
     dec(MI_BAR, sm, 0, -ca, t, ca + cd);
@@ -433,57 +481,59 @@ static void cons(int n, int x, int y, int sm) {
     dec(MI_BAR, sm, t + 2 + A.w, -ca, t, ca + cd);
     cw = 2 * t + 2 + A.w;
     break;
-  case K_INT: case K_DEFINT: // sign, [bounds], f, 2 px, d, x
+  case K_INT: case K_DEFINT: { // sign, [bounds], f, gap, d, x
+    int s = ISW, g = GAP, dw = lw("d", 1, sm);
     ca = mx(ca, B.as); cd = mx(cd, B.ds);
-    dec(MI_INTEGRAL, sm, 0, -ca - 2, 6, ca + cd + 4);
-    t = 7;
+    dec(MI_INTEGRAL, sm, 0, -ca - g, s, ca + cd + 2 * g);
+    t = s + 1;
     if (k == K_DEFINT) { // a at the bottom right, b at the top right, never overlapping
       u = (cd - ca) / 2;
-      sl(2, 7, mx(cd + 2 - C.ds, u + 1 + C.as), 1);
-      sl(3, 7, mn(-ca - 2 + D.as, u - 1 - D.ds), 1);
+      sl(2, s + 1, mx(cd + g - C.ds, u + 1 + C.as), 1);
+      sl(3, s + 1, mn(-ca - g + D.as, u - 1 - D.ds), 1);
       t += mx(C.w, D.w) + 1;
     }
     sl(0, t, 0, sm);
-    t += A.w + 2;
+    t += A.w + g;
     dtext("d", 1, sm, t, 0);
-    sl(1, t + a, 0, sm);
-    cw = t + a + B.w + 2; // trailing gap: "after the construct" differs from "end of x"
-    break;
-  case K_DIFF: // d/(d x) then f, in parens if it is a sum
+    sl(1, t + dw, 0, sm);
+    cw = t + dw + B.w + 2; // trailing gap: "after the construct" differs from "end of x"
+  } break;
+  case K_DIFF: { // d/(d x) then f, in parens if it is a sum
+    int g = GAP, b = BAR, dw = lw("d", 1, sm);
     i = needp(sn[0]);
-    u = mx(f.asc, B.as); v = a + B.w + 4;
-    dec(MI_HLINE, sm, 0, -ax, v, 1);
-    dtext("d", 1, sm, (v - a) / 2, -ax - 2 - f.desc);
-    dtext("d", 1, sm, 2, -ax + 3 + u);
-    sl(1, 2 + a, -ax + 3 + u, sm);
-    t = v + 2;
+    u = mx(f.asc, B.as); v = dw + B.w + 2 * g;
+    dec(MI_HLINE, sm, 0, -ax, v, b);
+    dtext("d", 1, sm, (v - dw) / 2, -ax - g - f.desc);
+    dtext("d", 1, sm, g, -ax + b + g + u);
+    sl(1, g + dw, -ax + b + g + u, sm);
+    t = v + g;
     if (i) { dec(MI_LPAREN, sm, t, -ca, h + 1, ca + cd); t += h + 1; }
     sl(0, t, 0, sm);
     if (i) dec(MI_RPAREN, sm, t + A.w, -ca, h + 1, ca + cd);
     cw = t + A.w + (i ? h + 1 : 2);
-    break;
+  } break;
   case K_SUM: { // column: b, sigma, k=a; then f
-    int sh = 2 * f.asc, sw = a + 4, st = -ax - sh / 2, bx, bb;
-    u = B.w + sf.adv + C.w; v = mx(sf.asc, mx(B.as, C.as));
+    int sh = 2 * f.asc, sw = M->wf ? lw("S", 1, sm) : a + 4, st = -ax - sh / 2, bx, bb, ew = lw("=", 1, 1);
+    u = B.w + ew + C.w; v = mx(sf.asc, mx(B.as, C.as));
     t = mx(sw, mx(u, D.w));
     dec(MI_SIGMA, sm, (t - sw) / 2, st, sw, sh);
     bx = (t - u) / 2; bb = st + sh + 1 + v;
     sl(1, bx, bb, 1);
     dtext("=", 1, 1, bx + B.w, bb);
-    sl(2, bx + B.w + sf.adv, bb, 1);
+    sl(2, bx + B.w + ew, bb, 1);
     sl(3, (t - D.w) / 2, st - 1 - D.ds, 1);
     sl(0, t + 2, 0, sm);
     cw = t + 4 + A.w;
   } break;
   case K_LIM: { // column: lim over x->a; then f
-    int bx, bb;
-    u = B.w + sf.adv + C.w; v = mx(sf.asc, mx(B.as, C.as));
-    t = mx(3 * a, u);
-    dtext("lim", 3, sm, (t - 3 * a) / 2, 0);
+    int bx, bb, lmw = lw("lim", 3, sm), aw = lw("\x1e", 1, 1);
+    u = B.w + aw + C.w; v = mx(sf.asc, mx(B.as, C.as));
+    t = mx(lmw, u);
+    dtext("lim", 3, sm, (t - lmw) / 2, 0);
     bx = (t - u) / 2; bb = f.desc + 1 + v;
     sl(1, bx, bb, 1);
     dtext("\x1e", 1, 1, bx + B.w, bb);
-    sl(2, bx + B.w + sf.adv, bb, 1);
+    sl(2, bx + B.w + aw, bb, 1);
     sl(0, t + h, 0, sm);
     cw = t + h + A.w + 2;
   } break;
@@ -505,11 +555,10 @@ static void measure(int n, int sm) {
   k = kindof(n); c = corec(n, k); w = (c - d.a) * h;
   d.as = f.asc; d.ds = f.desc;
   if (k < K_EMPTY) { // leaf: leading blanks, glyphs, gaps
-    if (k == K_DOT) w += h + 2;
-    else if (k == K_PI || k == K_INF) w += f.adv;
+    if (k == K_DOT) w += hidedot(n) ? 1 : h + 2;
+    else if (k == K_PI || k == K_INF) w += lw(k == K_PI ? "pi" : "oo", 1, sm);
     else if (k != K_BLANK) {
-      for (int i = c; i < d.b; ++i)
-        if (i == c || gstart(i)) w += f.adv;
+      w += tw(c, d.b - c, sm, style(n, k));
       if (k == K_OP) w += 2 * M->opgap;
       if (k == K_SEP) w += h;
     }
@@ -621,14 +670,14 @@ static void place(int n, int x, int y, int dp, int sm) {
   if (k < K_EMPTY) { // leaf
     for (p = d.a + 1; p <= c; ++p) { xx += h; P(p, xx, y, sm, dp); } // leading blanks
     if (c < d.b) {
-      int gx = xx + (k == K_OP ? M->opgap : 0), g = 1;
-      if (k == K_DOT) op(MI_DOT, sm, gx, y - f.asc / 4 - 1, h + 2, 2, c, 1, 0);
+      int gx = xx + (k == K_OP ? M->opgap : 0);
+      if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.asc / 4 - 1, h + 2, 2, c, 1, 0); }
       else {
-        if (k < K_PI) for (p = c + 1; p < d.b; ++p) g += gstart(p);
-        op(MI_TEXT, sm, gx, y, g * f.adv, f.asc + f.desc, c, d.b - c,
-           k == K_PI ? "pi" : k == K_INF ? "oo" : 0);
+        int st = style(n, k), sy = k == K_PI || k == K_INF;
+        op(MI_TEXT, sm, gx, y, sy ? lw(k == K_PI ? "pi" : "oo", 1, sm) : tw(c, d.b - c, sm, st),
+           f.asc + f.desc, c, d.b - c, k == K_PI ? "pi" : k == K_INF ? "oo" : 0, sy ? (int)MI_SYM : st);
         for (p = c + 1; p < d.b; ++p) // inside a glyph: alias
-          if (k < K_PI && gstart(p)) { gx += f.adv; P(p, gx, y, sm, dp); }
+          if (k < K_PI && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
           else alias(p, p + 1);
       }
     }
@@ -773,4 +822,4 @@ const mi_template & mi_get_template(int kind) {
   return tpl[kind >= 0 && kind < MI_T_COUNT ? kind : 0];
 }
 
-const mi_metrics mi_default_metrics = {{8, 14, 4}, {6, 9, 3}, 2};
+const mi_metrics mi_default_metrics = {{8, 14, 4}, {6, 9, 3}, 2, 0, 0, 0, 0, 0, 0};

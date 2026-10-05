@@ -12,7 +12,7 @@ namespace xcas {
 // KhiCAS fonts: big = text_print size 18 (8 px per char; glyphs up to 11 px above and 3 below
 // the baseline, so a plain line fits a 15 px console row), small = size 12 (exponents, bounds:
 // 5 px per char). text_print's y is not the baseline: it is 4 (big) / 3 (small) px below it.
-extern const mi_metrics mi_device_metrics={{8,11,3},{5,7,2},2}; // extern: a const is internal otherwise
+extern const mi_metrics mi_device_metrics={{8,11,3},{5,7,2},2,0,0,0,0,0,0}; // extern: a const is internal otherwise
 
 static const int MI_INK=COLOR_BLACK;
 

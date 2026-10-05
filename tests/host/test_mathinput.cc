@@ -726,7 +726,9 @@ static const char * hold(const std::string & s, int variant) {
 }
 
 static int g_bad, g_maxops, g_maxlen;
+static const mi_metrics * FM = &mi_default_metrics; // metrics of the fuzz pass
 static void fuzz_one(const std::string & str, int variant) {
+  const mi_metrics & MM = *FM;
   const char * s = hold(str, variant);
   int n = (int)str.size(), c = (int)rnd(n + 3) - 1, p, q, r, f, t;
   mi_layout L, L2;
@@ -751,7 +753,7 @@ static void fuzz_one(const std::string & str, int variant) {
     mi_build(s, n, p, MM, L); mi_build(s, n, r, MM, L2);
     if (L.cx != L2.cx || L.cy != L2.cy || L.ch != L2.ch) ++g_bad;
   }
-  r = mi_backspace(s, n, (int)rnd(n + 2), f, t);
+  r = mi_backspace(s, n, (int)rnd(n + 2), f, t, MM);
   if (f < 0 || t < f || t > n || r < 0 || r > n) ++g_bad;
 }
 
@@ -790,6 +792,59 @@ static void t_fuzz() {
   CHECK(g_maxops <= 400);
   printf("    25200 buffers (longest %d bytes), max ops %d\n", g_maxlen, g_maxops);
   hold(std::string(), 0); // release the last buffer
+}
+
+// ---------------------------------------------------------------- proportional fonts (Focus UI)
+static int pw(const char * s, int n, int sm, int st) { // a proportional test font
+  if (st == MI_SYM) {
+    std::string l(s, n);
+    int w = l == "pi" ? 9 : l == "oo" ? 11 : l == "lim" ? 20 : l == "S" ? 14 : l == "" ? 12 : 8;
+    return sm ? w * 2 / 3 : w;
+  }
+  int w = 0;
+  for (int i = 0; i < n; ++i)
+    if (((unsigned char)s[i] & 0xc0) != 0x80) w += (st == MI_IT ? 7 : 6) + ((unsigned char)s[i] % 4);
+  return sm ? w * 2 / 3 : w;
+}
+static const mi_metrics PM = {{16, 22, 7}, {10, 14, 4}, 6, pw, 2, 4, 18, 16, MI_F_IMPLDOT};
+static void t_proportional() {
+  mi_layout L;
+  const char * s = "x+sin(y)";
+  mi_build(s, slen(s), -1, PM, L);
+  const mi_op * x = text(L, s, "x"), * sn = text(L, s, "sin"), * y = text(L, s, "y");
+  CHECK(x && sn && y);
+  if (x && sn && y) {
+    CHECKEQ(x->style, MI_IT); CHECKEQ(sn->style, MI_UP); CHECKEQ(y->style, MI_IT);
+    CHECKEQ(x->w, pw("x", 1, 0, MI_IT)); CHECKEQ(sn->w, pw("sin", 3, 0, MI_UP));
+  }
+  s = "2*x"; mi_build(s, slen(s), -1, PM, L); CHECKEQ(cnt(L, MI_DOT), 0);  // implicit
+  s = "2*3"; mi_build(s, slen(s), -1, PM, L); CHECKEQ(cnt(L, MI_DOT), 1);  // kept before a digit
+  s = "x*2"; mi_build(s, slen(s), -1, MM, L); CHECKEQ(cnt(L, MI_DOT), 1);  // classic metrics: always
+  s = "1/2"; mi_build(s, slen(s), -1, PM, L);
+  const mi_op * bar = opc(L, MI_HLINE);
+  CHECK(bar && bar->h == 2);
+  s = "abc"; // caret positions inside a name follow the glyph widths
+  int last = -1;
+  bool mono = true;
+  for (int p = 0; p <= 3; ++p) { mi_build(s, 3, p, PM, L); mono = mono && L.cx > last; last = L.cx; }
+  CHECK(mono);
+  s = "pi"; mi_build(s, 2, -1, PM, L);
+  const mi_op * pi = opc(L, MI_TEXT);
+  CHECK(pi && pi->style == MI_SYM && pi->w == 9);
+  int e0 = mi_test_errors; // fuzz with the proportional metrics
+  FM = &PM; g_bad = 0;
+  static const char * tok[] = {"x", "y", "1", "2", ".", "+", "-", "*", "/", "^", "(", ")", ",", "=",
+                               "sqrt", "integrate", "diff", "sum", "limit", "abs", "pi", "infinity", "Î¸", " "};
+  for (int i = 0; i < 6000; ++i) {
+    std::string b;
+    int m = (int)rnd(i % 50 == 0 ? 120 : 24);
+    for (int j = 0; j < m; ++j) b += tok[rnd(24)];
+    fuzz_one(b, i);
+  }
+  FM = &mi_default_metrics;
+  CHECKEQ(g_bad, 0);
+  CHECKEQ(mi_test_errors - e0, 0);
+  hold(std::string(), 0);
 }
 
 // ---------------------------------------------------------------- corpus
@@ -861,6 +916,7 @@ int main() {
   run_case("backspace", t_backspace);
   run_case("templates in \"\" and \"2+\"", t_templates);
   run_case("robustness: random buffers", t_fuzz);
+  run_case("proportional fonts, styles, implicit *", t_proportional);
   run_case("corpus", t_corpus);
   run_case("performance (report)", t_perf);
   printf("\n%d cases, %d failed; %d checks, %d failed\n", g_cases, g_cases_failed, g_checks, g_fails);

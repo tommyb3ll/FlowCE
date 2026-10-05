@@ -9,10 +9,22 @@
 #define std ustl
 #endif
 
-// fixed advance width; ascent above / descent below the baseline (pixels)
+// nominal glyph width (every glyph without wf; spacing units with wf); ascent above / descent
+// below the baseline (pixels)
 struct mi_font { short adv, asc, desc; };
+// styles of text: upright, italic (variable names), symbol literal ("pi" "oo" "lim" "d" "e" "="
+// "S" = sigma, "\x1e" = arrow: one glyph each, except lim)
+enum { MI_UP, MI_IT, MI_SYM };
+// width in pixels of the glyphs s[0,n) in font sm (0 big, 1 small) and style st
+typedef int (*mi_wfn)(const char * s, int n, int sm, int st);
 // small: exponents, bounds, indices. opgap: space each side of binary + - = < > etc.
-struct mi_metrics { mi_font big, small; short opgap; };
+// wf: proportional widths (0: every glyph is adv wide).
+// bar, gap, rad, isw: fraction bar thickness, gaps around bars and radicals, radical sign
+// width, integral sign width (0: the classic 1, 2, 6, 6 px).
+// flags: MI_F_IMPLDOT draws * as implicit multiplication (a 1 px gap, no dot) unless a digit
+// follows it (2*x -> 2x, x*y -> xy, 2*3 -> 2.3): for results printed by giac.
+enum { MI_F_IMPLDOT = 1 };
+struct mi_metrics { mi_font big, small; short opgap; mi_wfn wf; short bar, gap, rad, isw, flags; };
 
 // display list op codes
 enum { MI_TEXT, MI_DOT, MI_HLINE, MI_SQRT, MI_INTEGRAL, MI_SIGMA, MI_LPAREN, MI_RPAREN,
@@ -34,6 +46,7 @@ struct mi_op {
   short x, y, w, h;
   short pos, len;
   const char * lit;
+  unsigned char style;       // MI_TEXT: MI_UP, MI_IT or MI_SYM (lit)
 };
 
 struct mi_layout {
