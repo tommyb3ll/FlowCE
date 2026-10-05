@@ -4,6 +4,7 @@
 
 #include <string>
 #include <stdlib.h>
+#include <sys/rtc.h>
 #include <giac/giacPCH.h>
 #include <giac/input_parser.h>
 #include "calc.h"
@@ -483,7 +484,47 @@ void do_eval(giac::gen & g){
 #endif
 }
 
-// called from editor, return 
+// Automatic simplification of results within a time budget. giac's default autosimplify
+// ("regroup") leaves results like (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2 or (x^2-1)/(x-1)
+// as is, while simplify() can take a minute on large results (integrate(1/(x^4+1),x): 57 s).
+// Timing uses the RTC: clock() stays 0 in the app (no timer is set up), measured in CEmu.
+// RTC resolution is 1 s, so a budget of 2 elapsed seconds means 1 to 2 s.
+static int rtc_now(){
+  return rtc_Seconds+60*(rtc_Minutes+60*int(rtc_Hours)); // < 86400, fits a 24-bit int
+}
+static int simplify_start;
+static bool simplify_timeout(){
+  static unsigned char n;
+  if (++n & 15) // control_c() polls this very often (~500/s): read the RTC every 16 calls
+    return false;
+  int elapsed=rtc_now()-simplify_start;
+  if (elapsed<0)
+    elapsed+=86400; // midnight
+  return elapsed>=2;
+}
+
+static giac::gen timed_simplify(const giac::gen & g){
+  using namespace giac;
+  if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,200)>=200)
+    return g;
+  if (g.type==_SYMB && g._SYMBptr->sommet==at_program)
+    return g;
+#ifdef WITH_PLOT
+  if (xcas::ispnt(g))
+    return g;
+#endif
+  simplify_start=rtc_now();
+  control_c_hook=simplify_timeout;
+  gen s=_simplify(g,contextptr);
+  control_c_hook=0;
+  const bool timeout=interrupted;
+  ctrl_c=kbd_interrupted=interrupted=false;
+  if (timeout || is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
+    return g;
+  return s;
+}
+
+// called from editor, return
 int check_parse(const std::vector<textElement> & v,int python){
 #ifdef FAKE_GIAC
   return 0;
@@ -1000,8 +1041,12 @@ void do_run(const char * s){
       contextptr=new giac::context;
     giac::gen g(buf,contextptr);
     g=equaltosto(g,contextptr);
-    g=add_autosimplify(g,contextptr);
+    const giac::gen ga=add_autosimplify(g,contextptr);
+    const bool autosimp=!(ga==g); // unchanged for programs and explicit forms (factor, expand, diff...)
+    g=ga;
     do_eval(g);
+    if (autosimp)
+      g=timed_simplify(g);
 #ifdef WITH_EQW
     giac::gen gs;
     int do_logo_graph_eqw=7;

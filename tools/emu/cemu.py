@@ -170,7 +170,13 @@ class Emu:
 
 
 def main(argv):
-    src, dst, shotdir, steps = argv[0], argv[1], argv[2], [s for s in argv[3:] if s]
+    src, dst, shotdir, steps = argv[0], argv[1], argv[2], []
+    for s in argv[3:]:
+        if s.startswith('@'):          # steps file, one step per line (see emu.sh)
+            steps += [l.rstrip('\r\n') for l in open(s[1:], encoding='utf-8')]
+        else:
+            steps.append(s)
+    steps = [s for s in steps if s]
     os.makedirs(shotdir, exist_ok=True)
     if dst != '-':
         os.makedirs(os.path.dirname(dst), exist_ok=True)
