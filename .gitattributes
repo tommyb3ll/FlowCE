@@ -1,0 +1,4 @@
+# Dev tooling runs inside WSL/Linux: keep these LF even on Windows checkouts (core.autocrlf=true).
+tools/**/*.sh   text eol=lf
+tools/**/*.py   text eol=lf
+tools/**/*.cmds text eol=lf

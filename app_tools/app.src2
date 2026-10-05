@@ -69,50 +69,8 @@ app:
 			end irpv
 			.num_relocations = ($-$$) / 6
 			
-			; sort stuff
-			rb	.num_relocations * 6
-
-			.width = 1
-			while .width < .num_relocations
-				.run_start = 0
-				while .run_start < .num_relocations
-					.iLeft = .run_start
-					.iRight = .run_start + .width
-					if .iRight > .num_relocations
-						.iRight = .num_relocations
-					end if
-					.iEnd = .run_start + 2 * .width
-					if .iEnd > .num_relocations
-						.iEnd = .num_relocations
-					end if
-
-					.i = .iLeft
-					.j = .iRight
-					.k = .iLeft
-					while .k < .iEnd
-						load .a_i : 6 from $$ + 6 * .i
-						load .a_j : 6 from $$ + 6 * .j
-						load .aa_i : 3 from $$ + 6 * .i
-						load .aa_j : 3 from $$ + 6 * .j
-						if .i < .iRight & (.j >= .iEnd | .aa_i <= .aa_j)
-							store .a_i : 6 at $$ + 6 * .num_relocations + 6 * .k
-							.i = .i + 1
-						else
-							store .a_j : 6 at $$ + 6 * .num_relocations + 6 * .k
-							.j = .j + 1
-						end if
-						.k = .k + 1
-					end while
-
-					.run_start = .run_start + 2 * .width
-				end while
-
-				load .B : .num_relocations * 6 from $$ + .num_relocations * 6
-				store .B : .num_relocations * 6 at $$
-
-				.width = 2 * .width
-			end while
-
+			; Relocations are applied by reloc.cc (order-independent) and the table is then stripped,
+			; so no sorting is needed here (sorting in fasmg macros cost ~160 s of link time).
 			load relocation_table: 6 * .num_relocations from $$
 		end virtual
 	end postpone
