@@ -123,22 +123,21 @@ static const tcase cases[]={
   {"myf",true,"myf"},
   {"a(b+c)",true,"a*(b+c)"},
   // segmentation details
-  {"ooo",true,"oo*o"},                  // tie: longest first piece
-  {"ooooo",true,"oo*oo*o"},
+  {"ooo",true,"o*o*o"},                  // tie: longest first piece
+  {"ooooo",true,"ooooo"},
   {"xinfinity",true,"x*infinity"},      // fewest pieces
-  {"infx",true,"inf*x"},
+  {"infx",true,"infx"},
   {"xasin(x)",true,"x*asin(x)"},        // asin beats a*sin
-  {"xsinx",true,"x*s*i*n*x"},           // FUNCTION only as the last piece
-  {"xsin",true,"x*s*i*n"},              // ... and only before '('
+  {"xsinx",true,"xsinx"},               // FUNCTION only as the last piece: letters only, too long
+  {"xsin",true,"xsin"},                 // ... and only before '('
   {"xsin (x)",true,"x*sin (x)"},
   {"xmyf(2)",true,"x*myf(2)"},
-  {"myfx",true,"m*y*f*x"},
+  {"myfx",true,"myfx"},
   {"areax",true,"area*x"},
   {"piarea(2)",true,"pi*area*(2)"},     // last piece is a VALUE: not a call
   {"XY",true,"X*Y"},
   {"2ab",true,"2*a*b"},
-  {"abcdefghijklmnopqrstuvwxyzabcdef",true,
-   "a*b*c*d*e*f*g*h*i*j*k*l*m*n*o*p*q*r*s*t*u*v*w*x*y*z*a*b*c*d*e*f"}, // 32 letters
+  {"abcdefghijklmnopqrstuvwxyzabcdef",true,"abcdefghijklmnopqrstuvwxyzabcdef"}, // 32 letters: > 3 pieces
   {"abcdefghijklmnopqrstuvwxyzabcdefg",true,"abcdefghijklmnopqrstuvwxyzabcdefg"}, // 33: not cut
   {"x_m",true,"x_m"},                   // '_' inside: not all letters
   {"v1",true,"v1"},
@@ -155,8 +154,27 @@ static const tcase cases[]={
   {"F(x)",true,"F*(x)"},                // only lowercase f g h
   {"e(x+1)",true,"e*(x+1)"},
   {"ab(x)",true,"a*b*(x)"},
-  {"ab(x)",false,"ab*(x)"},
-  {"xsin(x)",false,"xsin*(x)"},
+  {"ab(x)",false,"ab(x)"},             // an uncut unknown name before '(' is a call
+  {"xsin(x)",false,"xsin(x)"},
+  // letters-only cuts: at most 3 letters, at most 2 before '(' (expand( was cut into e*x*p*a*n*d*()
+  {"expandx((x+1)^3)",true,"expandx((x+1)^3)"},
+  {"csc(x)",true,"csc(x)"},
+  {"abc(x)",true,"abc(x)"},
+  {"2abc(x)",true,"2*abc(x)"},
+  {"xy(x+1)",true,"x*y*(x+1)"},
+  {"pir(x)",true,"pi*r*(x)"},
+  {"abc",true,"a*b*c"},
+  {"2xyz",true,"2*x*y*z"},
+  {"abcd",true,"abcd"},
+  {"radius*2",true,"radius*2"},
+  {"2radius",true,"2*radius"},
+  {"foo(x)+1",true,"foo(x)+1"},
+  {"foo (x)",true,"foo (x)"},
+  {"sin(x)csc(x)",true,"sin(x)*csc(x)"},
+  {"pivot(x)",true,"pivot(x)"},          // pi*v*o*t would be 4 pieces
+  {"xpiy",true,"x*pi*y"},
+  {"book*2",true,"book*2"},              // oo is not a piece
+  {"2oo",true,"2*oo"},
   {"sin x",true,"sin x"},               // a FUNCTION does not end a value
   {"max(2x,3)",true,"max(2*x,3)"},
   {"ans()2",true,"ans()*2"},

@@ -1,0 +1,18 @@
+# 2D rendering of products (viewer screenshots: *_viewer.png)
+r_4pisqrt2	4*pi*sqrt(2)
+r_2xy	2*x*y
+r_parens	(x+1)*(y-1)
+r_sincos	cos(x)*sin(x)
+r_neg	-2*x*sqrt(3)
+r_frac	diff(sqrt(y/4),y)
+r_pow2	2^x*3^y
+r_inv	x^-1
+r_inv2	x^(-2)
+r_invsqrt	1/sqrt(x)
+r_x8	x/8
+r_neg3x	-3/x
+r_2xovery	2*x/y
+r_expand	expand((x+1)^3)
+r_csc	csc(x)
+r_perm	perm(5,2)
+r_negfrac	-x/(2*y)

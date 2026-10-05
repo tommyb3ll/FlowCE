@@ -490,7 +490,36 @@ bool console_python_mode(){
   return xcas_python_eval==1 || giac::python_compat(contextptr);
 }
 
-// The budget (1 to 2 s, RTC based) is enforced by xcas::timed_apply (kdisplay.cc).
+// Results simplify() may improve: sums, quotients, negative powers, numeric radicals other
+// than sqrt(n) (2^(3/2) -> 2*sqrt(2), sqrt(1/4)*sqrt(y) -> sqrt(y)/2). On products of plain
+// powers it just burns the budget (2^x*3^y: +2 s, cos(x)*sin(x): +1.4 s, sqrt(x): +1 s).
+static bool simplify_candidate(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it){
+      if (simplify_candidate(*it))
+        return true;
+    }
+    return false;
+  }
+  if (g.type!=_SYMB)
+    return false;
+  const unary_function_ptr & u=g._SYMBptr->sommet;
+  const gen & f=g._SYMBptr->feuille;
+  if (u==at_plus || u==at_inv)
+    return true;
+  if (u==at_pow && f.type==_VECT && f._VECTptr->size()==2){
+    const gen & b=f._VECTptr->front(),e=f._VECTptr->back();
+    if ((e.type==_INT_ || e.type==_FRAC) && is_strictly_positive(-e,contextptr))
+      return true;
+    if (e.type==_FRAC && (b.type==_FRAC || (b.type==_INT_ && !is_one(e*2))))
+      return true;
+  }
+  return simplify_candidate(f);
+}
+
+// The budget (RTC based, so 2 means 1 to 2 s) is enforced by xcas::timed_apply (kdisplay.cc).
+// Small results get 3: simplify(diff(sqrt(y/4),y)) needs about 2 s.
 static giac::gen timed_simplify(const giac::gen & g){
   using namespace giac;
   if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,200)>=200)
@@ -501,8 +530,10 @@ static giac::gen timed_simplify(const giac::gen & g){
   if (xcas::ispnt(g))
     return g;
 #endif
+  if (!simplify_candidate(g))
+    return g;
   bool timeout;
-  gen s=xcas::timed_apply(at_simplify,g,2,timeout,contextptr);
+  gen s=xcas::timed_apply(at_simplify,g,taille(g,40)<40?3:2,timeout,contextptr);
   if (timeout || is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
     return g;
   return s;
@@ -1026,7 +1057,9 @@ void do_run(const char * s){
     giac::gen g(buf,contextptr);
     g=equaltosto(g,contextptr);
     const giac::gen ga=add_autosimplify(g,contextptr);
-    const bool autosimp=!(ga==g); // unchanged for programs and explicit forms (factor, expand, diff...)
+    // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
+    // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8
+    const bool autosimp=!(ga==g) || g.is_symb_of_sommet(giac::at_diff);
     g=ga;
     do_eval(g);
     if (autosimp)

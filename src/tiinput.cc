@@ -30,6 +30,11 @@
 // a single letter, a VALUE name, or a FUNCTION name, but a FUNCTION only as
 // the last piece and only when '(' follows. Ties go to the longest first
 // piece. Examples: xy -> x*y, 2pir -> 2*pi*r, xsin(x) -> x*sin(x).
+// A cut has at most 3 pieces, and at most 2 if they are all single letters
+// before '('; oo and inf are never pieces. Otherwise the name is far more
+// likely one the tables do not know (expand(, csc(x), radius, foo(x)) than a
+// product, so it stays whole, and an uncut name of 2+ letters before '(' is a
+// call.
 // An assigned name is never cut: name:=..., ...=>name, name(...):=...
 // Cost: linear, plus at most len*(len-1)/2 classifier calls per cut name.
 // Memory: one allocation for the result (2*size, an upper bound, so it never
@@ -186,7 +191,8 @@ static bool im_cuttable(const char * s,int len){
 // Appends the UNKNOWN name s[0..len) to out, cut into the fewest pieces with
 // '*' between them. A piece is a letter, a VALUE name, or (only as the last
 // piece, and only if fn) a FUNCTION name. Ties go to the longest first piece.
-// Returns the offset of the last piece.
+// Returns the offset of the last piece, or -1 (nothing appended) when the
+// only cut is into single letters and the name is too long for that.
 static int im_cut(const char * s,int len,ti_classify_fn classify,bool fn,std::string & out){
   // cnt[k]: fewest pieces for s[k..len), nxt[k]: end of the first of them
   unsigned char cnt[IM_MAXCUT+1],nxt[IM_MAXCUT+1];
@@ -200,6 +206,8 @@ static int im_cut(const char * s,int len,ti_classify_fn classify,bool fn,std::st
       if (cnt[e]+1>=cnt[k])
         continue; // cannot do better, no need to classify
       if (e>k+1){
+        if ((e-k==2 && s[k]=='o' && s[k+1]=='o') || (e-k==3 && s[k]=='i' && s[k+1]=='n' && s[k+2]=='f'))
+          continue; // infinity: foo, info are not f*oo, inf*o
         const int t=classify(s+k,e-k);
         if (t!=TI_NAME_VALUE && !(fn && e==len && t==TI_NAME_FUNCTION))
           continue;
@@ -208,6 +216,8 @@ static int im_cut(const char * s,int len,ti_classify_fn classify,bool fn,std::st
       nxt[k]=(unsigned char)e;
     }
   }
+  if (cnt[0]>3 || (cnt[0]==len && fn && len>2))
+    return -1;
   int k=0;
   for (;;){
     const int e=nxt[k];
@@ -280,8 +290,9 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
       const bool def = paren && defs && mk[q]=='D';
       const bool asg = q+1<n && s[q]==':' && s[q+1]=='=';
       int p=i,pcls=cls; // last piece of the name and its class
-      if (split_unknown && cls==TI_NAME_UNKNOWN && !def && !asg && lk!=K_STORE && im_cuttable(s+i,len)){
-        p=i+im_cut(s+i,len,classify,paren,out);
+      const int k=(split_unknown && cls==TI_NAME_UNKNOWN && !def && !asg && lk!=K_STORE && im_cuttable(s+i,len))?im_cut(s+i,len,classify,paren,out):-1;
+      if (k>=0){
+        p=i+k;
         pcls=classify(s+p,j-p);
       }
       else
@@ -289,7 +300,8 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
       lk=K_NAME;
       lend = pcls==TI_NAME_VALUE || pcls==TI_NAME_UNKNOWN;
       lcall = def || pcls==TI_NAME_FUNCTION ||
-        (j-p==1 && (s[p]=='f' || s[p]=='g' || s[p]=='h') && pcls!=TI_NAME_VALUE);
+        (j-p==1 && (s[p]=='f' || s[p]=='g' || s[p]=='h') && pcls!=TI_NAME_VALUE) ||
+        (j-p>1 && pcls==TI_NAME_UNKNOWN); // an uncut unknown name: a call
       i=j;
       continue;
     }

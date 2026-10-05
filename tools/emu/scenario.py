@@ -35,7 +35,8 @@ def main(state, outdir, casefile):
             e.cmd('key enter 80'); e.ms += 80
             # While KhiCAS computes, the F-key bar is blank ("cancel: stop calcul." in the status bar).
             # Done = bar visible again (console bar, or the 2D result viewer's bar). Resolution 50 ms.
-            t = 0
+            e.run(150)                     # let KhiCAS start computing (clears the F-bar) before checking
+            t = 150
             while t < 600000:
                 bar = bottom_bar(e)
                 if bar.count(255) != len(bar):
