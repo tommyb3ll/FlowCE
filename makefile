@@ -11,7 +11,9 @@
 APPLANG ?= en
 VARIANT ?= normal
 
-FEATURE_DEFS = -DWITH_UNITS -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT -DWITH_SHEET -DWITH_TABVAR
+# This fork drops the spreadsheet (WITH_SHEET) and the periodic table (WITH_PERIODIC): about
+# 160 KB of flash for the input/display work (user's choice, 2026-10-05).
+FEATURE_DEFS = -DWITH_UNITS -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT -DWITH_TABVAR
 
 ifeq ($(APPLANG),fr)
     LANG_DEF = -DFRANCAIS
@@ -22,7 +24,7 @@ endif
 ifeq ($(VARIANT),l2)
     FEATURE_DEFS += -DWITH_QUAD
 else ifeq ($(VARIANT),normal)
-    FEATURE_DEFS += -DWITH_PERIODIC
+    FEATURE_DEFS +=
 else
     $(error VARIANT must be either 'normal' (default) or 'l2')
 endif
