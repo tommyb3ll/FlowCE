@@ -1,0 +1,4 @@
+# user report 2026-10-05: slow, rootof in the result
+q_x4p5	integrate(2/(x^4+5),x)
+q_x4p5d	integrate(2/(x^4+5),x,0,1)
+q_8x3	integrate(8x^3/(x^4+5),x)

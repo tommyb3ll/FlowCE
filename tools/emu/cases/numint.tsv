@@ -1,0 +1,4 @@
+f_dec	integrate(2/(x^4+5),x,0,1.0)
+f_romb	romberg(2/(x^4+5),x,0,1)
+f_ellip	4integrate(sqrt(1+9x^2/(1-x^2)),x,0,1.0)
+f_arc	integrate(sqrt(1+16x^2),x,0,1.0)
