@@ -126,6 +126,11 @@ static void lex(int i) {
     tt = TK_NUM;
   } else if (namec(c)) {
     while (i < L && (namec(ch(i)) || digit(ch(i)))) ++i;
+    // pi right before a letter (2pir typed with the pi key) is its own token, drawn as the pi
+    // glyph, as the input pre-pass reads it (2*pi*r); not before ( : piecewise(...) is a name
+    if (i - tc > 2 && S[tc] == 'p' && S[tc + 1] == 'i' && (S[tc + 2] | 32) >= 'a' &&
+        (S[tc + 2] | 32) <= 'z' && !(i < L && S[i] == '('))
+      i = tc + 2;
     tt = TK_NAME;
   } else if (c == '"') {
     for (++i; i < L && S[i] != '"'; ++i)
