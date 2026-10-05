@@ -1,0 +1,17 @@
+# math typed as written on paper (ti_rewrite + auto-solve); multi-step cases use {enter}
+def_f	f(x)=x^2+1{enter}f(3)
+def_g	g(x,y)=x*y{enter}g(2,3)
+def_sin	f(x)=sinx{enter}diff(f(x),x)
+eq_quad	x^2-4=0
+eq_lin	2x+1=5
+eq_trig	sin(x)=1/2
+eq_none	x^2+1=0
+pow_id	sin^2(x)+cos^2(x)
+pow_x	sin^2x
+inv_sin	sin^-1(1)
+nopar	2sinxcosx
+nopar_ln	lnx
+nopar_pow	sinx^2
+diff_pow	diff(sin^2x,x)
+sec2	sec^2x
+cost	cost

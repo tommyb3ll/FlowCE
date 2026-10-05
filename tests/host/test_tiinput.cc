@@ -18,6 +18,10 @@ static const char * const fake_functions[]={
   "simplify","factor","expand","normal","integrate","int","diff","solve","limit",
   "sum","seq","subst","ans","evalf","approx","tlin","trigcos","ratnormal","iegcd",
   "smod","resultant","max","min",
+  "sec","csc","cot","sinh","cosh","tanh","asec","acsc","acot","asinh","acosh","atanh",
+  0
+};
+static const char * const fake_userfns[]={
   "myf", // user-defined function
   0
 };
@@ -59,6 +63,7 @@ static int fake_classify(const char * s,int len){
   }
   if (in_list(fake_keywords,s,len)) return TI_NAME_KEYWORD;
   if (in_list(fake_functions,s,len)) return TI_NAME_FUNCTION;
+  if (in_list(fake_userfns,s,len)) return TI_NAME_USERFN;
   if (in_list(fake_values,s,len)) return TI_NAME_VALUE;
   return TI_NAME_UNKNOWN;
 }
@@ -337,9 +342,84 @@ static const char * const frags[]={
 
 // ---------------------------------------------------------------- main
 
+// ti_rewrite: math as written on paper
+struct rcase { const char * in; const char * out; };
+static const rcase rcases[]={
+  {"f(x)=x^2","f(x):=x^2"},
+  {"f(x) = x^2+1","f(x) := x^2+1"},
+  {"g(x,y)=x*y","g(x,y):=x*y"},
+  {"g( x , y )=x","g( x , y ):=x"},
+  {"myf(x)=2x","myf(x):=2x"},                 // redefining a user function
+  {"sinx(t)=t","sinx(t):=t"},                 // the defined name is not rewritten
+  {"f(x)=sinx","f(x):=sin(x)"},
+  {"sin(x)=1/2","sin(x)=1/2"},                // builtin: an equation
+  {"f(2)=5","f(2)=5"},
+  {"f(x)==2","f(x)==2"},
+  {"f(x)<=2","f(x)<=2"},
+  {"f(x)=","f(x)="},
+  {"a=5","a=5"},
+  {"2f(x)=4","2f(x)=4"},
+  {"f()=1","f()=1"},
+  {"sin^2(x)","sin(x)^2"},
+  {"sin^2x","sin(x)^2"},
+  {"sin^2 x","sin(x)^2"},
+  {"cos^2(2x)+sin^2(2x)","cos(2x)^2+sin(2x)^2"},
+  {"sin^2(x)+cos^2(x)","sin(x)^2+cos(x)^2"},
+  {"sec^2x","sec(x)^2"},
+  {"sin^-1(x)","asin(x)"},
+  {"tan^-1(1)","atan(1)"},
+  {"sec^-1(x)","asec(x)"},
+  {"ln^-1(x)","ln^-1(x)"},                    // no inverse name: unchanged
+  {"sin^(2)(x)","sin(x)^(2)"},
+  {"sin^2","sin^2"},
+  {"sin^2(sinx)","sin(sin(x))^2"},
+  {"sinx","sin(x)"},
+  {"sin x","sin(x)"},
+  {"sin 2x","sin(2x)"},
+  {"sin2x","sin(2x)"},
+  {"2sinxcosx","2sin(x)cos(x)"},
+  {"sinxcosx","sin(x)cos(x)"},
+  {"lnx","ln(x)"},
+  {"ln2","ln(2)"},
+  {"ln x+1","ln(x)+1"},
+  {"sqrtx","sqrt(x)"},
+  {"sinx^2","sin(x^2)"},
+  {"sin x^2","sin(x^2)"},
+  {"sin(x)","sin(x)"},
+  {"sin(x)^2","sin(x)^2"},
+  {"sin x+1","sin(x)+1"},
+  {"cost","cos(t)"},
+  {"sinpi","sin(pi)"},
+  {"sin pi/2","sin(pi)/2"},
+  {"exp x","exp(x)"},
+  {"log10x","log10(x)"},
+  {"sinh x","sinh(x)"},
+  {"expand(x)","expand(x)"},
+  {"xsin(x)","xsin(x)"},
+  {"sin","sin"},
+  {"sin sin x","sin sin(x)"},
+  {"sin if","sin if"},
+  {"\"sinx\"","\"sinx\""},
+  {"5_m","5_m"},
+  {"area","area"},
+  {"x // sinx","x // sinx"},
+};
+
 int main(){
   const int ncases=int(sizeof(cases)/sizeof(cases[0]));
   int npass=0,nfail=0;
+  for (unsigned k=0;k<sizeof(rcases)/sizeof(rcases[0]);++k){
+    const std::string in(rcases[k].in),want(rcases[k].out);
+    const int bad0=bad_calls;
+    const std::string got=ti_rewrite(in,fake_classify);
+    const char * why=got!=want?"wrong output":bad_calls!=bad0?"classifier called on a non-name":ti_rewrite(got,fake_classify)!=got?"not idempotent":"";
+    const bool ok=!*why;
+    printf("%s r%2u %s -> %s",ok?"PASS":"FAIL",k+1,show(in).c_str(),show(got).c_str());
+    if (!ok)
+      printf("   [%s; expected %s]",why,show(want).c_str());
+    printf("\n");
+    if (ok) ++npass; else ++nfail;
+  }
   for (int k=0;k<ncases;++k){
     const tcase & t=cases[k];
     const std::string in(t.in),want(t.out);
@@ -372,6 +452,13 @@ int main(){
       const int bad0=bad_calls;
       const std::string got=ti_implicit_mult(in,fake_classify,sp!=0);
       const char * why=bad_calls!=bad0?"classifier called on a non-name":check_properties(in,got,sp!=0);
+      if (!*why && sp){ // ti_rewrite: valid classifier calls, idempotent
+        const std::string rw=ti_rewrite(in,fake_classify);
+        if (bad_calls!=bad0)
+          why="rewrite: classifier called on a non-name";
+        else if (ti_rewrite(rw,fake_classify)!=rw)
+          why="rewrite: not idempotent";
+      }
       if (*why){
         if (++rfail<=20)
           printf("FAIL random %s %s -> %s   [%s]\n",sp?"split  ":"nosplit",show(in).c_str(),show(got).c_str(),why);
@@ -381,6 +468,6 @@ int main(){
   printf("random lines: %d lines x 2 modes checked (only '*' inserted, idempotent, valid classifier calls), %d failed\n",nrandom,rfail);
   printf("classifier calls: %ld\n",ncalls);
   printf("SUMMARY: %d cases, %d passed, %d failed; random property checks: %d failed -> %s\n",
-         ncases,npass,nfail,rfail,(nfail||rfail)?"FAIL":"PASS");
+         ncases+int(sizeof(rcases)/sizeof(rcases[0])),npass,nfail,rfail,(nfail||rfail)?"FAIL":"PASS");
   return (nfail||rfail)?1:0;
 }

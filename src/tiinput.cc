@@ -209,7 +209,7 @@ static int im_cut(const char * s,int len,ti_classify_fn classify,bool fn,std::st
         if ((e-k==2 && s[k]=='o' && s[k+1]=='o') || (e-k==3 && s[k]=='i' && s[k+1]=='n' && s[k+2]=='f'))
           continue; // infinity: foo, info are not f*oo, inf*o
         const int t=classify(s+k,e-k);
-        if (t!=TI_NAME_VALUE && !(fn && e==len && t==TI_NAME_FUNCTION))
+        if (t!=TI_NAME_VALUE && !(fn && e==len && (t==TI_NAME_FUNCTION || t==TI_NAME_USERFN)))
           continue;
       }
       cnt[k]=(unsigned char)(cnt[e]+1);
@@ -299,7 +299,7 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
         out.append(s+i,len);
       lk=K_NAME;
       lend = pcls==TI_NAME_VALUE || pcls==TI_NAME_UNKNOWN;
-      lcall = def || pcls==TI_NAME_FUNCTION ||
+      lcall = def || pcls==TI_NAME_FUNCTION || pcls==TI_NAME_USERFN ||
         (j-p==1 && (s[p]=='f' || s[p]=='g' || s[p]=='h') && pcls!=TI_NAME_VALUE) ||
         (j-p>1 && pcls==TI_NAME_UNKNOWN); // an uncut unknown name: a call
       i=j;
@@ -319,6 +319,226 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
     lk=k;
     lend=end;
     lcall=false;
+    i=j;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// ti_rewrite: math as written on paper (see tiinput.h)
+
+// unary functions that may be written without parentheses or with a power
+// (sin^2 x); longest names first so that a prefix match picks sinh, not sin
+static const char * const im_fntab[]={
+  "asinh","acosh","atanh","log10","sinh","cosh","tanh","asin","acos","atan","sqrt",
+  "sin","cos","tan","sec","csc","cot","exp","abs","log","ln",0
+};
+static bool im_same(const char * s,int len,const char * name){
+  int k=0;
+  for (;k<len && name[k];++k){
+    if (s[k]!=name[k])
+      return false;
+  }
+  return k==len && !name[k];
+}
+// inverse function for f^-1 (asin for sin^-1); 0: none
+static const char * im_inverse(const char * s,int len){
+  static const char * const tab[]={"sin","asin","cos","acos","tan","atan","sec","asec","csc","acsc","cot","acot","sinh","asinh","cosh","acosh","tanh","atanh",0};
+  for (int k=0;tab[k];k+=2){
+    if (im_same(s,len,tab[k]))
+      return tab[k+1];
+  }
+  return 0;
+}
+// length of the longest unary function name that s[0..len) starts with (0: none)
+static int im_fnprefix(const char * s,int len){
+  for (int k=0;im_fntab[k];++k){
+    int l=0;
+    while (im_fntab[k][l] && l<len && s[l]==im_fntab[k][l])
+      ++l;
+    if (!im_fntab[k][l])
+      return l;
+  }
+  return 0;
+}
+// end of the group starting at s[i]=='(' (n if unclosed); strings are skipped
+static int im_groupend(const char * s,int i,int n){
+  int depth=0;
+  for (;i<n;++i){
+    if (s[i]=='"'){
+      i=im_strend(s,i,n)-1;
+      continue;
+    }
+    if (s[i]=='(')
+      ++depth;
+    else if (s[i]==')' && --depth==0)
+      return i+1;
+  }
+  return n;
+}
+// end of an exponent written after '^' at s[i]: a number, a name, or a group
+// (i if none)
+static int im_powend(const char * s,int i,int n){
+  if (i<n && s[i]=='(')
+    return im_groupend(s,i,n);
+  if (i<n && (im_digit(s[i]) || (s[i]=='.' && i+1<n && im_digit(s[i+1]))))
+    return im_numend(s,i,n);
+  if (i<n && im_namestart(s[i]) && s[i]!='_')
+    return im_nameend(s,i,n);
+  return i;
+}
+// end of a simple operand starting at s[i] (the argument of sin x, sin 2x,
+// sin x^2): numbers and names that are not functions, each with an optional
+// power; it stops at operators, parentheses, blanks and function names.
+static int im_runend(const char * s,int i,int n,ti_classify_fn classify){
+  int j=i;
+  while (j<n){
+    if (im_digit(s[j]) || (s[j]=='.' && j+1<n && im_digit(s[j+1])))
+      j=im_numend(s,j,n);
+    else if (im_namestart(s[j]) && s[j]!='_'){
+      const int e=im_nameend(s,j,n);
+      const int c=classify(s+j,e-j);
+      if (c==TI_NAME_KEYWORD || c==TI_NAME_FUNCTION || c==TI_NAME_USERFN || im_fnprefix(s+j,e-j))
+        break; // the next function: sin x cos x
+      j=e;
+    }
+    else if (s[j]=='^' && j>i){
+      const int e=im_powend(s,j+1,n);
+      if (e==j+1)
+        break;
+      j=e;
+    }
+    else
+      break;
+  }
+  return j;
+}
+// f(x)=... at the start of the line: index of that '=' (to become ":="), or -1;
+// name: end of the function name, which is copied as is
+static int im_defeq(const char * s,int n,ti_classify_fn classify,int & name){
+  int i=0;
+  while (i<n && im_blank(s[i]))
+    ++i;
+  if (i>=n || !im_namestart(s[i]) || s[i]=='_')
+    return -1;
+  const int e=im_nameend(s,i,n);
+  const int c=classify(s+i,e-i);
+  if (c==TI_NAME_FUNCTION || c==TI_NAME_KEYWORD || e>=n || s[e]!='(')
+    return -1;
+  name=e;
+  int j=e+1; // parameters: names separated by commas
+  for (;;){
+    while (j<n && im_blank(s[j]))
+      ++j;
+    if (j>=n || !im_namestart(s[j]) || s[j]=='_')
+      return -1;
+    j=im_nameend(s,j,n);
+    while (j<n && im_blank(s[j]))
+      ++j;
+    if (j>=n || s[j]!=',')
+      break;
+    ++j;
+  }
+  if (j>=n || s[j]!=')')
+    return -1;
+  ++j;
+  while (j<n && im_blank(s[j]))
+    ++j;
+  if (j+1>=n || s[j]!='=' || s[j+1]=='=')
+    return -1;
+  return j;
+}
+
+std::string ti_rewrite(const std::string & line,ti_classify_fn classify){
+  const char * s=line.c_str();
+  const int n=line.size();
+  std::string out;
+  out.reserve(n+n/2+8);
+  int i=0;
+  const int defeq=im_defeq(s,n,classify,i);
+  if (defeq<0)
+    i=0;
+  out.append(s,i);
+  while (i<n){
+    const char c=s[i];
+    if (i==defeq){
+      out+=":=";
+      ++i;
+      continue;
+    }
+    int j=i+1;
+    if (c=='"')
+      j=im_strend(s,i,n);
+    else if (c=='/' && i+1<n && s[i+1]=='/')
+      j=im_eolpos(s,i,n);
+    else if (im_digit(c) || (c=='.' && i+1<n && im_digit(s[i+1])))
+      j=im_numend(s,i,n);
+    else if (im_namestart(c)){
+      j=im_nameend(s,i,n);
+      const int len=j-i,cls=c=='_'?TI_NAME_KEYWORD:classify(s+i,len);
+      const int f=(cls==TI_NAME_FUNCTION || cls==TI_NAME_UNKNOWN)?im_fnprefix(s+i,len):0;
+      int k=i+f; // sinx, sin2x, sinxcosx, ln2, cost: the function, then its argument
+      // up to where the next function name starts inside the name. Not before '('
+      // (sinx(t) calls sinx) nor when the rest starts with a function (sinsinx).
+      while (f && k<j && !(im_alpha(s[k]) && im_fnprefix(s+k,j-k)))
+        ++k;
+      if (f && k>i+f && cls==TI_NAME_UNKNOWN && !(j<n && s[j]=='(')){
+        int r=k;
+        if (k==j && j<n && s[j]=='^'){ // sinx^2 -> sin(x^2)
+          const int e=im_powend(s,j+1,n);
+          if (e>j+1)
+            r=e;
+        }
+        out.append(s+i,f);
+        out+='(';
+        out.append(s+i+f,r-(i+f));
+        out+=')';
+        i=r; // the rest of the name (cosx in sinxcosx) is a name of its own
+        continue;
+      }
+      if (f==len && cls==TI_NAME_FUNCTION){
+        const int p=j;
+        if (p<n && s[p]=='^'){ // sin^2(x), sin^2x, sin^-1(x)
+          const bool inv=p+2<n && s[p+1]=='-' && s[p+2]=='1' && (p+3>=n || !im_digit(s[p+3]));
+          const int pe=inv?p+3:im_powend(s,p+1,n);
+          int a=pe;
+          while (a<n && im_blank(s[a]))
+            ++a;
+          const bool grp=a<n && s[a]=='(';
+          const int ae=grp?im_groupend(s,a,n):im_runend(s,a,n,classify);
+          const char * iname=inv?im_inverse(s+i,len):0;
+          if (pe>p+1 && ae>a && (!inv || iname)){
+            const int as=grp?a+1:a,al=ae-as-((grp && s[ae-1]==')')?1:0);
+            if (iname)
+              out+=iname;
+            else
+              out.append(s+i,len);
+            out+='(';
+            out+=ti_rewrite(std::string(s+as,al),classify);
+            out+=')';
+            if (!iname)
+              out.append(s+p,pe-p);
+            i=ae;
+            continue;
+          }
+        }
+        else if (p>=n || s[p]!='('){ // sin x, sin 2x
+          int a=p;
+          while (a<n && im_blank(s[a]))
+            ++a;
+          const int ae=im_runend(s,a,n,classify);
+          if (ae>a){
+            out.append(s+i,len);
+            out+='(';
+            out.append(s+a,ae-a);
+            out+=')';
+            i=ae;
+            continue;
+          }
+        }
+      }
+    }
+    out.append(s+i,j-i);
     i=j;
   }
   return out;

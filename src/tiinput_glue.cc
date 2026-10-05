@@ -60,7 +60,7 @@ namespace {
         if (v.type==_IDNT && !strcmp(v._IDNTptr->id_name,s)){
           gen w;
           v._IDNTptr->in_eval(0,v,w,contextptr,true);
-          return (w.type==_FUNC || w.is_symb_of_sommet(at_program))?TI_NAME_FUNCTION:TI_NAME_VALUE;
+          return (w.type==_FUNC || w.is_symb_of_sommet(at_program))?TI_NAME_USERFN:TI_NAME_VALUE;
         }
       }
     }
@@ -73,7 +73,7 @@ bool khicas_implicit_mult(char * line,int maxlen){
     return false;
   gen vars=_VARS(0,contextptr);
   user_vars=vars.type==_VECT?vars._VECTptr:0;
-  const std::string res=ti_implicit_mult(line,classify,true);
+  const std::string res=ti_implicit_mult(ti_rewrite(line,classify),classify,true);
   user_vars=0;
   if (int(res.size())>=maxlen || !strcmp(res.c_str(),line))
     return false;

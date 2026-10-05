@@ -2027,6 +2027,52 @@ static void console_prepare_input(){
   Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
 }
 
+// MATH key: the structures of an online calculator's keypad, one key away. Each template is
+// inserted with the cursor in its first slot (back: cursor moves left after insertion).
+struct quick_item { const char * label; const char * text; signed char back; };
+static const quick_item math_items[]={
+  {"fraction  a/b","()/()",4},
+  {"n-th root","surd(,)",2},
+  {"|x| absolute value","abs()",1},
+  {"integral","integrate(,x)",3},
+  {"integral from a to b","integrate(,x,,)",5},
+  {"derivative d/dx","diff(,x)",3},
+  {"sum","sum(,k,,)",5},
+  {"limit","limit(,x,)",4},
+  {"trigonometry ...",0,0},
+  {"all commands ...",0,0},
+};
+static const quick_item trig_items[]={
+  {"sec","sec(",0},{"csc","csc(",0},{"cot","cot(",0},
+  {"asin  (sin^-1)","asin(",0},{"acos  (cos^-1)","acos(",0},{"atan  (tan^-1)","atan(",0},
+  {"sinh","sinh(",0},{"cosh","cosh(",0},{"tanh","tanh(",0},
+  {"expand: sin(2x)->2sin.cos","texpand(",0},
+  {"linearize: sin^2->cos(2x)","tlin(",0},
+  {"collect: sin+cos->1 term","tcollect(",0},
+  {"rewrite with sin","trigsin(",0},
+  {"rewrite with cos","trigcos(",0},
+  {"rewrite with tan","trigtan(",0},
+};
+static int quick_menu(const char * title,const quick_item * items,int n){
+  Menu m;
+  MenuItem mi[16];
+  m.numitems=n;
+  m.items=mi;
+  m.height=n>12?12:n+1;
+  m.scrollbar=1;
+  m.scrollout=1;
+  m.title=(char *)title;
+  for (int k=0;k<n;++k)
+    mi[k].text=(char *)items[k].label;
+  return doMenu(&m)==MENU_RETURN_SELECTION?m.selection-1:-1;
+}
+static int console_insert_template(const quick_item & q){
+  const int r=Console_Input((const Char *)q.text);
+  for (int b=q.back;b>0;--b)
+    Console_MoveCursor(CURSOR_LEFT);
+  return r;
+}
+
 int Console_GetKey(){
   unsigned int key, move_line, move_col;
   Char tmp_str[3];
@@ -2148,10 +2194,23 @@ int Console_GetKey(){
       continue;
     }
     if (key==KEY_CTRL_SYMB){
-      char buf[512];
-      if (!showCatalog(buf,0,0))
-	buf[0]=0;
-      return Console_Input((const Char*)buf);
+      const int nmath=sizeof(math_items)/sizeof(math_items[0]);
+      int k=quick_menu("math",math_items,nmath);
+      if (k==nmath-2){ // trigonometry
+        k=quick_menu("trigonometry",trig_items,sizeof(trig_items)/sizeof(trig_items[0]));
+        if (k>=0)
+          return console_insert_template(trig_items[k]);
+      }
+      else if (k==nmath-1){ // all commands: the catalog
+        char buf[512];
+        if (!showCatalog(buf,0,0))
+          buf[0]=0;
+        return Console_Input((const Char*)buf);
+      }
+      else if (k>=0)
+        return console_insert_template(math_items[k]);
+      Console_Disp(1);
+      continue;
     }
     if (key==KEY_CTRL_F5){
 #if 1

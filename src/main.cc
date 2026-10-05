@@ -543,9 +543,48 @@ static giac::gen auto_simplify(const giac::gen & g){
         s=is_one(n)?symb_inv(f):symb_prod(n,symb_inv(f));
     }
   }
-  if (is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
+  if (is_undef(s) || s.type==_STRNG || taille(s,1000)>=taille(g,1000)) // only if simpler: pi*(x+1) stays
     return g;
   return s;
+}
+
+// An equation typed alone (x^2-4=0, 2x+1=5, sin(x)=1/2) is solved for its only unknown, as an
+// online calculator does; x=5 or f(x)=... never get here (equaltosto stores, the input pre-pass
+// turns f(x)= into a definition). Returns the unknown, or 0.
+static giac::gen equation_unknown(const giac::gen & g){
+  using namespace giac;
+  if (!g.is_symb_of_sommet(at_equal))
+    return 0;
+  vecteur v=lidnt(g),u;
+  for (unsigned k=0;k<v.size();++k){
+    if (v[k]==cst_pi || is_inf(v[k]) || is_undef(v[k]))
+      continue;
+    if (eval(v[k],1,contextptr)==v[k]) // not assigned
+      u.push_back(v[k]);
+  }
+  return u.size()==1?u.front():gen(0);
+}
+// solutions as equations: x=-2, x=2 (one: x=3), drawn without parentheses (kdisplay.cc)
+static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x){
+  using namespace giac;
+  if (s.type!=_VECT || s._VECTptr->empty())
+    return s;
+  vecteur w;
+  for (const_iterateur it=s._VECTptr->begin();it!=s._VECTptr->end();++it)
+    w.push_back(symb_equal(x,*it));
+  return w.size()==1?w.front():gen(w,_SEQ__VECT);
+}
+
+// f(x):=x^2+1 on one line (also typed f(x)=x^2+1): a math function, defined without giac's
+// program log ("// Parsing f // Success // compiling f"). Returns the length of "f(x)", or 0.
+static int simple_definition(const char * s){
+  const char * p=strstr(s,":=");
+  if (!p || p==s || strchr(s,'\n') || strchr(s,';'))
+    return 0;
+  int n=p-s;
+  while (n>0 && s[n-1]==' ')
+    --n;
+  return (n>0 && s[n-1]==')' && strchr(s,'(') && strchr(s,'(')<p)?n:0;
 }
 
 // called from editor, return
@@ -1063,8 +1102,15 @@ void do_run(const char * s){
   if (1 && xcas_python_eval==0){
     if (!contextptr)
       contextptr=new giac::context;
+    const int defn=simple_definition(buf);
+    stdostream * savelog=giac::logptr(contextptr);
+    if (defn)
+      giac::logptr(0,contextptr);
     giac::gen g(buf,contextptr);
     g=equaltosto(g,contextptr);
+    const giac::gen unknown=equation_unknown(g);
+    if (unknown.type==giac::_IDNT)
+      g=giac::symbolic(giac::at_solve,giac::makesequence(g,unknown));
     const giac::gen ga=add_autosimplify(g,contextptr);
     // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
     // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8
@@ -1073,6 +1119,25 @@ void do_run(const char * s){
     do_eval(g);
     if (autosimp)
       g=auto_simplify(g);
+    std::string msg; // a plain message instead of the result
+    if (unknown.type==giac::_IDNT){
+      if (g.type==giac::_VECT && g._VECTptr->empty())
+        msg="no solution";
+      else
+        g=solutions_as_equations(g,unknown);
+    }
+    if (defn){
+      giac::logptr(savelog,contextptr);
+      if (g.is_symb_of_sommet(giac::at_program)){ // f(x)=x^2+1 rather than (x)->x^2+1
+        const char * rhs=strstr(buf,":=")+2;
+        while (*rhs==' ')
+          ++rhs;
+        msg=std::string(buf,defn)+"="+rhs;
+      }
+    }
+    if (!msg.empty())
+      Console_Output(msg.c_str());
+    else {
 #ifdef WITH_EQW
     giac::gen gs;
     int do_logo_graph_eqw=7;
@@ -1097,6 +1162,7 @@ void do_run(const char * s){
         int res = os_CreateEquation(equation_buf,(equ_t *)&v.front());
         // dbg_printf("create Y2 res=%i\n",res);
       }
+    }
     }
     Console_NewLine(LINE_TYPE_OUTPUT,1);
   }
