@@ -639,6 +639,59 @@ bool console_draw2d(const char * s,int top,int height,int ymin){
 }
 #endif
 
+#ifdef WITH_EQW
+// F4 on a result selected in the history: its next form in place, with the form's name in the
+// status line: original, simplified, one fraction, factored, expanded, decimal. Each form is
+// computed from the original text (kept here), so decimal never makes the next ones inexact.
+// Like the viewer's F4 (kdisplay.cc): no simplify on radicals, never interrupted.
+static const char * form_line; // text of the result being cycled (its str pointer)
+static std::string * form_orig;
+static int form_idx;
+void console_cycle_form(int l){
+  using namespace giac;
+  static const unary_function_ptr * const ops[]={at_simplify,at_ratnormal,at_factor,at_expand,at_evalf};
+  static const char * const names[]={"original","simplified","one fraction","factored","expanded","decimal"};
+  const int n=sizeof(ops)/sizeof(ops[0]);
+  if (!form_orig)
+    form_orig=new std::string;
+  if ((const char *)Line[l].str!=form_line){
+    *form_orig=(const char *)Line[l].str;
+    form_idx=0;
+  }
+  stdostream * savelog=logptr(contextptr);
+  logptr(0,contextptr);
+  const gen g(*form_orig,contextptr);
+  const std::string cur((const char *)Line[l].str); // forms that print like this or the original are skipped
+  gen r;
+  for (int t=0;t<=n;++t){
+    form_idx=(form_idx+1)%(n+1);
+    if (!form_idx){
+      r=g;
+      break;
+    }
+    if (ops[form_idx-1]==at_simplify && xcas::has_radical(g))
+      continue;
+    statuslinemsg("computing...");
+    r=(*ops[form_idx-1])(g,contextptr);
+    if (!is_undef(r) && r.type!=_STRNG){
+      const std::string rt=r.print(contextptr);
+      if (rt!=cur && rt!=*form_orig)
+        break;
+    }
+  }
+  logptr(savelog,contextptr);
+  gen lay;
+  const int rows=console_rows2d(r,lay);
+  const std::string text=form_idx?r.print(contextptr):*form_orig;
+  if (console_replace_result(l,text.c_str(),rows?rows:1)){
+    form_line=(const char *)Line[l].str;
+    if (rows)
+      h2d_store(form_line,lay);
+  }
+  statuslinemsg((std::string("form: ")+names[form_idx]+"    F4: next").c_str());
+}
+#endif
+
 // f(x):=x^2+1 on one line (also typed f(x)=x^2+1): a math function, defined without giac's
 // program log ("// Parsing f // Success // compiling f"). Returns the length of "f(x)", or 0.
 static int simple_definition(const char * s){

@@ -100,6 +100,8 @@ extern "C" {
   int kbd_filter(int key); // replace up/down/right/left/exe/exit with Nuumworks keycode
   bool console_python_mode(); // console evaluates Python (or Python-compatible syntax)
   bool console_draw2d(const char * s,int top,int height,int ymin); // 2D history results (main.cc)
+  void console_cycle_form(int l); // F4 on a history result: its next form (main.cc)
+  bool console_replace_result(int l,const char * text,int rows); // (console.cc)
   bool khicas_implicit_mult(char * line,int maxlen); // paper notation + TI implicit multiplication (tiinput_glue.cc)
 }
 

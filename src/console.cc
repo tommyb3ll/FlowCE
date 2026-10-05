@@ -1436,11 +1436,69 @@ void Console_Insert_Line(){
   The following function is used to delete a character before the cursor.
 */
 
+// removes history line i (not the edit line): no clipboard, no cursor change
+static void console_remove_line(int i){
+  if (Line[i].str)
+    free(Line[i].str);
+  for (;i<Last_Line;++i)
+    Line[i]=Line[i+1];
+  Line[i].readonly=0;
+  Line[i].type=LINE_TYPE_INPUT;
+  Line[i].start_col=0;
+  Line[i].disp_len=0;
+  Line[i].str=nullptr;
+  --Last_Line;
+}
+
+// a LINE_TYPE_CONT row inserted at index i (the lines below, edit line included, move down)
+static bool console_insert_cont(int i){
+  if (Last_Line>=LINE_MAX-1)
+    return false;
+  for (int j=Last_Line+1;j>i;--j)
+    Line[j]=Line[j-1];
+  Line[i].str=(Char *)malloc(2);
+  if (!Line[i].str)
+    return false;
+  Line[i].str[0]=1;
+  Line[i].str[1]=0;
+  Line[i].type=LINE_TYPE_CONT;
+  Line[i].readonly=1;
+  Line[i].start_col=0;
+  Line[i].disp_len=1;
+  ++Last_Line;
+  return true;
+}
+// history result l gets a new text drawn on rows rows (F4 forms, main.cc); false if it can't
+bool console_replace_result(int l,const char * text,int rows){
+  int cur=0;
+  while (l+1+cur<Last_Line && Line[l+1+cur].type==LINE_TYPE_CONT)
+    ++cur;
+  if (rows<1)
+    rows=1;
+  if (Last_Line+(rows-1-cur)>=LINE_MAX-1)
+    return false;
+  Char * s=(Char *)malloc(strlen(text)+1);
+  if (!s)
+    return false;
+  strcpy((char *)s,text);
+  free(Line[l].str);
+  Line[l].str=s;
+  Line[l].disp_len=Console_GetDispLen(s);
+  for (;cur>rows-1;--cur)
+    console_remove_line(l+1);
+  for (;cur<rows-1;++cur)
+    console_insert_cont(l+1);
+  console_changed=1;
+  return true;
+}
+
 int Console_Backspace()
 {
   console_changed=1;
   if (Last_Line>0 && Current_Line<Last_Line){
     int i=Current_Line;
+    while (i+1<Last_Line && Line[i+1].type==LINE_TYPE_CONT) // a 2D result goes as a whole
+      console_remove_line(i+1);
     if (Edit_Line==Line[i].str)
       Edit_Line=Line[i+1].str;
     if (Line[i].str){
@@ -1885,7 +1943,8 @@ void get_current_console_menu(string & menu,string & shiftmenu,string & alphamen
     menu += adjust(menu_f2);
     menu += "| ";
     menu += adjust(menu_f3);
-    menu += "|  chartab "; //     menu += adjust(menu_f3);
+    // F4: forms of the result selected in the history, otherwise the character table
+    menu += (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT)?"|   forms  ":"|  chartab ";
     menu += lang?"|  Fichier  ":"|    File     ";
   }
   //drawRectangle(0,174,LCD_WIDTH_PX,24,COLOR_BLACK);
@@ -2132,6 +2191,13 @@ int Console_GetKey(){
       if (key_string)
         return Console_Input((const Char *)key_string);
     }
+#ifdef WITH_EQW
+    if (key == KEY_CTRL_F4 && Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT){
+      console_cycle_form(Current_Line); // a result selected in the history: its next form
+      Console_Disp(1);
+      continue;
+    }
+#endif
     if (key == KEY_CTRL_F4){
       int chartab_key = chartab();
       if (chartab_key > 0) {
