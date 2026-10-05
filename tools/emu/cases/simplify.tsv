@@ -1,0 +1,15 @@
+# Default autosimplify ("regroup") vs autosimplify(simplify). {enter} runs a first command.
+r_unsimp	(4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2
+s_unsimp	autosimplify(simplify){enter}(4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2
+r_diff	diff(sqrt(y/4),y)
+s_diff	autosimplify(simplify){enter}diff(sqrt(y/4),y)
+r_fracpow	(2/3)*2^(3/2)
+s_fracpow	autosimplify(simplify){enter}(2/3)*2^(3/2)
+r_trig	sin(x)^2+cos(x)^2
+s_trig	autosimplify(simplify){enter}sin(x)^2+cos(x)^2
+r_ratio	(x^2-1)/(x-1)
+s_ratio	autosimplify(simplify){enter}(x^2-1)/(x-1)
+s_factor	autosimplify(simplify){enter}factor(x^2-1)
+s_expand	autosimplify(simplify){enter}expand((x+1)^3)
+r_int	integrate(1/(x^4+1),x)
+s_int	autosimplify(simplify){enter}integrate(1/(x^4+1),x)

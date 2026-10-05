@@ -1685,7 +1685,7 @@ const char * trig(){
     case KEY_CHAR_MINUS:
       return "-";
     case KEY_CHAR_PMINUS:
-      return "-"; // TI users expect (-) to negate; "_" (units) stays in chartab/catalog
+      return "_";
     case KEY_CHAR_MULT:
       return "*";
     case KEY_CHAR_DIV:
