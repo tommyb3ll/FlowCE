@@ -1,0 +1,12 @@
+# name	input	(expected result in the comment of each block)
+# sprintfdouble: expect 1.05e6, 1.04858e6, -0.5, -1.05e6
+print_1050000	1050000.0
+print_1048576	1048576.0
+print_neg_half	-0.5
+print_neg_big	-1050000.0
+# 24-bit truncation: expect [-1,11184811,1]
+iegcd_2_25	iegcd(2^25,3)
+# modulo() 16-bit truncation: expect 43418
+smod_big	smod(2^40,100003)
+# resultant with >2^23 coefficients: expect 97546558420944
+resultant_big	resultant(12345678*x^2+3*x+1,9876543*x-5,x)

@@ -23,7 +23,7 @@ def bottom_bar(e):
 
 def main(state, outdir, casefile):
     os.makedirs(outdir, exist_ok=True)
-    cases = [l.rstrip('\n').split('\t', 1) for l in open(casefile, encoding='utf-8')
+    cases = [l.rstrip('\r\n').split('\t', 1) for l in open(casefile, encoding='utf-8')
              if l.strip() and not l.startswith('#')]
     e0 = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir=outdir)
     console_bar = bottom_bar(e0); e0.close()
