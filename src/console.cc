@@ -1863,7 +1863,7 @@ void get_current_console_menu(string & menu,string & shiftmenu,string & alphamen
     menu += "| ";
     menu += adjust(menu_f2);
     menu += "|  edit sel  |";
-    menu += "   eval   |  ";
+    menu += "  forms   |  "; // F4 cycles the selection's forms (kdisplay.cc eqw); 2nd F4: evalf
     menu += "|  copy sel  ";
     menucolorbg=34800;
     return;
@@ -2023,6 +2023,7 @@ static void console_prepare_input(){
   if (!Edit_Line || !Edit_Line[0])
     return;
   console_autoclose(Edit_Line);
+  khicas_implicit_mult(Edit_Line,EDIT_LINE_MAX); // after auto-close: balanced input
   Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
 }
 

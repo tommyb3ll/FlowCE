@@ -4,7 +4,6 @@
 
 #include <string>
 #include <stdlib.h>
-#include <sys/rtc.h>
 #include <giac/giacPCH.h>
 #include <giac/input_parser.h>
 #include "calc.h"
@@ -487,22 +486,11 @@ void do_eval(giac::gen & g){
 // Automatic simplification of results within a time budget. giac's default autosimplify
 // ("regroup") leaves results like (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2 or (x^2-1)/(x-1)
 // as is, while simplify() can take a minute on large results (integrate(1/(x^4+1),x): 57 s).
-// Timing uses the RTC: clock() stays 0 in the app (no timer is set up), measured in CEmu.
-// RTC resolution is 1 s, so a budget of 2 elapsed seconds means 1 to 2 s.
-static int rtc_now(){
-  return rtc_Seconds+60*(rtc_Minutes+60*int(rtc_Hours)); // < 86400, fits a 24-bit int
-}
-static int simplify_start;
-static bool simplify_timeout(){
-  static unsigned char n;
-  if (++n & 15) // control_c() polls this very often (~500/s): read the RTC every 16 calls
-    return false;
-  int elapsed=rtc_now()-simplify_start;
-  if (elapsed<0)
-    elapsed+=86400; // midnight
-  return elapsed>=2;
+bool console_python_mode(){
+  return xcas_python_eval==1 || giac::python_compat(contextptr);
 }
 
+// The budget (1 to 2 s, RTC based) is enforced by xcas::timed_apply (kdisplay.cc).
 static giac::gen timed_simplify(const giac::gen & g){
   using namespace giac;
   if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,200)>=200)
@@ -513,12 +501,8 @@ static giac::gen timed_simplify(const giac::gen & g){
   if (xcas::ispnt(g))
     return g;
 #endif
-  simplify_start=rtc_now();
-  control_c_hook=simplify_timeout;
-  gen s=_simplify(g,contextptr);
-  control_c_hook=0;
-  const bool timeout=interrupted;
-  ctrl_c=kbd_interrupted=interrupted=false;
+  bool timeout;
+  gen s=xcas::timed_apply(at_simplify,g,2,timeout,contextptr);
   if (timeout || is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
     return g;
   return s;

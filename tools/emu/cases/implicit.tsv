@@ -1,0 +1,19 @@
+# TI-style implicit multiplication, end to end. Expected history line -> result:
+# pi*(x+1) -> pi*x+pi or pi*(x+1)
+pi_paren	pi(x+1)
+# (2/3)*2^(3/2) -> 4*sqrt(2)/3
+frac_pow	(2/3)2^(3/2)
+# (x+1)*(y-1) -> product, not the old "y"
+paren_paren	(x+1)(y-1)
+# 2*pi*r
+two_pi_r	2πr
+# sin(x)*cos(x)
+sin_cos	sin(x)cos(x)
+# x*y+1
+xy	xy+1
+# 2*x*y (key x after digit, letters split)
+two_xy	2xy
+# user's integral with implicit pi(...): integrate(pi*(...),...)
+integral	integrate(pi(1+cos(x))^2,x,0,pi)
+# function call stays a call: simplify(...) unchanged
+simplify_call	simplify((x^2-1)/(x-1))

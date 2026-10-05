@@ -98,6 +98,8 @@ extern "C" {
   const char * caseval(const char * s);
   int kbd_convert(int r,int c);
   int kbd_filter(int key); // replace up/down/right/left/exe/exit with Nuumworks keycode
+  bool console_python_mode(); // console evaluates Python (or Python-compatible syntax)
+  bool khicas_implicit_mult(char * line,int maxlen); // TI-style implicit multiplication (tiinput_glue.cc)
 }
 
 #endif

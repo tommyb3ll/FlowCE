@@ -3,3 +3,4 @@ tools/**/*.sh   text eol=lf
 tools/**/*.py   text eol=lf
 tools/**/*.cmds text eol=lf
 tools/**/*.tsv  text eol=lf
+tests/**/*.sh   text eol=lf
