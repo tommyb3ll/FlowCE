@@ -1228,7 +1228,10 @@ void do_run(const char * s){
     if (defn)
       giac::logptr(0,contextptr);
     giac::gen g(buf,contextptr);
-    g=equaltosto(g,contextptr);
+    // x=a stores a in x (equaltosto), but x=(-x/2)^2 has x on both sides: an equation to solve
+    const bool selfref=g.is_symb_of_sommet(giac::at_equal) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->front().type==giac::_IDNT && !giac::is_constant_wrt(g._SYMBptr->feuille._VECTptr->back(),g._SYMBptr->feuille._VECTptr->front(),contextptr);
+    if (!selfref)
+      g=equaltosto(g,contextptr);
     const giac::gen unknown=equation_unknown(g);
     if (unknown.type==giac::_IDNT)
       g=giac::symbolic(giac::at_solve,giac::makesequence(g,unknown));
