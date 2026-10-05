@@ -483,16 +483,12 @@ void do_eval(giac::gen & g){
 #endif
 }
 
-// Automatic simplification of results within a time budget. giac's default autosimplify
-// ("regroup") leaves results like (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2 or (x^2-1)/(x-1)
-// as is, while simplify() can take a minute on large results (integrate(1/(x^4+1),x): 57 s).
 bool console_python_mode(){
   return xcas_python_eval==1 || giac::python_compat(contextptr);
 }
 
-// Results simplify() may improve: sums, quotients, negative powers, numeric radicals other
-// than sqrt(n) (2^(3/2) -> 2*sqrt(2), sqrt(1/4)*sqrt(y) -> sqrt(y)/2). On products of plain
-// powers it just burns the budget (2^x*3^y: +2 s, cos(x)*sin(x): +1.4 s, sqrt(x): +1 s).
+// Results a normalization may improve: sums, quotients, negative powers, numeric radicals
+// other than sqrt(n). Products of plain powers (2^x*3^y, cos(x)*sin(x), sqrt(x)) are left alone.
 static bool simplify_candidate(const giac::gen & g){
   using namespace giac;
   if (g.type==_VECT){
@@ -518,39 +514,16 @@ static bool simplify_candidate(const giac::gen & g){
   return simplify_candidate(f);
 }
 
-// true if g has a radical or fractional power of a non-numeric expression (sqrt(x^2+1))
-static bool has_symbolic_radical(const giac::gen & g){
+// Automatic normalization of results. giac's default autosimplify ("regroup") leaves
+// (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2, (x^2-1)/(x-1) or 2*x/(2*sqrt(x^2+1)) as is.
+// ratnormal fixes those (4*sqrt(2)*pi, x+1, x/sqrt(x^2+1)) quickly: radicals, pi, sin(x)...
+// are just symbols to it. simplify() is only used on tiny trig expressions without radicals
+// (sin(x)^2+cos(x)^2 -> 1). History: simplify under a time budget (interrupted through
+// control_c) exited the app on diff(sqrt(x^2+1),x) and reset the calculator after 80 s on
+// cos(pi/12); KhiCAS must never interrupt giac on its own.
+static giac::gen auto_simplify(const giac::gen & g){
   using namespace giac;
-  if (g.type==_VECT){
-    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it){
-      if (has_symbolic_radical(*it))
-        return true;
-    }
-    return false;
-  }
-  if (g.type!=_SYMB)
-    return false;
-  const gen & f=g._SYMBptr->feuille;
-  // (not written as type!=_INT_ && !=_ZINT && !=_FRAC: ez80-clang turns that into an 11-bit
-  // mask it cannot legalize)
-  if (g._SYMBptr->sommet==at_sqrt && (f.type==_IDNT || f.type==_SYMB))
-    return true;
-  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_FRAC){
-    const gen & b=f._VECTptr->front();
-    if (b.type==_IDNT || b.type==_SYMB)
-      return true;
-  }
-  return has_symbolic_radical(f);
-}
-
-// The budget (RTC based, so 2 means 1 to 2 s) is enforced by xcas::timed_apply (kdisplay.cc).
-// With a radical of a non-numeric expression, simplify() is slow, rationalizes (sqrt(x)/(2*x)
-// for 1/(2*sqrt(x))) and once exhausted the memory: diff(sqrt(x^2+1),x) exited the app after
-// 16 s. ratnormal treats the radical as a symbol instead: 2*x/(2*sqrt(x^2+1)) -> x/sqrt(x^2+1).
-// Small results get 3: simplify((x^2-1)/(x-1)) style results need up to 2 s.
-static giac::gen timed_simplify(const giac::gen & g){
-  using namespace giac;
-  if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,200)>=200)
+  if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,100)>=100)
     return g;
   if (g.type==_SYMB && g._SYMBptr->sommet==at_program)
     return g;
@@ -560,9 +533,17 @@ static giac::gen timed_simplify(const giac::gen & g){
 #endif
   if (!simplify_candidate(g))
     return g;
-  bool timeout;
-  gen s=xcas::timed_apply(has_symbolic_radical(g)?at_ratnormal:at_simplify,g,taille(g,40)<40?3:2,timeout,contextptr);
-  if (timeout || is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
+  const bool trig=taille(g,16)<16 && (has_op(g,*at_sin) || has_op(g,*at_cos)) && !xcas::has_radical(g);
+  gen s=(*(trig?at_simplify:at_ratnormal))(g,contextptr);
+  if (!trig && g.type==_SYMB){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2*x+1)
+    gen d=_denom(s,contextptr);
+    if (d.type==_SYMB){
+      gen n=_numer(s,contextptr),f=_factor(d,contextptr);
+      if (!is_undef(f) && f.type!=_STRNG)
+        s=is_one(n)?symb_inv(f):symb_prod(n,symb_inv(f));
+    }
+  }
+  if (is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000))
     return g;
   return s;
 }
@@ -1091,7 +1072,7 @@ void do_run(const char * s){
     g=ga;
     do_eval(g);
     if (autosimp)
-      g=timed_simplify(g);
+      g=auto_simplify(g);
 #ifdef WITH_EQW
     giac::gen gs;
     int do_logo_graph_eqw=7;
