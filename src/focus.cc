@@ -102,7 +102,7 @@ static bool is_text(const char * s) {
   }
   return false;
 }
-// an antiderivative: integrate(f,x) or int(f,x) with 2 arguments: its result gets "+ C"
+// an antiderivative: integrate(f,x) or int(f,x) with 2 arguments (or 1: in x): its result gets "+ C"
 static bool is_antideriv(const char * s) {
   while (*s == ' ') ++s;
   const char * p = !strncmp(s, "integrate(", 10) ? s + 10 : !strncmp(s, "int(", 4) ? s + 4 : 0;
@@ -113,7 +113,7 @@ static bool is_antideriv(const char * s) {
     else if (*p == ')' || *p == ']') { if (!depth--) break; }
     else if (*p == ',' && !depth) ++commas;
   }
-  return commas == 1;
+  return commas <= 1;
 }
 
 static int ui_text(const ui_face * f, const char * s, int x, int base, int fg, int bg, int align) {
