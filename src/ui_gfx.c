@@ -1,5 +1,6 @@
 // ui_gfx.c - palette banks, ramps and anti-aliased primitives of the Focus interface (ui_gfx.h).
 #include <string.h>
+#include <stdlib.h>
 #include "ui_gfx.h"
 #ifdef TICE
 #include <sys/lcd.h>
@@ -15,12 +16,34 @@ unsigned short * ui_host_palette(void) { return host_palette; }
 
 unsigned char * ui_fb = FB;
 int ui_cx0 = 0, ui_cy0 = 0, ui_cx1 = UI_W, ui_cy1 = UI_H;
+static int band_y0 = 0, band_y1 = UI_H; // the rows drawing may touch
+static unsigned char * strip;
+static int strip_rows;
 
 void ui_clip(int x0, int y0, int x1, int y1) {
-  ui_cx0 = x0 < 0 ? 0 : x0; ui_cy0 = y0 < 0 ? 0 : y0;
-  ui_cx1 = x1 > UI_W ? UI_W : x1; ui_cy1 = y1 > UI_H ? UI_H : y1;
+  ui_cx0 = x0 < 0 ? 0 : x0; ui_cy0 = y0 < band_y0 ? band_y0 : y0;
+  ui_cx1 = x1 > UI_W ? UI_W : x1; ui_cy1 = y1 > band_y1 ? band_y1 : y1;
 }
-void ui_noclip(void) { ui_cx0 = ui_cy0 = 0; ui_cx1 = UI_W; ui_cy1 = UI_H; }
+void ui_noclip(void) { ui_cx0 = 0; ui_cy0 = band_y0; ui_cx1 = UI_W; ui_cy1 = band_y1; }
+
+int ui_band_open(int maxrows) {
+  if (strip && strip_rows >= maxrows) return strip_rows;
+  ui_band_close();
+  for (int r = maxrows; r >= 8; r /= 2)
+    if ((strip = (unsigned char *)malloc(UI_W * r))) return strip_rows = r;
+  return 0;
+}
+void ui_band_close(void) { free(strip); strip = 0; strip_rows = 0; }
+void ui_band_begin(int y0, int y1) {
+  band_y0 = y0; band_y1 = y1;
+  ui_fb = strip - y0 * UI_W; // screen row y lands at strip row y - y0
+  ui_noclip();
+}
+void ui_band_end(void) {
+  memcpy(FB + band_y0 * UI_W, strip, (band_y1 - band_y0) * UI_W);
+  ui_fb = FB; band_y0 = 0; band_y1 = UI_H;
+  ui_noclip();
+}
 
 // Paper: the prototype's light theme
 const ui_theme ui_theme_paper = {{
@@ -151,40 +174,40 @@ void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg) {
   corners(x, y, w, h, r, ramp, 1);
 }
 
+// A thick anti-aliased segment by spans: along its major axis (rows for a steep segment, columns
+// for a flat one) each pixel line crosses the stroke over [v - hw, v + hw] (v: the center line,
+// hw: half the stroke width measured along the line; 1/256 px), and each pixel is shaded by the
+// part of it that span covers (the font's quantization). Per pixel only 24-bit additions and
+// compares; the ends are cut along the lines, extended a quarter stroke so polylines join.
 void ui_seg16(int ax, int ay, int bx, int by, int th, const unsigned char * ramp) {
-  // work in 1/8 px so that the products below fit in 32 bits
-  ax >>= 1; ay >>= 1; bx >>= 1; by >>= 1; th >>= 1;
-  int half = th / 2, m = half + 4;
-  int x0 = ((ax < bx ? ax : bx) - m) >> 3, x1 = ((ax > bx ? ax : bx) + m) >> 3;
-  int y0 = ((ay < by ? ay : by) - m) >> 3, y1 = ((ay > by ? ay : by) + m) >> 3;
-  if (x0 < ui_cx0) x0 = ui_cx0;
-  if (y0 < ui_cy0) y0 = ui_cy0;
-  if (x1 >= ui_cx1) x1 = ui_cx1 - 1;
-  if (y1 >= ui_cy1) y1 = ui_cy1 - 1;
-  long dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
-  long L = isqrt(len2);
-  // shade thresholds on the distance d (1/8 px): 3 if d <= half-2, 2 if <= half+1, 1 if <= half+3;
-  // compared without square roots or divisions: |cross| against T*L inside the segment, the
-  // squared distance against T*T past its ends. Everything is updated by additions along a row.
-  long t3 = half - 2, t2 = half + 1, t1 = half + 3;
-  long c3 = t3 * L, c2 = t2 * L, c1 = t1 * L, s3 = t3 < 0 ? -1 : t3 * t3, s2 = t2 * t2, s1 = t1 * t1;
-  for (int py = y0; py <= y1; ++py) {
-    long cx = x0 * 8 + 4 - ax, cy = py * 8 + 4 - ay;
-    long t = cx * dx + cy * dy, cr = cx * dy - cy * dx;
-    long da = cx * cx + cy * cy, ex = cx - dx, ey = cy - dy, db = ex * ex + ey * ey;
-    unsigned char * row = ui_fb + py * UI_W;
-    for (int px = x0; px <= x1; ++px) {
-      int lv;
-      if (len2 == 0 || t <= 0) lv = da <= s3 ? 3 : da <= s2 ? 2 : da <= s1 ? 1 : 0;
-      else if (t >= len2) lv = db <= s3 ? 3 : db <= s2 ? 2 : db <= s1 ? 1 : 0;
-      else { long a = cr < 0 ? -cr : cr; lv = a <= c3 ? 3 : a <= c2 ? 2 : a <= c1 ? 1 : 0; }
+  int dx = bx - ax, dy = by - ay, adx = dx < 0 ? -dx : dx, ady = dy < 0 ? -dy : dy, steep = ady >= adx;
+  int au = steep ? ay : ax, av = steep ? ax : ay, du = steep ? dy : dx, dv = steep ? dx : dy;
+  if (du < 0) { au += du; av += dv; du = -du; dv = -dv; } // u increasing
+  long L = isqrt((long)dx * dx + (long)dy * dy);
+  if (!du) du = 1;
+  int hw = (int)((long)th * 8 * (L ? L : 1) / du); // (th/2) * L/du, 1/16 -> 1/256 px
+  int ext = th / 4;
+  // pixel lines i (centers at 16 i + 8) within [au - ext, au + du + ext]
+  int i0 = (au - ext - 8 + 15 + 4096) / 16 - 256, i1 = (au + du + ext - 8 + 4096) / 16 - 256;
+  int lo0 = steep ? ui_cy0 : ui_cx0, hi0 = steep ? ui_cy1 : ui_cx1; // the clip along u
+  int vlo = steep ? ui_cx0 : ui_cy0, vhi = steep ? ui_cx1 : ui_cy1;  // and along v
+  if (i0 < lo0) i0 = lo0;
+  if (i1 >= hi0) i1 = hi0 - 1;
+  int step = (int)((long)dv * 256 / du);                            // v per line, 1/256 px
+  int vc = (int)((long)av * 16 + (long)(i0 * 16 + 8 - au) * dv * 16 / du);
+  for (int i = i0; i <= i1; ++i, vc += step) {
+    int lo = vc - hw, hi = vc + hw, p0 = lo >> 8, p1 = (hi - 1) >> 8;
+    if (p0 < vlo) p0 = vlo;
+    if (p1 >= vhi) p1 = vhi - 1;
+    unsigned char * q = steep ? ui_fb + i * UI_W + p0 : ui_fb + p0 * UI_W + i;
+    for (int px = p0; px <= p1; ++px, q += steep ? 1 : UI_W) {
+      int c0 = px << 8, c1 = c0 + 256, cov = (hi < c1 ? hi : c1) - (lo > c0 ? lo : c0);
+      int lv = cov >= 200 ? 3 : cov >= 108 ? 2 : cov >= 36 ? 1 : 0;
       if (lv) {
-        unsigned char * p = row + px, o = *p;
+        unsigned char o = *q;
         int ol = o == ramp[3] ? 3 : o == ramp[2] ? 2 : o == ramp[1] ? 1 : 0;
-        if (lv > ol) *p = ramp[lv];
+        if (lv > ol) *q = ramp[lv];
       }
-      t += 8 * dx; cr += 8 * dy;              // next pixel: cx += 8
-      da += 16 * cx + 64; db += 16 * ex + 64; cx += 8; ex += 8;
     }
   }
 }

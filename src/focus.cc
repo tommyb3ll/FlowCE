@@ -60,10 +60,25 @@ static fitc fitted(const char * s, int maxlv, int maxw, int maxh, int flags) {
   c.flags = (short)flags; c.w = L.width; c.a = L.asc; c.d = L.desc;
   return c;
 }
+// built layouts of the last strings drawn: a banded repaint draws an entry once per band
+enum { NLC = 16 }; // a screen of entries (input and result) plus the hero
+struct lckey { const char * p; unsigned hash; signed char lv; char flags; };
+static lckey LCK[NLC];
+static mi_layout * LCL; // heap (new[]: no static constructors in KhiCAS)
+static int lcn;
+static const mi_layout & layout_of(const char * s, int lv, int flags) {
+  unsigned h = shash(s);
+  if (!LCL) LCL = new mi_layout[NLC];
+  for (int i = 0; i < NLC; ++i)
+    if (LCK[i].p == s && LCK[i].hash == h && LCK[i].lv == lv && LCK[i].flags == flags) return LCL[i];
+  int i = lcn;
+  lcn = (lcn + 1) % NLC;
+  mi_build(s, strlen(s), -1, ui_math_metrics(lv, flags), LCL[i]);
+  LCK[i].p = s; LCK[i].hash = h; LCK[i].lv = (signed char)lv; LCK[i].flags = (char)flags;
+  return LCL[i];
+}
 static void draw_math(const char * s, const fitc & c, int x, int base, int ink, int bg, int flags) {
-  mi_layout L;
-  mi_build(s, strlen(s), -1, ui_math_metrics(c.lv, flags), L);
-  ui_math_draw(L, s, c.lv, x, base, 0, ink, bg, UC_ACC);
+  ui_math_draw(layout_of(s, c.lv, flags), s, c.lv, x, base, 0, ink, bg, UC_ACC);
 }
 
 // messages ("Done", "f(x) defined", warnings) rather than math
@@ -190,47 +205,47 @@ static void key_hint(int x, int base, const char * k, const char * label) {
   ui_text(&ui_tr9, label, x + w + 4, base, UC_SUB, UC_BG, 0);
 }
 
-// the box drawn by the last edit-line hero (cleared on the next one instead of the whole region);
-// hb_y0 = -1: unknown (the region held something else)
-static int hb_x0, hb_y0 = -1, hb_x1, hb_y1, hb_top, hb_h;
+// The hero is prepared (what it shows, the edit line's layout and position) before it is painted:
+// a banded repaint paints it once per band from these.
+enum { HM_HINT, HM_MATH, HM_TEXT, HM_RESULT };
+static int hm = HM_HINT, hy0, hh, hx, hbase, hcaret;
+static mi_layout * HL; // HM_MATH: the edit line's layout (heap)
+static int hb_y0, hb_y1; // HM_MATH: the rows it covers (ink overhang included)
 
-static void draw_hero(int y0, int h) {
+static void hero_prepare(int y0, int h) {
+  hy0 = y0; hh = h;
   const char * s = (const char *)Console_GetEditLine();
-  int caret = console_caret();
-  if (s && *s && console_edit2d()) { // the layout first, then clear and draw at once (no blank frame)
-    mi_layout L;
+  hcaret = console_caret();
+  if (s && *s && console_edit2d()) {
+    if (!HL) HL = new mi_layout;
+    mi_layout & L = *HL;
     focus_phase = 2;
-    hero_lv = ui_math_refit(s, strlen(s), caret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
     focus_phase = 3;
-    int x = (UI_W - L.width) / 2, base = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
+    hx = (UI_W - L.width) / 2; hbase = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
     if (L.width > 296) { // caret kept in view
-      x = UI_W / 2 - L.cx;
-      if (x > 12) x = 12;
-      if (x + L.width < UI_W - 12) x = UI_W - 12 - L.width;
+      hx = UI_W / 2 - L.cx;
+      if (hx > 12) hx = 12;
+      if (hx + L.width < UI_W - 12) hx = UI_W - 12 - L.width;
     }
-    // ink can overhang the layout box a little (italics, anti-aliasing, the caret)
-    int nx0 = x - 6, ny0 = base - L.asc - 4, nx1 = x + L.width + 6, ny1 = base + L.desc + 4;
-    ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
-    if (hb_y0 < 0 || hb_top != y0 || hb_h != h) ui_fill(0, y0, UI_W, h, col(UC_BG));
-    else { // the union of the old and new boxes
-      int cx0 = nx0 < hb_x0 ? nx0 : hb_x0, cy0 = ny0 < hb_y0 ? ny0 : hb_y0;
-      int cx1 = nx1 > hb_x1 ? nx1 : hb_x1, cy1 = ny1 > hb_y1 ? ny1 : hb_y1;
-      ui_fill(cx0, cy0, cx1 - cx0, cy1 - cy0, col(UC_BG));
-    }
-    hb_x0 = nx0; hb_y0 = ny0; hb_x1 = nx1; hb_y1 = ny1; hb_top = y0; hb_h = h;
+    hb_y0 = hbase - L.asc - 4; hb_y1 = hbase + L.desc + 4;
+    hm = HM_MATH;
+  } else if (s && *s) hm = HM_TEXT; // Python: plain text
+  else if (hero_last && NE && E[NE - 1].out >= 0) hm = HM_RESULT;
+  else hm = HM_HINT;
+}
+
+static void hero_paint() { // in the current clip
+  const char * s = (const char *)Console_GetEditLine();
+  int y0 = hy0, h = hh;
+  if (hm == HM_MATH) {
     focus_phase = 4;
-    ui_math_draw(L, s, hero_lv, x, base, 0, UC_INK, UC_BG, UC_ACC);
+    ui_math_draw(*HL, s, hero_lv, hx, hbase, 0, UC_INK, UC_BG, UC_ACC);
     focus_phase = 5;
-    if (caret >= 0) ui_math_caret(L, x, base, 0, UC_ACC);
-    ui_noclip();
-    return;
-  }
-  hb_y0 = -1;
-  ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
-  ui_fill(0, y0, UI_W, h, col(UC_BG));
-  if (s && *s) { // Python: plain text
+    if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
+  } else if (hm == HM_TEXT) {
     ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
-  } else if (hero_last && NE && E[NE - 1].out >= 0) {
+  } else if (hm == HM_RESULT) {
     const fent & e = E[NE - 1];
     int top = y0 + 10;
     if (e.in >= 0) {
@@ -264,20 +279,15 @@ static void draw_hero(int y0, int h) {
     key_hint(62, m + 20, "math", "templates");
     key_hint(170, m + 20, "up", "history");
   }
-  ui_noclip();
 }
 
-static void draw_hero_peek(int y) { // history mode: the edit line, small, at the bottom
-  if (y >= SBOT) return;
-  ui_clip(0, y, UI_W, SBOT);
-  ui_fill(0, y, UI_W, SBOT - y, col(UC_BG));
+static void hero_peek_paint(int y) { // history mode: the edit line, small, at the bottom
   ui_fill(10, y + 2, UI_W - 20, 1, col(UC_LINE));
   const char * s = (const char *)Console_GetEditLine();
   int b = y + 20;
   if (s && *s && console_edit2d()) { fitc c = fitted(s, 5, 230, 22, 0); draw_math(s, c, 14, b, UC_SUB, UC_BG, 0); }
   else ui_text(&ui_tr10, "New calculation", 14, b, UC_SUB, UC_BG, 0);
   ui_text(&ui_tb9, "down: back", UI_W - 12, b, UC_SUB, UC_BG, 2);
-  ui_noclip();
 }
 
 // ------------------------------------------------------------------ status bar and F-key bar
@@ -395,77 +405,168 @@ static void bar_draw(int keyflag, int force) {
 void focus_bar(int keyflag) { bar_draw(keyflag, 0); }
 
 // ------------------------------------------------------------------ the stage
-static int col_n, col_h, last_full_col_n = -1, last_hero_y = -1, last_mode = -1;
+// A model (what the stage shows) is computed first; painting rows draws whatever intersects them.
+// Repaints go through the RAM strip (ui_band_*), so the screen never shows a blank frame:
+// typing repaints the expression's rows, a move in the history the entries whose selection
+// changed, and a scroll moves the pixels (memmove, gliding in steps) and paints the rows uncovered.
+struct model { int hist, sel, selout, col_n, col_h, scroll, hero_y, ll; };
+static model M, PM = {0, -1, 0, 0, 0, 0, 0, -1}; // the model, the one on screen (ll = -1: none)
 
-static int fast_ok, last_LL = -1;
+static void stage_paint(int y0, int y1) { // rows [y0, y1) of the stage, in the current band
+  ui_clip(0, y0, UI_W, y1);
+  ui_fill(0, y0, UI_W, y1 - y0, col(UC_BG));
+  int bot = M.hist ? SBOT : M.hero_y, yy = ST - M.scroll;
+  for (int k = 0; k < M.col_n; ++k) {
+    const fent & e = E[k];
+    if (yy + e.h > y0 && yy < y1 && yy < bot) {
+      ui_clip(0, y0 > ST ? y0 : ST, UI_W, y1 < bot ? y1 : bot);
+      draw_entry(e, yy, k == M.sel, M.selout);
+    }
+    yy += e.h;
+  }
+  if (M.hist) {
+    if (yy < y1) { ui_clip(0, y0 > yy ? y0 : yy, UI_W, y1); hero_peek_paint(yy); }
+  } else if (M.hero_y < y1) {
+    ui_clip(0, y0 > M.hero_y ? y0 : M.hero_y, UI_W, y1);
+    hero_paint();
+  }
+  ui_noclip();
+}
+
+static void stage_rows(int y0, int y1) { // repaints rows [y0, y1) through the strip
+  if (y0 < ST) y0 = ST;
+  if (y1 > SBOT) y1 = SBOT;
+  if (y0 >= y1) return;
+  int rows = ui_band_open(64);
+  if (!rows) { stage_paint(y0, y1); return; } // no memory: directly
+  for (int b = y0; b < y1; b += rows) {
+    int e = b + rows < y1 ? b + rows : y1;
+    ui_band_begin(b, e);
+    unsigned char ph = focus_phase;
+    focus_phase = 30;
+    stage_paint(b, e);
+    focus_phase = 31;
+    ui_band_end();
+    focus_phase = ph;
+  }
+}
+
+static int entry_top(int k) { int y = ST - M.scroll; for (int i = 0; i < k; ++i) y += E[i].h; return y; }
+
+// The screen still shows the Focus stage: it only uses palette entries >= 128, every other
+// KhiCAS screen (menus, graphs, the editor) only < 128.
+static int screen_is_ours() { // a grid of 6 x 6 points: a message box over the stage hits some
+  for (int y = 3; y < UI_H; y += 46)
+    for (int x = 3; x < UI_W; x += 62)
+      if (ui_fb[y * UI_W + x] < 128) return 0;
+  return 1;
+}
+
+static void compute_model() {
+  focus_phase = 20;
+  scan();
+  focus_phase = 6;
+  int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // a history line, or -1
+  M.hist = cl >= 0 && cl < Last_Line && NE > 0;
+  const char * s = (const char *)Console_GetEditLine();
+  if (s && *s) hero_last = 0;
+  int show_last = !M.hist && hero_last && NE && (!s || !*s);
+  M.col_n = show_last ? NE - 1 : NE;
+  int y = 0;
+  for (int k = 0; k < M.col_n; ++k) y += E[k].h;
+  M.col_h = y;
+  M.sel = M.hist ? entry_of_line(cl) : -1; M.selout = 0;
+  if (M.sel >= 0) M.selout = cl != E[M.sel].in;
+  hist_sel = M.sel;
+  if (M.hist) {
+    int top = 0;
+    for (int k = 0; k < M.sel; ++k) top += E[k].h;
+    int bot = top + E[M.sel].h, view = SH - PEEK;
+    if (!PM.hist) hscroll = M.col_h + PEEK - SH;
+    if (top < hscroll + 4) hscroll = top - 4;
+    if (bot > hscroll + view) hscroll = bot - view;
+    int lo = M.col_h + PEEK - SH < -4 ? M.col_h + PEEK - SH : -4, hi = M.col_h + PEEK - SH;
+    if (hscroll > hi) hscroll = hi;
+    if (hscroll < lo) hscroll = lo;
+    M.scroll = hscroll;
+  } else {
+    M.scroll = M.col_n ? M.col_h - (E[M.col_n - 1].outh + 12) : 0;
+    if (M.col_n && E[M.col_n - 1].out < 0) M.scroll = M.col_h - (E[M.col_n - 1].inh + 12);
+  }
+  M.hero_y = ST + M.col_h - M.scroll;
+  if (!M.hist && M.hero_y < ST) M.hero_y = ST;
+  M.ll = Last_Line;
+}
+
+// the stage content moves up by d rows (down if d < 0): the pixels are moved, the rows uncovered
+// painted; a long scroll glides in 2 steps
+static void scroll_stage(int from, int to) {
+  int d = to - from;
+  int steps = d > 40 || d < -40 ? 2 : 1;
+  static const unsigned char pct[2] = {60, 100};
+  int cur = from;
+  for (int i = 0; i < steps; ++i) {
+    int nxt = steps == 1 ? to : from + d * pct[i] / 100, dd = nxt - cur;
+    M.scroll = nxt;
+    if (dd >= SH / 2 || dd <= -SH / 2) stage_rows(ST, SBOT);
+    else if (dd > 0) {
+      memmove(ui_fb + ST * UI_W, ui_fb + (ST + dd) * UI_W, (SH - dd) * UI_W);
+      stage_rows(SBOT - dd, SBOT);
+    } else if (dd < 0) {
+      memmove(ui_fb + (ST - dd) * UI_W, ui_fb + ST * UI_W, (SH + dd) * UI_W);
+      stage_rows(ST, ST - dd);
+    }
+    cur = nxt;
+  }
+}
+
 void focus_disp(int mode) {
   focus_phase = 1;
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;
-  if (!(mode & 1) && fast_ok && nonempty && console_caret() >= 0 && Last_Line == last_LL) {
-    draw_hero(last_hero_y, SBOT - last_hero_y); // typing: nothing above the edit line moved
+  (void)mode; // KhiCAS asks for full redraws on most cursor moves: what changed is computed here
+  ui_set_theme(&ui_theme_paper); // cheap; repairs entries 128-255 if anything reset the palette
+  int ours = PM.ll == Last_Line && screen_is_ours();
+  if (ours && !PM.hist && hm != HM_RESULT && console_caret() >= 0 && nonempty && console_edit2d()) {
+    // typing: only the expression changed (the entries above did not move; after a result shown
+    // large, the first key takes the full path: that entry goes back into the column)
+    int was_math = hm == HM_MATH, oy0 = hb_y0, oy1 = hb_y1;
+    hero_prepare(M.hero_y, SBOT - M.hero_y);
+    if (was_math) stage_rows(oy0 < hb_y0 ? oy0 : hb_y0, oy1 > hb_y1 ? oy1 : hb_y1);
+    else stage_rows(M.hero_y, SBOT);
+    ui_band_close();
     focus_phase = 0;
     return;
   }
   if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
-  scan();
-  focus_phase = 6;
-  int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // a history line, or -1
-  int hist = cl >= 0 && cl < Last_Line && NE > 0;
-  const char * s = (const char *)Console_GetEditLine();
-  if (s && *s) hero_last = 0;
-  int show_last = !hist && hero_last && NE && (!s || !*s);
-  col_n = show_last ? NE - 1 : NE;
-  int y = 0;
-  for (int k = 0; k < col_n; ++k) y += E[k].h;
-  col_h = y;
-  int sel = hist ? entry_of_line(cl) : -1, selout = 0;
-  if (sel >= 0) selout = cl != E[sel].in;
-  hist_sel = sel;
-  int scroll;
-  if (hist) {
-    int top = 0;
-    for (int k = 0; k < sel; ++k) top += E[k].h;
-    int bot = top + E[sel].h, view = SH - PEEK;
-    if (last_mode != 1) hscroll = col_h + PEEK - SH;
-    if (top < hscroll + 4) hscroll = top - 4;
-    if (bot > hscroll + view) hscroll = bot - view;
-    int lo = col_h + PEEK - SH < -4 ? col_h + PEEK - SH : -4, hi = col_h + PEEK - SH;
-    if (hscroll > hi) hscroll = hi;
-    if (hscroll < lo) hscroll = lo;
-    scroll = hscroll;
-  } else {
-    scroll = col_n ? col_h - (E[col_n - 1].outh + 12) : 0;
-    if (col_n && E[col_n - 1].out < 0) scroll = col_h - (E[col_n - 1].inh + 12);
-  }
-  int hero_y = ST + col_h - scroll;
-  if (!hist && hero_y < ST) hero_y = ST;
-  last_mode = hist; last_full_col_n = col_n; last_hero_y = hero_y;
-  fast_ok = !hist && nonempty; last_LL = Last_Line;
-  ui_set_theme(&ui_theme_paper); // cheap; repairs entries 128-255 if anything reset the palette
-  status_draw(1);
-  // entries, top to bottom (each draws its own background: no full clear, no flash)
-  int clip_bot = hist ? SBOT : hero_y;
-  hb_y0 = -1; // a full redraw: the hero region is cleared whole
-  ui_clip(0, ST, UI_W, clip_bot);
-  int yy = ST - scroll;
-  if (yy > ST) ui_fill(0, ST, UI_W, yy - ST, col(UC_BG));
-  for (int k = 0; k < col_n; ++k) {
-    const fent & e = E[k];
-    if (yy + e.h > ST && yy < clip_bot) {
-      ui_clip(0, ST, UI_W, clip_bot);
-      ui_fill(0, yy, UI_W, e.h, col(UC_BG));
-      draw_entry(e, yy, k == sel, selout);
+  compute_model();
+  if (ours && M.hist && PM.hist && M.col_n == PM.col_n && M.col_h == PM.col_h) {
+    // a move in the history: scroll if needed, then the entries whose selection changed
+    focus_phase = 21;
+    if (M.scroll != PM.scroll) {
+      int to = M.scroll;
+      scroll_stage(PM.scroll, to);
     }
-    yy += e.h;
+    focus_phase = 22;
+    if (M.sel != PM.sel || M.selout != PM.selout) {
+      if (PM.sel >= 0 && PM.sel < M.col_n && PM.sel != M.sel) { int t = entry_top(PM.sel); stage_rows(t, t + E[PM.sel].h); }
+      if (M.sel >= 0) { int t = entry_top(M.sel); stage_rows(t, t + E[M.sel].h); }
+    }
+    focus_phase = 23;
+    ui_band_close();
+    status_draw(0);
+    PM = M;
+    focus_phase = 0;
+    return;
   }
-  ui_noclip();
+  status_draw(1);
+  if (!M.hist) hero_prepare(M.hero_y, SBOT - M.hero_y);
   focus_phase = 7;
-  if (hist) {
-    if (yy < SBOT) draw_hero_peek(yy);
-  } else draw_hero(hero_y, SBOT - hero_y);
+  stage_rows(ST, SBOT);
+  ui_band_close();
   focus_phase = 8;
   bar_draw(bar_keyflag, 1);
+  PM = M;
   focus_phase = 0;
 }
 

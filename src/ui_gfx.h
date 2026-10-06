@@ -15,10 +15,20 @@ extern "C" {
 #define UI_W 320
 #define UI_H 240
 
-extern unsigned char * ui_fb;               // screen (lcd_Ram, 8 bpp)
+extern unsigned char * ui_fb;               // drawing target: the screen (lcd_Ram, 8 bpp) or a band
 extern int ui_cx0, ui_cy0, ui_cx1, ui_cy1;  // clip rectangle [x0,x1) x [y0,y1)
-void ui_clip(int x0, int y0, int x1, int y1); // set the clip (intersected with the screen)
+void ui_clip(int x0, int y0, int x1, int y1); // set the clip (intersected with the screen or band)
 void ui_noclip(void);
+
+// Bands: rows of the screen drawn into a RAM strip, then copied to the screen at once, so a
+// repaint never shows a blank frame (there is no back buffer: the second half of VRAM is giac's
+// heap). Drawing code is unchanged: inside a band, ui_fb points so that screen coordinates land
+// in the strip, and the clip never leaves the band.
+int ui_band_open(int maxrows);       // allocates the strip (fewer rows when memory is short);
+                                     // returns its rows, 0 = none (draw on the screen directly)
+void ui_band_close(void);            // frees it
+void ui_band_begin(int y0, int y1);  // screen rows [y0, y1), at most the strip's rows
+void ui_band_end(void);              // copies the band to the screen
 
 // theme colors
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,

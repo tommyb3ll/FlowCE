@@ -53,31 +53,23 @@ typedef void (*ui_blit_fn)(unsigned char *, const unsigned char *, unsigned char
 unsigned char ui_blit_c; // test switch (tools/emu pokes it): 1 = always the C loop
 #endif
 
-int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque) {
-  const ui_glyph * g = ui_glyph_of(f, cp);
-  if (!g) return 0;
-  int x0 = x + g->ox, y0 = y + g->oy, w = g->w, h = g->h;
-  if (x0 >= ui_cx1 || y0 >= ui_cy1 || x0 + w <= ui_cx0 || y0 + h <= ui_cy0 || !w) return g->adv;
-  // visible columns [xa, xb) and rows [ya, yb) of the glyph box (all < 256)
-  unsigned char xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w;
-  unsigned char ya = y0 < ui_cy0 ? ui_cy0 - y0 : 0, yb = y0 + h > ui_cy1 ? ui_cy1 - y0 : h;
-  unsigned char r0 = ramp[0], r1 = ramp[1], r2 = ramp[2], r3 = ramp[3], uw = w, clipx = xa || xb < uw;
-  // pixels are packed 4 per byte, high bits first, rows back to back. No shifts in the loop
-  // (each one is a helper call on the eZ80): masks walk the byte, consumed bits are cleared,
-  // so a zero byte means the rest of it is transparent.
-  unsigned k = (unsigned)ya * uw;
-  const unsigned char * bp = f->bits + g->off + k / 4;
-  unsigned char * row = ui_fb + (y0 + ya) * UI_W + x0;
+// rows of 2-bit pixels (4 per byte, high bits first, rows back to back) starting at pixel mi of
+// *bp, w wide, drawn at dst (screen rows); only columns [xa, xb) are touched. No shifts in the
+// loop (each one is a helper call on the eZ80): masks walk the byte, consumed bits are cleared,
+// so a zero byte means the rest of it is transparent.
+static void blit_rows(unsigned char * dst, const unsigned char * bp, unsigned char mi, unsigned char uw,
+                      unsigned char rows, unsigned char xa, unsigned char xb, const unsigned char * ramp, int opaque) {
 #ifdef TICE
-  if (!ui_blit_c && !clipx && !opaque) {
-    ((ui_blit_fn)(const void *)ui_blit2_code)(row, bp, k & 3, uw, yb - ya, ramp);
-    return g->adv;
+  if (!ui_blit_c && !xa && xb == uw && !opaque) {
+    ((ui_blit_fn)(const void *)ui_blit2_code)(dst, bp, mi, uw, rows, ramp);
+    return;
   }
 #endif
-  unsigned char mi = k & 3, b = *bp++;
+  unsigned char r0 = ramp[0], r1 = ramp[1], r2 = ramp[2], r3 = ramp[3], clipx = xa || xb < uw;
+  unsigned char b = *bp++;
   if (mi) b &= 0xff >> (2 * mi);
-  for (unsigned char yy = ya; yy < yb; ++yy, row += UI_W) {
-    unsigned char * q = row;
+  for (unsigned char yy = 0; yy < rows; ++yy, dst += UI_W) {
+    unsigned char * q = dst;
     for (unsigned char xx = 0; xx < uw;) {
       if (!b && !opaque) { // the rest of this byte is transparent
         unsigned char t = 4 - mi;
@@ -102,6 +94,33 @@ int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned c
       ++xx; ++q;
       if (++mi == 4) { mi = 0; b = *bp++; }
     }
+  }
+}
+
+int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque) {
+  const ui_glyph * g = ui_glyph_of(f, cp);
+  if (!g) return 0;
+  int x0 = x + g->ox, y0 = y + g->oy, w = g->w, h = g->h;
+  if (x0 >= ui_cx1 || y0 >= ui_cy1 || x0 + w <= ui_cx0 || y0 + h <= ui_cy0 || !w) return g->adv;
+  // visible columns [xa, xb) and rows [ya, yb) of the glyph box (all < 256)
+  unsigned char xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w;
+  unsigned char ya = y0 < ui_cy0 ? ui_cy0 - y0 : 0, yb = y0 + h > ui_cy1 ? ui_cy1 - y0 : h;
+  unsigned k = (unsigned)ya * (unsigned)w;
+  blit_rows(ui_fb + (y0 + ya) * UI_W + x0, f->bits + g->off + k / 4, k & 3, w, yb - ya, xa, xb, ramp, opaque);
+  return g->adv;
+}
+
+int ui_draw_glyph_v(const ui_face * f, unsigned cp, int x, int ytop, int h, const unsigned char * ramp) {
+  const ui_glyph * g = ui_glyph_of(f, cp);
+  if (!g || !g->w || !g->h || h <= 0) return g ? g->adv : 0;
+  int x0 = x + g->ox, w = g->w;
+  if (x0 >= ui_cx1 || x0 + w <= ui_cx0) return g->adv;
+  unsigned char xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w;
+  for (int yy = 0; yy < h; ++yy) { // each row from the source row at the same height
+    int sy = ytop + yy;
+    if (sy < ui_cy0 || sy >= ui_cy1) continue;
+    unsigned k = (unsigned)((yy * 2 + 1) * g->h / (2 * h)) * (unsigned)w;
+    blit_rows(ui_fb + sy * UI_W + x0, f->bits + g->off + k / 4, k & 3, w, 1, xa, xb, ramp, 0);
   }
   return g->adv;
 }

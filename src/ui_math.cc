@@ -2,6 +2,7 @@
 // Text conventions: variables italic, numbers and function names upright, - drawn as the minus
 // sign, <= >= != -> as single symbols; pi, infinity, sigma, arrows from the symbol literals.
 #include "ui_math.h"
+extern "C" volatile unsigned char focus_phase; // focus.cc: timing probe (tools/emu/phases.py)
 #include "ui_gfx.h"
 #include "ui_font.h"
 #include "ui_fontdata.h"
@@ -172,8 +173,10 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
   const unsigned char * r = ui_ramp(bank, ink, bg), * ra = ui_ramp(bank, acc, bg);
   const mi_metrics & m = ui_math_metrics(lv, 0);
   int sz = ui_math_sizes[lv];
+  unsigned char ph = focus_phase;
   for (unsigned k = 0; k < L.ops.size(); ++k) {
     const mi_op & o = L.ops[k];
+    focus_phase = 40 + o.code;
     int ox = x + o.x, oy = y + o.y, w = o.w, h = o.h, osz = o.small ? ui_math_sizes[script(lv)] : sz;
     int th = osz >= 26 ? 32 : osz >= 17 ? 24 : 18; // stroke width, 1/16 px
     switch (o.code) {
@@ -208,6 +211,11 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
         const ui_glyph * g = ui_glyph_of(pf, l ? '(' : ')');
         if (g) { ui_draw_glyph(pf, l ? '(' : ')', ox + (w - g->w) / 2 - g->ox, oy + h - pf->desc, r, 0); break; }
       }
+      const ui_glyph * g = ui_glyph_of(pf, l ? '(' : ')');
+      if (g && h <= 3 * g->h) { // taller: the font's parenthesis stretched (STIX's shape, fast)
+        ui_draw_glyph_v(pf, l ? '(' : ')', ox + (w - g->w) / 2 - g->ox, oy, h, r);
+        break;
+      }
       int xo = (l ? ox + w - 1 : ox + 1) * 16, xi = (l ? ox + 1 : ox + w - 1) * 16;
       int y0 = oy * 16 + 8, y1 = (oy + h) * 16 - 8, mid = (y0 + y1) / 2;
       bezier(xo, y0, xi, y0 + (mid - y0) / 2, xi, mid - (mid - y0) / 3, xi, mid, th - 4, r);
@@ -229,6 +237,7 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
     case MI_BOX: ui_rframe(bank, ox, oy, w, h, osz >= 24 ? 3 : 2, acc, bg); (void)ra; break;
     }
   }
+  focus_phase = ph;
 }
 
 void ui_math_caret(const mi_layout & L, int x, int y, int bank, int acc) {

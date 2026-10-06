@@ -10,6 +10,7 @@
 #include "ui_math.h"
 
 extern "C" unsigned short * ui_host_palette(void);
+extern "C" { volatile unsigned char focus_phase; } // the calculator's timing probe (focus.cc)
 
 static void ppm(const char * path) {
   FILE * f = fopen(path, "wb");
@@ -58,6 +59,14 @@ int main(int argc, char ** argv) {
     }
   } else if (scene == "typing") {
     math_centered("integrate(4/sqrt(6x-9x^2),x)", 0, 12, 30, 296, 170, UC_INK, 0, 26);
+  } else if (scene == "deco") { // radicals, integrals, sums, tall parentheses at 2 sizes
+    const char * ex[] = {"sqrt(1-x^2)+(x^2+1)^3", "integrate(x*e^x,x,0,1)+sum(1/k^2,k,1,oo)", "((x+1)/(x-1))^2*{1,2}"};
+    int y = 6;
+    for (int i = 0; i < 3; ++i) {
+      math_centered(ex[i], 0, 4, y, 312, 46, UC_INK, 0, -1);
+      math_centered(ex[i], 4, 4, y + 46, 312, 30, UC_INK, 0, -1);
+      y += 78;
+    }
   } else if (scene == "sizes") {
     int y = 4;
     for (int lv = 0; lv < UI_NSIZES; ++lv) {

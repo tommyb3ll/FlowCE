@@ -24,6 +24,8 @@ int ui_text_width(const ui_face * f, const char * s, int n);
 // (ramp[0] = background, drawn only when opaque). Returns the advance.
 int ui_draw_text(const ui_face * f, const char * s, int n, int x, int y, const unsigned char * ramp, int opaque);
 int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque);
+// glyph cp stretched vertically to h rows, its box top at ytop (tall parentheses)
+int ui_draw_glyph_v(const ui_face * f, unsigned cp, int x, int ytop, int h, const unsigned char * ramp);
 
 #ifdef __cplusplus
 }

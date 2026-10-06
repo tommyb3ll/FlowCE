@@ -3413,7 +3413,7 @@ static void console_draw_input2d(int i){
 void console_displine(int i,int redraw_mode){
   if (focus_on){ // the Focus interface redraws the history as a whole (selection, scroll)
     if (i==Cursor.y)
-      focus_disp(1);
+      focus_disp(0);
     return;
   }
   if (i==Cursor.y && console_input2d()){
