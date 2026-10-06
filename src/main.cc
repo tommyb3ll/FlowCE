@@ -927,24 +927,30 @@ static giac::gen table_integral(const giac::gen & g){
 }
 
 // Odd roots of negative numbers are real, as on TI calculators and in textbooks (giac takes the
-// complex root: (-8)^(1/3) was 1+i*sqrt(3)): (-8)^(1/3) is -(8^(1/3)), (-1)^(2/3) is 1^(2/3)
-static giac::gen real_roots(const giac::gen & e){
+// complex root: (-8)^(1/3) was 1+i*sqrt(3)): (-8)^(1/3) is -(8^(1/3)), (-1)^(2/3) is 1^(2/3).
+// plot: every x^(p/q) with q odd becomes surd(x,q)^p, real for x<0 (the graph of x^(1/3) had
+// only its right half)
+static giac::gen real_roots(const giac::gen & e,bool plot=false){
   using namespace giac;
   if (e.type==_VECT){
     vecteur w(*e._VECTptr);
     for (iterateur it=w.begin();it!=w.end();++it)
-      *it=real_roots(*it);
+      *it=real_roots(*it,plot);
     return gen(w,e.subtype);
   }
   if (e.type!=_SYMB || e._SYMBptr->sommet==at_program)
     return e;
-  const gen a=real_roots(e._SYMBptr->feuille);
+  const gen a=real_roots(e._SYMBptr->feuille,plot);
   if (e._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2){
     const gen & b=a._VECTptr->front();
     gen p=a._VECTptr->back();
     if (p.type!=_FRAC && lidnt(p).empty()) // 1/3 as typed
       p=eval(p,1,contextptr);
     if (p.type==_FRAC && p._FRACptr->num.type==_INT_ && p._FRACptr->den.type==_INT_ && p._FRACptr->den.val%2){
+      if (plot){
+        const gen r=symbolic(at_surd,makesequence(b,p._FRACptr->den));
+        return p._FRACptr->num.val==1?r:symbolic(at_pow,makesequence(r,p._FRACptr->num));
+      }
       const gen be=evalf(b,1,contextptr);
       if (be.type==_DOUBLE_ && be._DOUBLE_val<0){
         const gen r=normal(pow(-b,p,contextptr),contextptr); // (-8)^(1/3): 2, not 8^(1/3)
@@ -2281,7 +2287,7 @@ void do_run(const char * s){
     giac::gen g(buf,contextptr);
     const bool real_in=focus_on && !giac::has_i(g); // (-8)^(1/3) is -2
     if (real_in)
-      g=real_roots(g);
+      g=real_roots(g,g.is_symb_of_sommet(giac::at_plot) || g.is_symb_of_sommet(giac::at_plotfunc));
     // x=a stores a in x (equaltosto), but x=(-x/2)^2 has x on both sides: an equation to solve
     const bool selfref=g.is_symb_of_sommet(giac::at_equal) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->front().type==giac::_IDNT && !giac::is_constant_wrt(g._SYMBptr->feuille._VECTptr->back(),g._SYMBptr->feuille._VECTptr->front(),contextptr);
     if (!selfref)
