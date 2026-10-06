@@ -651,6 +651,10 @@ static giac::gen positive_first(const giac::gen & g){
     vecteur & w=*f._VECTptr; // two terms only: -x^3+3*x^2-2 keeps its descending powers
     swapgen(w[0],w[1]);
   }
+  if (g._SYMBptr->sommet==at_plus && f.type==_VECT && f._VECTptr->size()==2 && has_i(f._VECTptr->front()) && !has_i(f._VECTptr->back())){
+    vecteur & w=*f._VECTptr; // a+bi: 1+i*sqrt(3), -1+i*sqrt(3) (the real part first)
+    swapgen(w[0],w[1]);
+  }
   if (g._SYMBptr->sommet==at_prod && f.type==_VECT && f._VECTptr->size()>=2){
     // factors: numbers, then x and its powers, then the rest (x*cos(x), 3*x^2*e^(3x); giac:
     // cos(x)*x, x^2*3*exp(3*x)); a stable insertion sort
@@ -922,6 +926,47 @@ static giac::gen table_integral(const giac::gen & g){
   return r;
 }
 
+// Odd roots of negative numbers are real, as on TI calculators and in textbooks (giac takes the
+// complex root: (-8)^(1/3) was 1+i*sqrt(3)): (-8)^(1/3) is -(8^(1/3)), (-1)^(2/3) is 1^(2/3)
+static giac::gen real_roots(const giac::gen & e){
+  using namespace giac;
+  if (e.type==_VECT){
+    vecteur w(*e._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=real_roots(*it);
+    return gen(w,e.subtype);
+  }
+  if (e.type!=_SYMB || e._SYMBptr->sommet==at_program)
+    return e;
+  const gen a=real_roots(e._SYMBptr->feuille);
+  if (e._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2){
+    const gen & b=a._VECTptr->front();
+    gen p=a._VECTptr->back();
+    if (p.type!=_FRAC && lidnt(p).empty()) // 1/3 as typed
+      p=eval(p,1,contextptr);
+    if (p.type==_FRAC && p._FRACptr->num.type==_INT_ && p._FRACptr->den.type==_INT_ && p._FRACptr->den.val%2){
+      const gen be=evalf(b,1,contextptr);
+      if (be.type==_DOUBLE_ && be._DOUBLE_val<0){
+        const gen r=normal(pow(-b,p,contextptr),contextptr); // (-8)^(1/3): 2, not 8^(1/3)
+        return p._FRACptr->num.val%2?-r:r;
+      }
+    }
+  }
+  return symbolic(e._SYMBptr->sommet,a);
+}
+// a definite integral of a real integrand that giac made complex (x^(-1/3) from -1 to 8): the
+// antiderivative at the bounds with real roots (giac's value was finite: the integral converges)
+static giac::gen real_ftc(const giac::gen & in,const giac::gen & g){
+  using namespace giac;
+  const vecteur & v=*in._SYMBptr->feuille._VECTptr; // integrate(f,x,a,b)
+  const gen F=_integrate(makesequence(eval(v[0],1,contextptr),v[1]),contextptr);
+  if (contains(F,at_integrate) || has_i(F))
+    return g;
+  const gen a=eval(v[2],1,contextptr),b=eval(v[3],1,contextptr);
+  const gen r=normal(eval(real_roots(subst(F,v[1],b,true,contextptr))-real_roots(subst(F,v[1],a,true,contextptr)),1,contextptr),contextptr);
+  return has_i(r) || has_inf_or_undef(r)?g:r;
+}
+
 // the signs of f(n) alternate (at n=10, 11, 12): (-1)^n*R
 static bool alternating(const giac::gen & f,const giac::gen & n){
   using namespace giac;
@@ -1016,6 +1061,25 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
     for (int k=0;k<a.val;++k)
       s=s-subst(f,n,k,false,contextptr);
     return ratnormal(s,contextptr);
+  }
+  // the integral test (1/(n*ln(n)) diverges); convergent: 200 terms, then the tail's integral
+  if (!isalt && a.val>=1){
+    const gen I=_integrate(makesequence(f,n,a,plus_inf),contextptr);
+    if (I==plus_inf || I==minus_inf)
+      return I;
+    if (I.type==_DOUBLE_ || contains(I,at_integrate) || evalf(I,1,contextptr).type!=_DOUBLE_)
+      return g; // (only an exact integral tells: a numeric one may hide a divergence)
+    double s=0;
+    const int N=a.val+200;
+    for (int k=N;k>=a.val;--k){
+      const gen y=evalf(subst(f,n,k,false,contextptr),1,contextptr);
+      if (y.type!=_DOUBLE_)
+        return g;
+      s+=y._DOUBLE_val;
+    }
+    const gen T=evalf(_integrate(makesequence(f,n,gen(N)+fraction(1,2),plus_inf),contextptr),1,contextptr);
+    if (T.type==_DOUBLE_)
+      return gen(s+T._DOUBLE_val);
   }
   return g;
 }
@@ -1200,6 +1264,10 @@ static void result_approx(const giac::gen & g){
   const size_t k=approx_text->find("*i"); // 1.5+0.5*i: 1.5+0.5i
   if (k!=std::string::npos && k+2==approx_text->size())
     approx_text->erase(k,1);
+  const char * t=approx_text->c_str(); // 1.0+1.73205i: 1+1.73205i
+  const char * z=strstr(t,".0");
+  if (z && z>t && isdigit((unsigned char)z[-1]) && (z[2]=='+' || z[2]=='-'))
+    approx_text->erase(z-t,2);
 }
 
 // Results as textbooks write them: pi/2, x^3/3, sqrt(2)/2, x-x^3/6+O(x^6), e (giac prints
@@ -1222,6 +1290,52 @@ static void ti_log10(char * buf,int cap){
     buf[i+4]='0';
     n+=2;
     i+=5;
+  }
+}
+
+static bool word_char(char c){ return isalnum((unsigned char)c) || c=='_'; }
+
+// Riemann sums use i as the index, sum((i/n)^2/n,i,1,n), but giac's i is sqrt(-1) ("please use a
+// valid identifier name"). In a sum(, product( or seq( whose index is i, i becomes k (or j, m:
+// a letter the call does not use). Same length: no room needed.
+static void sum_index_i(char * buf){
+  const int n=strlen(buf);
+  for (int i=0;i<n;++i){
+    const int L=!strncmp(buf+i,"sum(",4)?4:!strncmp(buf+i,"seq(",4)?4:!strncmp(buf+i,"product(",8)?8:0;
+    if (!L || (i && word_char(buf[i-1])))
+      continue;
+    int depth=0,c1=-1,c2=-1,end=-1;
+    for (int j=i+L;j<n && end<0;++j){
+      const char c=buf[j];
+      if (c=='(' || c=='[' || c=='{')
+        ++depth;
+      else if (c==')' || c==']' || c=='}'){
+        if (!depth)
+          end=j;
+        --depth;
+      }
+      else if (c==',' && !depth){
+        if (c1<0) c1=j; else if (c2<0) c2=j;
+      }
+    }
+    if (c1<0 || end<0)
+      continue;
+    int a=c1+1;
+    while (buf[a]==' ') ++a;
+    int b=a+1;
+    while (buf[b]==' ') ++b;
+    if (buf[a]!='i' || (b!=(c2>=0?c2:end) && buf[b]!='=')) // the index: i, or i=1..n
+      continue;
+    char name=0;
+    for (const char * c="kjm";*c && !name;++c){
+      name=*c;
+      for (int j=i+L;j<end;++j)
+        if (buf[j]==*c && !word_char(buf[j-1]) && !word_char(buf[j+1]))
+          name=0;
+    }
+    for (int j=i+L;name && j<end;++j)
+      if (buf[j]=='i' && !word_char(buf[j-1]) && !word_char(buf[j+1]))
+        buf[j]=name;
   }
 }
 
@@ -2094,8 +2208,10 @@ void do_run(const char * s){
   // paper notation and TI implicit multiplication (2sinx -> 2*sin(x), f(x)=... -> f(x):=...)
   // here and not in the console, so that the history keeps what the user typed
   khicas_implicit_mult(buf,cap);
-  if (focus_on) // TI and textbooks: log is base 10 (giac's log is ln): log(100) is 2
+  if (focus_on){ // TI and textbooks: log is base 10 (giac's log is ln): log(100) is 2
     ti_log10(buf,cap);
+    sum_index_i(buf);
+  }
   S=strlen(buf);
   if (S==3 && buf[0]=='[' && buf[2]==']' && buf[1]>='A' && buf[1]<='I'){
     string mats=get_timatrix(buf[1]-'A');
@@ -2163,6 +2279,9 @@ void do_run(const char * s){
     if (focus_on && !strstr(buf,"print"))
       dconsole_mode=0;
     giac::gen g(buf,contextptr);
+    const bool real_in=focus_on && !giac::has_i(g); // (-8)^(1/3) is -2
+    if (real_in)
+      g=real_roots(g);
     // x=a stores a in x (equaltosto), but x=(-x/2)^2 has x on both sides: an equation to solve
     const bool selfref=g.is_symb_of_sommet(giac::at_equal) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->front().type==giac::_IDNT && !giac::is_constant_wrt(g._SYMBptr->feuille._VECTptr->back(),g._SYMBptr->feuille._VECTptr->front(),contextptr);
     if (!selfref)
@@ -2174,7 +2293,7 @@ void do_run(const char * s){
     giac::gen vars; // solve(eqs,[x,y]): x=2, y=1
     if (g.is_symb_of_sommet(giac::at_solve) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_VECT)
       vars=g._SYMBptr->feuille._VECTptr->back();
-    if (var.type!=giac::_IDNT && g.is_symb_of_sommet(giac::at_solve)){
+    if (var.type!=giac::_IDNT && (g.is_symb_of_sommet(giac::at_solve) || g.is_symb_of_sommet(giac::at_csolve))){
       if (g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
         var=g._SYMBptr->feuille._VECTptr->back();
       else if (g._SYMBptr->feuille.type!=giac::_VECT) // solve(expr): giac solves for x
@@ -2182,6 +2301,7 @@ void do_run(const char * s){
     }
     // a definite integral (integrate(f,x,a,b)): undef means it diverges
     const bool definite=(g.is_symb_of_sommet(giac::at_integrate) || g.is_symb_of_sommet(giac::at_int)) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==4;
+    const giac::gen gin=g;
     g=ftc(g);
     g=numeric_hard_integrals(g);
     giac::gen tab=table_integral(g); // sec, csc: the textbook form, at once
@@ -2209,6 +2329,8 @@ void do_run(const char * s){
       g=0;
     }
     else {
+      if (definite && real_in && giac::has_i(g) && !giac::has_inf_or_undef(g))
+        g=real_ftc(gin,g); // x^(-1/3) from -1 to 8: 9/2
       if (giac::contains(g,giac::at_bounded_function)) // lim sin(x) at infinity, sum((-1)^n)
         msg=strstr(buf,"sum(")?"diverges (the terms do not go to 0)":strstr(buf,"limit(")?"no limit (it oscillates)":"";
       else if (g.is_symb_of_sommet(giac::at_sum)) // an infinite sum giac could not do
