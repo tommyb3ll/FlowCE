@@ -41,3 +41,8 @@ cp bin/AppIns*.8xv bin/_DEMO.bin bin/DEMO.map "$OUT"/
 echo "$SUPER $GIAC" > "$OUT/SNAPSHOT"
 size=$(stat -c %s bin/_DEMO.bin)
 echo "[build] OK in $((t1-t0))s: _DEMO.bin=$size B ($(( (size+65535)/65536 )) flash pages), $(ls "$OUT"/AppIns*.8xv | wc -l) AppIns, warnings=$(grep -c 'warning:' "$LOG/build_$VARIANT.log") -> $OUT"
+# INST installs at most 43 AppIns (65,232 B each, the binary + a 3-byte trailer): a 44th made it
+# stop with "AppIns43: AppVar is missing" (2026-10-06)
+max=$((43 * 65232 - 3))
+if [ "$size" -gt "$max" ]; then echo "[build] TOO BIG: $size B > $max B (43 AppIns): INST will fail"; exit 3; fi
+echo "[build] room left: $((max - size)) B"
