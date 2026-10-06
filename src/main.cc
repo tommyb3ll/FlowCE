@@ -681,8 +681,11 @@ static giac::gen positive_first(const giac::gen & g){
     const bool fr=w.size()==2 && w[0].type==_FRAC && is_strictly_positive(w[0]._FRACptr->den,contextptr);
     const bool iv=w.size()==2 && w[0].is_symb_of_sommet(at_inv) && w[0]._SYMBptr->feuille.type==_INT_ && w[0]._SYMBptr->feuille.val>1;
     if (fr || iv){
-      const gen num=iv || is_one(w[0]._FRACptr->num)?w[1]:symbolic(at_prod,makesequence(w[0]._FRACptr->num,w[1]));
-      return tb_quotient(num,iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den);
+      const gen q=iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den,p=iv?gen(1):w[0]._FRACptr->num;
+      if (w[1].is_symb_of_sommet(at_inv)) // 7/9*inv(x^2): 7/(9x^2), not (7/x^2)/9
+        return tb_quotient(p,symbolic(at_prod,makesequence(q,w[1]._SYMBptr->feuille)));
+      const gen num=is_one(p)?w[1]:symbolic(at_prod,makesequence(p,w[1]));
+      return tb_quotient(num,q);
     }
   }
   return symbolic(g._SYMBptr->sommet,f);
@@ -2172,6 +2175,7 @@ void do_run(const char * s){
     }
     focus_phase=82;
     std::string msg; // a plain message instead of the result
+    giac::gen graw; // g before positive_first
     if (eval_stopped){ // ON, or memory ran out: what the calculation built is freed
       msg=eval_stopped==2?"Out of memory":"Interrupted";
       g=0;
@@ -2187,6 +2191,7 @@ void do_run(const char * s){
       if (autosimp && !tabled)
         g=auto_simplify(g);
       focus_phase=84;
+      graw=g; // (the long-polynomial check below expands it: expand ignores a built division)
       if (g.type==giac::_SYMB && giac::taille(g,200)<200 && !giac::contains(g,giac::at_order_size)) // (series: as is)
         g=positive_first(g);
       focus_phase=85;
@@ -2242,12 +2247,15 @@ void do_run(const char * s){
         strip_equation_parens(printed);                        // x=(-sqrt(2)),x=(sqrt(2))
         chain_inequalities(printed);
       }
-      if (printed.size()>70){ // (a long polynomial)/182: term by term (x^14/14+...), which wraps
-        const giac::gen d=giac::_denom(g,contextptr);
-        if ((d.type==giac::_INT_ || d.type==giac::_ZINT) && !giac::is_one(d) && giac::_numer(g,contextptr).is_symb_of_sommet(giac::at_plus)){
-          const giac::gen x=giac::expand(g,contextptr);
-          if (!giac::is_undef(x) && x.type!=giac::_STRNG)
+      if (printed.size()>70 && graw.type==giac::_SYMB){ // (a long polynomial)/182: term by term
+        const giac::gen d=giac::_denom(graw,contextptr);  // (x^14/14+...), which wraps
+        if ((d.type==giac::_INT_ || d.type==giac::_ZINT) && !giac::is_one(d) && giac::_numer(graw,contextptr).is_symb_of_sommet(giac::at_plus)){
+          giac::gen x=giac::expand(graw,contextptr);
+          if (!giac::is_undef(x) && x.type!=giac::_STRNG){
+            if (x.type==giac::_SYMB && giac::taille(x,200)<200)
+              x=positive_first(x); // descending powers, 99x^10/2
             printed=x.print(contextptr);
+          }
         }
       }
       focus_phase=86;
