@@ -2269,6 +2269,35 @@ int Console_GetKey(){
       }
       if (a==FA_PLOT)
         return Console_FMenu(KEY_CTRL_F3);
+      if (a==FA_THEME){
+        focus_toggle_theme();
+        continue;
+      }
+      if (a==FA_GRAPH){ // graph the line, else the selected or shown answer: plot(...) not typed
+        string g;
+        if (Current_Line==Last_Line && Edit_Line && Edit_Line[0])
+          g=(const char *)Edit_Line;
+        else {
+          const int l=Current_Line<Last_Line?Current_Line:focus_result_line();
+          if (l>=0 && Line[l].str)
+            g=(const char *)Line[l].str;
+          if (g.size()>5 && g.compare(0,5,"list[")==0) // solve's answers: plot the values
+            g=g.substr(4,g.size()-4); // (uSTL: substr(pos) without a length is broken for pos>0)
+        }
+        if (g.compare(0,2,"y=")==0) // y=x^2: its right side
+          g=g.substr(2,g.size()-2);
+        if (g.empty() || g.find('=')!=string::npos){ // nothing, or an equation (x=2 answers)
+          focus_status_msg(g.empty()?"Type a function of x first":"Not a function of x");
+          continue;
+        }
+        for (int k=0;Current_Line<Last_Line && k<4000;++k)
+          Console_MoveCursor(CURSOR_DOWN);
+        Console_Clear_EditLine();
+        g="plot("+g+")";
+        Console_Input((const Char *)g.c_str());
+        console_prepare_input();
+        return Console_NewLine(LINE_TYPE_INPUT,1);
+      }
       if (a==FA_CLEAR){
         static const char * const yesno[]={"Clear history","Cancel"};
         if (focus_choose("Clear the history?",yesno,2)==0){

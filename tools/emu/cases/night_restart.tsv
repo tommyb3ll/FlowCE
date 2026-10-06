@@ -1,0 +1,3 @@
+# the theme survives quitting KhiCAS
+night_restart	{graph}3{run:1500}{2nd,mode}{run:2500}{clear}{run:500}{apps}{run:1500}2{run:2000}{enter}{run:4000}
+night_back	{graph}3{run:1500}{graph}3{run:1500}{2nd,mode}{run:2500}{clear}{run:500}{apps}{run:1500}2{run:2000}{enter}{run:4000}

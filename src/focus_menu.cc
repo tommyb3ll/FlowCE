@@ -51,8 +51,10 @@ static const fm_item m_sym[] = { // what the keypad has no key for, or hides beh
   {"=", 0, 0, 0, 0, 0}, {"<=", 0, 0, 0, 0, 0}, {">=", 0, 0, 0, 0, 0}, {"!=", 0, 0, 0, 0, 0},
 };
 static const fm_item m_more[] = {
+  {0, 0, 0, "Graph", "line or answer", FA_GRAPH},
   {0, 0, 0, "All commands", "search", FA_CATALOG},
-  {0, 0, 0, "Plot", "graphs", FA_PLOT},
+  {0, 0, 0, "Paper or Night", "theme", FA_THEME},
+  {0, 0, 0, "Other plots", "kinds", FA_PLOT},
   {0, 0, 0, "File", "sessions", FA_FILE},
   {0, 0, 0, "Clear history", 0, FA_CLEAR},
 };

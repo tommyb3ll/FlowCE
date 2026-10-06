@@ -47,7 +47,8 @@ void focus_icon(int ic, int x, int cy, int bank, int c, int bg); // the prototyp
 // focus_menu.cc: F1-F5 and the math key open a popover over the dimmed stage. Returns FA_NONE
 // (closed), FA_INSERT with the template to insert (*text, then the caret back *back chars), or
 // an action for the console.
-enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR };
+enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME };
+void focus_toggle_theme();             // Paper <-> Night, at once (the palette), saved in the appvar FocusUI
 int focus_popover(int key, const char ** text, int * back);
 
 // focus_catalog.cc: the command search. query: initial text (the word before the caret), may be

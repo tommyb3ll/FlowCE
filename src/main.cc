@@ -650,6 +650,60 @@ static void result_approx(const giac::gen & g){
   decimal_digits(dd,contextptr);
 }
 
+// Taylor series as textbooks write them: x-x^3/6+x^5/120+O(x^6) (giac prints
+// x-1/6*x^3+1/120*x^5+x^6*order_size(x)). Each top-level term: p/q*m -> p*m/q, m*order_size(v) -> O(m).
+// Plain chars, in place: the result is never longer than the text (order_size( is 11 chars, O( 2).
+static void series_textbook(std::string & str){
+  const char * s=str.c_str();
+  const int n=strlen(s);
+  if (!strstr(s,"order_size(") || strchr(s,'[') || strchr(s,',') || n>=1024)
+    return;
+  char * out=(char *)malloc(n+1);
+  if (!out)
+    return;
+  int k=0;
+  for (int i=0,j;i<n;i=j){
+    int d=0;
+    j=i+(s[i]=='+' || s[i]=='-');
+    for (;j<n;++j){ // the term ends at a top-level + or - (not an exponent's or a factor's sign)
+      const char c=s[j];
+      if (c=='(') ++d;
+      else if (c==')') --d;
+      else if (!d && (c=='+' || c=='-') && !strchr("^*/(e",s[j-1])) break;
+    }
+    int t=i,e=j; // the term without its sign: s[t,e)
+    char sg=0;
+    if (s[t]=='+' || s[t]=='-') sg=s[t++];
+    const char * o=strstr(s+t,"order_size(");
+    if (o && o<s+e){ // m*order_size(v) -> O(m)
+      const int m=o>s+t && o[-1]=='*'?int(o-s)-1:t;
+      if (k) out[k++]='+';
+      out[k++]='O'; out[k++]='(';
+      if (m==t) out[k++]='1';
+      else { memcpy(out+k,s+t,m-t); k+=m-t; }
+      out[k++]=')';
+      continue;
+    }
+    if (k || sg=='-') out[k++]=sg?sg:'+';
+    int a=t,b;
+    while (a<e && s[a]>='0' && s[a]<='9') ++a;
+    if (a>t && a<e && s[a]=='/'){
+      for (b=a+1;b<e && s[b]>='0' && s[b]<='9';++b) ;
+      if (b>a+1 && b<e && s[b]=='*'){ // 1/6*x^3 -> x^3/6, 3/40*x^5 -> 3*x^5/40
+        if (!(a==t+1 && s[t]=='1')){ memcpy(out+k,s+t,a-t); k+=a-t; out[k++]='*'; }
+        memcpy(out+k,s+b+1,e-b-1); k+=e-b-1;
+        out[k++]='/';
+        memcpy(out+k,s+a+1,b-a-1); k+=b-a-1;
+        continue;
+      }
+    }
+    memcpy(out+k,s+t,e-t); k+=e-t;
+  }
+  out[k]=0;
+  str=out;
+  free(out);
+}
+
 // giac prints each right side of x=... in parentheses: drops them when they enclose the whole side
 static void strip_equation_parens(std::string & s){
   for (size_t i=0;i+1<s.size();++i){
@@ -1398,6 +1452,7 @@ void do_run(const char * s){
       std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
       if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
         strip_equation_parens(printed);
+      series_textbook(printed);
       const char * str = printed.c_str();
       if (focus_on)
         console_approx_for=str;

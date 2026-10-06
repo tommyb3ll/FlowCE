@@ -1,0 +1,5 @@
+# Taylor series answers
+ser_sin	{window}6sin(x{enter}{run:6000}
+ser_exp	{window}6e^x{enter}{run:6000}
+ser_geo	{window}61/(1-x{right}{enter}{run:6000}
+ser_cos_hist	{window}6cos(x{enter}{run:6000}{up}

@@ -37,7 +37,7 @@ void ui_band_end(void);              // copies the band to the screen
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,
        UC_GREEN, UC_SHADOW, UC_WHITE, UC_RED, UC_PURPLE, UC_ORANGE, UC_DIM, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
-extern const ui_theme ui_theme_paper;
+extern const ui_theme ui_theme_paper, ui_theme_night;
 
 void ui_set_theme(const ui_theme * t);      // (re)writes every palette entry in use
 unsigned char ui_col(int bank, int c);      // palette index of color c in bank 0/1

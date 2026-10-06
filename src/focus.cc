@@ -31,6 +31,7 @@ const char * console_fkey_label(int layer, int k); // console.cc: F-key label (l
 
 // timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
 extern "C" { volatile unsigned char focus_phase; }
+static const ui_theme * theme = &ui_theme_paper; // Paper or Night (focus_toggle_theme)
 
 enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
        IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292 };
@@ -646,7 +647,7 @@ void focus_disp(int mode) {
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;
   (void)mode; // KhiCAS asks for full redraws on most cursor moves: what changed is computed here
-  ui_set_theme(&ui_theme_paper); // cheap; repairs entries 128-255 if anything reset the palette
+  ui_set_theme(theme); // cheap; repairs entries 128-255 if anything reset the palette
   int ours = PM.ll == Last_Line && screen_is_ours();
   if (ours && !PM.hist && hm != HM_RESULT && console_caret() >= 0 && nonempty && console_edit2d()) {
     // typing: only the expression changed (the entries above did not move; after a result shown
@@ -728,7 +729,18 @@ int focus_view;
 // screen_is_ours() cannot tell: forget what is on screen
 void focus_invalidate() { PM.ll = -1; }
 
-void focus_init() { ui_set_theme(&ui_theme_paper); read_battery(); }
+void focus_init() {
+  const char * t = read_file("FocusUI"); // the theme chosen last
+  theme = t && t[0] == 'N' ? &ui_theme_night : &ui_theme_paper;
+  ui_set_theme(theme);
+  read_battery();
+}
+// every Focus pixel is a palette entry: the new theme shows at once, without a redraw
+void focus_toggle_theme() {
+  theme = theme == &ui_theme_night ? &ui_theme_paper : &ui_theme_night;
+  ui_set_theme(theme);
+  write_file("FocusUI", theme == &ui_theme_night ? "N" : "P", 2);
+}
 extern "C" void focus_idle(void) { // getkey, after a few idle seconds
   if (!focus_on) return;
   read_battery();

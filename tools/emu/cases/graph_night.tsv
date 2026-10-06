@@ -1,0 +1,9 @@
+# Graph from the more menu, and the Night theme (tools/emu/audit.py)
+gr_line	x{sq}-2{graph}1{run:5000}
+gr_answer	diff(x^3{right},x{enter}{run:4000}{graph}1{run:5000}
+gr_empty	{graph}1{run:1500}
+more_menu	{graph}
+night_console	1+1{enter}{run:2000}x^2{right}/3{graph}3{run:1500}
+night_menu	{graph}3{run:1500}{yequ}
+night_graph	{graph}3{run:1500}plot(sin(x{enter}{run:5000}
+night_2nd	{graph}3{run:1500}{2nd,window}

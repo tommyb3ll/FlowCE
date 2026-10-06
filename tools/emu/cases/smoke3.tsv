@@ -1,0 +1,7 @@
+# FOCUS3 smoke test
+gr_solve	solve(x{sq}=4{right}{enter}{run:5000}{graph}1{run:6000}
+ser_sin	{window}6sin(x{enter}{run:6000}
+gr_line	x{sq}-2{graph}1{run:5000}
+s2menu	{2nd,yequ}
+file	{graph}5
+night	{graph}3{run:1500}1/2+1/3{enter}{run:3000}

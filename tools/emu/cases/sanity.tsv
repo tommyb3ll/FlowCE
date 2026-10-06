@@ -1,0 +1,6 @@
+# fx45 sanity
+idle	{run:2000}
+onekey	1{run:1000}
+calc	1+1{enter}{run:3000}
+f2	{window}{run:1500}
+f2_6	{window}6{run:1500}
