@@ -1,0 +1,14 @@
+# menus and templates as a student fills them (observe the edit line)
+m1	{yequ}1x{sq}=4
+m2	{window}2x{sq}{down}0{up}{up}1
+m3	{math}12{down}x{right}+1
+m4	{window}4{sin}x{right}/x{down}0
+m4b	{window}4{sin}x{right}/x{left}{left}{left}{left}{left}{left}{left}0
+m5	{window}51/k{sq}{down}1{up}{up}
+m6	{window}6{sin}x{right}{right}{right}{right}
+m7	2+3{enter}{up}{left}{enter}
+m8	2+3{enter}{up}{enter}
+m9	{window}3x^3{right}{down}
+m10	{math}2x{sq}+1{right}{right}
+m11	{zoom}1x{right}{sq}
+m12	{graph}2sin{enter}

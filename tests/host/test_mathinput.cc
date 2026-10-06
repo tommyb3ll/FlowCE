@@ -581,7 +581,7 @@ static void t_nav_sqrt_abs() {
   s = "series(f,x,0,5)";                // taylor: x->0 deg 5, then f
   CHECK(walk(s, 0, RIGHT, 9) == "9,10,11,12,13,14,7,8,15");
   s = "limit(sin(x)/x,x,0)";            // x->0, then the body (ending in a fraction), then out
-  CHECK(walk(s, 0, RIGHT, 14) == "15,16,17,18,6,7,8,9,10,11,12,13,14,19");
+  CHECK(walk(s, 0, RIGHT, 12) == "15,16,17,18,6,9,10,11,12,13,14,19"); // sin: one unit
 }
 
 static void t_nav_integral() {

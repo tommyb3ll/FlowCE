@@ -1,0 +1,8 @@
+# IVPs, cot, coefficient quotients, surface area by u-substitution
+o1	desolve([y'=3*y,y(0)=2],y)
+o3	desolve([y''+4y=0,y(0)=1,y'(0)=0],y)
+o5	desolve([y'=x*y,y(0)=1],y)
+r7	integrate(cot(x),x)
+r2	integrate((3x+1)/(x^2+2x+5),x)
+s1	2*pi*integrate(x^3*sqrt(1+9x^4),x,0,1)
+pf3	integrate(1/(x^2+4x+8),x)

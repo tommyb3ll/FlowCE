@@ -584,6 +584,14 @@ static giac::gen positive_first(const giac::gen & g){
     for (unsigned i=1;i<w.size();++i)
       for (unsigned j=i;j>0 && factor_rank(w[j])<factor_rank(w[j-1]);--j)
         swapgen(w[j],w[j-1]);
+    // 1/2*(x+1) -> (x+1)/2, 3/2*u -> 3*u/2: arctan((x+1)/2), not arctan(1/2*(x+1)) (the 1/2: a
+    // fraction or inv(2))
+    const bool fr=w.size()==2 && w[0].type==_FRAC && is_strictly_positive(w[0]._FRACptr->den,contextptr);
+    const bool iv=w.size()==2 && w[0].is_symb_of_sommet(at_inv) && w[0]._SYMBptr->feuille.type==_INT_ && w[0]._SYMBptr->feuille.val>1;
+    if (fr || iv){
+      const gen num=iv || is_one(w[0]._FRACptr->num)?w[1]:symbolic(at_prod,makesequence(w[0]._FRACptr->num,w[1]));
+      return symbolic(at_division,makesequence(num,iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den));
+    }
   }
   return symbolic(g._SYMBptr->sommet,f);
 }
@@ -726,7 +734,7 @@ static bool hard_radicand(const giac::gen & f,const giac::gen & x){
   }
   return hard_radicand(a,x);
 }
-// The textbook antiderivatives of sec, csc and their cubes (of a linear u = a*x+b): giac took
+// The textbook antiderivatives of sec, csc, their cubes, tan and cot (of a linear u = a*x+b): giac took
 // 18-34 s on the calculator for them and answered ln(|sin(x)+1/sin(x)+2|)/4-... for sec(x).
 // Returns 0 for anything else.
 static giac::gen table_integral(const giac::gen & g){
@@ -736,8 +744,23 @@ static giac::gen table_integral(const giac::gen & g){
   const gen & x=(*g._SYMBptr->feuille._VECTptr)[1];
   if (x.type!=_IDNT)
     return 0;
+  const gen & f0=(*g._SYMBptr->feuille._VECTptr)[0];
+  if (f0.is_symb_of_sommet(at_cot) || f0.is_symb_of_sommet(at_tan)){ // ln|sin(u)|, -ln|cos(u)| (giac:
+    const gen u=eval(f0._SYMBptr->feuille,1,contextptr),a=derive(u,x,contextptr); // ln(-(cos(x)^2-1))/2 for cot)
+    if (is_zero(a) || !is_constant_wrt(a,x,contextptr))
+      return 0;
+    const bool c=f0.is_symb_of_sommet(at_cot);
+    gen r=symbolic(at_ln,symbolic(at_abs,symbolic(c?at_sin:at_cos,u)));
+    if (!c)
+      r=symbolic(at_neg,r);
+    if (a.type==_INT_ && a.val>1)
+      r=symbolic(at_division,makesequence(r,a));
+    else if (!is_one(a))
+      r=symbolic(at_prod,makesequence(inv(a,contextptr),r));
+    return r;
+  }
   // f = cos(u)^-n or sin(u)^-n, however written: sec(u)^3, 1/cos(u)^3, (1/cos(u))^3, cos(u)^-3
-  gen d=eval((*g._SYMBptr->feuille._VECTptr)[0],1,contextptr);
+  gen d=eval(f0,1,contextptr);
   int n=1;
   for (int k=0;k<4;++k){
     if (d.is_symb_of_sommet(at_inv)){
@@ -928,6 +951,22 @@ static giac::gen power_sum(const giac::gen & g){
   return 0;
 }
 
+// the integrand F is c*b'(x)*b(x)^e for one of its radicals b^e: a u-substitution, elementary
+// (surface areas: 2*pi*x^3*sqrt(1+9x^4) went numeric)
+static bool usub(const giac::gen & F,const giac::gen & x){
+  using namespace giac;
+  const vecteur v=lop(F,at_pow);
+  for (const_iterateur it=v.begin();it!=v.end();++it){
+    const gen & a=it->_SYMBptr->feuille;
+    if (a.type!=_VECT || a._VECTptr->size()!=2 || a._VECTptr->back().type!=_FRAC || is_constant_wrt(a._VECTptr->front(),x,contextptr))
+      continue;
+    const gen q=ratnormal(F/(*it*derive(a._VECTptr->front(),x,contextptr)),contextptr);
+    if (!is_undef(q) && !is_inf(q) && is_constant_wrt(q,x,contextptr))
+      return true;
+  }
+  return false;
+}
+
 static giac::gen numeric_hard_integrals(const giac::gen & g){
   using namespace giac;
   if (g.type!=_SYMB)
@@ -936,7 +975,8 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
   if ((g._SYMBptr->sommet==at_integrate || g._SYMBptr->sommet==at_int) && a.type==_VECT && a._VECTptr->size()==4){
     const vecteur & v=*a._VECTptr;
     // constant bounds: numbers, pi, e (an infinite bound is left to giac)
-    if (v[1].type==_IDNT && evalf(v[2],1,contextptr).type==_DOUBLE_ && evalf(v[3],1,contextptr).type==_DOUBLE_ && hard_radicand(v[0],v[1]))
+    if (v[1].type==_IDNT && evalf(v[2],1,contextptr).type==_DOUBLE_ && evalf(v[3],1,contextptr).type==_DOUBLE_ && hard_radicand(v[0],v[1])
+        && !usub(eval(v[0],1,contextptr),v[1]))
       return symbolic(g._SYMBptr->sommet,makesequence(v[0],v[1],evalf(v[2],1,contextptr),evalf(v[3],1,contextptr)));
     return g;
   }

@@ -40,6 +40,7 @@
 // Memory: one allocation for the result (2*size, an upper bound, so it never
 // grows), plus up to two temporary ones when the line contains ":=".
 #include "tiinput.h"
+#include <string.h>
 
 static const int IM_MAXCUT=32; // longer unknown names are never cut
 
@@ -234,6 +235,9 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
     return line;
   const char * s=line.c_str();
   const int n=int(line.size());
+  // a differential equation: y(0)=1 and y'(0)=0 are conditions on the function y (or u), not
+  // y*0 (desolve([y'=3y,y(0)=2],y) gave nothing)
+  const bool ode=strstr(s,"desolve")!=0;
   // definition marks, only needed if the line contains ":="
   bool defs=false;
   for (int i=0;i+1<n && !defs;++i)
@@ -300,7 +304,7 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
       lk=K_NAME;
       lend = pcls==TI_NAME_VALUE || pcls==TI_NAME_UNKNOWN;
       lcall = def || pcls==TI_NAME_FUNCTION || pcls==TI_NAME_USERFN ||
-        (j-p==1 && (s[p]=='f' || s[p]=='g' || s[p]=='h') && pcls!=TI_NAME_VALUE) ||
+        (j-p==1 && (s[p]=='f' || s[p]=='g' || s[p]=='h' || (ode && (s[p]=='y' || s[p]=='u'))) && pcls!=TI_NAME_VALUE) ||
         (j-p>1 && pcls==TI_NAME_UNKNOWN); // an uncut unknown name: a call
       i=j;
       continue;

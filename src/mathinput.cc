@@ -226,6 +226,16 @@ static const char * dname(int n) {
     if (namei(n, al[i])) return al[i + 1];
   return 0;
 }
+// a built-in function's name before its ( (the caret steps over it as a whole; f( stays editable)
+static int kfn(int n) {
+  static const char * const fn[] = {"sin", "cos", "tan", "sec", "csc", "cot", "asin", "acos", "atan", "sinh",
+    "cosh", "tanh", "ln", "log", "log10", "exp", "abs", "sqrt", "floor", "ceil", "round", "factor", "expand",
+    "simplify", "solve", "partfrac", "ans", 0};
+  if (!(T[n].f & F_FN)) return 0;
+  for (int i = 0; fn[i]; ++i)
+    if (namei(n, fn[i])) return 1;
+  return 0;
+}
 static int dw(const char * t, int sm) { // width of a display name, upright
   int n = 0;
   while (t[n]) ++n;
@@ -717,9 +727,9 @@ static void place(int n, int x, int y, int dp, int sm) {
         const char * dn = sy ? 0 : dname(n);
         op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : dn ? dw(dn, sm) : tw(c, d.b - c, sm, st),
            f.asc + f.desc, c, d.b - c, sy ? symlit(k) : dn, sy ? (int)MI_SYM : st);
-        for (p = c + 1; p < d.b; ++p) // inside a glyph (or a display name): alias
-          if (k < K_PI && !dn && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
-          else alias(p, p + 1);
+        for (p = c + 1; p < d.b; ++p) // inside a glyph or a built-in function's name (sin is one
+          if (k < K_PI && !kfn(n) && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
+          else alias(p, p + 1);         // unit: the arrows stepped into it, s0in(x) was typed)
       }
     }
     P(d.b, x + d.w, y, sm, dp);
