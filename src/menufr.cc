@@ -27,14 +27,16 @@ void fix_f(int & key){
 #define MB_ElementCount strlen
 
 int doMenu(Menu* menu, MenuItemIcon* icontable) { // returns code telling what user did. selection is on menu->selection. menu->selection starts at 1!
-  if (focus_on && focus_screen() && menu->numitems>0 && menu->numitems<=40 &&
-      (menu->type==MENUTYPE_NORMAL || menu->type==MENUTYPE_NO_NUMBER)){ // over the console: a Focus card
-    const char * lab[40];
+  if (focus_on && (focus_screen() || focus_view) && menu->numitems>0 && menu->numitems<=40 &&
+      (menu->type==MENUTYPE_NORMAL || menu->type==MENUTYPE_NO_NUMBER)){ // over the console or a view: a Focus card
+    const char * lab[40], * hint[40];
     int i=0;
-    for (;i<menu->numitems && menu->items[i].type==MENUITEM_NORMAL && menu->items[i].text;++i)
+    for (;i<menu->numitems && (menu->items[i].type==MENUITEM_NORMAL || menu->items[i].type==MENUITEM_CHECKBOX) && menu->items[i].text;++i){
       lab[i]=menu->items[i].text;
+      hint[i]=menu->items[i].type==MENUITEM_CHECKBOX?(menu->items[i].value?"on":"off"):0; // graph: Show axes
+    }
     if (i==menu->numitems){
-      const int r=focus_list(menu->title,lab,i,menu->selection-1);
+      const int r=focus_list(menu->title,lab,i,menu->selection-1,hint);
       if (r<0)
         return MENU_RETURN_EXIT;
       menu->selection=r+1;

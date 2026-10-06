@@ -292,7 +292,7 @@ const char * select_var(){
   smallmenu.scrollbar=1;
   smallmenu.scrollout=1;
   int freemem=(int)malloc(0xffffff);
-  string title=("Variables "+giac::print_INT_(freemem));
+  string title=("Variables, "+giac::print_INT_(freemem/1024)+" KB free");
   smallmenu.title = (char*) title.c_str();
   //MsgBoxPush(5);
   int sres = doMenu(&smallmenu);
@@ -958,6 +958,8 @@ static void result_approx(const giac::gen & g){
   if (g.type==_INT_ || g.type==_ZINT || g.type==_DOUBLE_ || g.type==_FLOAT_ || g.type==_STRNG || g.type==_VECT
       || taille(g,64)>=64) // (pi/2 has an identifier, pi: evalf below tells numbers from expressions)
     return;
+  if (g.type==_CPLX && (g._CPLXptr->type==_INT_ || g._CPLXptr->type==_ZINT) && ((g._CPLXptr+1)->type==_INT_ || (g._CPLXptr+1)->type==_ZINT))
+    return; // 5+5i: nothing to add
   const gen a=evalf(g,1,contextptr);
   if (a.type!=_DOUBLE_ && a.type!=_CPLX)
     return;
@@ -965,6 +967,9 @@ static void result_approx(const giac::gen & g){
   decimal_digits(6,contextptr);
   *approx_text=a.print(contextptr);
   decimal_digits(dd,contextptr);
+  const size_t k=approx_text->find("*i"); // 1.5+0.5*i: 1.5+0.5i
+  if (k!=std::string::npos && k+2==approx_text->size())
+    approx_text->erase(k,1);
 }
 
 // Results as textbooks write them: pi/2, x^3/3, sqrt(2)/2, x-x^3/6+O(x^6), e (giac prints

@@ -1,0 +1,21 @@
+# every screen reachable from the console (audit.py: name, keys, pasted text)
+s_mode	{mode}
+s_prgm	{prgm}
+s_vars	{vars}
+s_stat	{stat}
+s_apps	{apps}
+s_2quit	{2nd,mode}
+s_2mem	{2nd,+}
+s_2list	{2nd,stat}
+s_2matrix	{2nd,inv}
+s_2catalog	{2nd,0}
+s_2test	{2nd,math}
+s_2draw	{2nd,prgm}
+s_more	{graph}
+s_file	{graph}5
+s_plots	{graph}4
+s_matres	{enter}{run:3000}	[[1,2],[3,4]]^-1
+s_cplx	{enter}{run:3000}	(1+2i)*(3-i)
+s_table	{enter}{run:4000}{2nd,graph}	plot(x^2)
+s_sto	{enter}{run:2000}	5=>a
+s_ans	2*{2nd,(-)}	3

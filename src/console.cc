@@ -609,6 +609,10 @@ void PrintMini(int x,int y,const char * s,int mode){
   x=os_draw_string_medium(x,y,COLOR_BLACK,mode?COLOR_SELECTED:COLOR_WHITE,s,false);
 }
 int print_msg12(const char * msg1,const char * msg2,int textY){
+  if (focus_on && (focus_screen() || focus_view)){ // a Focus card; the caller reads the key
+    focus_note(msg1,msg2);
+    return 0;
+  }
   drawRectangle(0, textY+10, LCD_WIDTH_PX, 60, SDK_WHITE);
   drawRectangle(3,textY+10,300,3, SDK_BLACK);
   drawRectangle(3,textY+10,3,60, SDK_BLACK);
@@ -672,7 +676,10 @@ int giacmin(int a,int b){
   return a<b?a:b;
 }
 
+int focus_prompt(const char * title, const char * label, std::string & s, bool numeric); // focus_menu.cc
 int inputline(const char * msg1,const char * msg2,std::string & s,bool numeric,int ypos){
+  if (focus_on && (focus_screen() || focus_view)) // a Focus card
+    return focus_prompt(msg1,msg2,s,numeric);
   // s="";
   int pos=s.size(),beg=0;
   for (;;){
@@ -753,7 +760,36 @@ void cleanup(std::string & s){
   }
 }
 
+// confirm() as a Focus card: the texts after "F1:" and "F5:" in msg2 are its two choices
+// (Cancel / Erase); a msg2 without them is a value under the title (graph: Root at, -3.14159)
+static int focus_confirm(const char * msg1,const char * msg2,bool acexit){
+  const char * f[2]={msg2?strstr(msg2,"F1"):0,msg2?strstr(msg2,"F5"):0};
+  int key;
+  if (!f[0] || !f[1]){
+    focus_note(msg1,msg2);
+    GetKey(&key);
+    return (key==KEY_CTRL_EXIT || key==KEY_CTRL_AC) && acexit?-1:KEY_CTRL_F1;
+  }
+  char lab[2][24];
+  const char * L[2]={lab[0],lab[1]};
+  for (int k=0;k<2;++k){ // "F1: cancel,   F5: erase": Cancel, Erase
+    const char * c=strchr(f[k],':');
+    int n=0;
+    if (c)
+      for (++c;*c==' ';++c) ;
+    for (;c && c[n] && c[n]!=',' && !(c[n]==' ' && c[n+1]==' ') && n<23;++n)
+      lab[k][n]=c[n];
+    lab[k][n]=0;
+    if (lab[k][0]>='a' && lab[k][0]<='z')
+      lab[k][0]+='A'-'a';
+  }
+  const int r=focus_list(msg1,L,strcmp(lab[0],lab[1])?2:1,0); // "F1 or F5: ok": one choice
+  return r<0?(acexit?-1:KEY_CTRL_F5):r?KEY_CTRL_F5:KEY_CTRL_F1;
+}
+
 int confirm(const char * msg1,const char * msg2,bool acexit){
+  if (focus_on && (focus_screen() || focus_view))
+    return focus_confirm(msg1,msg2,acexit);
   print_msg12(msg1,msg2);
   Printmini(0,C58,"    F1      |            |            |           |     F5    ",4);
   int key=0;

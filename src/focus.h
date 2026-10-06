@@ -28,7 +28,12 @@ int focus_hist_line(int dir);           // history by calculations: the line for
 int focus_choose(const char * title, const char * const * labels, int n);
 // a list card under a title (0: none) for KhiCAS's own menus (doMenu); a long list scrolls.
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
-int focus_list(const char * title, const char * const * labels, int n, int sel);
+int focus_list(const char * title, const char * const * labels, int n, int sel, const char * const * hints = 0);
+void focus_note(const char * title, const char * text); // a message card; the caller reads the key
+// the graph's table of values: head[ncol], cells row by row, hint on the last line
+void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint);
+// focus_prompt(title, label, std::string & s, numeric): a value prompt (KhiCAS's inputline) as
+// a card, KEY_CTRL_EXE or KEY_CTRL_EXIT (declared where std::string is known: console.cc)
 // KhiCAS's F-key menus (console_menu) as cards: idx = key - F1 after console_menu's renumbering.
 // Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
 int focus_fmenu(int idx, const char * const * entries, int n);

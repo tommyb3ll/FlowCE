@@ -259,7 +259,7 @@ static int pcall(int nm) { // name( args ): normal or special call
   else {
     T[cl].kid = nm;
     T[nm].f |= F_FN; // a function name: upright
-    if (na == 1 && T[t].k == K_EMPTY && !(M->flags & MI_F_CALLBOX)) T[t].f |= F_NOBOX; // f(): no box
+    if (na == 1 && T[t].k == K_EMPTY && (!(M->flags & MI_F_CALLBOX) || namei(nm, "ans"))) T[t].f |= F_NOBOX; // f(), ans(): no box
   }
   return cl;
 }

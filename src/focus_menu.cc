@@ -269,11 +269,11 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
 
 // a list card, centered, under a title (or none): KhiCAS's own menus (doMenu: config, variables,
 // file...) and confirmations. A long list scrolls. Returns the item chosen, -1 if cancelled.
-int focus_list(const char * t, const char * const * labels, int n, int sel) {
+int focus_list(const char * t, const char * const * labels, int n, int sel, const char * const * hints) {
   if (n < 1) return -1;
   if (n > 60) n = 60;
   fm_item * it = new fm_item[n];
-  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = 0; it[k].act = 0; }
+  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0; }
   fm_menu m = {0, 1, (char)n, it};
   title = t; hdr = t ? 26 : 0;
   rh = n > 5 ? 24 : RH;
@@ -292,7 +292,102 @@ int focus_list(const char * t, const char * const * labels, int n, int sel) {
   return res;
 }
 
-int focus_choose(const char * t, const char * const * labels, int n) { return focus_list(t, labels, n, 0); }
+int focus_choose(const char * t, const char * const * labels, int n) { return focus_list(t, labels, n, 0, 0); }
+
+// a message card (KhiCAS's print_msg12): title t, text s (cut to the card), over the screen as
+// it is; the caller reads the key, the next focus_disp repaints everything
+static void note_card(int x, int y, int w, int h) {
+  ui_rrect(0, x + 1, y + 3, w, h, 8, UC_SHADOW, UC_BG);
+  ui_rrect(1, x, y, w, h, 8, UC_CARD, UC_BG);
+  ui_rframe(1, x + 1, y + 1, w - 2, h - 2, 7, UC_LINE, UC_CARD);
+}
+static int fit(const ui_face * f, const char * s, int w) { // bytes of s that fit in w pixels
+  int n = strlen(s);
+  while (n > 0 && ui_text_width(f, s, n) > w) --n;
+  return n;
+}
+void focus_note(const char * t, const char * s) {
+  const int w = 280, x = (UI_W - w) / 2, h = s && *s ? 70 : 46, y = ST + (SBOT - ST - h) / 2;
+  note_card(x, y, w, h);
+  if (t) ui_draw_text(&ui_tb12, t, fit(&ui_tb12, t, w - 24), x + 12, y + 24, ui_ramp(1, UC_INK, UC_CARD), 0);
+  if (s && *s) ui_draw_text(&ui_tr12, s, fit(&ui_tr12, s, w - 24), x + 12, y + 50, ui_ramp(1, UC_SUB, UC_CARD), 0);
+  focus_invalidate();
+}
+
+// the graph's table of values in the Focus look: a header row (head[ncol]), nrow rows of cells
+// (row by row), alternate rows shaded, the keys on the last line. Drawn in bands (no flicker).
+void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint) {
+  const int y0 = 18, hh = 24, rh2 = 18, cwid = UI_W / ncol;
+  int rows = ui_band_open(48);
+  for (int b = y0; b < UI_H; b += rows ? rows : UI_H - y0) {
+    int e = rows && b + rows < UI_H ? b + rows : UI_H;
+    if (rows) ui_band_begin(b, e);
+    else ui_clip(0, b, UI_W, e);
+    ui_fill(0, y0, UI_W, UI_H - y0, ui_col(0, UC_BG));
+    ui_fill(0, y0, UI_W, hh, ui_col(0, UC_ACCSOFT));
+    for (int c = 0; c < ncol; ++c)
+      ui_draw_text(&ui_tb12, head[c], fit(&ui_tb12, head[c], cwid - 12), c * cwid + 10, y0 + 17, ui_ramp(0, UC_ACC, UC_ACCSOFT), 0);
+    for (int r = 0; r < nrow; ++r) {
+      int y = y0 + hh + r * rh2, bg = r & 1 ? UC_CARD : UC_BG;
+      if (r & 1) ui_fill(0, y, UI_W, rh2, ui_col(0, UC_CARD));
+      for (int c = 0; c < ncol; ++c) {
+        const char * t = cells[r * ncol + c];
+        ui_draw_text(&ui_tr12, t, fit(&ui_tr12, t, cwid - 12), c * cwid + 10, y + 14, ui_ramp(0, c ? UC_INK : UC_SUB, bg), 0);
+      }
+    }
+    for (int c = 1; c < ncol; ++c)
+      ui_fill(c * cwid, y0, 1, hh + nrow * rh2, ui_col(0, UC_LINE));
+    ui_draw_text(&ui_tr10, hint, -1, 10, UI_H - 5, ui_ramp(0, UC_SUB, UC_BG), 0);
+    if (rows) ui_band_end();
+  }
+  ui_noclip();
+}
+
+// a value prompt (KhiCAS's inputline): title t, label sub over an edit field. Keys as inputline:
+// characters, DEL, AC/CLEAR (clears, then cancels), arrows, EXE. Returns KEY_CTRL_EXE or
+// KEY_CTRL_EXIT.
+int focus_prompt(const char * t, const char * sub, std::string & s, bool numeric) {
+  const int w = 280, x = (UI_W - w) / 2, h = 104, y = ST + (SBOT - ST - h) / 2, fx = x + 12, fy = y + 50, fw = w - 24, fh = 28;
+  ui_dim(1);
+  note_card(x, y, w, h);
+  if (t) ui_draw_text(&ui_tb12, t, fit(&ui_tb12, t, fw), fx, y + 24, ui_ramp(1, UC_INK, UC_CARD), 0);
+  ui_draw_text(&ui_tr10, "EXE: OK    EXIT: cancel", -1, fx, y + h - 10, ui_ramp(1, UC_SUB, UC_CARD), 0);
+  int pos = s.size(), res = 0;
+  while (!res) {
+    // the field: its label, the text scrolled so that the caret shows, the caret
+    ui_rrect(1, fx, fy, fw, fh, 6, UC_ACCSOFT, UC_CARD);
+    int lw = sub && *sub ? ui_text_width(&ui_tr10, sub, -1) + 8 : 0;
+    if (lw) ui_draw_text(&ui_tr10, sub, -1, fx + 6, fy + 18, ui_ramp(1, UC_SUB, UC_ACCSOFT), 0);
+    const char * c = s.c_str();
+    int beg = 0, room = fw - lw - 14;
+    while (ui_text_width(&ui_tr12, c + beg, pos - beg) > room) ++beg;
+    int n = beg;
+    while (c[n] && ui_text_width(&ui_tr12, c + beg, n + 1 - beg) <= room) ++n;
+    const int tx = fx + 6 + lw;
+    ui_draw_text(&ui_tr12, c + beg, n - beg, tx, fy + 19, ui_ramp(1, UC_INK, UC_ACCSOFT), 0);
+    ui_fill(tx + ui_text_width(&ui_tr12, c + beg, pos - beg), fy + 5, 2, fh - 10, ui_col(1, UC_ACC));
+    int key;
+    GetKey(&key);
+    if (key == KEY_CHAR_PMINUS) key = '-';
+    if (key == KEY_CTRL_EXE || key == KEY_CTRL_OK) res = KEY_CTRL_EXE;
+    else if (key == KEY_CTRL_EXIT) res = KEY_CTRL_EXIT;
+    else if (key == KEY_CTRL_AC) { if (s.empty()) res = KEY_CTRL_EXIT; else { s = ""; pos = 0; } }
+    else if (key == KEY_CTRL_DEL) { if (pos) { s.erase(s.begin() + pos - 1); --pos; } }
+    else if (key == KEY_CTRL_LEFT) { if (pos) --pos; }
+    else if (key == KEY_CTRL_RIGHT) { if (pos < (int)s.size()) ++pos; }
+    else if (key >= 32 && key < 128 && s.size() < 60 &&
+             (!numeric || key == '-' || key == '.' || key == 'e' || key == 'E' || (key >= '0' && key <= '9'))) {
+      s.insert(s.begin() + pos, char(key));
+      ++pos;
+    }
+  }
+  ui_dim(0);
+  if (!focus_view) {
+    focus_repaint(y - 2, y + h + 6);
+    focus_bar_redraw();
+  }
+  return res;
+}
 
 // KhiCAS's own F-key menus (their config is in console.cc: the 2nd and alpha layers, plot,
 // matrices, lists...) as a grid of cards: the command drawn in 2D over a short label.
