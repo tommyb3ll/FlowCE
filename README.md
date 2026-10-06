@@ -88,6 +88,12 @@ system: follow your test's calculator rules (some tests, like the ACT, don't all
 4. At *"Success! Will now reset"*, press `enter` (a few times if the screen looks odd).
 5. **Start:** `clear`, then `apps` → **FlowCE**.
 
+What it looks like on the calculator:
+
+| 1. Clear the memory | 3. Run the installer | 5. Start FlowCE |
+|:-:|:-:|:-:|
+| ![Clearing the memory: MEM, Reset, ALL, All Memory, Reset](docs/install/install_1_reset.gif) | ![prgm, enter, enter, the arTIfiCE shell, INST, the countdown, Success](docs/install/install_3_run.gif) | ![apps, FlowCE, the start screen](docs/install/install_5_start.gif) |
+
 **If something goes wrong**
 - *The screen freezes at "Success! Will now reset":* press the reset button on the back of the
   calculator (a pen tip or a paperclip). FlowCE stays installed.
