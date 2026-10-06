@@ -2209,7 +2209,7 @@ static int console_empty_slot(const char * s){
   int e=n;
   while (e>0 && s[e-1]==' ')
     --e;
-  if (e>0 && !str && strchr("+-*/^",s[e-1]))
+  if (e>0 && !str && strchr("+-*/^(",s[e-1])) // x^2+ and x^2+( (unclosed: evaluated to undef)
     return e;
   return -1;
 }

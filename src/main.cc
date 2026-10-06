@@ -547,7 +547,7 @@ static bool neg_term(const giac::gen & t){
   return false;
 }
 // the order of a product's factors as textbooks write them: numbers, pi, a variable or its power,
-// the rest (functions, sums); lists last, in their order (matrices do not commute)
+// e^(...), the rest (functions, sums); lists last, in their order (matrices do not commute)
 static int factor_rank(const giac::gen & t){
   using namespace giac;
   if (t.type==_INT_ || t.type==_ZINT || t.type==_FRAC || t.type==_DOUBLE_)
@@ -559,7 +559,9 @@ static int factor_rank(const giac::gen & t){
   if (t.is_symb_of_sommet(at_pow) && t._SYMBptr->feuille.type==_VECT && t._SYMBptr->feuille._VECTptr->size()==2
       && t._SYMBptr->feuille._VECTptr->front().type==_IDNT && !(t._SYMBptr->feuille._VECTptr->front()==cst_pi))
     return 2;
-  return t.type==_VECT?4:3;
+  if (t.is_symb_of_sommet(at_exp)) // e^x*cos(x), not cos(x)*e^x
+    return 3;
+  return t.type==_VECT?5:4;
 }
 // n/d with the sign in front: -3/(16(x-1)), not (-3)/(16(x-1)) (a sum then prints "- 3/...")
 static giac::gen tb_quotient(const giac::gen & n,const giac::gen & d){
