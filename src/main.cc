@@ -639,7 +639,7 @@ static void result_approx(const giac::gen & g){
   approx_text->clear();
   console_approx_for="";
   if (g.type==_INT_ || g.type==_ZINT || g.type==_DOUBLE_ || g.type==_FLOAT_ || g.type==_STRNG || g.type==_VECT
-      || !lidnt(g).empty() || taille(g,64)>=64)
+      || taille(g,64)>=64) // (pi/2 has an identifier, pi: evalf below tells numbers from expressions)
     return;
   const gen a=evalf(g,1,contextptr);
   if (a.type!=_DOUBLE_ && a.type!=_CPLX)
@@ -650,26 +650,32 @@ static void result_approx(const giac::gen & g){
   decimal_digits(dd,contextptr);
 }
 
-// Taylor series as textbooks write them: x-x^3/6+x^5/120+O(x^6) (giac prints
-// x-1/6*x^3+1/120*x^5+x^6*order_size(x)). Each top-level term: p/q*m -> p*m/q, m*order_size(v) -> O(m).
-// Plain chars, in place: the result is never longer than the text (order_size( is 11 chars, O( 2).
-static void series_textbook(std::string & str){
+// Results as textbooks write them: pi/2, x^3/3, sqrt(2)/2, x-x^3/6+O(x^6), e (giac prints
+// 1/2*pi, 1/3*x^3, x-1/6*x^3+x^6*order_size(x), exp(1)). Each top-level term (split at + - , =):
+// p/q*m -> p*m/q, m*order_size(v) -> O(m); exp(1) -> e. Inside brackets nothing changes.
+// Plain chars (uSTL string ops are large and substr(pos) is broken): never longer than the text.
+static void textbook(std::string & str){
   const char * s=str.c_str();
   const int n=strlen(s);
-  if (!strstr(s,"order_size(") || strchr(s,'[') || strchr(s,',') || n>=1024)
+  if (n>=1024 || (!strchr(s,'/') && !strstr(s,"order_size(") && !strstr(s,"exp(1)")))
     return;
   char * out=(char *)malloc(n+1);
   if (!out)
     return;
   int k=0;
   for (int i=0,j;i<n;i=j){
+    if (s[i]==',' || s[i]=='='){ // a separator: kept
+      out[k++]=s[i];
+      j=i+1;
+      continue;
+    }
     int d=0;
     j=i+(s[i]=='+' || s[i]=='-');
-    for (;j<n;++j){ // the term ends at a top-level + or - (not an exponent's or a factor's sign)
+    for (;j<n;++j){ // the term ends at a top-level + - , = (not an exponent's or a factor's sign)
       const char c=s[j];
-      if (c=='(') ++d;
-      else if (c==')') --d;
-      else if (!d && (c=='+' || c=='-') && !strchr("^*/(e",s[j-1])) break;
+      if (c=='(' || c=='[') ++d;
+      else if (c==')' || c==']') --d;
+      else if (!d && (c==',' || c=='=' || ((c=='+' || c=='-') && !strchr("^*/(e=,",s[j-1])))) break;
     }
     int t=i,e=j; // the term without its sign: s[t,e)
     char sg=0;
@@ -677,14 +683,14 @@ static void series_textbook(std::string & str){
     const char * o=strstr(s+t,"order_size(");
     if (o && o<s+e){ // m*order_size(v) -> O(m)
       const int m=o>s+t && o[-1]=='*'?int(o-s)-1:t;
-      if (k) out[k++]='+';
+      if (k && out[k-1]!=',' && out[k-1]!='=') out[k++]='+';
       out[k++]='O'; out[k++]='(';
       if (m==t) out[k++]='1';
       else { memcpy(out+k,s+t,m-t); k+=m-t; }
       out[k++]=')';
       continue;
     }
-    if (k || sg=='-') out[k++]=sg?sg:'+';
+    if (sg) out[k++]=sg;
     int a=t,b;
     while (a<e && s[a]>='0' && s[a]<='9') ++a;
     if (a>t && a<e && s[a]=='/'){
@@ -700,6 +706,14 @@ static void series_textbook(std::string & str){
     memcpy(out+k,s+t,e-t); k+=e-t;
   }
   out[k]=0;
+  for (char * p=out;(p=strstr(p,"exp(1)"));) // e^1 -> e (not inside a longer name: myexp(1))
+    if (p>out && ((p[-1]>='a' && p[-1]<='z') || (p[-1]>='A' && p[-1]<='Z') || p[-1]=='_' || (p[-1]>='0' && p[-1]<='9')))
+      p+=6;
+    else {
+      *p='e';
+      memmove(p+1,p+6,strlen(p+6)+1);
+      ++p;
+    }
   str=out;
   free(out);
 }
@@ -1452,7 +1466,7 @@ void do_run(const char * s){
       std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
       if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
         strip_equation_parens(printed);
-      series_textbook(printed);
+      textbook(printed);
       const char * str = printed.c_str();
       if (focus_on)
         console_approx_for=str;

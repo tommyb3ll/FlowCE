@@ -789,8 +789,67 @@ void mi_build(const char * s, int len, int caret, const mi_metrics & m, mi_layou
   out.cx = lx; out.cy = ly; out.ch = lh;
 }
 
+// LEFT/RIGHT walk what is drawn: in the constructs whose slots are not drawn in buffer order
+// (bounds, index, variable left of the body), the arrows visit the slots in drawn order: right
+// from beside a construct enters its first drawn slot, out of a slot to the next drawn one, out
+// of the last one beside the construct; left the same, mirrored. vorder: the drawn order.
+static int vorder(int k, int * o) {
+  static const signed char t[][5] = {{K_DEFINT, 2, 3, 0, 1}, {K_SUM, 1, 2, 3, 0}, {K_LIM, 1, 2, 0, -1},
+                                     {K_DIFF, 1, 0, -1, -1}, {K_SURD, 1, 0, -1, -1}, {K_SER, 1, 2, 3, 0}};
+  for (unsigned i = 0; i < sizeof(t) / sizeof(t[0]); ++i)
+    if (t[i][0] == k) {
+      int n = 0;
+      while (n < 4 && t[i][n + 1] >= 0) { o[n] = t[i][n + 1]; ++n; }
+      return n;
+    }
+  return 0;
+}
+static int vmove(int c, int right) { // the caret's new position, -1: buffer order applies
+  int o[4], m, best = -1, bs = 0, bi = 0, n, i, s;
+  for (n = 1; n < nn; ++n) // in the text of such a construct (name, commas, parens): where it is drawn
+    if (vorder(T[n].k, o) && T[n].a < c && c < T[n].b && (best < 0 || T[n].b - T[n].a < bs)) {
+      for (i = 0; (s = slot(n, i)) && !(T[s].a <= c && c <= T[s].b); ++i) {}
+      if (!s) { best = n; bs = T[n].b - T[n].a; }
+    }
+  if (best >= 0) { // before its first slot: beside it; else the end of the slot before
+    int e = T[best].a;
+    for (i = 0; (s = slot(best, i)); ++i)
+      if (T[s].b < c) e = T[s].b;
+    c = e;
+    best = -1;
+  }
+  for (n = 1; n < nn; ++n) // beside a construct (the outermost one there): enter it (after it:
+    if (vorder(T[n].k, o) && (right ? T[n].a == c : T[n].b == c && (T[n].f & F_CLOSED)) // closed)
+        && (best < 0 || T[n].b - T[n].a > bs)) {
+      best = n; bs = T[n].b - T[n].a;
+    }
+  if (best >= 0) {
+    m = vorder(T[best].k, o);
+    s = slot(best, o[right ? 0 : m - 1]);
+    return s ? (right ? T[s].a : T[s].b) : -1;
+  }
+  for (n = 1; n < nn; ++n) // the innermost slot of such a construct around the caret (a power or a
+    if (vorder(T[n].k, o))  // fraction ending a body ends with it: the body's end leaves the body)
+      for (i = 0; (s = slot(n, i)); ++i)
+        if (T[s].a <= c && c <= T[s].b && (best < 0 || T[s].b - T[s].a < bs)) { best = n; bi = i; bs = T[s].b - T[s].a; }
+  if (best < 0) return -1;
+  m = vorder(T[best].k, o);
+  s = slot(best, bi);
+  if (c != (right ? T[s].b : T[s].a)) return -1; // inside the slot: as usual
+  for (i = 0; i < m && o[i] != bi; ++i) {}
+  i += right ? 1 : -1;
+  if (i < 0) return T[best].a;
+  if (i >= m) return T[best].b;
+  s = slot(best, o[i]);
+  return right ? T[s].a : T[s].b;
+}
+
 int mi_move(const char * s, int len, int caret, int dir, const mi_metrics & m) {
   int r = prep(s, len, m), c = clampc(caret);
+  if (r && (dir == 0 || dir == 1)) {
+    int v = vmove(c, dir);
+    if (v >= 0) return v;
+  }
   lx = ly = lh = tkn = 0;
   run(r, MD_LOC, c); // location (and enclosing constructs) of the caret
   if (dir < 0 || dir > 3) return c;

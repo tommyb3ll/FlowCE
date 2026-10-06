@@ -1,0 +1,11 @@
+# the user's report (2026-10-06): editing a definite integral, the arrows follow the drawing:
+# integrand -left-> upper bound -left-> lower bound; right goes back: lower, upper, integrand, dx
+n1	{window}2x{left}{left}	integrate(x,x,,|)
+n2	{window}2x{left}{left}1	integrate(x,x,,1|)
+n3	{window}2x{left}{left}1{left}{left}	integrate(x,x,|,1)
+n4	{window}2x{left}{left}1{left}{left}0	integrate(x,x,0|,1)
+n5	{window}2x{left}{left}1{left}{left}0{right}	integrate(x,x,0,|1)
+n6	{window}2x{left}{left}1{left}{left}0{right}{right}{right}	integrate(|x,x,0,1)
+n7	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}	integrate(x,|x,0,1)
+n8	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}{right}{right}	integrate(x,x,0,1)|
+n9	{window}2x{down}0{up}{up}1	integrate(x,x,0,1|)

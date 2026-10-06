@@ -574,12 +574,22 @@ static void t_nav_sqrt_abs() {
   CHECKEQ(mv(s, 7, UP), -1);
   s = "abs(x)";
   CHECK(walk(s, 0, RIGHT, 3) == "4,5,6");
+  s = "surd(x,3)";                      // the index (drawn first), then the radicand
+  CHECK(walk(s, 0, RIGHT, 5) == "7,8,5,6,9");
+  s = "diff(f,x)";                      // d/dx (its x), then f
+  CHECK(walk(s, 0, RIGHT, 5) == "7,8,5,6,9");
+  s = "series(f,x,0,5)";                // taylor: x->0 deg 5, then f
+  CHECK(walk(s, 0, RIGHT, 9) == "9,10,11,12,13,14,7,8,15");
+  s = "limit(sin(x)/x,x,0)";            // x->0, then the body (ending in a fraction), then out
+  CHECK(walk(s, 0, RIGHT, 14) == "15,16,17,18,6,7,8,9,10,11,12,13,14,19");
 }
 
 static void t_nav_integral() {
   const char * s = "integrate(f,x,a,b)"; // slots f [10,11] x [12,13] a [14,15] b [16,17]
-  CHECK(walk(s, 0, RIGHT, 10) == "10,11,12,13,14,15,16,17,18,18");
-  CHECKEQ(mv(s, 10, LEFT), 0);
+  // the arrows walk the drawn order: lower bound, upper bound, integrand, dx, then out
+  CHECK(walk(s, 0, RIGHT, 10) == "14,15,16,17,10,11,12,13,18,18");
+  CHECK(walk(s, 18, LEFT, 9) == "13,12,11,10,17,16,15,14,0");
+  CHECKEQ(mv(s, 10, LEFT), 17);          // integrand -> upper bound (drawn left of it)
   int u = mv(s, 10, UP), d = mv(s, 10, DOWN);
   CHECK(u == 16 || u == 17);             // f -> upper bound
   CHECK(d == 14 || d == 15);             // f -> lower bound
@@ -610,7 +620,7 @@ static void t_nav_sum_limit() {
   CHECK(u == 12 || u == 13);             // from the base line of k^2 to the upper limit
   d = mv(s, 5, DOWN);
   CHECK(d >= 8 && d <= 11);
-  CHECK(walk(s, 0, RIGHT, 11) == "4,5,6,7,8,9,10,11,12,13,14");
+  CHECK(walk(s, 0, RIGHT, 11) == "8,9,10,11,12,13,4,5,6,7,14"); // k=1, n, then the body, then out
   s = "limit(sin(x)/x,x,0)";            // f [6,14] x [15,16] 0 [17,18]
   CHECKEQ(mv(s, 6, DOWN), 13);
   d = mv(s, 13, DOWN);

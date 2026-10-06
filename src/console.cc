@@ -1896,16 +1896,19 @@ const char * trig(){
     char buf[strlen((char *)Edit_Line)+1];
     strcpy(buf,(char *)Edit_Line);
     buf[Line[Current_Line].start_col+Cursor.x]=0;
-    if (focus_on){ // the command search, the word before the caret (as help_insert finds it) as query
-      int l=strlen(buf),back=0;
-      if (l && buf[l-1]=='('){
-        buf[--l]=0;
-        ++back;
+    if (focus_on){ // the command search; the name being typed before the caret as query
+      int e=strlen(buf),w,p=0;
+      if (e && buf[e-1]=='('){ // sin(: the name and its (
+        p=1;
+        --e;
       }
-      while (l>0 && (is_alphanum(buf[l-1]) || buf[l-1]=='_'))
-        --l;
-      back+=strlen(buf+l);
-      return console_search(buf+l,back);
+      for (w=e;w>0 && (is_alphanum(buf[w-1]) || buf[w-1]=='_');--w) ;
+      while (w<e && buf[w]>='0' && buf[w]<='9') // 2sin: the name starts at its first letter
+        ++w;
+      if (e-w<2) // a number or a variable (x): nothing to complete, an empty search
+        return console_search("",0);
+      buf[e]=0;
+      return console_search(buf+w,e-w+p);
     }
     int back;
     const string s=help_insert(buf,back,warn);
@@ -2787,7 +2790,7 @@ int Console_GetKey(){
     }
     if ( (key == KEY_CTRL_DOWN || key=='\t' || key==KEY_CTRL_F10
 	  || key==KEY_CHAR_FRAC || key==KEY_CTRL_MIXEDFRAC
-	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && Current_Col>0){
+	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && (focus_on || Current_Col>0)){ // Focus: down on an empty line opens the search too
       // find cmdname
       console_help_insert(false);
       Console_Disp(1); oldkeyflag=-1;

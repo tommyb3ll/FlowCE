@@ -1,0 +1,9 @@
+# down opens the search; textbook answers; decimal line under pi
+dn_empty	{down}
+dn_num	2{down}
+dn_word	inte{down}
+r_pi	{enter}{run:4000}	integrate(sin(x)^2,x,0,pi)
+r_e	{enter}{run:5000}	limit((1+1/n)^n,n,inf)
+r_sqrt	{enter}{run:4000}	solve(2x^2=1,x)
+r_poly	{enter}{run:4000}	integrate(x^2,x)
+r_ln	{enter}{run:4000}	integrate(x/(x^2+1),x)

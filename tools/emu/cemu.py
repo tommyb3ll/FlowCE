@@ -196,6 +196,25 @@ class Emu:
     def poke(self, addr, data):
         self.cmd(f'poke {addr:X} {bytes(data).hex()}')
 
+    def paste(self, text):
+        """Put text on the console's edit line at once, the caret at its end (ASCII). For corpora
+        in linear syntax: typed keys go through the 2D editing rules (mathedit.cc), where / makes
+        a fraction of what follows, so 1/2+1 typed is 1/(2+1). The console must be idle on its
+        edit line; the next key (EXE) evaluates it."""
+        sym = lambda n: map_symbol(n, mapfile=self.mapfile)
+        el = sym('__ZL9Edit_Line') or sym('_Edit_Line')
+        ll, ln, cur = sym('_Last_Line'), sym('_Line'), sym('_Cursor')
+        u24 = lambda b: b[0] | b[1] << 8 | b[2] << 16
+        p24 = lambda v: bytes([v & 255, v >> 8 & 255, v >> 16 & 255])
+        b = text.replace('π', 'pi').encode('utf-8')        # the pi key types pi
+        self.poke(u24(self.peek(el, 3)), b + bytes(1))
+        rec = u24(self.peek(ln, 3)) + 13 * u24(self.peek(ll, 3))  # struct line: str, readonly, type, start_col, disp_len
+        n = len(b)
+        sc = max(0, n - 38)                                      # COL_DISP_MAX - 1
+        self.poke(rec + 7, p24(sc))
+        self.poke(rec + 10, p24(n))
+        self.poke(cur, p24(n - sc))                              # Cursor.x (Cursor.y: the edit line's row)
+
     # The ROM dump is from a friend's TI-84 Plus CE on OS 5.8.2.0029; the user's own calculator runs
     # OS 5.8.0.0022. os_GetSystemInfo() copies a version template from flash on every call, so we patch
     # that template (after boot; the boot code verifies the OS only at boot) to report the user's version.

@@ -6,6 +6,8 @@ If the modal 2D result viewer opened, screenshot it, dismiss it (EXE) and screen
 Prints a summary table (case, eval ms, viewer?) for the notes.
 
 Usage (WSL): scenario.py <state> <outdir> <casefile>     casefile lines: name<TAB>input  (# = comment)
+Env: SCEN_PASTE=1 puts each input on the edit line as written instead of typing it (Emu.paste);
+SCEN_TIMEOUT (ms) bounds each evaluation.
 """
 import os, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,7 +57,12 @@ def main(state, outdir, casefile):
     for i, (name, text) in enumerate(cases, 1):
         e = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir=outdir)
         try:
-            lat = e.type(text)
+            if os.environ.get('SCEN_PASTE'):  # linear syntax as written (see Emu.paste)
+                e.wait_idle(timeout=5000)
+                e.paste(text)
+                lat = [0]
+            else:
+                lat = e.type(text)
             e.cmd('key enter 80'); e.ms += 80
             if e.polls() is not None:
                 # done = KhiCAS polls the keypad again (getkey_polls, builds since 2026-10-05)
