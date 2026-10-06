@@ -2400,7 +2400,7 @@ int Console_GetKey(){
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
-          key==KEY_CHAR_EQUAL || key=='<' || key=='>')
+          key==KEY_CHAR_EQUAL || key=='<' || key=='>' || key==KEY_CHAR_PLUS || key==KEY_CHAR_MINUS)
         mk=key;
       else if (key==KEY_CHAR_SQUARE)
         mk=ME_SQUARE;

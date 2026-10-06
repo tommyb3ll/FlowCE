@@ -149,7 +149,17 @@ static const tcase cases[] = {
   {"(1)/(1+(1)/(x|))", ")", "(1)/(1+(1)/(x))|", 1, 0}, // 1/(1+1/x) typed
   {"sin(x^(2|))", ")", "sin(x^(2))|", 1, 0},
   {"((a)/(b|))+1", ")", "((a)/(b))|+1", 1, 0},       // a group the user opened: closed, then stop
-  {"(1)/(|)", "(", "(1)/(|)", 1, 0},                 // /( empty: the denominator is the group
+  {"(1)/(|)", "(", "(1)/((|))", 1, 0},               // /( empty: the user's group, inside the box
+  {"x^(|)", "(", "x^(|)", 1, 0},                     // ^( empty: the exponent is the group
+  {"(1)/((x+1|))", ")", "(1)/((x+1)|)", 1, 0},       // 1/(x+1) typed: still in the denominator
+  {"(1)/((x+1)|)", ")", "(1)/((x+1))|", 1, 0},       // a second ): out of it
+  {"(1)/((x+1)|)", "x", "(1)/((x+1)x|)", 0, 0},      // 1/(x+1)x: x in the denominator
+  {"(1)/((x+1)|)", "+", "(1)/((x+1))+|", 0, 0},      // 1/(x+1)+2: + leaves the denominator
+  {"(1)/((x+1)|)", "-", "(1)/((x+1))-|", 0, 0},
+  {"integrate((1)/((x+1)|),x)", "+", "integrate((1)/((x+1))+|,x)", 0, 0},
+  {"(1)/(x+1|)", "+", "(1)/(x+1+|)", 0, 0},          // + inside a denominator stays inside
+  {"(1)/((x+1)(x|))", "+", "(1)/((x+1)(x+|))", 0, 0},
+  {"(1)/((x+1)(x-1)|)", "+", "(1)/((x+1)(x-1)+|)", 0, 0}, // two groups: not one whole group
   {"x+(a|", ")", "x+(a)|", 1, 0},                    // unbalanced: closes the open group
   {"f(a,b|", ")", "f(a,b)|", 1, 0},
   {"f(|", ")", "f(|", 1, 0},

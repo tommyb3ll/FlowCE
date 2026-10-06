@@ -211,6 +211,13 @@ static int wrap(int h, int t) { // list -> single node
   return r;
 }
 static void hide(int n) { if (T[n].k == K_GROUP && S[T[n].c] == '(') T[n].f |= F_HID; }
+// read-only (MI_F_TIDY): the user's group around a whole numerator or denominator is not drawn
+// either, 1/(x+1) typed is (1)/((x+1)) (the edit line keeps it: the caret goes in and out)
+static void inner(int n) {
+  int c = T[n].kid;
+  if ((M->flags & MI_F_TIDY) && (T[n].f & F_HID) && c && !T[c].nx && T[c].k == K_GROUP && S[T[c].c] == '(' &&
+      (T[c].f & F_CLOSED)) T[c].f |= F_HID;
+}
 static int namei(int n, const char * w) { // name core == w
   int i = T[n].c;
   for (; *w; ++w, ++i)
@@ -369,6 +376,7 @@ static int prow(int stopc) {
       den = pfactor();
       den = den ? wrap(den, ftail) : box(ta);
       hide(num); hide(den);
+      inner(num); inner(den);
       T[fr].kid = num; T[num].nx = den; T[fr].b = T[den].b;
       add(h, t, fr, fr); need = nb = 0;
       continue;
@@ -413,7 +421,8 @@ static int parse() {
 
 // ---------------------------------------------------------------- measure / geometry
 static int style(int n, int k) { // style of the text of leaf n of kind k: names italic, calls upright
-  return k == K_TEXT && (T[n].f & F_NAME) && !(T[n].f & F_FN) ? (int)MI_IT : (int)MI_UP;
+  // (a one-letter name stays italic before its bracket: x(x+1), f(x), as textbooks write them)
+  return k == K_TEXT && (T[n].f & F_NAME) && (!(T[n].f & F_FN) || T[n].b - T[n].c == 1) ? (int)MI_IT : (int)MI_UP;
 }
 static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication
   if (!(M->flags & MI_F_IMPLDOT)) return 0;

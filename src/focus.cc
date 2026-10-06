@@ -168,7 +168,7 @@ static void scan() {
   for (int k = 0; k < NE; ++k) { // geometry
     fent & e = E[k];
     e.inh = 0; e.outh = 0; e.msgs = 0;
-    if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, 0); e.inh = c.a + c.d; }
+    if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, MI_F_TIDY); e.inh = c.a + c.d; }
     for (int l = e.m0; l >= 0 && l < e.out; ++l)
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
     if (e.out >= 0) {
@@ -225,8 +225,8 @@ static void draw_entry(const fent & e, int y, int sel, int selout) {
   if (sel) ui_rrect(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACCSOFT, UC_BG);
   int b = y + 7;
   if (e.in >= 0) {
-    fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, 0);
-    draw_math(Line[e.in].str, c, 12, b + c.a, sel && !selout ? UC_ACC : UC_SUB, bg, 0);
+    fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, MI_F_TIDY);
+    draw_math(Line[e.in].str, c, 12, b + c.a, sel && !selout ? UC_ACC : UC_SUB, bg, MI_F_TIDY);
     b += e.inh;
   }
   b += 5;
@@ -360,8 +360,8 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     const fent & e = E[NE - 1];
     int top = y0 + 10;
     if (e.in >= 0) {
-      fitc c = fitted(Line[e.in].str, 4, 292, 36, 0);
-      draw_math(Line[e.in].str, c, (UI_W - c.w) / 2, top + c.a, UC_SUB, UC_BG, 0);
+      fitc c = fitted(Line[e.in].str, 4, 292, 36, MI_F_TIDY);
+      draw_math(Line[e.in].str, c, (UI_W - c.w) / 2, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
       top += c.a + c.d + 6;
     }
     const char * r = shown(Line[e.out].str);

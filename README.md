@@ -69,16 +69,20 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 
 ## Install
 
-You need a **TI-84 Plus CE** (or TI-83 Premium CE) with **OS 5.8.0 or older** (newer OS versions
-are refused), a USB cable and [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
-FlowCE fills most of the archive (about 2.8 MB), so the install starts by clearing it: back up
-anything you want to keep first. It takes about 10 minutes.
+You need a **TI-84 Plus CE** (or TI-83 Premium CE) on **OS 5.3 to 5.8.4** (tested on 5.8.0 and
+5.8.2; OS 5.8.5 needs [arTIfiCE v3](https://yvantt.github.io/arTIfiCE/), which these steps don't
+cover yet), a USB cable and [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
+FlowCE fills most of the memory (about 2.8 MB), so the install starts by clearing it: back up
+anything you want to keep first. It takes about 10 minutes. FlowCE is a computer algebra
+system: follow your test's calculator rules (some tests, like the ACT, don't allow one).
 
-1. **Clear the archive:** `2nd` `+` (MEM) → `7:Reset...` → right arrow to **ARCHIVE** →
-   `3:Both...` → `2:Reset`. This erases the apps and the archived variables.
-2. **Send the bundle:** download `FlowCE.b84` from the
-   [latest release](https://github.com/tommyb3ll/FlowCE/releases/latest), drag it onto the
-   calculator in TI Connect CE and send it (45 files: AppIns00-42, A and INST).
+1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
+   `1:All Memory...` → `2:Reset`. This erases everything except the OS: apps, programs and
+   variables.
+2. **Send the bundle:** download
+   [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
+   (always the latest release), drag it onto the calculator in TI Connect CE and send it
+   (45 files: AppIns00-42, A and INST).
 3. **Run the installer:** `prgm` → `A` → `enter` → `enter` (the arTIfiCE shell), then `INST` →
    `enter` → `enter`. It counts down from 42 to 0; don't touch the calculator.
 4. At *"Success! Will now reset"*, press `enter` (a few times if the screen looks odd).
@@ -87,8 +91,9 @@ anything you want to keep first. It takes about 10 minutes.
 **If something goes wrong**
 - *The screen freezes at "Success! Will now reset":* press the reset button on the back of the
   calculator (a pen tip or a paperclip). FlowCE stays installed.
-- *Menus look glitchy after the install:* clear the RAM: `2nd` `+` (MEM) → `7:Reset...` →
-  `1:All RAM...` → `2:Reset`. This does not remove FlowCE.
+- *The calculator acts strangely* (menus glitch, the screen flashes when you plug it in, TI
+  Connect CE stays on "refreshing", a Goto error): clear the RAM: `2nd` `+` (MEM) →
+  `7:Reset...` → `1:All RAM...` → `2:Reset`. This does not remove FlowCE.
 - *The calculator stays unresponsive:* hold the reset button for a few seconds. As a last resort,
   holding `2nd` and `del` while pressing reset lets you send the OS again.
 

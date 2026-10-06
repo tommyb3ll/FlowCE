@@ -2740,23 +2740,7 @@ int main1(){
   turtle(); 
   turtle_stack(); // required to init turtle
   Console_Init();
-  const system_info_t * sptr=os_GetSystemInfo();
-  //if (sptr) dbg_printf("%i %i %i %i\n",sptr->hardwareType,sptr->osMajorVersion,sptr->osMinorVersion, sptr->osRevisionVersion);
-  // please do not remove this check, it's here for TI
-  if (sptr && sptr->osMajorVersion==5 &&
-      (sptr->osMinorVersion>8 ||
-       (sptr->osMinorVersion==8 && sptr->osRevisionVersion>=2)
-       )
-      ){
-    if (sptr->hardwareType==0){
-      do_confirm("TI84 incompatible OS version");
-      return 1;
-    }
-    else
-      do_confirm("! OS incompatible avec mode examen !");
-  }
-  else if (sptr && sptr->osMajorVersion==5 && sptr->osMinorVersion==8 && sptr->hardwareType==1)
-    confirm("!!! Downgradez l'OS avec CERMASTR","pour utiliser FlowCE en mode examen");
+  // FlowCE runs on every OS version (KhiCAS refused OS 5.8.2 and later on the TI-84 Plus CE)
   // do_confirm("console init");
   focus_init(); // the palette, for the start screen
   starting=true;

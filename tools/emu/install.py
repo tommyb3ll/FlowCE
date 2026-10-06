@@ -24,8 +24,8 @@ try:
     for a in apps:
         e.send(a, 'archive')
     e.run(500); e.key('prgm'); e.run(300); e.key('enter'); e.run(300); e.key('enter'); e.run(6000)  # arTIfiCE shell
-    e.os_fake(); e.run(300); e.key('enter', 40); e.run(3000)          # INST passes its OS check -> prompt
-    e.os_real(); e.run(200); e.key('enter', 40); e.run(2000)          # install (OS restored before INST's reset)
+    e.run(300); e.key('enter', 40); e.run(3000)                        # INST (no OS gate since 2026-10-06) -> prompt
+    e.run(200); e.key('enter', 40); e.run(2000)                        # install, on the ROM's real OS 5.8.2
     e.wait_stable(timeout=400000)
     if not any('written' in l for l in e.debug_output()):
         e.shot('install_failed'); sys.exit('INST did not finish writing (see install_failed.png)')
@@ -34,7 +34,7 @@ try:
     # at that address runs - harmless for most builds, a hang for some (2026-10-05: one landed in
     # giac's root finder). A hardware reset (the button on the back) is always safe.
     e.reset(); e.run(6000)
-    e.key('clear'); e.run(300); e.os_fake()
+    e.key('clear'); e.run(300)                                         # (FlowCE runs on OS 5.8.2 as is)
     e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:FlowCE (after Finance)
     e.shot(f'install_{state}_splash')                                   # the start screen
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen

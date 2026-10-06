@@ -21,9 +21,9 @@ call_pow_right	f(x^2{right}+1	f(x^(2)+1|)
 sin_pow_right	{sin}x^2{right}+1	sin(x^(2)+1|)
 sq_in_call	{sin}x{sq}+1	sin(x^(2)+1|)
 den_in_call	{sin}1/x{right}+1	sin((1)/(x)+1|)
-lin_den	(x+1)/(x-1)	(x+1)/(x-1)|
-lin_den2	x/(x{sq}+1)	(x)/(x^(2)+1)|
-lin_nest	1/(1+1/x)	(1)/(1+(1)/(x))|
+lin_den	(x+1)/(x-1)	(x+1)/((x-1)|)
+lin_den2	x/(x{sq}+1)	(x)/((x^(2)+1)|)
+lin_nest	1/(1+1/x)	(1)/((1+(1)/(x))|)
 lin_pow	x^(1/2)+1	x^((1)/(2))+1|
 neg_key	{(-)}1/2	-(1)/(2|)
 neg_pow	2^{(-)}x{right}-1	2^(-x)-1|
@@ -49,3 +49,8 @@ ans_mid	2{2nd,(-)}+1{left}{left}{left}	2|ans()+1
 ans_del2	2{2nd,(-)}+1{left}{left}{del}	2|+1
 sto_left	3{sto}a{left}{left}	3|=>a
 sto_del	3{sto}a{left}{del}	3|a
+# the X,T,theta,n key in a denominator typed with brackets (2026-10-06: the x landed outside, before dx)
+xt_den_factor	{window}11/({xton}+1){xton}	integrate((1)/((x+1)x|),x)
+xt_den_two	{window}11/({xton}+1)({xton}-1)	integrate((1)/((x+1)(x-1)|),x)
+xt_den_plus	{window}11/({xton}+1)+2	integrate((1)/((x+1))+2|,x)
+xt_den_x	{window}11/{xton}	integrate((1)/(x|),x)

@@ -32,9 +32,14 @@
 //       stepped over (1), else the caller inserts the key at the new caret (0):
 //       (a)/(b|) , -> (a)/(b),|    integrate((x)/(1+x|),x) , -> integrate((x)/(1+x),|x)
 //       Elsewhere 0 (the caret does not move).
-//  (    right after an empty ^( ) or /( ): nothing (1), the box is the group: 1/(x+1) typed
-//       is (1)/(x+1). Else ( at the caret and ) at the end of the current slot:
-//       |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2)).
+//  (    right after an empty ^( ): nothing (1), the exponent box is the group: e^(-x) typed
+//       is e^(-x). Else ( at the caret and ) at the end of the current slot:
+//       |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2)). In an empty denominator the group
+//       is the user's, inside the box: 1/(x+1) typed is (1)/((x+1)|), and what follows stays in
+//       the denominator: 1/(x+1)x is (1)/((x+1)x) (the box ended at the ), a later x landed
+//       outside the fraction, before dx).
+//  + -  right after a group that is a whole denominator: the caret leaves the denominator, the
+//       caller inserts the key: (1)/((x+1)|) + -> (1)/((x+1))+| (1/(x+1)+2 as typed). Else 0.
 //  )    a closer right after the caret is stepped over: (x+1|) -> (x+1)|; after the ) of a
 //       denominator or an exponent, the next closer too, as the user sees no bracket there:
 //       x^((1)/(2|)) -> x^((1)/(2))|   sin(x^(2|)) -> sin(x^(2))|. Else, when the
@@ -202,7 +207,7 @@ int me_key(char * s, int cap, int * caret, int key) {
     else if (C(t) == '(' && mt(s, t) == p - 1) x = "/()", d = 2; // one group: reused
     else x = ")/()", y = "(", j = t, d = 4;
   } else if (key == '(') {
-    if (p > 1 && s[p - 1] == '(' && (s[p - 2] == '^' || s[p - 2] == '/') && s[p] == ')') return 1; // empty ^() or /(): reused
+    if (p > 1 && s[p - 1] == '(' && s[p - 2] == '^' && s[p] == ')') return 1; // empty ^(): reused
     i = slend(s, p), x = ")", y = "(", d = 1;
   } else if (key == ')') {
     if (cls(C(p))) { // stepped over; past the ) of a denominator or an exponent (no bracket on
@@ -217,6 +222,10 @@ int me_key(char * s, int cap, int * caret, int key) {
     if (a == p) return 1; // nothing to close or wrap
     x = ")", d = 1;       // closes an unclosed group (unbalanced text), else wraps:
     if (o < 0 || mt(s, o) >= 0) y = "(", j = a, d = 2;
+  } else if (key == '+' || key == '-') { // (1)/((x+1)|): out of the denominator
+    if (o > 1 && s[o] == '(' && s[o - 1] == '/' && C(o + 1) == '(' && mt(s, o + 1) == p - 1 && mt(s, o) == p)
+      *caret = p + 1;
+    return 0;
   } else if (key == ME_SQUARE || key == ME_RECIP) {
     x = key == ME_SQUARE ? "^(2)" : "^(-1)";
     d = strlen(x);
