@@ -20,7 +20,7 @@ SCENES = {
     'taylor_input':   [('k', '{window}6sin(x')],
     'taylor':         [('k', '{window}6sin(x{enter}'), ('w', 5000)],
     'typing_fraction': [('k', '{math}1x{sq}+1{down}x-1')],
-    'typing_integral': [('k', '{window}2x{sq}{right}e^x{down}{down}0{up}{up}1')],
+    'typing_integral': [('k', '{window}2x{sq}+1{down}0{up}{up}3')],
     'history':        [('p', 'factor(x^3-x)'), ('p', 'integrate(1/(1+x^2),x)'), ('p', 'limit((1+1/n)^n,n,inf)'), ('k', '{up}{up}')],
     'menu_calculus':  [('k', '{window}')],
     'menu_symbols':   [('k', '{trace}')],
@@ -32,6 +32,13 @@ SCENES = {
     'night':          [('night',), ('p', 'integrate(1/(x^2+4),x,0,2)')],
     'night_graph':    [('night',), ('k', 'sin(x)*e^(-x/5){graph}1'), ('w', 7000)],
     'night_menu':     [('night',), ('p', 'diff(sin(x)^2,x)'), ('k', '{window}')],
+    'basel':          [('p', 'sum(1/n^2,n,1,inf)')],
+    'sec':            [('p', 'integrate(sec(x)^3,x)')],
+    'arclength':      [('p', 'integrate(sqrt(1+(3/2*sqrt(x))^2),x,0,4)')],
+    'ivp':            [('p', "desolve([y''+4y=0,y(0)=1,y'(0)=0],y)")],
+    'table':          [('k', 'x{sq}-2{graph}1'), ('w', 6000), ('k', '{2nd,graph}'), ('w', 2000)],
+    'root':           [('k', 'x{sq}-2{graph}1'), ('w', 6000), ('k', '{window}{enter}{down}{down}{down}{enter}'), ('w', 4000)],
+    'trigsub':        [('p', 'integrate(1/(x^2*sqrt(4-x^2)),x)')],
 }
 
 

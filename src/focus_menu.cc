@@ -408,7 +408,7 @@ void focus_splash(int first) {
     const char * go = "press any key";
     ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 140, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
-  const char * cr = "a fork of KhiCAS by B. Parisse - GPL 2";
+  const char * cr = "a fork of KhiCAS by B. Parisse - GNU GPL";
   ui_draw_text(&ui_tr10, cr, -1, (UI_W - ui_text_width(&ui_tr10, cr, -1)) / 2, UI_H - 8, ui_ramp(0, UC_SUB, UC_BG), 0);
   focus_invalidate();
 }
