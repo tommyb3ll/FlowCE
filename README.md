@@ -76,8 +76,9 @@ anything you want to keep first. It takes about 10 minutes.
 
 1. **Clear the archive:** `2nd` `+` (MEM) → `7:Reset...` → right arrow to **ARCHIVE** →
    `3:Both...` → `2:Reset`. This erases the apps and the archived variables.
-2. **Send the bundle:** drag `FlowCE.b84` onto the calculator in TI Connect CE and send it
-   (45 files: AppIns00-42, A and INST).
+2. **Send the bundle:** download `FlowCE.b84` from the
+   [latest release](https://github.com/tommyb3ll/FlowCE/releases/latest), drag it onto the
+   calculator in TI Connect CE and send it (45 files: AppIns00-42, A and INST).
 3. **Run the installer:** `prgm` → `A` → `enter` → `enter` (the arTIfiCE shell), then `INST` →
    `enter` → `enter`. It counts down from 42 to 0; don't touch the calculator.
 4. At *"Success! Will now reset"*, press `enter` (a few times if the screen looks odd).
