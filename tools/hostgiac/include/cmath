@@ -1,0 +1,44 @@
+// hostgiac shim (CEdev include/c++ equivalent): <math.h> plus the std:: overloads,
+// without the C classification macros (isnan(x) etc. are functions in C++).
+#pragma once
+#include <math.h>
+#include <__abs_overloads>
+#undef isnan
+#undef isinf
+#undef isfinite
+#undef isnormal
+#undef signbit
+#undef fpclassify
+#undef isgreater
+#undef isgreaterequal
+#undef isless
+#undef islessequal
+#undef islessgreater
+#undef isunordered
+namespace std {
+using ::float_t; using ::double_t;
+using ::acos; using ::asin; using ::atan; using ::atan2; using ::cos; using ::sin; using ::tan;
+using ::cosh; using ::sinh; using ::tanh; using ::acosh; using ::asinh; using ::atanh;
+using ::exp; using ::exp2; using ::expm1; using ::log; using ::log10; using ::log2; using ::log1p;
+using ::frexp; using ::ldexp; using ::modf; using ::ilogb; using ::logb; using ::scalbn; using ::scalbln;
+using ::pow; using ::sqrt; using ::cbrt; using ::hypot; using ::erf; using ::erfc; using ::tgamma; using ::lgamma;
+using ::ceil; using ::floor; using ::fmod; using ::trunc; using ::round; using ::lround; using ::llround;
+using ::nearbyint; using ::rint; using ::lrint; using ::llrint; using ::remainder; using ::remquo;
+using ::copysign; using ::nan; using ::nextafter; using ::fdim; using ::fmax; using ::fmin; using ::fma; using ::fabs;
+inline float sqrt(float x){ return __builtin_sqrtf(x); }
+inline float fabs(float x){ return __builtin_fabsf(x); }
+inline bool isnan(double x){ return __builtin_isnan(x); }
+inline bool isnan(float x){ return __builtin_isnan(x); }
+inline bool isnan(long double x){ return __builtin_isnan(x); }
+inline bool isinf(double x){ return __builtin_isinf(x); }
+inline bool isinf(float x){ return __builtin_isinf(x); }
+inline bool isinf(long double x){ return __builtin_isinf(x); }
+inline bool isfinite(double x){ return __builtin_isfinite(x); }
+inline bool isfinite(float x){ return __builtin_isfinite(x); }
+inline bool isfinite(long double x){ return __builtin_isfinite(x); }
+inline bool isnormal(double x){ return __builtin_isnormal(x); }
+inline bool signbit(double x){ return __builtin_signbit(x); }
+inline bool signbit(float x){ return __builtin_signbit(x); }
+inline int fpclassify(double x){ return __builtin_fpclassify(FP_NAN,FP_INFINITE,FP_NORMAL,FP_SUBNORMAL,FP_ZERO,x); }
+}
+using std::isnan; using std::isinf; using std::isfinite; using std::isnormal; using std::signbit; using std::fpclassify;

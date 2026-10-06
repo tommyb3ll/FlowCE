@@ -1,0 +1,10 @@
+// hostgiac shim (CEdev include/c++ equivalent)
+#pragma once
+#include <string.h>
+namespace std {
+using ::size_t;
+using ::memcpy; using ::memmove; using ::memset; using ::memcmp; using ::memchr;
+using ::strcpy; using ::strncpy; using ::strcat; using ::strncat; using ::strchr; using ::strrchr;
+using ::strpbrk; using ::strstr; using ::strtok; using ::strdup; using ::strcspn; using ::strspn;
+using ::strlen; using ::strcmp; using ::strncmp; using ::strerror;
+}

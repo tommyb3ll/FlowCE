@@ -1,6 +1,3 @@
-# The 2D editing rules (src/mathedit.cc) typed on the keypad: name, keys, the edit line expected
-# (| = caret). tools/emu/edit2d.py <state> this-file
-# the user's reports (2026-10-06)
 den_plus	1/x+1	(1)/(x+1|)
 den_plus2	x/2+1	(x)/(2+1|)
 den_exit	1/2{right}+1	(1)/(2)+1|
@@ -10,7 +7,6 @@ pow_lparen	x{sq}{left}{left}(	x^((|2))
 pow_right	x^2{right}+1	x^(2)+1|
 pow_plus	x{sq}{left}+1	x^(2+1|)
 int_del	{math}4x^2{left}{left}{left}{del}	|x^(2)
-# more
 sq_key	x{sq}	x^(2)|
 sq_then_plus	x{sq}+1	x^(2)+1|
 grp_div	(a+b)/	(a+b)/(|)
@@ -20,14 +16,11 @@ den_del	1/2{del}{del}	1|
 sqrt_wrap	{2nd,sq}x+1{right}/	(sqrt(x+1))/(|)
 term_div	a+2b/	a+(2b)/(|)
 pow_eq	x^2=4	x^(2)=4|
-# inside a call: leaving an exponent or a denominator stops before the call's )
 int_pow_right	integrate(x^2{right},x)	integrate(x^(2),x)|
 call_pow_right	f(x^2{right}+1	f(x^(2)+1|)
 sin_pow_right	{sin}x^2{right}+1	sin(x^(2)+1|)
 sq_in_call	{sin}x{sq}+1	sin(x^(2)+1|)
 den_in_call	{sin}1/x{right}+1	sin((1)/(x)+1|)
-# overnight 2026-10-06: typed as linear text, a ( in an empty denominator or exponent is its box
-# and ) closes what the user opened; (-) is a minus; ln( and 10^( keys; DEL after ) steps inside
 lin_den	(x+1)/(x-1)	(x+1)/(x-1)|
 lin_den2	x/(x{sq}+1)	(x)/(x^(2)+1)|
 lin_nest	1/(1+1/x)	(1)/(1+(1)/(x))|
@@ -37,3 +30,12 @@ neg_pow	2^{(-)}x{right}-1	2^(-x)-1|
 ln_key	{ln}x{right}/x	(ln(x))/(x|)
 del_call	{sin}x{right}{del}	sin(x|)
 del_group	(x+1){del}{del}	(x+|)
+n1	{window}2x{left}{left}	integrate(x,x,,|)
+n2	{window}2x{left}{left}1	integrate(x,x,,1|)
+n3	{window}2x{left}{left}1{left}{left}	integrate(x,x,|,1)
+n4	{window}2x{left}{left}1{left}{left}0	integrate(x,x,0|,1)
+n5	{window}2x{left}{left}1{left}{left}0{right}	integrate(x,x,0,|1)
+n6	{window}2x{left}{left}1{left}{left}0{right}{right}{right}	integrate(|x,x,0,1)
+n7	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}	integrate(x,|x,0,1)
+n8	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}{right}{right}	integrate(x,x,0,1)|
+n9	{window}2x{down}0{up}{up}1	integrate(x,x,0,1|)

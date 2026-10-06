@@ -1,0 +1,14 @@
+# leak on the calculator (emulator measurements)
+integrate(1/(x^2+9),x)
+integrate(1/(x+1),x)
+integrate(1/(x^2-1),x)
+partfrac(1/(x^2+9))
+integrate(sqrt(x^2+9),x)
+integrate(x^2/sqrt(x^2+9),x)
+# no leak on the calculator
+1+1
+diff(x^3,x)
+factor(x^2-1)
+solve(x^2=2,x)
+sqrt(x^2+9)
+normal((x^2-1)/(x-1))

@@ -1757,8 +1757,8 @@ const char * trig(){
       return "+";
     case KEY_CHAR_MINUS:
       return "-";
-    case KEY_CHAR_PMINUS:
-      return "_";
+    case KEY_CHAR_PMINUS: // TI's (-): a minus sign (KhiCAS: _, the unit prefix of 5_m)
+      return focus_on?"-":"_";
     case KEY_CHAR_MULT:
       return "*";
     case KEY_CHAR_DIV:
@@ -1774,12 +1774,12 @@ const char * trig(){
     case KEY_CTRL_XTT:
       return xthetat?"t":"x";
       //return "x";
-    case KEY_CHAR_LN:
-      return "log(";
+    case KEY_CHAR_LN: // ln( reads as the natural log; log( would read as base 10
+      return focus_on?"ln(":"log(";
     case KEY_CHAR_LOG:
       return "log10(";
     case KEY_CHAR_EXPN10:
-      return "10**(";
+      return focus_on?"10^(":"10**(";
     case KEY_CHAR_EXPN:
       return "exp(";
     case KEY_CHAR_EXP:
@@ -2915,6 +2915,14 @@ int Console_GetKey(){
     if (key == KEY_CTRL_DEL && console_input2d()){
       char * s=(char *)Edit_Line;
       int p=Current_Col;
+      int depth=0;
+      for (int i=0;i<p-1;++i)
+        depth+=s[i]=='('?1:s[i]==')'?-1:0;
+      if (p>0 && s[p-1]==')' && depth>0){ // sin(x)| -> sin(x|): into the group, as into an exponent
+        console_set_caret(p-1);           // (deleting the ) left sin(x unclosed); a stray ) goes
+        Console_Disp(0);
+        continue;
+      }
       if (me_backspace(s,&p)){ // at the start of a slot: unwraps a call, a fraction, an exponent
         Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
         console_changed=1;

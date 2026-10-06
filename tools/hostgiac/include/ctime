@@ -1,0 +1,4 @@
+// hostgiac shim (CEdev include/c++ equivalent)
+#pragma once
+#include <time.h>
+namespace std { using ::time_t; using ::clock_t; using ::time; using ::clock; }

@@ -1,0 +1,11 @@
+The leak fixes, against src/giac 5bf21e9 (committed since as 3a54bae, identical); apply in
+src/giac with "git apply" or "patch -p1". Found and checked with the host build (tools/hostgiac).
+- kgen.cc delete_ref_vecteur (ALLOCSMALL, the calculator build): uSTL's clear() keeps the element
+  buffer (resize(0) keeps the capacity) and deletefast only releases the ref_vecteur slot without
+  running ~vecteur, so every deleted vector (every _VECT gen) leaked its buffer. Now the
+  ref_vecteur is destroyed as delete would, then its slot released.
+- global.h dbgprint_vector (vecteur) assignment: copy, then swap. uSTL assigns element by element
+  into the old elements, so in the giac idiom v=*v.front()._VECTptr (18 places) the source,
+  owned by an element of v, was freed half-way (hidden until now by the leak above).
+- kvecteur.cc exact_div: the quotient polynome was new'ed and never deleted (gen res copies it).
+

@@ -144,7 +144,12 @@ static const tcase cases[] = {
   {"f(a,|b)", ")", "f(a,|b)", 1, 0},                 // nothing left of the caret in the slot
   {"|x+1", ")", "|x+1", 1, 0},
   {"(1)/(x+1|)", ")", "(1)/(x+1)|", 1, 0},
-  {"integrate((1)/(x^(2|)),x)", ")", "integrate((1)/(x^(2)|),x)", 1, 0},
+  {"integrate((1)/(x^(2|)),x)", ")", "integrate((1)/(x^(2))|,x)", 1, 0}, // out of both boxes
+  {"x^((1)/(2|))", ")", "x^((1)/(2))|", 1, 0},       // x^(1/2) typed: ) closes the ^(
+  {"(1)/(1+(1)/(x|))", ")", "(1)/(1+(1)/(x))|", 1, 0}, // 1/(1+1/x) typed
+  {"sin(x^(2|))", ")", "sin(x^(2))|", 1, 0},
+  {"((a)/(b|))+1", ")", "((a)/(b))|+1", 1, 0},       // a group the user opened: closed, then stop
+  {"(1)/(|)", "(", "(1)/(|)", 1, 0},                 // /( empty: the denominator is the group
   {"x+(a|", ")", "x+(a)|", 1, 0},                    // unbalanced: closes the open group
   {"f(a,b|", ")", "f(a,b)|", 1, 0},
   {"f(|", ")", "f(|", 1, 0},

@@ -1,0 +1,16 @@
+Optional, independent of fix.patch. Against src/giac 3a54bae (fix.patch is in it already); apply in
+src/giac with "git apply" or "patch -p1". Found by the host build (tools/hostgiac); results of
+the test lists are unchanged with it.
+Three use-after-free reads (AddressSanitizer, same before and after fix.patch). Each read comes
+right after the free, so on the calculator it usually reads intact memory; it is still undefined.
+- input_lexer.cc set_lexer_string: currently_scanned pointed into a local string freed on return;
+  giac_yyerror (any syntax error, e.g. "(a+b)/") read it. Now it points to flex's copy.
+- input_parser.cc, rule "expr => identifier" (e.g. "5=>a"): ch pointed into the temporary
+  returned by print(). The string is kept.
+- kplot.cc autoscaleminmax (graph of one point, e.g. "point(1,2)"): v.push_back(v.front())
+  copied from the buffer that push_back had just reallocated.
+Two leaks of rarely used paths (new identificateur, never deleted):
+- ksolve.cc isolate_sinh/cosh/tanh: every solve of sinh/cosh/tanh(..)=.. with
+  all_trig_solutions:=1 (the n_k of the periodic solutions), about 64 bytes per call on the host.
+- kprog.cc replace_keywords: a program parameter that is not a name (once per new name).
+

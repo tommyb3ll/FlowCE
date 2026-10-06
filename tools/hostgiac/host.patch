@@ -1,0 +1,372 @@
+diff -ruN pristine/giac/first.h work/giac/first.h
+--- pristine/giac/first.h	2026-10-06 02:22:50.373895963 -0400
++++ work/giac/first.h	2026-10-06 02:24:17.864498785 -0400
+@@ -82,7 +82,9 @@
+ // #define CIN 0 //std::cin
+ #define COUT Bidon(0) //std::cout
+ #define CERR Bidon(0) //std::cout
++#ifndef HOSTGIAC
+ typedef unsigned pid_t;
++#endif
+ extern "C" double lgamma(double);
+ #else // FXCG
+ 
+diff -ruN pristine/giac/gen.h work/giac/gen.h
+--- pristine/giac/gen.h	2026-10-06 02:22:50.383896872 -0400
++++ work/giac/gen.h	2026-10-06 02:24:17.974515815 -0400
+@@ -488,6 +488,13 @@
+ #endif
+ 
+   struct alias_unary_function_eval;
++#ifdef HOSTGIAC // 64-bit host: the "quoted" flag of a function pointer is bit 62, not bit 23
++#define GIAC_FUNC_QUOTED ((size_t)1<<62)
++#define GIAC_FUNC_MASK (~GIAC_FUNC_QUOTED)
++#else
++#define GIAC_FUNC_QUOTED 0x800000
++#define GIAC_FUNC_MASK 0x7fffff
++#endif
+   struct unary_function_ptr {
+ #ifdef NO_UNARY_FUNCTION_COMPOSE
+     // const unary_function_eval * _ptr;
+@@ -526,7 +533,7 @@
+     inline unary_function_eval * ptr() const {
+ #ifdef TICE
+       //dbg_printf("func ptr %x\n",(size_t) _ptr);
+-      return (unary_function_eval *) (((size_t) _ptr) & 0x7fffff);
++      return (unary_function_eval *) (((size_t) _ptr) & GIAC_FUNC_MASK);
+ #endif
+       return (unary_function_eval *) (((size_t) _ptr) & ~(uintptr_t)3);
+ #ifdef x86_64
+@@ -549,7 +556,7 @@
+     bool quoted() const ;
+     inline bool operator ==(const unary_function_ptr & u) const { 
+       // if (&u==this) return true; 
+-      return ((ulonglong)(_ptr) & 0x7fffff )  == ((ulonglong)( u._ptr) & 0x7fffff );
++      return ((ulonglong)(_ptr) & GIAC_FUNC_MASK )  == ((ulonglong)( u._ptr) & GIAC_FUNC_MASK );
+ #ifdef x86_64
+       //return ((ulonglong)(_ptr) & 0xfffffffffffffffc)  == ((ulonglong)( u._ptr) & 0xfffffffffffffffc ); 
+ #else
+@@ -559,7 +566,7 @@
+     inline bool operator !=(const unary_function_ptr & u) const { return !(*this==u); }
+     inline bool operator ==(const unary_function_ptr * u) const { 
+       // if (&u==this) return true; 
+-      return u && ( ((ulonglong)(_ptr) & 0x7fffff ) == ((ulonglong)(u->_ptr) & 0x7fffff) ); 
++      return u && ( ((ulonglong)(_ptr) & GIAC_FUNC_MASK ) == ((ulonglong)(u->_ptr) & GIAC_FUNC_MASK) ); 
+ #ifdef x86_64
+       //return u && ( ((ulonglong)(_ptr) & 0xfffffffffffffffc) == ((ulonglong)(u->_ptr) & 0xfffffffffffffffc) ); 
+ #else
+@@ -801,6 +808,12 @@
+ 
+ #if defined(SMARTPTR64)
+   typedef ulonglong alias_gen;
++#elif defined HOSTGIAC // 64-bit host, gen as with TICE: an 8-byte value, then subtype, type
++  struct alias_gen {
++    size_t value;
++    signed char subtype;
++    unsigned char type;  // see dispatch.h
++  };
+ #else
+   struct alias_gen {
+     int value;
+@@ -858,7 +871,13 @@
+ #define define_alias_ref_complex(name,retype,resubtype,reptr,imtype,imsubtype,imptr) alias_ref_complex name={-1,0,{(ulonglong(reptr) << 16) | (resubtype << 8) | retype },{(ulonglong(imptr) << 16) | (imsubtype << 8) | imtype }};
+ #define define_tab2_alias_gen(name,retype,resubtype,reptr,imtype,imsubtype,imptr) alias_gen name[]={{(ulonglong(reptr) << 16) | (resubtype << 8) | retype },{(ulonglong(imptr) << 16) | (imsubtype << 8) | imtype }};
+ #else // SMARTPTR64
+-#ifdef DOUBLEVAL
++#ifdef HOSTGIAC
++#define define_alias_gen(name,type,subtype,ptr) alias_gen name={size_t(ptr),subtype,type};
++#define define_alias_ref_symbolic(name,sommet,type,subtype,ptr) alias_ref_symbolic name={-1,(unary_function_eval *)sommet,size_t(ptr),subtype,type};
++#define define_alias_ref_fraction(name,numtype,numsubtype,numptr,dentype,densubtype,denptr) alias_ref_fraction name={-1,{size_t(numptr),numsubtype,numtype},{size_t(denptr),densubtype,dentype}};
++#define define_alias_ref_complex(name,retype,resubtype,reptr,imtype,imsubtype,imptr) alias_ref_complex name={-1,0,{size_t(reptr),resubtype,retype},{size_t(imptr),imsubtype,imtype}};
++#define define_tab2_alias_gen(name,retype,resubtype,reptr,imtype,imsubtype,imptr) alias_gen name[]={{size_t(reptr),resubtype,retype},{size_t(imptr),imsubtype,imtype}};
++#elif defined DOUBLEVAL
+ #define define_alias_gen(name,type,subtype,ptr) alias_gen name={type,subtype,0,ulonglong(ptr)};
+ #define define_alias_ref_symbolic(name,sommet,type,subtype,ptr) alias_ref_symbolic name={-1,(unary_function_eval *)sommet,type,subtype,0,ulonglong(ptr)};
+ #define define_alias_ref_fraction(name,numtype,numsubtype,numptr,dentype,densubtype,denptr) alias_ref_fraction name={-1,{numtype,numsubtype,0,ulonglong(numptr)},{dentype,densubtype,0,ulonglong(denptr)}};
+@@ -879,7 +898,11 @@
+   //#define define_alias_ref_vecteur(name,b) alias_ref_vecteur name={-1,sizeof(b)/sizeof(gen),(const alias_gen *)b,(const alias_gen *)b+sizeof(b)/sizeof(gen),0};
+ #define define_alias_ref_vecteur2(name,b) alias_ref_vecteur name={-1,2,&b[0],&b[2],0};
+ #else
++#ifdef HOSTGIAC // uSTL's memblock sizes are size_t
++  struct alias_ref_vecteur { ref_count_t ref_count; void * ptr; const alias_gen * begin; size_t size; size_t capacity; };
++#else
+   struct alias_ref_vecteur { ref_count_t ref_count; void * ptr; const alias_gen * begin; unsigned size; unsigned capacity; };
++#endif
+ #define define_alias_ref_vecteur(name,b) alias_ref_vecteur name={-1,0,(const alias_gen *)b,sizeof(gen),sizeof(gen)};
+   //#define define_alias_ref_vecteur2(name,b) alias_ref_vecteur name={-1,&b[0],&b[2],&b[2],0};
+ #define define_alias_ref_vecteur2(name,b) alias_ref_vecteur name={-1,0,&b[0],2*sizeof(gen),2*sizeof(gen)};
+@@ -1472,7 +1495,11 @@
+   struct alias_ref_symbolic {
+     ref_count_t ref_count;
+     unary_function_eval * sommet;
+-    int value ; 
++#ifdef HOSTGIAC
++    size_t value ;
++#else
++    int value ;
++#endif
+     signed char subtype;
+     unsigned char type;  // see dispatch.h
+   };
+diff -ruN pristine/giac/index.cc work/giac/index.cc
+--- pristine/giac/index.cc	2026-10-06 02:22:50.253885060 -0400
++++ work/giac/index.cc	2026-10-06 02:38:44.734211159 -0400
+@@ -218,33 +218,38 @@
+     return true;
+   }
+ 
++#ifdef HOSTGIAC // 32-bit int: the TICE buffers below are sized for 24-bit ints
++#define HOST_PAD 40
++#else
++#define HOST_PAD 0
++#endif
+ #ifdef TICE
+   void add_print_INT_(string & s,int i){
+-    char c[sizeof("-8388608")];
++    char c[sizeof("-8388608")+HOST_PAD];
+     boot_sprintf(c,"%d",i);
+     s += c;
+   }
+ 
+   string print_INT_(int i){
+-    char c[sizeof("-8388608")];
++    char c[sizeof("-8388608")+HOST_PAD];
+     boot_sprintf(c, "%d", i);
+     return c;
+   }
+ 
+   string hexa_print_INT_(int i){
+-    char c[sizeof("0xffffff")];
++    char c[sizeof("0xffffff")+HOST_PAD];
+     boot_sprintf(c, "0x%x", i);
+     return c;
+   }
+   
+   string octal_print_INT_(int i){
+-    char c[sizeof("0o77777777")];
++    char c[sizeof("0o77777777")+HOST_PAD];
+     boot_sprintf(c, "0o%o", i);
+     return c;
+   }
+ 
+   string binary_print_INT_(int i){
+-    char c[sizeof("0b100010001000100010001000")];
++    char c[sizeof("0b100010001000100010001000")+HOST_PAD];
+     c[0] = '0';
+     c[1] = 'b';
+     mpz_t tmp;
+@@ -260,7 +265,7 @@
+       return "";
+     }
+     string s("[");
+-    char buf[sizeof("-8388608,")];
++    char buf[sizeof("-8388608,")+HOST_PAD];
+     for (;;) {
+       boot_sprintf(buf, "%d,", *it);
+       s += buf;
+@@ -278,7 +283,7 @@
+       return "";
+     }
+     string s("[");
+-    char buf[sizeof("-8388608,")];
++    char buf[sizeof("-8388608,")+HOST_PAD];
+     for (;;) {
+       boot_sprintf(buf, "%d,", *it);
+       s += buf;
+diff -ruN pristine/giac/kgen.cc work/giac/kgen.cc
+--- pristine/giac/kgen.cc	2026-10-06 02:22:50.283887787 -0400
++++ work/giac/kgen.cc	2026-10-06 02:24:18.004520461 -0400
+@@ -863,6 +863,9 @@
+ #endif
+       type =_ZINT;
+       subtype=0;
++#ifdef HOSTGIAC // 64-bit long: converted as a longlong
++      { gen tmp((longlong)i); mpz_set(*_ZINTptr,*tmp._ZINTptr); return; }
++#endif
+       // convert longlong to mpz_t
+       bool signe=(i<0);
+       if (signe)
+@@ -1065,10 +1068,14 @@
+   ref_vecteur * new_ref_vecteur(const vecteur & v){
+     ref_vecteur * ptr=(ref_vecteur *) allocfast(sizeof(ref_vecteur));
+     ptr->ref_count=1; // create an empty vector
++#ifdef HOSTGIAC // an empty uSTL vector: vtable pointer, then zeros
++    new (&ptr->v) vecteur;
++#else
+     *(unsigned *)&ptr->v=ustl_vecteur_prolog;
+     *((unsigned *)&ptr->v+1)=0;
+     *((unsigned *)&ptr->v+2)=0;
+     *((unsigned *)&ptr->v+3)=0;
++#endif
+     ptr->v=v;
+     return ptr;
+   }
+@@ -1190,6 +1197,9 @@
+   ref_eqwdata * new_ref_eqwdata(const eqwdata & e){
+     ref_eqwdata * ptr=(ref_eqwdata *) allocfast(sizeof(ref_eqwdata));
+     ptr->ref_count=1;
++#ifdef HOSTGIAC
++    memset((void *)&ptr->e,0,sizeof(ptr->e));
++#endif
+     *(unsigned *)&ptr->e=0;
+     *((unsigned *)&ptr->e+1)=0;
+     *((unsigned *)&ptr->e+2)=0;
+diff -ruN pristine/giac/kglobal.cc work/giac/kglobal.cc
+--- pristine/giac/kglobal.cc	2026-10-06 02:22:50.283887787 -0400
++++ work/giac/kglobal.cc	2026-10-06 02:38:24.813640224 -0400
+@@ -1260,6 +1260,9 @@
+ #ifdef TICE
+   int giac_rand(GIAC_CONTEXT){
+     unsigned r=std::rand();
++#ifdef HOSTGIAC
++    r &= 0x7fffff;
++#endif
+     //dbg_printf("rand %i\n",r);
+     return r;
+   }
+@@ -2542,7 +2545,7 @@
+ 	  res=gen(tab[pos]);
+ 	  if (builtin_lexer_functions[pos]._FUNC_%2){
+ #ifdef TICE
+-	    res._FUNC_ |= 0x800000;
++	    res._FUNC_ |= GIAC_FUNC_QUOTED;
+ #else
+ 	    res._FUNC_ +=1;
+ #endif
+diff -ruN pristine/giac/khelp.cc work/giac/khelp.cc
+--- pristine/giac/khelp.cc	2026-10-06 02:22:50.283887787 -0400
++++ work/giac/khelp.cc	2026-10-06 02:39:00.199339086 -0400
+@@ -165,7 +165,11 @@
+ 
+ #ifdef TICE
+   string printint(int i) {
++#ifdef HOSTGIAC // 32-bit int
++    char s[sizeof("-2147483648")];
++#else
+     char s[sizeof("-8388608")];
++#endif
+     boot_sprintf(s, "%d", i);
+     return s;
+   }
+diff -ruN pristine/giac/kmisc.cc work/giac/kmisc.cc
+--- pristine/giac/kmisc.cc	2026-10-06 02:22:50.303889603 -0400
++++ work/giac/kmisc.cc	2026-10-06 02:25:08.295360558 -0400
+@@ -72,10 +72,18 @@
+     if (g.type==_VECT && g.subtype==_SEQ__VECT && g._VECTptr->size()==2){
+       gen & obj=g._VECTptr->front();
+       vecteur & ptr=*obj._VECTptr;
++#ifdef HOSTGIAC
++      return makevecteur((longlong) (size_t) (&ptr),(int) taille(obj,RAND_MAX),tailles(obj));
++#else
+       return makevecteur((longlong) (unsigned) (&ptr),(int) taille(obj,RAND_MAX),tailles(obj));
++#endif
+     }
+     vecteur & ptr=*g._VECTptr;
++#ifdef HOSTGIAC
++    return (longlong) (size_t) (&ptr);
++#else
+     return (longlong) (unsigned) (&ptr);
++#endif
+   }
+   static const char _addr_s []="addr";
+   static define_unary_function_eval (__addr,&_addr,_addr_s);
+diff -ruN pristine/giac/kprog.cc work/giac/kprog.cc
+--- pristine/giac/kprog.cc	2026-10-06 02:22:50.313890512 -0400
++++ work/giac/kprog.cc	2026-10-06 02:25:08.305360357 -0400
+@@ -7723,7 +7723,11 @@
+     unsigned int i=0;
+     if ( g.type==_STRNG &&  g.subtype==-1) return  g;
+     //return clock();
++#ifdef HOSTGIAC // unsigned is not size_t on the host
++    return int(++i);
++#else
+     return ++i;//RTC_GetTicks();
++#endif
+   }
+   static const char _monotonic_s []="monotonic";
+   static define_unary_function_eval (__monotonic,&_monotonic,_monotonic_s);
+diff -ruN pristine/giac/kunary.cc work/giac/kunary.cc
+--- pristine/giac/kunary.cc	2026-10-06 02:22:50.333892328 -0400
++++ work/giac/kunary.cc	2026-10-06 02:24:17.924508073 -0400
+@@ -49,7 +49,7 @@
+   }
+ 
+ #ifdef TICE
+-  bool unary_function_ptr::quoted() const { return (ptr()->index_quoted_function & 0x1) || ( ((size_t) _ptr) & 0x800000); }
++  bool unary_function_ptr::quoted() const { return (ptr()->index_quoted_function & 0x1) || ( ((size_t) _ptr) & GIAC_FUNC_QUOTED); }
+ #else
+   bool unary_function_ptr::quoted() const { return (ptr()->index_quoted_function & 0x1) || ( ((size_t) _ptr) & 0x1); }
+ #endif
+diff -ruN pristine/src/console.h work/src/console.h
+--- pristine/src/console.h	2026-10-06 02:22:50.663922310 -0400
++++ work/src/console.h	2026-10-06 02:24:17.874500333 -0400
+@@ -83,6 +83,9 @@
+   Char mode;
+ } ;
+ 
++#ifdef HOSTGIAC
++#undef LINE_MAX // glibc's <limits.h>
++#endif
+ enum CONSOLE_SCREEN_SPEC{
+   LINE_MAX = 64,
+   LINE_DISP_MAX = 14,
+diff -ruN pristine/ustl/config.h work/ustl/config.h
+--- pristine/ustl/config.h	2026-10-06 02:22:50.543911409 -0400
++++ work/ustl/config.h	2026-10-06 02:24:17.854497238 -0400
+@@ -193,10 +193,14 @@
+ //#define MEMMGR
+ #define WITHOUT_EXCEPTIONS
+ #define USTL_THROW(x) 
++#ifdef HOSTGIAC // x86-64 host: the C library's types
++#include <sys/types.h>
++#else
+ typedef unsigned off_t;
+ typedef unsigned size_t;
+ typedef size_t ssize_t;
+ typedef unsigned mode_t ;
++#endif
+ //#define rint(x) int(x+.5)
+ //#define calloc(nmemb, size) malloc(size*nmemb)
+ //#define strtoll strtol
+@@ -240,6 +244,17 @@
+ #undef WANT_MMX
+ 
+ // Define to byte sizes of types
++#ifdef HOSTGIAC // x86-64 host (LP64)
++#define SIZE_OF_CHAR 1
++#define SIZE_OF_SHORT 2
++#define SIZE_OF_INT 4
++#define SIZE_OF_LONG 8
++#define SIZE_OF_LONG_LONG 8
++#define SIZE_OF_POINTER 8
++#define SIZE_OF_SIZE_T 8
++#define SIZE_OF_BOOL SIZE_OF_CHAR
++#define SIZE_T_IS_LONG 1
++#else
+ #define SIZE_OF_CHAR 1
+ #define SIZE_OF_SHORT 2
+ #define SIZE_OF_INT 3
+@@ -249,6 +264,7 @@
+ #define SIZE_OF_SIZE_T 3
+ #define SIZE_OF_BOOL SIZE_OF_CHAR
+ #define SIZE_T_IS_LONG 0
++#endif
+ 
+ // Byte order macros, converted in utypes.h
+ #define USTL_LITTLE_ENDIAN	4321
+diff -ruN pristine/ustl/ualgobase.h work/ustl/ualgobase.h
+--- pristine/ustl/ualgobase.h	2026-10-06 02:22:50.583915042 -0400
++++ work/ustl/ualgobase.h	2026-10-06 02:39:31.742610286 -0400
+@@ -133,8 +133,12 @@
+ extern "C" void copy_n_fast (const void* src, size_t count, void* dest) noexcept;
+ #else
+ inline void copy_n_fast (const void* src, size_t count, void* dest) noexcept
++#ifdef HOSTGIAC
++    { memmove (dest, src, count); }
++#else
+     { memcpy (dest, src, count); }
+ #endif
++#endif
+ #if __i386__ || __x86_64__
+ extern "C" void copy_backward_fast (const void* first, const void* last, void* result) noexcept;
+ #else

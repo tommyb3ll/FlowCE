@@ -1,0 +1,2 @@
+# patches keep the line ends of the files they patch (CRLF and LF): no conversion
+*.patch -text

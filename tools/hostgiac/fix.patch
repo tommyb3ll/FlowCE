@@ -1,0 +1,66 @@
+The leak fixes, against src/giac 5bf21e9 (committed since as 3a54bae, identical); apply in
+src/giac with "git apply" or "patch -p1". Found and checked with the host build (tools/hostgiac).
+- kgen.cc delete_ref_vecteur (ALLOCSMALL, the calculator build): uSTL's clear() keeps the element
+  buffer (resize(0) keeps the capacity) and deletefast only releases the ref_vecteur slot without
+  running ~vecteur, so every deleted vector (every _VECT gen) leaked its buffer. Now the
+  ref_vecteur is destroyed as delete would, then its slot released.
+- global.h dbgprint_vector (vecteur) assignment: copy, then swap. uSTL assigns element by element
+  into the old elements, so in the giac idiom v=*v.front()._VECTptr (18 places) the source,
+  owned by an element of v, was freed half-way (hidden until now by the leak above).
+- kvecteur.cc exact_div: the quotient polynome was new'ed and never deleted (gen res copies it).
+
+diff --git a/global.h b/global.h
+--- a/global.h
++++ b/global.h
+@@ -342,6 +342,20 @@
+     dbgprint_vector(const T * b,const T * e) : std::vector<T>::vector(b,e) { };
+     dbgprint_vector(size_t i) : std::vector<T>::vector(i) { };
+     dbgprint_vector(size_t i,const T & t) : std::vector<T>::vector(i,t) { };
++#ifdef USTL
++    // uSTL assigns element by element into the old elements: in v=*v.front()._VECTptr (a giac
++    // idiom) the source belongs to an element of v and is freed half-way. Copy, then swap.
++    dbgprint_vector(const dbgprint_vector<T> & w) = default;
++    dbgprint_vector(dbgprint_vector<T> && w) = default;
++    dbgprint_vector & operator =(const dbgprint_vector<T> & w){
++      if (this!=&w){
++        std::vector<T> tmp(w);
++        this->swap(tmp);
++      }
++      return *this;
++    }
++    dbgprint_vector & operator =(dbgprint_vector<T> && w){ this->swap(w); return *this; }
++#endif
+     // ~dbgprint_vector() { };
+     // inherited destructors
+     void dbgprint() const { COUT << *this << std::endl; }
+diff --git a/kgen.cc b/kgen.cc
+--- a/kgen.cc
++++ b/kgen.cc
+@@ -360,7 +360,9 @@
+   }
+ #else
+   void delete_ref_vecteur(ref_vecteur * ptr){
+-    ptr->v.clear();
++    // destroy the vector as delete would: uSTL's clear() keeps the element buffer (capacity),
++    // and deletefast only releases the ref_vecteur slot (the buffer leaked on every deletion)
++    ptr->~ref_vecteur();
+     deletefast(ptr);
+   }
+ #endif
+diff --git a/kvecteur.cc b/kvecteur.cc
+--- a/kvecteur.cc
++++ b/kvecteur.cc
+@@ -2693,10 +2693,10 @@
+ 
+   gen exact_div(const gen & a,const gen & b){
+     if (a.type==_POLY && b.type==_POLY){
+-      polynome *quoptr=new polynome, rem;
+-      if (!divrem1(*a._POLYptr,*b._POLYptr,*quoptr,rem,2)) 
++      polynome quo, rem; // was new polynome, never deleted (gen res copies it)
++      if (!divrem1(*a._POLYptr,*b._POLYptr,quo,rem,2))
+ 	CERR << "bad quo("+a.print()+","+b.print()+")" << "\n";
+-      gen res= *quoptr;
++      gen res= quo;
+       // if (!is_zero(a-b*res))
+       //	CERR << "Bad division" << "\n";
+       return res;

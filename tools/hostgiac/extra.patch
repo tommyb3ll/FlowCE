@@ -1,0 +1,96 @@
+Optional, independent of fix.patch. Against src/giac 3a54bae (fix.patch is in it already); apply in
+src/giac with "git apply" or "patch -p1". Found by the host build (tools/hostgiac); results of
+the test lists are unchanged with it.
+Three use-after-free reads (AddressSanitizer, same before and after fix.patch). Each read comes
+right after the free, so on the calculator it usually reads intact memory; it is still undefined.
+- input_lexer.cc set_lexer_string: currently_scanned pointed into a local string freed on return;
+  giac_yyerror (any syntax error, e.g. "(a+b)/") read it. Now it points to flex's copy.
+- input_parser.cc, rule "expr => identifier" (e.g. "5=>a"): ch pointed into the temporary
+  returned by print(). The string is kept.
+- kplot.cc autoscaleminmax (graph of one point, e.g. "point(1,2)"): v.push_back(v.front())
+  copied from the buffer that push_back had just reallocated.
+Two leaks of rarely used paths (new identificateur, never deleted):
+- ksolve.cc isolate_sinh/cosh/tanh: every solve of sinh/cosh/tanh(..)=.. with
+  all_trig_solutions:=1 (the n_k of the periodic solutions), about 64 bytes per call on the host.
+- kprog.cc replace_keywords: a program parameter that is not a name (once per new name).
+
+diff --git a/input_lexer.cc b/input_lexer.cc
+--- a/input_lexer.cc
++++ b/input_lexer.cc
+@@ -4382,6 +4382,8 @@
+       dbg_printf("lex %s\n",lexer_string.c_str());
+ #endif
+       YY_BUFFER_STATE state=giac_yy_scan_string(lexer_string,scanner);
++      // lexer_string is freed on return: giac_yyerror reads flex's own copy (lives until delete_lexer_string)
++      currently_scanned(contextptr)=state->yy_ch_buf;
+ #ifndef WITH_QUAD      
+       dbg_printf("lex done\n");
+ #endif
+diff --git a/input_parser.cc b/input_parser.cc
+--- a/input_parser.cc
++++ b/input_parser.cc
+@@ -3373,7 +3373,7 @@
+ 
+   case 19:
+ #line 206 "input_parser.yy" /* yacc.c:1646  */
+-    { if ((yyvsp[0]).type==_IDNT) { const char * ch=(yyvsp[0]).print(context0).c_str(); if (ch[0]=='_' && unit_conversion_map().find(ch+1) != unit_conversion_map().end()) (yyval)=symbolic(at_convert,gen(makevecteur((yyvsp[-2]),symbolic(at_unit,makevecteur(1,(yyvsp[0])))) ,_SEQ__VECT)); else (yyval)=symb_sto((yyvsp[-2]),(yyvsp[0])); } else (yyval)=symb_sto((yyvsp[-2]),(yyvsp[0])); }
++    { if ((yyvsp[0]).type==_IDNT) { const std::string chs=(yyvsp[0]).print(context0); const char * ch=chs.c_str(); if (ch[0]=='_' && unit_conversion_map().find(ch+1) != unit_conversion_map().end()) (yyval)=symbolic(at_convert,gen(makevecteur((yyvsp[-2]),symbolic(at_unit,makevecteur(1,(yyvsp[0])))) ,_SEQ__VECT)); else (yyval)=symb_sto((yyvsp[-2]),(yyvsp[0])); } else (yyval)=symb_sto((yyvsp[-2]),(yyvsp[0])); }
+ #line 3378 "y.tab.c" /* yacc.c:1646  */
+     break;
+ 
+diff --git a/kplot.cc b/kplot.cc
+--- a/kplot.cc
++++ b/kplot.cc
+@@ -946,7 +946,8 @@
+       ++s;
+     }
+     if (s==1){
+-      v.push_back(v.front());
++      const double f=v.front(); // uSTL's push_back reallocates before copying its argument
++      v.push_back(f);
+       ++s;
+     }
+     if (s>1){    
+diff --git a/kprog.cc b/kprog.cc
+--- a/kprog.cc
++++ b/kprog.cc
+@@ -1026,7 +1026,7 @@
+ 	lock_syms_mutex();  
+ 	sym_string_tab::const_iterator i = syms().find(s);
+ 	if (i == syms().end()) {
+-	  *it = *(new identificateur(s));
++	  *it = identificateur(s); // was *(new identificateur(s)), never deleted
+ 	  syms()[s] = *it;
+ 	} else {
+ 	  // std::cerr << "lexer" << s << "\n";
+diff --git a/ksolve.cc b/ksolve.cc
+--- a/ksolve.cc
++++ b/ksolve.cc
+@@ -197,21 +197,21 @@
+     gen asine= asinh(e,contextptr);
+     if (!(isolate_mode & 2))
+       return asine;
+-    identificateur * x=new identificateur(string("n_")+print_intvar_counter(contextptr));
+-    return makevecteur(asine+(*x)*one_tour(contextptr)*cst_i,(one_half_tour(contextptr)+(*x)*one_tour(contextptr))*cst_i-asine);
++    identificateur x(string("n_")+print_intvar_counter(contextptr)); // was new, never deleted
++    return makevecteur(asine+x*one_tour(contextptr)*cst_i,(one_half_tour(contextptr)+x*one_tour(contextptr))*cst_i-asine);
+   }
+   static gen isolate_cosh(const gen & e,int isolate_mode,GIAC_CONTEXT){
+     gen acose=acosh(e,contextptr);
+     if (!(isolate_mode & 2))
+       return makevecteur(acose,-acose);
+-    identificateur * x=new identificateur(string("n_")+print_intvar_counter(contextptr));
+-    return makevecteur(acose+(*x)*one_tour(contextptr)*cst_i,-acose+(*x)*one_tour(contextptr)*cst_i);
++    identificateur x(string("n_")+print_intvar_counter(contextptr)); // was new, never deleted
++    return makevecteur(acose+x*one_tour(contextptr)*cst_i,-acose+x*one_tour(contextptr)*cst_i);
+   }
+   static gen isolate_tanh(const gen & e,int isolate_mode,GIAC_CONTEXT){
+     if (!(isolate_mode & 2))
+       return atanh(e,contextptr);
+-    identificateur * x=new identificateur(string("n_")+print_intvar_counter(contextptr));
+-    return atanh(e,contextptr)+(*x)*one_half_tour(contextptr)*cst_i;
++    identificateur x(string("n_")+print_intvar_counter(contextptr)); // was new, never deleted
++    return atanh(e,contextptr)+x*one_half_tour(contextptr)*cst_i;
+   }
+ 
+   static gen (* const isolate_fcns[] ) (const gen &,int,GIAC_CONTEXT) = { isolate_exp,isolate_ln,isolate_sin,isolate_cos,isolate_tan,isolate_asin,isolate_acos,isolate_atan,isolate_sinh,isolate_cosh,isolate_tanh,isolate_asinh,isolate_acosh,isolate_atanh};

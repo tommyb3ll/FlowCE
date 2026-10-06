@@ -1,0 +1,13 @@
+# inputs of extra.patch: use-after-free reads before it (AddressSanitizer), rare leaks
+(a+b)/
+a+2b/
+ in range(1,10)
+5=>a
+point(1,2)
+point(1+2i)
+all_trig_solutions:=1
+solve(sinh(x)=2,x)
+solve(cosh(x)=2,x)
+solve(tanh(x)=1/2,x)
+all_trig_solutions:=0
+map(lambda x:x*x,[1,2,3])

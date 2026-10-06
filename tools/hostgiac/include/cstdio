@@ -1,0 +1,8 @@
+// hostgiac shim (CEdev include/c++ equivalent)
+#pragma once
+#include <stdio.h>
+namespace std {
+using ::FILE; using ::size_t;
+using ::printf; using ::sprintf; using ::snprintf; using ::vsprintf; using ::vsnprintf; using ::puts; using ::putchar;
+using ::fopen; using ::fclose; using ::fread; using ::fwrite; using ::fprintf; using ::fputs; using ::fgets; using ::getchar;
+}

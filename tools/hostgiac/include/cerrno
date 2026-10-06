@@ -1,0 +1,3 @@
+// hostgiac shim (CEdev include/c++ equivalent)
+#pragma once
+#include <errno.h>

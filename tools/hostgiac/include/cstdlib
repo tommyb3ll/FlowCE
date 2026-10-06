@@ -1,0 +1,13 @@
+// hostgiac shim (CEdev include/c++ equivalent)
+#pragma once
+#include <stdlib.h>
+namespace std {
+using ::size_t;
+using ::calloc; using ::malloc; using ::realloc; using ::free;
+using ::atof; using ::atoi; using ::atol; using ::atoll; using ::strtof; using ::strtod; using ::strtold;
+using ::strtol; using ::strtoll; using ::strtoul; using ::strtoull;
+using ::srand; using ::rand; using ::bsearch; using ::qsort;
+using ::abort; using ::atexit; using ::exit; using ::_Exit;
+using ::labs; using ::llabs; using ::div; using ::ldiv; using ::lldiv;
+}
+#include <__abs_overloads>

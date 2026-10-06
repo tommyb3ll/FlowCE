@@ -32,9 +32,12 @@
 //       stepped over (1), else the caller inserts the key at the new caret (0):
 //       (a)/(b|) , -> (a)/(b),|    integrate((x)/(1+x|),x) , -> integrate((x)/(1+x),|x)
 //       Elsewhere 0 (the caret does not move).
-//  (    right after an empty ^( ): nothing (1). Else ( at the caret and ) at the end of the
-//       current slot: |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2)).
-//  )    a closer right after the caret is stepped over: (x+1|) -> (x+1)|. Else, when the
+//  (    right after an empty ^( ) or /( ): nothing (1), the box is the group: 1/(x+1) typed
+//       is (1)/(x+1). Else ( at the caret and ) at the end of the current slot:
+//       |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2)).
+//  )    a closer right after the caret is stepped over: (x+1|) -> (x+1)|; after the ) of a
+//       denominator or an exponent, the next closer too, as the user sees no bracket there:
+//       x^((1)/(2|)) -> x^((1)/(2))|   sin(x^(2|)) -> sin(x^(2))|. Else, when the
 //       current slot has text before the caret: if the slot's group is not closed, ) is
 //       inserted (it closes it); else that text is wrapped: x+1| -> (x+1)|,
 //       integrate(x+1|,x) -> integrate((x+1)|,x). Else nothing (1).
@@ -199,11 +202,16 @@ int me_key(char * s, int cap, int * caret, int key) {
     else if (C(t) == '(' && mt(s, t) == p - 1) x = "/()", d = 2; // one group: reused
     else x = ")/()", y = "(", j = t, d = 4;
   } else if (key == '(') {
-    if (p > 1 && s[p - 1] == '(' && s[p - 2] == '^' && s[p] == ')') return 1; // empty ^(): reused
+    if (p > 1 && s[p - 1] == '(' && (s[p - 2] == '^' || s[p - 2] == '/') && s[p] == ')') return 1; // empty ^() or /(): reused
     i = slend(s, p), x = ")", y = "(", d = 1;
   } else if (key == ')') {
-    if (cls(C(p))) {
-      *caret = p + 1;
+    if (cls(C(p))) { // stepped over; past the ) of a denominator or an exponent (no bracket on
+      for (;;) {     // screen) the next closer is too: ) closes what the user opened
+        o = grp(s, p, &a);
+        ++p;
+        if (!(o > 0 && (s[o - 1] == '^' || s[o - 1] == '/') && cls(C(p)))) break;
+      }
+      *caret = p;
       return 1;
     }
     if (a == p) return 1; // nothing to close or wrap

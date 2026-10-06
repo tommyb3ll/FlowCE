@@ -1,0 +1,11 @@
+// hostgiac shim (CEdev include/c++/__abs_overloads equivalent)
+#pragma once
+#include <stdlib.h>
+namespace std {
+using ::abs;
+inline long abs(long x){ return x<0?-x:x; }
+inline long long abs(long long x){ return x<0?-x:x; }
+inline double abs(double x){ return __builtin_fabs(x); }
+inline float abs(float x){ return __builtin_fabsf(x); }
+inline long double abs(long double x){ return __builtin_fabsl(x); }
+}
