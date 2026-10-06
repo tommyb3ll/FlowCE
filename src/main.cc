@@ -552,6 +552,8 @@ static int factor_rank(const giac::gen & t){
   using namespace giac;
   if (t.type==_INT_ || t.type==_ZINT || t.type==_FRAC || t.type==_DOUBLE_)
     return 0;
+  if (t.is_symb_of_sommet(at_inv) && (t._SYMBptr->feuille.type==_INT_ || t._SYMBptr->feuille.type==_ZINT))
+    return 0; // 1/2 as inv(2): a number (e^(x^2)*(x^2-1)/2, not e^(x^2)/2*(x^2-1))
   if (t==cst_pi) // 2*pi*x
     return 1;
   if (t.type==_IDNT)
@@ -657,7 +659,7 @@ static giac::gen positive_first(const giac::gen & g){
       for (unsigned j=i;j>0 && factor_rank(w[j])<factor_rank(w[j-1]);--j)
         swapgen(w[j],w[j-1]);
     while (w.size()>=2 && factor_rank(w[0])==0 && factor_rank(w[1])==0){ // 3*2*x: 6*x (diff(f(x),x,2))
-      w[0]=w[0]*w[1];
+      w[0]=eval(w[0]*w[1],1,contextptr); // (3*inv(2): 3/2)
       w.erase(w.begin()+1);
     }
     if (w.size()==1)
