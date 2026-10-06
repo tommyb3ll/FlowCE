@@ -1,0 +1,12 @@
+# out of memory: the calculation stops with a message, the session goes on
+big1	expand((x+y+z+1)^25)
+after1	1+1
+big2	expand((x+y+z+1)^25)
+after2	integrate(x*e^x,x)
+k1	integrate(x^2/sqrt(x^2+9),x)
+k2	integrate(x^2/sqrt(x^2+9),x)
+k3	integrate(x^2/sqrt(x^2+9),x)
+k4	integrate(x^2/sqrt(x^2+9),x)
+k5	integrate(x^2/sqrt(x^2+9),x)
+k6	integrate(x^2/sqrt(x^2+9),x)
+after3	2+3

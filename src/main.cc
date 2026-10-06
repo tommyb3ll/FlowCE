@@ -456,6 +456,24 @@ const char * select_var(){
     return dichotomic_search(python_builtins,sizeof(python_builtins)/sizeof(char*),s)!=-1;
   }
 
+// Out of memory (allocator_custom.c): giac is asked to stop, as if ON was pressed, and unwinds.
+extern "C" {
+  extern void * oom_reserve;
+  extern volatile char oom_hit, oom_soft;
+  void oom_interrupt(){ giac::ctrl_c=giac::interrupted=true; }
+}
+// the reserve given back when memory runs out (8 KB, OOM_RESERVE): taken again after each
+// evaluation while memory allows
+static void oom_rearm(){
+  oom_hit=0;
+  if (!oom_reserve){
+    oom_soft=1;
+    oom_reserve=malloc(8192);
+    oom_soft=0;
+  }
+}
+static int eval_stopped; // the last do_eval: 1 interrupted (ON), 2 out of memory
+
 void do_eval(giac::gen & g){
 #ifdef FAKE_GIAC
   statuslinemsg(!lang?"cancel: stop calcul.":"annul: stoppe calcul",COLOR_RED);
@@ -469,7 +487,8 @@ void do_eval(giac::gen & g){
   giac::set_abort();
   statuslinemsg(!lang?"cancel: stop calcul.":"annul: stoppe calcul",COLOR_RED);
   g=giac::eval(g,giac::eval_level(contextptr),contextptr);
-  if (giac::interrupted){
+  eval_stopped=giac::interrupted?(oom_hit?2:1):0;
+  if (giac::interrupted && !focus_on){ // Focus: the history says it (run)
     print_msg12(lang?"Interrompu":"Interrupted",nullptr);
     getkey(0);
     freeze=false;
@@ -865,6 +884,12 @@ void console_cycle_form(int l){
     }
   }
   logptr(savelog,contextptr);
+  const bool oom=oom_hit; // memory ran out (a huge expansion): back to the original form
+  if (oom){
+    ctrl_c=interrupted=false;
+    form_idx=0;
+    r=g;
+  }
   gen lay;
   const int rows=focus_on?0:console_rows2d(r,lay); // Focus draws 2D itself: no continuation rows
   const std::string text=form_idx?r.print(contextptr):*form_orig;
@@ -874,8 +899,9 @@ void console_cycle_form(int l){
       h2d_store(form_line,lay);
   }
   console_form_name=form_idx?names[form_idx]:"exact"; // Focus: the forms chip
+  oom_rearm();
   if (focus_on)
-    statuslinemsg("");
+    statuslinemsg(oom?"Out of memory":"");
   else
     statuslinemsg((std::string("form: ")+names[form_idx]+"    F4: next").c_str());
 }
@@ -1438,17 +1464,27 @@ void do_run(const char * s){
     const bool autosimp=!(ga==g) || g.is_symb_of_sommet(giac::at_diff);
     g=ga;
     do_eval(g);
-    if (autosimp)
-      g=auto_simplify(g);
     std::string msg; // a plain message instead of the result
-    if (var.type==giac::_IDNT){
-      if (g.type==giac::_VECT && g._VECTptr->empty())
-        msg="no solution";
-      else
-        g=solutions_as_equations(g,var);
+    if (eval_stopped){ // ON, or memory ran out: what the calculation built is freed
+      msg=eval_stopped==2?"Out of memory":"Interrupted";
+      g=0;
     }
-    if (focus_on)
-      result_approx(g);
+    else {
+      if (autosimp)
+        g=auto_simplify(g);
+      if (var.type==giac::_IDNT){
+        if (g.type==giac::_VECT && g._VECTptr->empty())
+          msg="no solution";
+        else
+          g=solutions_as_equations(g,var);
+      }
+      if (focus_on)
+        result_approx(g);
+    }
+    if (oom_hit && msg.empty()){ // memory ran out while simplifying
+      msg="Out of memory";
+      g=0;
+    }
     if (defn){
       giac::logptr(savelog,contextptr);
       if (g.is_symb_of_sommet(giac::at_program)) // the 2D input above shows the function
@@ -1501,6 +1537,9 @@ void do_run(const char * s){
     }
     }
     Console_NewLine(LINE_TYPE_OUTPUT,1);
+    if (oom_hit)
+      giac::ctrl_c=giac::interrupted=false;
+    oom_rearm();
     heap_free_probe=(int)malloc(0xffffff); // for tools/emu: free heap after each evaluation
     heap_list_probe=(int)malloc(0xfffffe); // the freed blocks (reusable), and the largest one
     heap_big_probe=(int)malloc(0xfffffd);
@@ -1766,6 +1805,7 @@ int main(){
   giac::tab36=(giac::char36*)(giac::tab15+giac::ALLOC15);
 #endif // WITH_LCDMALLOC
 #endif // FAKE_GIAC
+  oom_rearm();
   main1();
   python_free();
   sdk_end();

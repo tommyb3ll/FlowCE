@@ -80,6 +80,15 @@ static uintptr_t heap_ptrend = (uintptr_t)ALLOC_END;
 static block_t _alloc_base, _alloc2_base;
 // these are 0 initialized, pointing to a chained list of freed pointers
 
+// Out of memory: the reserve kept for this moment (main.cc) is given back and giac is asked to
+// stop (oom_interrupt sets ctrl_c), so the calculation unwinds and frees what it built; the
+// console then says "Out of memory". Without a reserve: NULL if oom_soft, else abort.
+#define OOM_RESERVE 8192
+void* oom_reserve;
+volatile char oom_hit, oom_soft;
+void oom_interrupt(void);
+void _custom_free(void* ptr);
+
 void* _custom_malloc(size_t alloc_size)
 {
     // dbg_printf("[malloc] %zu bytes\n", alloc_size);
@@ -208,6 +217,16 @@ void* _custom_malloc(size_t alloc_size)
             (heap2_ptr + size < heap2_ptr) ||
             (heap2_ptr + size >= (uintptr_t)heap2_ptrend)
         ) {
+            if (oom_reserve && alloc_size <= OOM_RESERVE - 16) {
+                void* res = oom_reserve;
+                oom_reserve = NULL;
+                oom_hit = 1;
+                _custom_free(res);
+                oom_interrupt();
+                return _custom_malloc(alloc_size);
+            }
+            if (oom_soft)
+                return NULL;
             lcd_Control = 0b100100101101; // TI-OS default
             abort();
             return NULL;
