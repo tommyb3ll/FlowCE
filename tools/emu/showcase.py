@@ -39,6 +39,13 @@ SCENES = {
     'table':          [('k', 'x{sq}-2{graph}1'), ('w', 6000), ('k', '{2nd,graph}'), ('w', 2000)],
     'root':           [('k', 'x{sq}-2{graph}1'), ('w', 6000), ('k', '{window}{enter}{down}{down}{down}{enter}'), ('w', 4000)],
     'trigsub':        [('p', 'integrate(1/(x^2*sqrt(4-x^2)),x)')],
+    'power_series':   [('p', 'sum(x^n/n,n,1,inf)')],
+    'dne':            [('p', 'limit(abs(x)/x,x,0)')],
+    'cbrt':           [('p', 'integrate(x^(-1/3),x,-1,8)')],
+    'riemann':        [('p', 'limit(sum((1+2i/n)^2*(2/n),i,1,n),n,inf)')],
+    'ans':            [('p', '2+3'), ('k', '*2{enter}')],
+    'cbrt_graph':     [('k', 'x^(1/3){graph}1'), ('w', 6000)],
+    'polar':          [('p', '1/2*integrate((1+cos(t))^2,t,0,2pi)')],
 }
 
 
