@@ -1037,15 +1037,105 @@ static bool alternating(const giac::gen & f,const giac::gen & n){
 // A divergent one gives "diverges" in msg (n-th term test) or +-infinity (rational terms like
 // 1/n); the famous values are given exactly (1/n^(2k), (-1)^n/n, (-1)^n/(2n+1), 1/n!); other
 // rational terms get a decimal value (partial sum + the tail's integral). Else g unchanged.
+// f=q*r^n: the factors b^(k*n+m) of a product give r (b^k) and q (b^m, the other factors); t is
+// in a numerator (sign 1) or a denominator (-1)
+static void split_geo(const giac::gen & t,const giac::gen & n,giac::gen & r,giac::gen & q,int sign){
+  using namespace giac;
+  if (t.is_symb_of_sommet(at_prod) && t._SYMBptr->feuille.type==_VECT){
+    const vecteur & w=*t._SYMBptr->feuille._VECTptr;
+    for (unsigned i=0;i<w.size();++i)
+      split_geo(w[i],n,r,q,sign);
+    return;
+  }
+  if (t.is_symb_of_sommet(at_inv)){
+    split_geo(t._SYMBptr->feuille,n,r,q,-sign);
+    return;
+  }
+  if (t.is_symb_of_sommet(at_neg)){
+    q=-q;
+    split_geo(t._SYMBptr->feuille,n,r,q,sign);
+    return;
+  }
+  if (t.is_symb_of_sommet(at_pow) && t._SYMBptr->feuille.type==_VECT && t._SYMBptr->feuille._VECTptr->size()==2){
+    const gen & b=t._SYMBptr->feuille._VECTptr->front(),& e=t._SYMBptr->feuille._VECTptr->back();
+    if (is_constant_wrt(b,n,contextptr) && !is_constant_wrt(e,n,contextptr)){
+      const gen k=derive(e,n,contextptr);
+      if (is_constant_wrt(k,n,contextptr)){
+        r=r*pow(b,sign*k,contextptr);
+        q=q*pow(b,sign*ratnormal(e-k*n,contextptr),contextptr);
+        return;
+      }
+    }
+    if (e==-1){ // 1/(n*3^n)
+      split_geo(b,n,r,q,-sign);
+      return;
+    }
+    if (b.is_symb_of_sommet(at_pow) && b._SYMBptr->feuille.type==_VECT && b._SYMBptr->feuille._VECTptr->size()==2 && is_constant_wrt(e,n,contextptr)){
+      const vecteur & u=*b._SYMBptr->feuille._VECTptr; // (x^n)^2 (giac's x^(2n))
+      split_geo(symbolic(at_pow,makesequence(u[0],u[1]*e)),n,r,q,sign);
+      return;
+    }
+  }
+  q=sign>0?q*t:q/t;
+}
+// sums of c*r^n/n, c*n*r^n, c*r^n, c*r^n/n! from n=a, r constant in n (x allowed: power series):
+// -c*ln(1-r), c*r/(1-r)^2, c*r^a/(1-r), c*e^r, less the terms before a. 0: f is none of these, or the
+// sum diverges (|r|>1)
+static giac::gen power_series(const giac::gen & f,const giac::gen & n,int a){
+  using namespace giac;
+  gen r=1,q=1,c,s;
+  split_geo(f,n,r,q,1);
+  r=normal(r,contextptr);
+  q=ratnormal(q,contextptr);
+  if (is_one(r) || !is_constant_wrt(r,n,contextptr))
+    return 0;
+  const gen re=evalf(r,1,contextptr);
+  const double ar=re.type==_DOUBLE_?(re._DOUBLE_val<0?-re._DOUBLE_val:re._DOUBLE_val):0;
+  int from=0;
+  if (is_constant_wrt(c=ratnormal(q*n,contextptr),n,contextptr) && a>=1){ // c/n: -c*ln(1-r) (r=-1: -c*ln 2)
+    if (ar>1 || (ar==1 && re._DOUBLE_val>0))
+      return 0;
+    s=-c*ln(ratnormal(1-r,contextptr),contextptr);
+    from=1;
+  }
+  else if (is_constant_wrt(c=ratnormal(q/n,contextptr),n,contextptr)){
+    if (ar>=1)
+      return 0;
+    s=c*r/pow(1-r,2,contextptr);
+    from=1; // (its n=0 term is 0)
+  }
+  else if (is_constant_wrt(c=ratnormal(q*symbolic(at_factorial,n),contextptr),n,contextptr))
+    s=c*exp(r,contextptr);
+  else if (is_constant_wrt(c=q,n,contextptr)){
+    if (ar>=1)
+      return 0;
+    s=c*pow(r,a,contextptr)/(1-r); // from a: x/(1-x) from 1
+    from=a;
+  }
+  else
+    return 0;
+  if (from>=a) // 1/(1-x), x/(1-x)^2 as textbooks write them (normal: -1/(x-1))
+    return s;
+  for (int k=from;k<a;++k)
+    s=s-subst(f,n,k,false,contextptr);
+  return normal(s,contextptr);
+}
+
 static giac::gen known_sum(const giac::gen & g,std::string & msg){
   using namespace giac;
   if (!g.is_symb_of_sommet(at_sum) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=4)
     return g;
   const vecteur & v=*g._SYMBptr->feuille._VECTptr;
-  const gen & f=v[0],n=v[1],a=v[2];
-  const vecteur ids=lidnt(f);
-  if (n.type!=_IDNT || !(v[3]==plus_inf) || a.type!=_INT_ || ids.size()!=1 || !(ids.front()==n))
+  const gen & n=v[1],a=v[2];
+  if (n.type!=_IDNT || !(v[3]==plus_inf) || a.type!=_INT_)
     return g;
+  // cos(n*pi) is (-1)^n (giac leaves it: sum(cos(n*pi)/n) is -ln 2)
+  const gen f=subst(v[0],eval(symbolic(at_cos,n*cst_pi),1,contextptr),pow(gen(-1),n,contextptr),false,contextptr);
+  const vecteur ids=lidnt(f);
+  if (ids.size()!=1 || !(ids.front()==n)){ // sum(x^n/n,n,1,inf): a power series in x
+    const gen ps=power_series(f,n,a.val);
+    return is_zero(ps)?g:ps;
+  }
   const gen L=_limit(makesequence(f,n,plus_inf),contextptr),Le=evalf(L,1,contextptr);
   if (L.is_symb_of_sommet(at_bounded_function) || L==plus_inf || L==minus_inf || L==unsigned_inf || (Le.type==_DOUBLE_ && Le._DOUBLE_val!=0)){
     msg="diverges (the terms do not go to 0)";
@@ -1106,6 +1196,9 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
     }
     return g;
   }
+  const gen ps=power_series(f,n,a.val); // 3^n/n!: e^3, 1/(2^n*n): ln 2, n/2^n: 2
+  if (!is_zero(ps))
+    return ps;
   // c*r^n/n!: c*e^r (from 0), 1/n! is e
   const gen cf=ratnormal(f*symbolic(at_factorial,n),contextptr);
   const gen r=ratnormal(subst(cf,n,n+1,false,contextptr)/cf,contextptr);
@@ -2388,6 +2481,16 @@ void do_run(const char * s){
         msg=strstr(buf,"sum(")?"diverges (the terms do not go to 0)":strstr(buf,"limit(")?"no limit (it oscillates)":"";
       else if (g.is_symb_of_sommet(giac::at_sum)) // an infinite sum giac could not do
         g=known_sum(g,msg);
+      else if (giac::is_undef(g) && gin.is_symb_of_sommet(giac::at_sum) && gin._SYMBptr->feuille.type==giac::_VECT && gin._SYMBptr->feuille._VECTptr->size()==4){
+        giac::vecteur w(*gin._SYMBptr->feuille._VECTptr); // sum(n*x^n,n,1,inf): giac's undef
+        for (unsigned i=0;i<w.size();++i)
+          if (i!=1)
+            w[i]=giac::eval(w[i],1,contextptr);
+        const giac::gen s=giac::symbolic(giac::at_sum,giac::gen(w,giac::_SEQ__VECT));
+        const giac::gen h=known_sum(s,msg);
+        if (!(h==s))
+          g=h;
+      }
       else
         limit_dne(gin,g,msg); // lim 1/x at 0: does not exist (giac: an unsigned infinity)
       if (g.type==giac::_FRAC && giac::is_positive(-g._FRACptr->den,contextptr)) // -3/-4 (telescoping sums)
