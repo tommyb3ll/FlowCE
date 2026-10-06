@@ -686,6 +686,28 @@ static giac::gen positive_first(const giac::gen & g){
   return symbolic(g._SYMBptr->sommet,f);
 }
 
+// the answer has tan or a power of sin or cos (sin(x)^2, 1/cos(x)): sin^2+cos^2=1 can shorten
+// it; e^x*(cos(x)+sin(x)) cannot (the rewrite cost 0.5 s there for nothing)
+static bool trig_power(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it)
+      if (trig_power(*it)) return true;
+    return false;
+  }
+  if (g.type!=_SYMB)
+    return false;
+  const gen & a=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_tan)
+    return true;
+  if ((g._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2) || g._SYMBptr->sommet==at_inv){
+    const gen & b=g._SYMBptr->sommet==at_inv?a:a._VECTptr->front();
+    if (b.is_symb_of_sommet(at_sin) || b.is_symb_of_sommet(at_cos))
+      return true;
+  }
+  return trig_power(a);
+}
+
 // Automatic normalization of results. giac's default autosimplify ("regroup") leaves
 // (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2, (x^2-1)/(x-1) or 2*x/(2*sqrt(x^2+1)) as is.
 // ratnormal fixes those (4*sqrt(2)*pi, x+1, x/sqrt(x^2+1)) quickly: radicals, pi, sin(x)...
@@ -719,7 +741,7 @@ static giac::gen auto_simplify(const giac::gen & g){
   }
   if (is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000)) // not if bigger: pi*(x+1) stays;
     s=g;                                                                // same size: 3*x^2*e^(3x), not x^2*3*e^(3x)
-  if (!trig && !xcas::has_radical(g) && (has_op(g,*at_sin) || has_op(g,*at_cos) || has_op(g,*at_tan))){
+  if (!trig && !xcas::has_radical(g) && (trig_power(g) || trig_power(s))){ // (s: cos(x)*cos(x) is cos(x)^2)
     // trig of a variable: in sin and cos, with sin^2+cos^2=1 (cheap, unlike simplify):
     // d/dx ln(sec(x)+tan(x)) is 1/cos(x), not (1+tan(x)^2+sin(x)/cos(x)^2)/(1/cos(x)+tan(x))
     bool var=false;
