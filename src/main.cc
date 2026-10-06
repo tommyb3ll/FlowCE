@@ -973,6 +973,53 @@ static giac::gen real_ftc(const giac::gen & in,const giac::gen & g){
   return has_i(r) || has_inf_or_undef(r)?g:r;
 }
 
+// a two-sided limit that does not exist, said as textbooks say it: giac's unsigned infinity (1/x
+// at 0) or its error "Unidirectional limits are distinct -1,1" (|x|/x at 0, left value first)
+static void dne_text(char * b,const char * l,int ln,const char * r,int rn){
+  if (ln>40) ln=40;
+  if (rn>40) rn=40;
+  strcpy(b,"does not exist: ");
+  strncat(b,l,ln);
+  strcat(b," from the left, ");
+  strncat(b,r,rn);
+  strcat(b," from the right");
+}
+static bool limit_dne(const giac::gen & in,const giac::gen & g,std::string & msg){
+  using namespace giac;
+  if (!in.is_symb_of_sommet(at_limit) || in._SYMBptr->feuille.type!=_VECT || in._SYMBptr->feuille._VECTptr->size()!=3)
+    return false;
+  char b[128];
+  if (g==unsigned_inf){
+    const vecteur & v=*in._SYMBptr->feuille._VECTptr;
+    const gen f=eval(v[0],1,contextptr),a=eval(v[2],1,contextptr);
+    const gen L=_limit(makesequence(f,v[1],a,-1),contextptr),R=_limit(makesequence(f,v[1],a,1),contextptr);
+    if (is_undef(L) || is_undef(R) || L.type==_STRNG || R.type==_STRNG)
+      return false;
+    const std::string ls=L.print(contextptr),rs=R.print(contextptr);
+    dne_text(b,ls.c_str(),ls.size(),rs.c_str(),rs.size());
+  }
+  else if (g.type==_STRNG){
+    const char * s=strstr(g._STRNGptr->c_str(),"limits are distinct");
+    if (!s)
+      return false;
+    s+=19;
+    if (*s=='s')
+      ++s;
+    while (*s==' ')
+      ++s;
+    const char * c=strchr(s,','),* e=strstr(s," Error");
+    if (!c)
+      return false;
+    if (!e || e<c)
+      e=s+strlen(s);
+    dne_text(b,s,c-s,c+1,e-c-1);
+  }
+  else
+    return false;
+  msg=b;
+  return true;
+}
+
 // the signs of f(n) alternate (at n=10, 11, 12): (-1)^n*R
 static bool alternating(const giac::gen & f,const giac::gen & n){
   using namespace giac;
@@ -2299,7 +2346,7 @@ void do_run(const char * s){
     giac::gen vars; // solve(eqs,[x,y]): x=2, y=1
     if (g.is_symb_of_sommet(giac::at_solve) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_VECT)
       vars=g._SYMBptr->feuille._VECTptr->back();
-    if (var.type!=giac::_IDNT && (g.is_symb_of_sommet(giac::at_solve) || g.is_symb_of_sommet(giac::at_csolve))){
+    if (var.type!=giac::_IDNT && (g.is_symb_of_sommet(giac::at_solve) || g.is_symb_of_sommet(giac::at_csolve) || g.is_symb_of_sommet(giac::at_fsolve))){
       if (g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
         var=g._SYMBptr->feuille._VECTptr->back();
       else if (g._SYMBptr->feuille.type!=giac::_VECT) // solve(expr): giac solves for x
@@ -2341,6 +2388,8 @@ void do_run(const char * s){
         msg=strstr(buf,"sum(")?"diverges (the terms do not go to 0)":strstr(buf,"limit(")?"no limit (it oscillates)":"";
       else if (g.is_symb_of_sommet(giac::at_sum)) // an infinite sum giac could not do
         g=known_sum(g,msg);
+      else
+        limit_dne(gin,g,msg); // lim 1/x at 0: does not exist (giac: an unsigned infinity)
       if (g.type==giac::_FRAC && giac::is_positive(-g._FRACptr->den,contextptr)) // -3/-4 (telescoping sums)
         g=(-g._FRACptr->num)/(-g._FRACptr->den);
       focus_phase=83;
