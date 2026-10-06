@@ -32,7 +32,7 @@ static unsigned next_cp(const char * s, int n, int & i) {
   if (i + 1 < n) {
     char d = s[i + 1];
     if (d == '=' && (c == '<' || c == '>' || c == '!')) { i += 2; return c == '<' ? 0x2264 : c == '>' ? 0x2265 : 0x2260; }
-    if (c == '-' && d == '>') { i += 2; return 0x2192; }
+    if ((c == '-' || c == '=') && d == '>') { i += 2; return 0x2192; } // -> and => (store, as a TI's STO arrow)
   }
   if (c == '-') { ++i; return 0x2212; }
   const char * p = s + i;

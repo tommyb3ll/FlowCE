@@ -47,3 +47,5 @@ ans_del	{2nd,(-)}{del}	|
 ans_neg	{2nd,(-)}{left}{(-)}{right}*3	-ans()*3|
 ans_mid	2{2nd,(-)}+1{left}{left}{left}	2|ans()+1
 ans_del2	2{2nd,(-)}+1{left}{left}{del}	2|+1
+sto_left	3{sto}a{left}{left}	3|=>a
+sto_del	3{sto}a{left}{del}	3|a

@@ -729,8 +729,8 @@ static void place(int n, int x, int y, int dp, int sm) {
         op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : dn ? dw(dn, sm) : tw(c, d.b - c, sm, st),
            f.asc + f.desc, c, d.b - c, sy ? symlit(k) : dn, sy ? (int)MI_SYM : st);
         for (p = c + 1; p < d.b; ++p) // inside a glyph or a built-in function's name (sin is one
-          if (k < K_PI && !kfn(n) && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
-          else alias(p, p + 1);         // unit: the arrows stepped into it, s0in(x) was typed)
+          if (k < K_PI && k != K_OP && !kfn(n) && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
+          else alias(p, p + 1);         // unit: the arrows stepped into it, s0in(x) was typed; <= is one glyph)
       }
     }
     P(d.b, x + d.w, y, sm, dp);
@@ -916,7 +916,7 @@ int mi_backspace(const char * s, int len, int caret, int & from, int & to, const
   }
   // visible char: delete one glyph
   from = i; to = c;
-  if (k == K_PI || k == K_INF || k == K_THETA) { if (i >= T[n].c) { from = T[n].c; to = T[n].b; } }
+  if (k == K_PI || k == K_INF || k == K_THETA || k == K_OP) { if (i >= T[n].c) { from = T[n].c; to = T[n].b; } } // (<= => as a whole)
   else {
     while (from > T[n].a && !gstart(from)) --from;
     while (to < T[n].b && !gstart(to)) ++to;
