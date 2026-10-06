@@ -576,6 +576,43 @@ static giac::gen tb_quotient(const giac::gen & n,const giac::gen & d){
   }
   return symbolic(at_division,makesequence(n,d));
 }
+// the degree of a monomial c*x^k in its variable (v: 0 until the first one is seen), -1 if t is
+// not one (another variable, a function...)
+static int mono_deg(const giac::gen & t,giac::gen & v){
+  using namespace giac;
+  if (t.type==_INT_ || t.type==_ZINT || t.type==_FRAC)
+    return 0;
+  if (t.type==_IDNT){
+    if (is_zero(v)) v=t;
+    return t==v?1:-1;
+  }
+  if (t.type!=_SYMB)
+    return -1;
+  const gen & a=t._SYMBptr->feuille;
+  if (t._SYMBptr->sommet==at_neg)
+    return mono_deg(a,v);
+  if (t._SYMBptr->sommet==at_inv)
+    return a.type==_INT_ || a.type==_ZINT?0:-1;
+  if (a.type!=_VECT)
+    return -1;
+  const vecteur & u=*a._VECTptr;
+  if (t._SYMBptr->sommet==at_pow && u.size()==2 && u[1].type==_INT_ && u[1].val>0){
+    const int d=mono_deg(u[0],v);
+    return d==1?u[1].val:-1;
+  }
+  if (t._SYMBptr->sommet==at_division && u.size()==2 && (u[1].type==_INT_ || u[1].type==_ZINT))
+    return mono_deg(u[0],v);
+  if (t._SYMBptr->sommet==at_prod){
+    int s=0;
+    for (unsigned i=0;i<u.size();++i){
+      const int d=mono_deg(u[i],v);
+      if (d<0) return -1;
+      s+=d;
+    }
+    return s;
+  }
+  return -1;
+}
 // a sum of two terms starts with the positive one: 4-x^2, ln|x-2|-ln|x+2|, x-ln(e^x+1)
 // (giac gives -x^2+4, -ln|x+2|+ln|x-2|, -ln(e^x+1)+x)
 static giac::gen positive_first(const giac::gen & g){
@@ -589,6 +626,22 @@ static giac::gen positive_first(const giac::gen & g){
   if (g.type!=_SYMB || g._SYMBptr->sommet==at_program)
     return g;
   gen f=positive_first(g._SYMBptr->feuille);
+  if (g._SYMBptr->sommet==at_plus && f.type==_VECT && f._VECTptr->size()>2){
+    // a polynomial in one variable: descending powers (giac's ratnormal gave 20x^11+88x^9+...
+    // +11x^12/2+...)
+    gen v=0;
+    vecteur & w=*f._VECTptr;
+    int deg[64];
+    unsigned k=0;
+    for (;k<w.size() && k<64;++k)
+      if ((deg[k]=mono_deg(w[k],v))<0) break;
+    if (k==w.size())
+      for (unsigned i=1;i<w.size();++i)
+        for (unsigned j=i;j>0 && deg[j]>deg[j-1];--j){
+          swapgen(w[j],w[j-1]);
+          const int t=deg[j]; deg[j]=deg[j-1]; deg[j-1]=t;
+        }
+  }
   if (g._SYMBptr->sommet==at_plus && f.type==_VECT && f._VECTptr->size()==2 && neg_term(f._VECTptr->front()) && !neg_term(f._VECTptr->back())){
     vecteur & w=*f._VECTptr; // two terms only: -x^3+3*x^2-2 keeps its descending powers
     swapgen(w[0],w[1]);
@@ -600,6 +653,12 @@ static giac::gen positive_first(const giac::gen & g){
     for (unsigned i=1;i<w.size();++i)
       for (unsigned j=i;j>0 && factor_rank(w[j])<factor_rank(w[j-1]);--j)
         swapgen(w[j],w[j-1]);
+    while (w.size()>=2 && factor_rank(w[0])==0 && factor_rank(w[1])==0){ // 3*2*x: 6*x (diff(f(x),x,2))
+      w[0]=w[0]*w[1];
+      w.erase(w.begin()+1);
+    }
+    if (w.size()==1)
+      return w[0];
     // two denominators or more, one fraction: (18*x-7)*inv(9)*inv(x^2+9) is (18x-7)/(9(x^2+9)), not
     // ((18x-7)/9)/(x^2+9) (partfrac)
     int ninv=0;
@@ -995,6 +1054,37 @@ static bool usub(const giac::gen & F,const giac::gen & x){
   return false;
 }
 
+// d/dx of an integral with bounds in x, by the fundamental theorem: f(b(x))*b'(x)-f(a(x))*a'(x).
+// giac integrated first: d/dx int(sin(t^2),t,0,x) came out as (i*e^(-i*x^2)-i*e^(i*x^2))/2
+static giac::gen ftc(const giac::gen & g){
+  using namespace giac;
+  if (g.type!=_SYMB)
+    return g;
+  const gen & a=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_diff && a.type==_VECT && a._VECTptr->size()==2){
+    const gen & F=a._VECTptr->front(),x=a._VECTptr->back();
+    if (x.type==_IDNT && (F.is_symb_of_sommet(at_integrate) || F.is_symb_of_sommet(at_int)) && F._SYMBptr->feuille.type==_VECT && F._SYMBptr->feuille._VECTptr->size()==4){
+      const vecteur & v=*F._SYMBptr->feuille._VECTptr;
+      if (v[1].type==_IDNT && !(v[1]==x) && is_constant_wrt(v[0],x,contextptr)){
+        const gen lo=eval(v[2],1,contextptr),hi=eval(v[3],1,contextptr);
+        gen r=0;
+        if (!is_constant_wrt(hi,x,contextptr))
+          r=subst(v[0],v[1],hi,false,contextptr)*derive(hi,x,contextptr);
+        if (!is_constant_wrt(lo,x,contextptr))
+          r=r-subst(v[0],v[1],lo,false,contextptr)*derive(lo,x,contextptr);
+        return r;
+      }
+    }
+  }
+  if (a.type==_VECT){
+    vecteur w(*a._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=ftc(*it);
+    return symbolic(g._SYMBptr->sommet,gen(w,a.subtype));
+  }
+  return symbolic(g._SYMBptr->sommet,ftc(a));
+}
+
 static giac::gen numeric_hard_integrals(const giac::gen & g){
   using namespace giac;
   if (g.type!=_SYMB)
@@ -1227,9 +1317,78 @@ static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x)
   if (s.type!=_VECT || s._VECTptr->empty())
     return s;
   vecteur w;
-  for (const_iterateur it=s._VECTptr->begin();it!=s._VECTptr->end();++it)
-    w.push_back(symb_equal(x,*it));
+  for (const_iterateur it=s._VECTptr->begin();it!=s._VECTptr->end();++it) // an inequality's
+    w.push_back(contains(*it,x)?*it:symb_equal(x,*it));                     // solution: as it is
+                                                       // (is_constant_wrt: x<=-3 is constant)
   return w.size()==1?w.front():gen(w,_SEQ__VECT);
+}
+// solve([x+y=3,x-y=1],[x,y]) gives [[2,1]]: x=2, y=1 (several solutions: one list each)
+static giac::gen system_as_equations(const giac::gen & s,const giac::gen & xs){
+  using namespace giac;
+  if (s.type!=_VECT || xs.type!=_VECT)
+    return s;
+  vecteur rows;
+  for (const_iterateur it=s._VECTptr->begin();it!=s._VECTptr->end();++it){
+    if (it->type!=_VECT || it->_VECTptr->size()!=xs._VECTptr->size())
+      return s;
+    vecteur r;
+    for (unsigned k=0;k<xs._VECTptr->size();++k)
+      r.push_back(symb_equal((*xs._VECTptr)[k],(*it->_VECTptr)[k]));
+    rows.push_back(gen(r,_SEQ__VECT));
+  }
+  if (rows.size()==1)
+    return rows.front();
+  for (unsigned k=0;k<rows.size();++k)
+    rows[k]=gen(*rows[k]._VECTptr);
+  return gen(rows,_SEQ__VECT);
+}
+// (x>-2) and (x<2) as -2<x<2 (and <=, >=), in the printed solutions of an inequality
+static void chain_inequalities(std::string & str){
+  const char * s=str.c_str();
+  if (!strstr(s," and "))
+    return;
+  const int n=strlen(s);
+  char * out=(char *)malloc(n+1);
+  if (!out)
+    return;
+  int k=0;
+  for (int i=0;i<n;){
+    // ((v>a) and (v<b)) or (v>a) and (v<b): v a name, a and b without parentheses
+    const int p2=s[i]=='(' && s[i+1]=='('?2:s[i]=='('?1:0;
+    int j=i+p2,v0=j;
+    while (j<n && (isalnum((unsigned char)s[j]) || s[j]=='_')) ++j;
+    const int v1=j;
+    if (p2 && v1>v0 && (s[j]=='>' || s[j]=='<')){
+      const bool gt=s[j]=='>';
+      const bool e1=s[j+1]=='=';
+      int a0=j+1+e1,a1=a0;
+      while (a1<n && s[a1]!=')' && s[a1]!='(') ++a1;
+      const int vl=v1-v0;
+      if (a1<n && s[a1]==')' && !strncmp(s+a1+1," and (",6) && !strncmp(s+a1+7,s+v0,vl) && s[a1+7+vl]==(gt?'<':'>')){
+        int b0=a1+8+vl;
+        const bool e2=s[b0]=='=';
+        b0+=e2;
+        int b1=b0;
+        while (b1<n && s[b1]!=')' && s[b1]!='(') ++b1;
+        if (b1<n && s[b1]==')'){
+          // gt: a<v<b with v>a, v<b; else v<a and v>b: b<v<a
+          const int lo0=gt?a0:b0,lo1=gt?a1:b1,hi0=gt?b0:a0,hi1=gt?b1:a1;
+          const bool elo=gt?e1:e2,ehi=gt?e2:e1;
+          memcpy(out+k,s+lo0,lo1-lo0); k+=lo1-lo0;
+          out[k++]='<'; if (elo) out[k++]='=';
+          memcpy(out+k,s+v0,vl); k+=vl;
+          out[k++]='<'; if (ehi) out[k++]='=';
+          memcpy(out+k,s+hi0,hi1-hi0); k+=hi1-hi0;
+          i=b1+1+(p2==2 && s[b1+1]==')');
+          continue;
+        }
+      }
+    }
+    out[k++]=s[i++];
+  }
+  out[k]=0;
+  str=out;
+  free(out);
 }
 
 #ifdef WITH_EQW
@@ -1933,6 +2092,9 @@ void do_run(const char * s){
     if (unknown.type==giac::_IDNT)
       g=giac::symbolic(giac::at_solve,giac::makesequence(g,unknown));
     giac::gen var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
+    giac::gen vars; // solve(eqs,[x,y]): x=2, y=1
+    if (g.is_symb_of_sommet(giac::at_solve) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_VECT)
+      vars=g._SYMBptr->feuille._VECTptr->back();
     if (var.type!=giac::_IDNT && g.is_symb_of_sommet(giac::at_solve)){
       if (g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
         var=g._SYMBptr->feuille._VECTptr->back();
@@ -1941,6 +2103,7 @@ void do_run(const char * s){
     }
     // a definite integral (integrate(f,x,a,b)): undef means it diverges
     const bool definite=(g.is_symb_of_sommet(giac::at_integrate) || g.is_symb_of_sommet(giac::at_int)) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==4;
+    g=ftc(g);
     g=numeric_hard_integrals(g);
     giac::gen tab=table_integral(g); // sec, csc: the textbook form, at once
     if (giac::is_zero(tab))
@@ -1979,6 +2142,12 @@ void do_run(const char * s){
         else
           g=solutions_as_equations(g,var);
       }
+      else if (vars.type==giac::_VECT){
+        if (g.type==giac::_VECT && g._VECTptr->empty())
+          msg="no solution";
+        else
+          g=system_as_equations(g,vars);
+      }
       if (focus_on)
         result_approx(g);
     }
@@ -2015,8 +2184,10 @@ void do_run(const char * s){
     else {
       std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
       plain_decimal(g,printed);
-      if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
-        strip_equation_parens(printed);
+      if (var.type==giac::_IDNT || vars.type==giac::_VECT){ // solutions: x=-sqrt(2),x=sqrt(2), not
+        strip_equation_parens(printed);                        // x=(-sqrt(2)),x=(sqrt(2))
+        chain_inequalities(printed);
+      }
       if (printed.size()>70){ // (a long polynomial)/182: term by term (x^14/14+...), which wraps
         const giac::gen d=giac::_denom(g,contextptr);
         if ((d.type==giac::_INT_ || d.type==giac::_ZINT) && !giac::is_one(d) && giac::_numer(g,contextptr).is_symb_of_sommet(giac::at_plus)){

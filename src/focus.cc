@@ -304,11 +304,11 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   int n = strlen(r), nc = 0, d = 0;
   short cut[48], tw[48];
   cut[nc++] = 0;
-  for (int i = 1; i < n && nc < 47; ++i) { // the terms: r[cut[k], cut[k+1])
-    char c = r[i];
+  for (int i = 0; i < n && nc < 47; ++i) { // the terms: r[cut[k], cut[k+1]) (from 0: a ( there counts,
+    char c = r[i];                            // (13x^14+...)/182 was cut inside its parentheses)
     if (c == '(' || c == '[') ++d;
     else if (c == ')' || c == ']') --d;
-    else if (!d && (c == '+' || c == '-') && !strchr("^*/(e=,", r[i - 1])) cut[nc++] = (short)i;
+    else if (i && !d && (c == '+' || c == '-') && !strchr("^*/(e=,", r[i - 1])) cut[nc++] = (short)i;
   }
   cut[nc] = (short)n;
   if (nc < 2 || n > 600) return 0;

@@ -1,0 +1,10 @@
+# systems, inequalities, FTC, merged factors, polynomial order, wrapped fraction forms
+s1	solve([x+y=3,x-y=1],[x,y])
+s2	solve(x^2<4,x)
+s3	solve(x^2>=9,x)
+s4	solve([x^2+y^2=5,y=2x],[x,y])
+f1	diff(integrate(sin(t^2),t,0,x),x)
+f2	diff(integrate(sqrt(1+t^3),t,1,x^2),x)
+d1	diff(x^3-3x+1,x,2)
+p1	expand((x+1)^5)
+p2	ratnormal(integrate(x*(x+1)^12,x))

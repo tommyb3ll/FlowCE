@@ -1,0 +1,4 @@
+s3	solve(x^2>=9,x)
+s2	solve(x^2<4,x)
+s5	solve(x^2=4,x)
+s6	solve(abs(x)<1,x)
