@@ -1,0 +1,19 @@
+# multi-step work: a function defined, then used; ans; stored values (one session)
+w1	f(x):=x^2*e^(-x)
+w2	f'(x)
+w3	solve(f'(x)=0,x)
+w4	f(2)
+w5	integrate(f(x),x,0,inf)
+w6	limit(f(x),x,inf)
+w7	g(x)=sqrt(x)
+w8	integrate(g(x),x,0,4)
+w9	a:=3
+w10	a^2+1
+w11	2+3
+w12	ans()*2
+w13	5=>b
+w14	b^2
+w15	h(t):=t^3-t
+w16	diff(h(t),t,2)
+w17	f(x)+g(x)
+w18	integrate(f(x)-g(x),x,0,1)

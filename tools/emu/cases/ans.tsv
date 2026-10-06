@@ -1,0 +1,7 @@
+# ans: the last answer
+a1	2+3
+a2	ans()*2
+a3	integrate(x^2,x)
+a4	diff(ans(),x)
+a5	sqrt(2)/2
+a6	ans()^2

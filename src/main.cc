@@ -2044,6 +2044,34 @@ void ti_sprint_double(char * ch,double d){
 }
 
 void do_run(const char * s){
+  // ans() (the ANS key) is the last answer, put in parentheses: giac's ans() gave undef (KhiCAS
+  // does not record giac's history of answers). A message ("f(x) defined") is no answer.
+  char * withans=0; // (plain C: uSTL strings bite)
+  if (strstr(s,"ans()")){
+    const char * last=0;
+    for (int l=Last_Line-1;l>=0 && !last;--l)
+      if (Line[l].type==LINE_TYPE_OUTPUT)
+        last=(const char *)Line[l].str;
+    const int ll=last?strlen(last):0,sl=strlen(s);
+    if (ll && ll<400 && !strchr(last,' ') && (withans=(char *)malloc(sl+8*(ll+2)+1))){
+      int k=0,n=0;
+      for (const char * p=s;*p;){
+        if (!strncmp(p,"ans()",5) && n<8){
+          withans[k++]='(';
+          memcpy(withans+k,last,ll);
+          k+=ll;
+          withans[k++]=')';
+          p+=5;
+          ++n;
+        }
+        else
+          withans[k++]=*p++;
+      }
+      withans[k]=0;
+      s=withans;
+    }
+  }
+  struct freer { char * p; ~freer(){ free(p); } } withans_freed={withans}; // on every return
   int S=strlen(s);
   const int cap=max(2*S+32,256); // room for the paper-notation pre-pass (* := parentheses)
   char * buf=(char *)malloc(cap);
