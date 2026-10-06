@@ -2222,6 +2222,7 @@ static int console_insert_template(const quick_item & q){
   return r;
 }
 
+static const char * const console_yesno[]={"Clear history","Cancel"};
 int Console_GetKey(){
   unsigned int key, move_line, move_col;
   Char tmp_str[3];
@@ -2268,7 +2269,8 @@ int Console_GetKey(){
       if (a==FA_PLOT)
         return Console_FMenu(KEY_CTRL_F3);
       if (a==FA_CLEAR){
-        if (do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
+        static const char * const yesno[]={"Clear history","Cancel"};
+        if (focus_choose("Clear the history?",yesno,2)==0){
           Console_Init();
           Console_Clear_EditLine();
         }
@@ -2349,6 +2351,16 @@ int Console_GetKey(){
       const char * key_string = keytostring(key,0,0);
       if (key_string)
         return Console_Input((const Char *)key_string);
+    }
+    if (focus_on && Current_Line<Last_Line && (key==KEY_CTRL_UP || key==KEY_CTRL_DOWN || key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT)){
+      // history by calculations (focus.cc): up/down one entry, left/right its input or result
+      const int t=focus_hist_line(key==KEY_CTRL_UP?0:key==KEY_CTRL_DOWN?1:key==KEY_CTRL_LEFT?2:3);
+      for (int g=0;Current_Line>t && g<4000;++g)
+        Console_MoveCursor(CURSOR_UP);
+      for (int g=0;Current_Line<t && g<4000;++g)
+        Console_MoveCursor(CURSOR_DOWN);
+      Console_Disp(1);
+      continue;
     }
 #ifdef WITH_EQW
     if (key == KEY_CTRL_F4 && Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT){
@@ -2712,6 +2724,13 @@ int Console_GetKey(){
         continue;
       }
     }
+    if (focus_on && key==KEY_CTRL_UP && Current_Line==Last_Line){ // into the history: the last calculation
+      const int t=focus_hist_line(0);
+      for (int g=0;Current_Line>t && g<4000;++g)
+        Console_MoveCursor(CURSOR_UP);
+      Console_Disp(1);
+      continue;
+    }
     if (key == KEY_CTRL_UP){
       int prevcursor=Cursor.y,prevstart=Start_Line;
       // redraw current line without selection console_displine();
@@ -2775,7 +2794,7 @@ int Console_GetKey(){
       if (Last_Line==Current_Line){
         if (strlen(Edit_Line))
           Console_Clear_EditLine();
-        else if (do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
+        else if (focus_on?focus_choose("Clear the history?",console_yesno,2)==0:do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
           Console_Init();
           Console_Clear_EditLine();
           Console_Disp(1);

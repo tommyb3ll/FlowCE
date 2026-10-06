@@ -23,6 +23,9 @@ int focus_clear_hero();                 // CLEAR on an empty edit line: 1 if it 
 const mi_metrics & focus_metrics();     // metrics of the edit line as drawn (caret moves)
 int focus_result_line();                // the output line F4 cycles (selected, or shown large); -1
 void focus_repaint(int y0, int y1);     // repaints stage rows [y0, y1) from the model
+int focus_hist_line(int dir);           // history by calculations: the line for up/down/left/right
+// a card over the dimmed stage: a title, n choices; returns the index chosen, -1 if cancelled
+int focus_choose(const char * title, const char * const * labels, int n);
 void focus_bar_redraw();                // repaints the F-key bar
 void focus_invalidate();                // the next focus_disp repaints everything (after a full-screen view)
 void focus_status_label(const char * s); // a view's label in the status bar ("COMMANDS"); 0: the console's

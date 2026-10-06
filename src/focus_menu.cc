@@ -70,6 +70,8 @@ enum { RH = 30, LW = 252, CH = 40, CH2 = 60, ST = 16, SBOT = 218 };
 static int cellh(const fm_menu & m) { return m.grid == 2 ? CH2 : CH; }
 
 static int px, py, pw, ph, cw; // the card
+static int hdr;                // focus_choose: the title's height at the top of the card
+static const char * title;
 static void geometry(int id, const fm_menu & m) {
   if (m.grid) {
     cw = m.grid == 2 ? 150 : m.cols == 3 ? 76 : 60;
@@ -85,7 +87,7 @@ static void geometry(int id, const fm_menu & m) {
 // the box of item k (screen coordinates)
 static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & h) {
   if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
-  else { x = px + 5; y = py + 5 + k * RH; w = pw - 10; h = RH; }
+  else { x = px + 5; y = py + 5 + hdr + k * RH; w = pw - 10; h = RH; }
 }
 
 // the previews of the open menu, laid out once (empty arguments drawn as boxes)
@@ -159,6 +161,10 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
       ui_rrect(0, px + 1, py + 3, pw, ph, 8, UC_SHADOW, UC_BG);
       ui_rrect(1, px, py, pw, ph, 8, UC_CARD, UC_DIM);
       ui_rframe(1, px + 1, py + 1, pw - 2, ph - 2, 7, UC_LINE, UC_CARD);
+      if (hdr) {
+        int tw = ui_text_width(&ui_tb12, title, -1);
+        ui_draw_text(&ui_tb12, title, -1, px + (pw - tw) / 2, py + 22, ui_ramp(1, UC_INK, UC_CARD), 0);
+      }
     }
     for (int k = 0; k < m.n; ++k) { // the items this band touches
       int x, y, w, h;
@@ -174,6 +180,43 @@ static void repaint_item(const fm_menu & m, int k, int sel) {
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
   paint_rows(m, y, y + h, sel, 0);
+}
+
+int focus_choose(const char * t, const char * const * labels, int n) {
+  static fm_item it[4];
+  if (n > 4) n = 4;
+  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = 0; it[k].act = (char)(k + 1); }
+  fm_menu m = {0, 1, (char)n, it};
+  title = t; hdr = 26;
+  pw = 230; ph = hdr + n * RH + 10;
+  px = (UI_W - pw) / 2; py = ST + (SBOT - ST - ph) / 2;
+  PL = 0;
+  int sel = 0, res = -1;
+  ui_dim(1);
+  paint_rows(m, py, py + ph + 4, sel, 1);
+  ui_band_close();
+  for (;;) {
+    int k;
+    GetKey(&k);
+    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) break;
+    int ns = sel;
+    if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
+    if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
+    if (k >= KEY_CHAR_1 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
+    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = sel; break; }
+    if (ns != sel) {
+      int old = sel;
+      sel = ns;
+      repaint_item(m, old, sel);
+      repaint_item(m, sel, sel);
+      ui_band_close();
+    }
+  }
+  hdr = 0;
+  ui_dim(0);
+  focus_repaint(py - 2, py + ph + 6);
+  focus_bar_redraw();
+  return res;
 }
 
 int focus_popover(int key, const char ** text, int * back) {

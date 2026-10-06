@@ -699,6 +699,27 @@ int focus_result_line() {
   return hm == HM_RESULT && NE ? E[NE - 1].out : -1;
 }
 static int forms_key() { return focus_result_line() >= 0; }
+// History by calculations, as the prototype: the console line to select for dir 0 up, 1 down,
+// 2 left (the input), 3 right (the result); Last_Line for the edit line. Up and down keep the
+// part (input or result) that is selected.
+int focus_hist_line(int dir) {
+  focus_status_msg(0); // clears "Oldest calculation"
+  scan();
+  if (!NE) return Last_Line;
+  int cl = console_caret() < 0 ? Start_Line + Cursor.y : Last_Line, k = cl < Last_Line ? entry_of_line(cl) : NE;
+  int in = k < NE && cl == E[k].in;
+  if (dir == 2 || dir == 3) {
+    if (k >= NE) return cl;
+    int l = dir == 2 ? E[k].in : E[k].out;
+    return l >= 0 ? l : cl;
+  }
+  int k2 = dir == 0 ? (k > 0 ? k - 1 : -1) : k + 1;
+  if (k2 < 0) { focus_status_msg("Oldest calculation"); return cl; }
+  if (k2 >= NE) return Last_Line;
+  int l = in ? E[k2].in : E[k2].out;
+  return l >= 0 ? l : (E[k2].out >= 0 ? E[k2].out : E[k2].in);
+}
+
 void focus_repaint(int y0, int y1) { stage_rows(y0, y1); ui_band_close(); }
 void focus_bar_redraw() { bar_draw(bar_keyflag, 1); }
 // a full-screen view (the command search) drew over everything with entries >= 128, so
