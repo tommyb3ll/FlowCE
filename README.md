@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://tommyb3ll.github.io/FlowCE/"><img src="https://img.shields.io/badge/install-from_the_web-245ccc" alt="Install from the web"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/calculator-TI--84%20Plus%20CE-2a5bd7" alt="TI-84 Plus CE">
   <img src="https://img.shields.io/badge/engine-Giac-555" alt="Engine: Giac">
@@ -68,6 +69,12 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 | the calculus menu | Night theme | a graph, Night theme |
 
 ## Install
+
+**The easy way: [install from the FlowCE page](https://tommyb3ll.github.io/FlowCE/#install).** Plug in
+the calculator, open the page in Chrome or Edge and click Install: it checks the calculator,
+erases it (after you agree), sends FlowCE and starts the installer. On Windows it needs
+[TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw) 6.1 or
+newer installed (for its USB driver). Or install it by hand:
 
 You need a **TI-84 Plus CE** (or TI-83 Premium CE) on **OS 5.3 to 5.8.4** (tested on 5.8.0 and
 5.8.2; OS 5.8.5 needs [arTIfiCE v3](https://yvantt.github.io/arTIfiCE/), which these steps don't

@@ -1,6 +1,8 @@
 name: Build KhiCAS CE
 
-on: [push, workflow_dispatch]
+# KhiCAS's CI, kept for reference: manual only. It expects KhiCAS's bundle names (khicas84.b84)
+# and publishes a "nightly" prerelease; FlowCE releases are built with tools/dev and published by hand.
+on: [workflow_dispatch]
 
 jobs:
   build:
