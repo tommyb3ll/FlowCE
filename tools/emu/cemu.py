@@ -100,6 +100,7 @@ class Emu:
             return 0
         t = self.wait_idle(timeout=5000)
         if t is not None:
+            self.run(40)  # typing the next key the instant KhiCAS polls mangled inputs (2026-10-06)
             return t
         return self.wait_stable(step=20, stable=4, timeout=5000)
 
