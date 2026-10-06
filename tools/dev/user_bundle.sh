@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build a commit for the user's real calculator in a separate tree (does not disturb the main one),
-# then bundle it: Downloads/flowce-<NAME>/FlowCE-<NAME>.b84 (+ files/).
+# then bundle it: Projects/khicas/builds/flowce-<NAME>/FlowCE-<NAME>.b84 (+ files/), outside the repo.
 # usage (WSL): user_bundle.sh <super-commit> <giac-commit> <NAME>
 set -e
 KB2=/home/bell/khicas-build-user
@@ -14,8 +14,8 @@ export KB="$KB2"
 bash /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2/tools/dev/wsl_build.sh /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2 en "$1" "$2"
 set -- "$3"
 NAME=${1:-FOCUS1}
-OUT=/mnt/c/Users/tjb43/Downloads/flowce-$NAME
-NEW2=/mnt/c/Users/tjb43/Downloads/khicas84-NEW2/files
+OUT=/mnt/c/Users/tjb43/Downloads/Projects/khicas/builds/flowce-$NAME
+NEW2=/mnt/c/Users/tjb43/Downloads/Projects/khicas/builds/khicas84-NEW2/files
 rm -rf "$OUT"
 mkdir -p "$OUT/files"
 cp "$KB2"/out/en/AppIns*.8xv "$OUT/files/"

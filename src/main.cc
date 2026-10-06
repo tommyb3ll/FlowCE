@@ -1784,6 +1784,7 @@ void console_cycle_form(int l){
   }
   stdostream * savelog=logptr(contextptr);
   logptr(0,contextptr);
+  dconsole_mode=0; // giac's notes ("Warning: unable to find oo integer solutions...") are not shown
   // evaluated: ratnormal of the parsed text printed ((x^2)-1)/(x^3+x)
   const gen g=eval(gen(*form_orig,contextptr),1,contextptr);
   const std::string cur((const char *)Line[l].str); // forms that read like this or the original are skipped
@@ -1816,6 +1817,7 @@ void console_cycle_form(int l){
     }
   }
   logptr(savelog,contextptr);
+  dconsole_mode=1;
   const bool oom=oom_hit; // memory ran out (a huge expansion): back to the original form
   if (oom){
     ctrl_c=interrupted=false;
@@ -1864,8 +1866,8 @@ int check_parse(const std::vector<textElement> & v,int python){
   for (int i=0;i<sizeof(status);++i)
     status[i]=0;
   std::string s=merge_area(v);
+  python=0; // FlowCE: no Python syntax (python2xcas is not built)
   giac::python_compat(python,contextptr);
-  if (python) s="@@"+s; // force Python translation
   giac::gen g(s,contextptr);
   int lineerr=giac::first_error_line(contextptr);
   if (lineerr){
@@ -2039,7 +2041,7 @@ void edit_script(const char * fname){
         s=extract_name(filename);
         if (s=="session")
           s="f";
-        s="def "+s+"(x):\n  \n  return x";
+        s=s+"(x):={\n  \n  return x;\n}"; // (giac syntax: FlowCE has no Python)
       }
     }
     // split s at newlines
@@ -2052,7 +2054,7 @@ void edit_script(const char * fname){
     //cout << "script " << edptr->filename << endl;
     edptr->editable=true;
     edptr->changed=false;
-    edptr->python=true;
+    edptr->python=false;
     edptr->longlinescut=false;
     edptr->elements.clear();
     edptr->y=0;
@@ -2158,8 +2160,14 @@ int restore_session(const char * fname){
     starting=false;
     focus_splash(0);
     const string filename(remove_path(remove_extension(fname)));
-    if (load_console_state_smem((filename+".xw").c_str()))
+    focus_hold=true; // the start screen stays until the session is in (no half-drawn console)
+    const bool loaded=load_console_state_smem((filename+".xw").c_str());
+    focus_hold=false;
+    focus_invalidate();
+    if (loaded){
+      focus_splash_clear();
       return 1;
+    }
     focus_splash(1); // first start: tips, any key
     int key;
     ck_getkey(&key);
@@ -2168,12 +2176,11 @@ int restore_session(const char * fname){
   clear_screen(); // Bdisp_AllClr_VRAM();
   drawRectangle(0,0,LCD_WIDTH_PX,16,COLOR_BLACK);
 #ifdef WITH_DESOLVE
-  os_draw_string_medium_(0,0,lang?"KhiCAS pour TI83 [allegee avec desolve]":"KhiCAS for TI84 [with desolve]");
+  os_draw_string_medium_(0,0,"FlowCE");
 #else
-  os_draw_string_medium_(0,0,lang?"KhiCAS pour TI83 [allegee sans desolve]":"KhiCAS for TI84 [without desolve]");
+  os_draw_string_medium_(0,0,"FlowCE");
 #endif
-  os_draw_string_medium_(0,C18,"(c) B. Parisse et al, license GPL 2");
-  os_draw_string_medium_(0,2*C18,"www-fourier.univ-grenoble-alpes.fr/~parisse");
+  os_draw_string_medium_(0,C18,"free software, GNU GPL v3");
   // os_draw_string_medium_(0,3*C18,"");
   os_draw_string_medium_(0,4*C18,lang?"Utiliser les 5 touches sous l'ecran pour":"Press one of the 5 keys below the screen");
   os_draw_string_medium_(0,5*C18,lang?"ouvrir un menu, cf. la legende au-dessus":"will open a fast menu according to the legend");

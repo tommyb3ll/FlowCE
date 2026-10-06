@@ -488,6 +488,11 @@ static void status_draw(int force) {
       ui_rrect(0, x, 2, w, 12, 4, c, UC_BG);
       ui_text(&ui_tb9, t, x + w / 2, 11, UC_WHITE, c, 1);
     }
+    else { // the app's name by the battery (the 2nd/alpha chip takes its place)
+      int x = UI_W - 30 - ui_text_width(&ui_tb9, "FlowCE", -1);
+      x += ui_text(&ui_tb9, "Flow", x, 12, UC_SUB, UC_BG, 0);
+      ui_text(&ui_tb9, "CE", x, 12, UC_ACC, UC_BG, 0);
+    }
     int bx = UI_W - 24; // battery
     ui_rframe(0, bx, 4, 15, 8, 2, UC_SUB, UC_BG);
     ui_fill(bx + 15, 6, 1, 4, col(UC_SUB));
@@ -748,7 +753,9 @@ static void scroll_stage(int from, int to) {
   }
 }
 
+bool focus_hold; // the start screen stays while the session loads (it painted half a console)
 void focus_disp(int mode) {
+  if (focus_hold) return;
   focus_phase = 1;
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;

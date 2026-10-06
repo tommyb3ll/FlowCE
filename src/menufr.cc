@@ -711,13 +711,13 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
 };
 
 #ifdef FRANCAIS
-const char aide_khicas_string[]="Aide Khicas";
+const char aide_khicas_string[]="Aide";
 const char shortcuts_string[]="Pour mettre a l'heure l'horloge, tapez heure,minute puis touche STO puis , par exemple 13,10=>,\n\nRaccourcis clavier (shell et editeur)\n2nd quit: quitter\nmode: setup\nechanger: undo/redo\nF1-F4: menu selon legende\nF5: menu fichier\nshift-F1-F5 et alpha-F1-F5: selon legendes\nprgm: bascule entre editeur et shell\nmatrice, var, listes: menu rapide\nShell\n\n=>+: partfrac\n=>*: factor\n=>sin/cos/tan\n=>=>: solve\nannul: efface ligne ou historique\n\nEditeur\n\ntouche <>: indentation\n2nd enter:saut ligne\nenter: teste syntaxe";
-const char apropos_string[]="Khicas 1.x, (c) 2026 B. Parisse et al. xcas.univ-grenoble-alpes.fr/.\nLicense GPL version 2.\nInterface adaptee d'Eigenmath pour Casio, G. Maia (http://gbl08ma.com), Mike Smith, Nemhardy, LePhenixNoir. Merci a Adrien Bertrand, Xavier Andreani et a toute la communaute de developpement ti83/84 pour l'aide apportee, en particulier Jacob Young, commandblockguy and Matt Waltz";
+const char apropos_string[]="FlowCE 1.0 (2026): calcul formel pour TI-84 Plus CE, pour l'analyse.\n\nLicence:\nFlowCE est un logiciel libre, sous licence GNU GPL version 3 ou ulterieure, sans aucune garantie.\n\nCredits:\nmoteur de calcul Giac (c) Bernard Parisse et contributeurs (Institut Fourier, Universite Grenoble Alpes). Interface console: G. Maia, Mike Smith, Nemhardy, LePhenixNoir. Merci a Adrien Bertrand, Xavier Andreani et a la communaute TI-83/84, en particulier Jacob Young, commandblockguy et Matt Waltz.";
 #else
-constexpr const char aide_khicas_string[]="Khicas help";
+constexpr const char aide_khicas_string[]="Help";
 const char shortcuts_string[]="Keys:\nF1 to F5: algebra, calculus, trig, symbols and more. With 2nd or alpha: more menus (lists, matrices, complex numbers...).\nmath: templates (fraction, root, integrals, limit, sum).\nup: your past calculations (left, right: walk; enter: use it again). down: search every command.\nF4 on an answer: its other forms (simplified, factored, expanded, decimal).\nclear: erase the line; on an empty line, the answer.\n2nd quit: quit (your session is kept).\n\nTyping:\n/ makes a fraction of what is before it. ^ opens an exponent; the right arrow leaves it. A ( right after / or ^ is that box, and ) closes what you opened: 1/(x+1) and x^(1/2) type as they read.\n(-) is a minus sign. del right after ) goes inside the brackets.\n\nGraphs:\nmore, then Graph: graphs the line (or the answer). In the graph: F2 window, zoom and curve study (roots, extrema, area), trace with the arrows, 2nd graph: table of values.\n\nClock:\nmode, then Set time.";
-const char apropos_string[]="FlowCE 1.0 (2026): a computer algebra system for the TI-84 Plus CE, designed for calculus.\n\nFlowCE is a fork of KhiCAS by Bernard Parisse (Institut Fourier, Universite Grenoble Alpes): its computer algebra is Giac, the engine of Xcas. www-fourier.univ-grenoble-alpes.fr/~parisse\n\nLicense:\nGNU General Public License, like KhiCAS and Giac (Giac: version 3 or later). FlowCE is free software: its source code is open.\n\nKhiCAS credits:\ninterface adapted from Eigenmath for Casio Prizm, G. Maia (gbl08ma.com), Mike Smith, Nemhardy, LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz.";
+const char apropos_string[]="FlowCE 1.0 (2026): computer algebra for the TI-84 Plus CE, made for calculus.\n\nLicense:\nFlowCE is free software under the GNU General Public License, version 3 or later: its source code is open, and it comes with no warranty.\n\nCredits:\nmath engine Giac (c) Bernard Parisse and contributors (Institut Fourier, Universite Grenoble Alpes). Console interface by G. Maia (gbl08ma.com), Mike Smith, Nemhardy, LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz.\n\nFonts: Atkinson Hyperlegible, STIX Two (SIL Open Font License).";
 #endif
 
 constexpr const int CAT_COMPLETE_COUNT_FR=sizeof(completeCatfr)/sizeof(catalogFunc);
@@ -1185,7 +1185,7 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
 	text.clipline=-1;
 	text.title = (char*)(lang?"Aide sur la commande":"Help on command");
 	text.allowF1=true;
-	text.python=true;
+	text.python=false;
 	std::vector<textElement> & elem=text.elements;
 	elem = std::vector<textElement> (example2?4:3);
 	elem[0].s = index<allcmds?completeCat[index].name:menuitems[menu.selection-1].text;

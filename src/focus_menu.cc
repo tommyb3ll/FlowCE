@@ -391,14 +391,37 @@ void focus_text(const char * t, const char * s) {
   focus_invalidate();
 }
 
-// the start screen: FlowCE, what it is, the credit; first (no saved session): three tips and
-// "press any key" (the caller reads it)
-void focus_splash(int first) {
+// the start screen goes before the console is painted (in strips, top down: the rest of the start
+// screen showed under it for a moment)
+void focus_splash_clear() {
+  ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
-  const char * name = "FlowCE";
-  int w = ui_text_width(&ui_mi34, name, -1), y = first ? 70 : 104; // (the upright math faces have no capitals)
-  ui_draw_text(&ui_mi34, name, 4, (UI_W - w) / 2, y, ui_ramp(0, UC_INK, UC_BG), 0);
-  ui_draw_text(&ui_mi34, name + 4, -1, (UI_W - w) / 2 + ui_text_width(&ui_mi34, name, 4), y, ui_ramp(0, UC_ACC, UC_BG), 0);
+}
+// the start screen: FlowCE written letter by letter over a curve drawn left to right, then held
+// (about 1 s in all, once per start; any key skips it and is not typed); first (no saved
+// session): three tips and "press any key" (the caller reads it)
+void focus_splash(int first) {
+  static bool animated;
+  ui_noclip();
+  ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
+  const char * cr = "free software - GNU GPL v3";
+  ui_draw_text(&ui_tr10, cr, -1, (UI_W - ui_text_width(&ui_tr10, cr, -1)) / 2, UI_H - 8, ui_ramp(0, UC_SUB, UC_BG), 0);
+  const char * name = "FlowCE"; // (the upright math faces have no capitals)
+  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 70 : 104;
+  static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
+  const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
+  int skip = animated, drawn = 0;
+  animated = true;
+  for (int f = 1; f <= 12; ++f) {
+    const int k = f < 6 ? f : 6, p = f == 12 ? np : f * np / 12;
+    ui_draw_text(&ui_mi34, name, k < 4 ? k : 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
+    if (k > 4) ui_draw_text(&ui_mi34, name + 4, k - 4, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
+    for (; drawn + 1 < p; ++drawn)
+      ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
+    if (skip) continue; // the rest at once
+    if (key_waiting()) { skip = 1; key_discard(); continue; }
+    os_wait_1ms(40);
+  }
   const char * tag = "calculus on your TI-84 Plus CE";
   ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
   if (first) {
@@ -408,8 +431,11 @@ void focus_splash(int first) {
     const char * go = "press any key";
     ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 140, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
-  const char * cr = "a fork of KhiCAS by B. Parisse - GNU GPL";
-  ui_draw_text(&ui_tr10, cr, -1, (UI_W - ui_text_width(&ui_tr10, cr, -1)) / 2, UI_H - 8, ui_ramp(0, UC_SUB, UC_BG), 0);
+  else if (!skip) { // held a moment (it flashed by: the session loads fast)
+    for (int t = 0; t < 10 && !key_waiting(); ++t)
+      os_wait_1ms(50);
+    key_discard();
+  }
   focus_invalidate();
 }
 

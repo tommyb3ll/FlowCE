@@ -27,5 +27,5 @@ fi
 cp bin/DEMO.8* shared/ti/
 rm -rf shared/ti/app && mkdir -p shared/ti/app && cp bin/App*x* shared/ti/app
 echo "Creating bundle file..."
-./bundle khicas83 b83
+./bundle FlowCE-fr b83
 ls -l shared/ti/DEMO.8ek

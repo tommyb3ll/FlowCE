@@ -362,7 +362,7 @@ int focus_catalog(const char * query, char * out, int outsize) {
   focus_phase = 65;
   focus_bar_tabs(TABS, 0);
   filter(0);
-  int res = 0, plain = 0;
+  int res = 0, plain = 0, typed = 0; // typed: the query was edited here (not just the word before the caret)
   for (;;) {
     update();
     int k;
@@ -375,6 +375,7 @@ int focus_catalog(const char * query, char * out, int outsize) {
     // F1-F5: the tabs (with alpha locked, the keys read as F11-F15)
     int t = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F5 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F11 && k <= KEY_CTRL_F15 ? k - KEY_CTRL_F11 : -1;
     if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || (k == KEY_CTRL_DEL && !s.ql)) break;
+    if (k == KEY_CTRL_UP && !typed && s.sel == 0) break; // nothing searched, at the top: up closes (down opened it)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) {
       if (s.ni) {
         const char * txt;
@@ -386,8 +387,8 @@ int focus_catalog(const char * query, char * out, int outsize) {
       }
       break;
     }
-    if (ch && s.ql < QMAX) { s.q[s.ql++] = (char)ch; s.q[s.ql] = 0; filter(1); }
-    else if (k == KEY_CTRL_DEL) { s.q[--s.ql] = 0; filter(0); }
+    if (ch && s.ql < QMAX) { s.q[s.ql++] = (char)ch; s.q[s.ql] = 0; filter(1); typed = 1; }
+    else if (k == KEY_CTRL_DEL) { s.q[--s.ql] = 0; filter(0); typed = 1; }
     else if (t >= 0 && t != s.tab) {
       s.tab = t;
       focus_phase = 65;

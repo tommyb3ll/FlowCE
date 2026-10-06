@@ -45,6 +45,8 @@ extern int focus_view;                  // 1 while another view (the graph) owns
 void focus_bar_redraw();                // repaints the F-key bar
 void focus_bar_reset();                 // repaints the F-key bar, plain layer
 void focus_invalidate();                // the next focus_disp repaints everything (after a full-screen view)
+void focus_splash_clear();              // the start screen erased, before the first console paint
+extern bool focus_hold;                 // no console painting (the start screen while the session loads)
 void focus_status_label(const char * s); // a view's label in the status bar ("COMMANDS"); 0: the console's
 void focus_tab(int i, int on, int bank); // the standard layer's tab of F-key i (on: its menu is open)
 void focus_bar_tabs(const char * const * labels, int on); // the F-key bar as 5 text tabs, tab on selected

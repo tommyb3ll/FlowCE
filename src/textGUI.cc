@@ -469,7 +469,7 @@ void show_status(textArea * text,const std::string & search,const std::string & 
     }
     else {
       if (text->editable){
-        status += " Py ";
+        status += ' '; // (FlowCE: no Python syntax)
         status += remove_path(text->filename);
         status += ' ';
         status += printint(text->line+1);

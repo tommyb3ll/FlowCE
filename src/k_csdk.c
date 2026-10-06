@@ -95,7 +95,7 @@ void sdk_init(){
   gfx_Begin();
 #ifndef STANDALONE
   unsigned short * addr=gfx_palette;
-  dbg_printf("KhiCAS SDK Init palette=%x\n",addr);
+  dbg_printf("SDK Init palette=%x\n",addr);
   for (int r=0;r<4;r++){
     for (int g=0;g<8;g++){
       for (int b=0;b<4;b++){
@@ -158,6 +158,7 @@ int key_waiting(void){
   }
   return key_csc;
 }
+void key_discard(void){ key_csc=0; } // the key that skipped an animation is not typed
 int getkey(int allow_suspend){
   sync_screen();
   display_time();//statusline(0);
