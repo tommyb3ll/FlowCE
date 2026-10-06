@@ -22,6 +22,8 @@ Parisse. Its engine is Giac, the computer algebra system of Xcas.
 - **Answers in textbook form.** `π/2` with `≈ 1.5708` under it, `ln|sec x + tan x| + C`,
   `π²/6`, `x − x³/6 + x⁵/120 + O(x⁶)`, `arctan((x+1)/2)`, `C1·cos(x) + C2·sin(x)`.
 - **Other forms with F4:** simplified, one fraction, factored, expanded, decimal.
+- **Keys that work like a TI's.** `(-)` is a minus sign, 2nd `(-)` is Ans, `×2` on an empty
+  line is Ans·2, 2nd enter brings back the last input, and `sto→` stores (`5 → b`).
 - **History:** ▲ walks through your past calculations; enter reuses an input or an answer.
 - **Search every command:** ▼ opens a search with descriptions and examples.
 - **Menus on F1-F5:** algebra, calculus, trig, symbols and more, with templates you fill in.
