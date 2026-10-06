@@ -141,6 +141,15 @@ static void draw_text(const mi_op & o, const char * s, int lv, int x, int y, con
   const ui_face * f;
   const ui_glyph * g;
   int l = o.small ? script(lv) : lv;
+  if (o.lit && o.style != MI_SYM) { // a function's display name (asin: arcsin), in its style
+    int n = 0;
+    while (o.lit[n]) ++n;
+    for (int i = 0; i < n;) {
+      unsigned cp = next_cp(o.lit, n, i);
+      if ((g = glyph(l, o.style == MI_IT, cp, &f))) x += ui_draw_glyph(f, cp, x, y, r, 0);
+    }
+    return;
+  }
   if (o.style == MI_SYM || o.lit) {
     const char * t = o.lit ? o.lit : s + o.pos;
     int n = 0;

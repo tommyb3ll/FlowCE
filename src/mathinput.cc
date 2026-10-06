@@ -217,6 +217,20 @@ static int namei(int n, const char * w) { // name core == w
     if (i >= T[n].b || S[i] != *w) return 0;
   return i == T[n].b;
 }
+// the name a function is drawn with, as textbooks and TI write it (asin: arcsin, log10: log), 0:
+// its own. The caret steps over it as a whole.
+static const char * dname(int n) {
+  static const char * const al[] = {"asin", "arcsin", "acos", "arccos", "atan", "arctan", "log10", "log", 0};
+  if (!(T[n].f & F_FN)) return 0;
+  for (int i = 0; al[i]; i += 2)
+    if (namei(n, al[i])) return al[i + 1];
+  return 0;
+}
+static int dw(const char * t, int sm) { // width of a display name, upright
+  int n = 0;
+  while (t[n]) ++n;
+  return M->wf ? M->wf(t, n, sm, MI_UP) : n * fnt(sm).adv;
+}
 
 static int pseq(int stopc);
 static int pfactor();
@@ -583,7 +597,8 @@ static void measure(int n, int sm) {
     if (k == K_DOT) w += hidedot(n) ? 1 : h + 2;
     else if (k == K_PI || k == K_INF || k == K_THETA) w += lw(symlit(k), 1, sm);
     else if (k != K_BLANK) {
-      w += tw(c, d.b - c, sm, style(n, k));
+      const char * dn = dname(n);
+      w += dn ? dw(dn, sm) : tw(c, d.b - c, sm, style(n, k));
       if (k == K_OP) w += 2 * M->opgap;
       if (k == K_SEP) w += h;
     }
@@ -699,10 +714,11 @@ static void place(int n, int x, int y, int dp, int sm) {
       if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.asc / 4 - 1, h + 2, 2, c, 1, 0); }
       else {
         int st = style(n, k), sy = k == K_PI || k == K_INF || k == K_THETA;
-        op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : tw(c, d.b - c, sm, st),
-           f.asc + f.desc, c, d.b - c, sy ? symlit(k) : 0, sy ? (int)MI_SYM : st);
-        for (p = c + 1; p < d.b; ++p) // inside a glyph: alias
-          if (k < K_PI && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
+        const char * dn = sy ? 0 : dname(n);
+        op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : dn ? dw(dn, sm) : tw(c, d.b - c, sm, st),
+           f.asc + f.desc, c, d.b - c, sy ? symlit(k) : dn, sy ? (int)MI_SYM : st);
+        for (p = c + 1; p < d.b; ++p) // inside a glyph (or a display name): alias
+          if (k < K_PI && !dn && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
           else alias(p, p + 1);
       }
     }

@@ -1,0 +1,13 @@
+# display checks: answers clear of the forms chip, C1 C2 constants, factor order
+v1	integrate(ln(x)/x^2,x)
+v2	integrate(x^3/sqrt(x^2+4),x)
+v3	integrate(1/(x^2+4x+8),x)
+v4	desolve(y''+y=0,y)
+v5	desolve(y'=2*y,y)
+v6	diff(sin(x)/x,x)
+v7	diff(x^2*e^(3x),x)
+v8	pi*integrate((x^2)^2,x,0,2)
+v9	limit(((n+1)^2/2^(n+1))/(n^2/2^n),n,inf)
+v10	diff(x*sin(x),x)
+v11	integrate(x*e^(2x),x)
+v12	diff(pi*x^2,x)

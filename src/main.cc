@@ -545,6 +545,21 @@ static bool neg_term(const giac::gen & t){
     return neg_term(t._SYMBptr->feuille._VECTptr->front());
   return false;
 }
+// the order of a product's factors as textbooks write them: numbers, pi, a variable or its power,
+// the rest (functions, sums); lists last, in their order (matrices do not commute)
+static int factor_rank(const giac::gen & t){
+  using namespace giac;
+  if (t.type==_INT_ || t.type==_ZINT || t.type==_FRAC || t.type==_DOUBLE_)
+    return 0;
+  if (t==cst_pi) // 2*pi*x
+    return 1;
+  if (t.type==_IDNT)
+    return 2;
+  if (t.is_symb_of_sommet(at_pow) && t._SYMBptr->feuille.type==_VECT && t._SYMBptr->feuille._VECTptr->size()==2
+      && t._SYMBptr->feuille._VECTptr->front().type==_IDNT && !(t._SYMBptr->feuille._VECTptr->front()==cst_pi))
+    return 2;
+  return t.type==_VECT?4:3;
+}
 // a sum of two terms starts with the positive one: 4-x^2, ln|x-2|-ln|x+2|, x-ln(e^x+1)
 // (giac gives -x^2+4, -ln|x+2|+ln|x-2|, -ln(e^x+1)+x)
 static giac::gen positive_first(const giac::gen & g){
@@ -561,6 +576,14 @@ static giac::gen positive_first(const giac::gen & g){
   if (g._SYMBptr->sommet==at_plus && f.type==_VECT && f._VECTptr->size()==2 && neg_term(f._VECTptr->front()) && !neg_term(f._VECTptr->back())){
     vecteur & w=*f._VECTptr; // two terms only: -x^3+3*x^2-2 keeps its descending powers
     swapgen(w[0],w[1]);
+  }
+  if (g._SYMBptr->sommet==at_prod && f.type==_VECT && f._VECTptr->size()>=2){
+    // factors: numbers, then x and its powers, then the rest (x*cos(x), 3*x^2*e^(3x); giac:
+    // cos(x)*x, x^2*3*exp(3*x)); a stable insertion sort
+    vecteur & w=*f._VECTptr;
+    for (unsigned i=1;i<w.size();++i)
+      for (unsigned j=i;j>0 && factor_rank(w[j])<factor_rank(w[j-1]);--j)
+        swapgen(w[j],w[j-1]);
   }
   return symbolic(g._SYMBptr->sommet,f);
 }
@@ -976,6 +999,53 @@ static void result_approx(const giac::gen & g){
 // 1/2*pi, 1/3*x^3, x-1/6*x^3+x^6*order_size(x), exp(1)). Each top-level term (split at + - , =):
 // p/q*m -> p*m/q, m*order_size(v) -> O(m); exp(1) -> e. Inside brackets nothing changes.
 // Plain chars (uSTL string ops are large and substr(pos) is broken).
+// log( typed as a word becomes log10( (outside strings), when buf (capacity cap) has the room
+static void ti_log10(char * buf,int cap){
+  int n=strlen(buf);
+  bool str=false;
+  for (int i=0;i+4<=n;++i){
+    if (buf[i]=='"')
+      str=!str;
+    if (str || strncmp(buf+i,"log(",4) || (i && (isalnum((unsigned char)buf[i-1]) || buf[i-1]=='_')))
+      continue;
+    if (n+3>cap)
+      return;
+    memmove(buf+i+5,buf+i+3,n-i-2); // "log" + "10" + "(..."
+    buf[i+3]='1';
+    buf[i+4]='0';
+    n+=2;
+    i+=5;
+  }
+}
+
+// desolve's constants c_0, c_1 as textbooks write them: C1, C2 (plain C: uSTL's substr bites)
+__attribute__((noinline)) static void textbook_constants(std::string & str){
+  const char * s=str.c_str();
+  if (!strstr(s,"c_"))
+    return;
+  const int n=strlen(s);
+  char * out=(char *)malloc(n+1);
+  if (!out)
+    return;
+  int k=0;
+  for (int i=0;i<n;){
+    const bool word=i==0 || !(isalnum((unsigned char)s[i-1]) || s[i-1]=='_');
+    if (word && s[i]=='c' && s[i+1]=='_' && s[i+2]>='0' && s[i+2]<='9'){
+      int j=i+2,v=0;
+      while (j<n && s[j]>='0' && s[j]<='9') v=10*v+(s[j++]-'0');
+      if (!(j<n && (isalnum((unsigned char)s[j]) || s[j]=='_'))){
+        k+=sprintf(out+k,"C%d",v+1);
+        i=j;
+        continue;
+      }
+    }
+    out[k++]=s[i++];
+  }
+  out[k]=0;
+  str=out;
+  free(out);
+}
+
 __attribute__((noinline)) static void textbook(std::string & str){
   const char * s=str.c_str();
   const int n=strlen(s);
@@ -1695,6 +1765,8 @@ void do_run(const char * s){
   // paper notation and TI implicit multiplication (2sinx -> 2*sin(x), f(x)=... -> f(x):=...)
   // here and not in the console, so that the history keeps what the user typed
   khicas_implicit_mult(buf,cap);
+  if (focus_on) // TI and textbooks: log is base 10 (giac's log is ln): log(100) is 2
+    ti_log10(buf,cap);
   S=strlen(buf);
   if (S==3 && buf[0]=='[' && buf[2]==']' && buf[1]>='A' && buf[1]<='I'){
     string mats=get_timatrix(buf[1]-'A');
@@ -1857,6 +1929,7 @@ void do_run(const char * s){
         }
       }
       textbook(printed);
+      textbook_constants(printed);
       const char * str = printed.c_str();
       if (focus_on)
         console_approx_for=str;

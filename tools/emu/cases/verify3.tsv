@@ -1,0 +1,9 @@
+# display names (arcsin, log), TI log, product order
+w1	diff(asin(x^2),x)
+w2	integrate(1/(1+x^2),x)
+w3	log(100)
+w4	diff(log(x),x)
+w5	ln(e^3)
+w6	diff(pi*x^2,x)
+w7	atan(1)
+w8	integrate(x/(x^2+4),x)

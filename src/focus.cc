@@ -323,8 +323,8 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
       draw_math(Line[e.in].str, c, (UI_W - c.w) / 2, top + c.a, UC_SUB, UC_BG, 0);
       top += c.a + c.d + 6;
     }
-    int bot = y0 + h - 14;
     const char * r = shown(Line[e.out].str);
+    int bot = y0 + h - (is_text(r) ? 14 : 25); // above the forms chip (tall fractions ran into it)
     if (is_text(r)) ui_text(&ui_tr12, r, UI_W / 2, (top + bot) / 2 + 4, UC_SUB, UC_BG, 1);
     else {
       int anti = e.in >= 0 && is_antideriv(Line[e.in].str);
