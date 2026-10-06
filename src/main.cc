@@ -95,7 +95,7 @@ int micropy_ck_eval(const char *line){
   return res;
 }
 
-#if defined WITH_EQW && !defined FAKE_GIAC
+#if defined WITH_EQW && !defined FAKE_GIAC && !focus_on // (the matrix editor is the old equation editor)
 
 const char * input_matrix(const giac::gen &g,giac::gen & ge,const giac::context *){
   if (ge.type==giac::_VECT)

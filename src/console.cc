@@ -2418,7 +2418,9 @@ int Console_GetKey(){
       }
       return CONSOLE_SUCCEEDED;
     }
-#ifdef WITH_EQW
+    if (focus_on && key==KEY_EQW_TEMPLATE) // the old equation editor: Focus edits in 2D inline
+      continue;
+#if defined WITH_EQW && !focus_on
     if (key==KEY_EQW_TEMPLATE && Current_Line==Last_Line){
       char buf[std::max<size_t>(GEN_PRINT_BUFSIZE,strlen(Edit_Line)+1)];
       strcpy(buf,(const char *)Edit_Line);
@@ -2434,13 +2436,13 @@ int Console_GetKey(){
       continue;
     }
 #endif
-    if ( (key==KEY_CTRL_RIGHT || key==KEY_CTRL_LEFT || key==KEY_EQW_TEMPLATE) && Current_Line<Last_Line){
+    if (!focus_on && (key==KEY_CTRL_RIGHT || key==KEY_CTRL_LEFT || key==KEY_EQW_TEMPLATE) && Current_Line<Last_Line){ // (Focus: history keys above)
       int l=Current_Line;
       bool graph=strcmp((const char *)Line[l].str,"Graphic object")==0;
       if (graph && l>0) --l;
       char buf[std::max<size_t>(GEN_PRINT_BUFSIZE,strlen((const char *)Line[l].str)+1)];
       strcpy(buf,(const char *)Line[l].str);
-#ifdef WITH_EQW
+#if defined WITH_EQW && !focus_on
       if ( (alph || key==KEY_CTRL_RIGHT) ?textedit(buf):xcas::eqws(buf,graph /* eval */))
 #else
       if (alph || textedit(buf))
@@ -2520,7 +2522,7 @@ int Console_GetKey(){
       smallmenuitems[7].text = (char*)(lang?"Exec script (->)":"Run script (->)");
       smallmenuitems[8].text = (char*)(lang?"Effacer historique":"Clear history");
       smallmenuitems[9].text = (char*)(lang?"Effacer script":"Clear script");
-#ifdef WITH_EQW
+#if defined WITH_EQW && !focus_on // (Focus: the old equation editor is not built; imports instead)
       smallmenuitems[10].text = (char*)(lang?"Editer expression [X,T...]":"Expression edit");
       smallmenuitems[11].text = (char*)(lang?"Editer matrice [matr]":"Matrix edit");
 #else
@@ -2627,7 +2629,7 @@ int Console_GetKey(){
             break;
           }
           if (smallmenu.selection==12){
-#ifdef WITH_EQW
+#if defined WITH_EQW && !focus_on
             const char * matrix_ptr=input_matrix(false);
             if (matrix_ptr)
               return Console_Input(matrix_ptr);
@@ -2651,7 +2653,7 @@ int Console_GetKey(){
 #endif
           }
           if (smallmenu.selection == 11){
-#ifdef WITH_EQW
+#if defined WITH_EQW && !focus_on
             char buf[GEN_PRINT_BUFSIZE+2];
             buf[0]='0'; buf[1]=0;
             if (xcas::eqws(buf,false/* eval */))
@@ -2995,9 +2997,9 @@ int Console_FMenu(int key){
     //cout << "console " << unsigned(s) << endl;
     return CONSOLE_NO_EVENT;
   }
-  if (strcmp("matrix(",s)==0 && (ptr=input_matrix(false)) )
-    s=ptr;
-  if (strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
+  if (!focus_on && strcmp("matrix(",s)==0 && (ptr=input_matrix(false)) ) // (its editor is the old
+    s=ptr;                                                                   // equation editor)
+  if (!focus_on && strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
     s=ptr;
   const int l=strlen(s);
   if (console_input2d() && l>1 && l<60 && s[l-1]=='('){ // 2D: irem( goes in as irem(|), as typed

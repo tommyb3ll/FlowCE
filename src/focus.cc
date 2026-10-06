@@ -250,19 +250,27 @@ static void hero_prepare(int y0, int h) {
 
 // A result too wide for one line even at the smallest size is wrapped at its top-level + and -
 // (between terms) on up to WL lines of one level: each term is measured once, the lines are
-// packed greedily. The lines are copies (0-terminated) in WB; wrapped() caches the last result.
+// packed greedily, then measured. The lines are copies (0-terminated) in WB; wrapped() caches
+// the last result.
 enum { WL = 6 };
 static char * WB;                    // the lines, one after the other
 static const char * wl_src;          // the result wrapped (Line str), its hash
 static unsigned wl_hash;
 static int wl_n, wl_lv, wl_w, wl_h;  // lines, level, widest line, height of a line
 static short wl_at[WL];              // line k: WB + wl_at[k]
+static mi_layout * WLL;              // (one layout for all the measures: less code)
+__attribute__((noinline)) static int mwidth(const char * s, int n, int lv, int & h) {
+  if (!WLL) WLL = new mi_layout;
+  mi_build(s, n, -1, ui_math_metrics(lv, MI_F_IMPLDOT), *WLL);
+  if (WLL->asc + WLL->desc > h) h = WLL->asc + WLL->desc;
+  return WLL->width;
+}
 __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh, int lvmax) {
-  unsigned h = shash(r);
-  if (r == wl_src && h == wl_hash) return wl_n;
-  wl_src = r; wl_hash = h; wl_n = 0;
+  unsigned hs = shash(r);
+  if (r == wl_src && hs == wl_hash) return wl_n;
+  wl_src = r; wl_hash = hs; wl_n = 0;
   int n = strlen(r), nc = 0, d = 0;
-  short cut[48];
+  short cut[48], tw[48];
   cut[nc++] = 0;
   for (int i = 1; i < n && nc < 47; ++i) { // the terms: r[cut[k], cut[k+1])
     char c = r[i];
@@ -274,17 +282,10 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   if (nc < 2 || n > 600) return 0;
   free(WB);
   if (!(WB = (char *)malloc(n + WL + 1))) return 0;
-  short tw[48];
-  mi_layout L;
   for (int lv = 3; lv < lvmax; ++lv) { // larger than the single line's level
-    const mi_metrics & m = ui_math_metrics(lv, MI_F_IMPLDOT);
-    int lh = 0;
-    for (int k = 0; k < nc; ++k) { // each term's width at this level (its sign drawn as binary)
-      mi_build(r + cut[k], cut[k + 1] - cut[k], -1, m, L);
-      tw[k] = (short)(L.width + (k ? 2 * m.opgap + 2 : 0));
-      if (L.asc + L.desc > lh) lh = L.asc + L.desc;
-    }
-    int lines = 0, k = 0, w = 0, p = 0;
+    int lh = 0, gap = 2 * ui_math_metrics(lv, MI_F_IMPLDOT).opgap + 2, lines = 0, k = 0, w = 0, p = 0;
+    for (int j = 0; j < nc; ++j) // each term's width (its sign drawn as binary)
+      tw[j] = (short)(mwidth(r + cut[j], cut[j + 1] - cut[j], lv, lh) + (j ? gap : 0));
     while (k < nc && lines < WL) {
       int j = k, lw = 0;
       while (j < nc && (j == k || lw + tw[j] <= maxw)) lw += tw[j++];
@@ -292,16 +293,14 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
       memcpy(WB + p, r + cut[k], cut[j] - cut[k]);
       p += cut[j] - cut[k];
       WB[p++] = 0;
-      if (lw > w) w = lw;
       k = j;
     }
-    if (k == nc && lines * (lh + 4) <= maxh) {
-      for (k = w = 0; k < lines; ++k) { // the real widths
-        mi_build(WB + wl_at[k], strlen(WB + wl_at[k]), -1, m, L);
-        if (L.width > w) w = L.width;
-      }
-      if (w <= maxw) { wl_n = lines; wl_lv = lv; wl_w = w; wl_h = lh + 4; return wl_n; }
+    if (k < nc || lines * (lh + 4) > maxh) continue;
+    for (k = 0; k < lines; ++k) { // the real widths
+      int x = mwidth(WB + wl_at[k], strlen(WB + wl_at[k]), lv, lh);
+      if (x > w) w = x;
     }
+    if (w <= maxw) { wl_n = lines; wl_lv = lv; wl_w = w; wl_h = lh + 4; return wl_n; }
   }
   return 0;
 }

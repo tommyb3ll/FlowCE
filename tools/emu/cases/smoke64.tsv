@@ -1,0 +1,7 @@
+# fx64 (old equation editor removed): smoke
+s_graph	x{sq}-2{graph}1{run:6000}
+s_forms	{enter}{run:4000}{trace}{run:3000}	(x+1)^3
+s_file	{graph}5{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}
+s_mat	{2nd,graph}1
+s_int	{enter}{run:5000}	integrate(x^2*sin(x),x)
+s_eqwkey	{2nd,xton}{run:1000}x
