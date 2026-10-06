@@ -1465,6 +1465,20 @@ static std::string * form_orig;
 static int form_idx;
 const char * console_form_name="exact"; // the form of console_form_line (Focus chip)
 const char * console_form_line(){ return form_line; }
+// a long text with no + or - outside brackets: x^2*(13x^12+...)/182 cannot be drawn on several
+// lines (the forms skip it)
+static bool long_one_term(const std::string & t){
+  if (t.size()<90)
+    return false;
+  int d=0;
+  for (size_t i=0;i<t.size();++i){
+    const char c=t[i];
+    if (c=='(' || c=='[') ++d;
+    else if (c==')' || c==']') --d;
+    else if (i && !d && (c=='+' || c=='-') && !strchr("^*/(e=,",t[i-1])) return false;
+  }
+  return true;
+}
 void console_cycle_form(int l){
   using namespace giac;
   static const unary_function_ptr * const ops[]={at_simplify,at_ratnormal,at_factor,at_expand,at_evalf};
@@ -1478,9 +1492,11 @@ void console_cycle_form(int l){
   }
   stdostream * savelog=logptr(contextptr);
   logptr(0,contextptr);
-  const gen g(*form_orig,contextptr);
-  const std::string cur((const char *)Line[l].str); // forms that print like this or the original are skipped
+  // evaluated: ratnormal of the parsed text printed ((x^2)-1)/(x^3+x)
+  const gen g=eval(gen(*form_orig,contextptr),1,contextptr);
+  const std::string cur((const char *)Line[l].str); // forms that read like this or the original are skipped
   gen r;
+  std::string text=*form_orig;
   for (int t=0;t<=n;++t){
     form_idx=(form_idx+1)%(n+1);
     if (!form_idx){
@@ -1490,12 +1506,20 @@ void console_cycle_form(int l){
     if (ops[form_idx-1]==at_simplify && xcas::has_radical(g))
       continue;
     statuslinemsg("computing...");
-    r=(*ops[form_idx-1])(g,contextptr);
+    if (ops[form_idx-1]==at_evalf && !lidnt(g).empty()) // 0.0714286x^14, not x^14/14.0
+      r=evalf(expand(g,contextptr),1,contextptr);
+    else
+      r=(*ops[form_idx-1])(g,contextptr);
     if (ops[form_idx-1]==at_factor && !is_undef(r) && r.type!=_STRNG)
       r=xcas::merge_sqrt(r,contextptr); // (1-25*x^2)^(3/2), not (5*x+1)*(5*x-1)*sqrt(...)
     if (!is_undef(r) && r.type!=_STRNG){
-      const std::string rt=r.print(contextptr);
-      if (rt!=cur && rt!=*form_orig)
+      // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2; compared as shown
+      if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
+        r=positive_first(r);
+      text=r.print(contextptr);
+      textbook(text);
+      textbook_constants(text);
+      if (text!=cur && text!=*form_orig && !long_one_term(text))
         break;
     }
   }
@@ -1508,14 +1532,8 @@ void console_cycle_form(int l){
   }
   gen lay;
   const int rows=focus_on?0:console_rows2d(r,lay); // Focus draws 2D itself: no continuation rows
-  std::string text=*form_orig;
-  if (form_idx){ // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2
-    if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
-      r=positive_first(r);
-    text=r.print(contextptr);
-    textbook(text);
-    textbook_constants(text);
-  }
+  if (!form_idx)
+    text=*form_orig;
   if (console_replace_result(l,text.c_str(),rows?rows:1)){
     form_line=(const char *)Line[l].str;
     if (rows)
