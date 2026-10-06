@@ -3,7 +3,8 @@
 appears, to find the screens still in the classic KhiCAS style.
 
 Usage (WSL): audit.py <state> <casefile> [outdir]
-  casefile lines: name<TAB>keys   (keys as edit2d.py: text, {key,key} raw keys; # = comment)
+  casefile lines: name<TAB>keys   (keys as edit2d.py: text, {key,key} raw keys, {run:MS} a pause;
+  # = comment)
 Env: GAP (ms after each key, default 300), SETTLE (ms before the shot, default 1500).
 """
 import os, sys
@@ -26,6 +27,9 @@ def main():
         try:
             e.run(800)
             for k in keyseq(keys):
+                if k.startswith('run:'):  # {run:MS}: let a computation finish
+                    e.run(int(k[4:]))
+                    continue
                 e.cmd(f'key {k} 80'); e.ms += 80
                 e.run(gap)
             e.run(settle)

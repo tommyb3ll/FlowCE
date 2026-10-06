@@ -33,8 +33,9 @@ void ui_band_end(void);              // copies the band to the screen
 
 // theme colors
 // UC_DIM: the background as dimmed by ui_dim (for the edges of popovers drawn over the dimmed scene)
+// UC_RED UC_PURPLE UC_ORANGE: curves of the graph view, after UC_ACC and UC_GREEN
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,
-       UC_GREEN, UC_SHADOW, UC_WHITE, UC_DIM, UC_COUNT };
+       UC_GREEN, UC_SHADOW, UC_WHITE, UC_RED, UC_PURPLE, UC_ORANGE, UC_DIM, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
 extern const ui_theme ui_theme_paper;
 

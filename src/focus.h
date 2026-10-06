@@ -33,6 +33,8 @@ int focus_list(const char * title, const char * const * labels, int n, int sel);
 // Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
 int focus_fmenu(int idx, const char * const * entries, int n);
 int focus_screen();                     // 1 if the screen shows the Focus console (popovers can dim it)
+extern int focus_view;                  // 1 while another view (the graph) owns the screen: popovers
+                                        // do not repaint the console when they close
 void focus_bar_redraw();                // repaints the F-key bar
 void focus_bar_reset();                 // repaints the F-key bar, plain layer
 void focus_invalidate();                // the next focus_disp repaints everything (after a full-screen view)

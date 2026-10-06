@@ -1,0 +1,10 @@
+# the graph view in the Focus look (tools/emu/audit.py)
+g_sin	plot(sin(x{enter}
+g_parab	plot(x{sq}-2{enter}
+g_two	plot([sin(x),cos(x)]{enter}
+g_tan	plot(tan(x{enter}
+g_recip	plot(1/x{enter}
+g_trace	plot(sin(x{enter}{run:4000}{right}{right}{right}{right}{right}
+g_zoom	plot(sin(x{enter}{run:4000}{zoom}
+g_trmenu	plot(sin(x{enter}{run:4000}{trace}
+g_exp	plot(e^x{enter}

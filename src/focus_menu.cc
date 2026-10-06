@@ -244,8 +244,7 @@ int focus_list(const char * t, const char * const * labels, int n, int sel) {
   hdr = 0; top = 0; vis = 99; rh = RH;
   delete[] it;
   ui_dim(0);
-  focus_repaint(py - 2, py + ph + 6);
-  focus_bar_redraw();
+  if (!focus_view) { focus_repaint(py - 2, py + ph + 6); focus_bar_redraw(); }
   return res;
 }
 
@@ -364,8 +363,10 @@ int focus_fmenu(int idx, const char * const * e, int n) {
   delete[] PL;
   PL = 0;
   ui_dim(0);
-  focus_repaint(py - 2, py + ph + 6);
-  focus_bar_reset(); // 2nd and alpha were used up by the key that opened the menu
+  if (!focus_view) { // 2nd and alpha were used up by the key that opened the menu
+    focus_repaint(py - 2, py + ph + 6);
+    focus_bar_reset();
+  }
   return res;
 }
 
