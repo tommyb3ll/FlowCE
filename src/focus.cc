@@ -208,6 +208,15 @@ static void draw_result(const fent & e, int right, int base, int ink, int bg) {
     x += ui_draw_text(f, "+ ", -1, x, base, ramp(UC_SUB, bg), 0);
     ui_draw_text(&ui_mi17, "C", -1, x, base, ramp(UC_SUB, bg), 0);
   }
+  const int avail = W_OUT - cw;
+  if (c.w > avail) { // too long even small: its end, clipped, "..." in front (it ran off the left)
+    const int dw = ui_text_width(&ui_tr10, "...", 3) + 4;
+    ui_draw_text(&ui_tr10, "...", 3, right - avail, base, ramp(UC_SUB, bg), 0);
+    ui_clip(right - avail + dw, 0, right - cw, UI_H);
+    draw_math(s, c, right - cw - c.w, base, ink, bg, MI_F_IMPLDOT);
+    ui_noclip();
+    return;
+  }
   draw_math(s, c, right - cw - c.w, base, ink, bg, MI_F_IMPLDOT);
 }
 
