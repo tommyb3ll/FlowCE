@@ -35,7 +35,8 @@ try:
     # giac's root finder). A hardware reset (the button on the back) is always safe.
     e.reset(); e.run(6000)
     e.key('clear'); e.run(300); e.os_fake()
-    e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:KhiCAS
+    e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:FlowCE (after Finance)
+    e.shot(f'install_{state}_splash')                                   # the start screen
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen
     # KhiCAS must be running: its F-key bar (bottom rows) is pink (classic) or its status bar is
     # light (Focus); the TI home screen has a white bottom and a dark status bar.

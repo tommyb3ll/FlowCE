@@ -343,6 +343,76 @@ void focus_table(const char * const * head, int ncol, const char * const * cells
   ui_noclip();
 }
 
+// a text to read (About, Shortcuts): t in the status bar, s word-wrapped (\n: a new paragraph,
+// a line starting with a word ending in ':' bold), up/down scroll, EXIT/EXE close. The caller
+// repaints the console afterwards.
+void focus_text(const char * t, const char * s) {
+  enum { LMAX = 120, LH = 17, W = 296, Y0 = 20 };
+  static short ls[LMAX], ll[LMAX];
+  int n = 0, i = 0;
+  while (s[i] && n < LMAX) { // greedy wrap at spaces
+    int j = i, last = -1;
+    while (s[j] && s[j] != '\n' && ui_text_width(&ui_tr12, s + i, j + 1 - i) <= W) { if (s[j] == ' ') last = j; ++j; }
+    if (s[j] && s[j] != '\n' && last > i) j = last;
+    ls[n] = i; ll[n] = j - i; ++n;
+    i = j;
+    if (s[i] == ' ' || s[i] == '\n') ++i;
+  }
+  const int vis = (UI_H - Y0 - 4) / LH;
+  int top = 0;
+  focus_status_label(t);
+  for (;;) {
+    int rows = ui_band_open(48);
+    for (int b = Y0 - 4; b < UI_H; b += rows ? rows : UI_H) {
+      int e = rows && b + rows < UI_H ? b + rows : UI_H;
+      if (rows) ui_band_begin(b, e);
+      ui_fill(0, Y0 - 4, UI_W, UI_H - Y0 + 4, ui_col(0, UC_BG));
+      for (int k = 0; k < vis && top + k < n; ++k) {
+        const char * l = s + ls[top + k];
+        const int bold = ll[top + k] > 1 && l[ll[top + k] - 1] == ':';
+        ui_draw_text(bold ? &ui_tb12 : &ui_tr12, l, ll[top + k], 12, Y0 + 12 + k * LH, ui_ramp(0, bold ? UC_ACC : UC_INK, UC_BG), 0);
+      }
+      if (n > vis) { // scroll bar
+        int th = vis * LH;
+        ui_fill(UI_W - 6, Y0, 3, th, ui_col(0, UC_LINE));
+        ui_fill(UI_W - 6, Y0 + th * top / n, 3, th * vis / n, ui_col(0, UC_SUB));
+      }
+      if (rows) ui_band_end();
+    }
+    int key;
+    GetKey(&key);
+    if (key == KEY_CTRL_EXIT || key == KEY_CTRL_AC || key == KEY_CTRL_EXE || key == KEY_CTRL_OK) break;
+    if (key == KEY_CTRL_DOWN && top + vis < n) ++top;
+    if (key == KEY_CTRL_UP && top) --top;
+    if (key == KEY_CTRL_RIGHT) top = top + 2 * vis < n ? top + vis : n > vis ? n - vis : 0;
+    if (key == KEY_CTRL_LEFT) top = top > vis ? top - vis : 0;
+  }
+  focus_status_label(0);
+  focus_invalidate();
+}
+
+// the start screen: FlowCE, what it is, the credit; first (no saved session): three tips and
+// "press any key" (the caller reads it)
+void focus_splash(int first) {
+  ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
+  const char * name = "FlowCE";
+  int w = ui_text_width(&ui_mi34, name, -1), y = first ? 70 : 104; // (the upright math faces have no capitals)
+  ui_draw_text(&ui_mi34, name, 4, (UI_W - w) / 2, y, ui_ramp(0, UC_INK, UC_BG), 0);
+  ui_draw_text(&ui_mi34, name + 4, -1, (UI_W - w) / 2 + ui_text_width(&ui_mi34, name, 4), y, ui_ramp(0, UC_ACC, UC_BG), 0);
+  const char * tag = "calculus on your TI-84 Plus CE";
+  ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
+  if (first) {
+    static const char * const tips[] = {"F1-F5: menus of templates and commands", "up: your past calculations", "down: search every command"};
+    for (int k = 0; k < 3; ++k)
+      ui_draw_text(&ui_tr12, tips[k], -1, (UI_W - ui_text_width(&ui_tr12, tips[k], -1)) / 2, y + 66 + 20 * k, ui_ramp(0, UC_INK, UC_BG), 0);
+    const char * go = "press any key";
+    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 140, ui_ramp(0, UC_ACC, UC_BG), 0);
+  }
+  const char * cr = "a fork of KhiCAS by B. Parisse - GPL 2";
+  ui_draw_text(&ui_tr10, cr, -1, (UI_W - ui_text_width(&ui_tr10, cr, -1)) / 2, UI_H - 8, ui_ramp(0, UC_SUB, UC_BG), 0);
+  focus_invalidate();
+}
+
 // a value prompt (KhiCAS's inputline): title t, label sub over an edit field. Keys as inputline:
 // characters, DEL, AC/CLEAR (clears, then cancels), arrows, EXE. Returns KEY_CTRL_EXE or
 // KEY_CTRL_EXIT.

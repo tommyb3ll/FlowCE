@@ -917,6 +917,11 @@ void menu_setup(){
       }
       if (smallmenu.selection==5)
 	break;
+      if (smallmenu.selection>=3 && focus_on){ // Shortcuts, About
+        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==3?shortcuts_string:apropos_string);
+        Console_Disp(1);
+        continue;
+      }
       if (smallmenu.selection>=3) {
 	textArea text;
 	text.editable=false;
@@ -2730,6 +2735,11 @@ int Console_GetKey(){
 #endif
           if (smallmenu.selection == smallmenu.numitems){
             return -2;
+          }
+          if (smallmenu.selection >= 14 && focus_on){ // Shortcuts, About
+            focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==14?shortcuts_string:apropos_string);
+            Console_Disp(1);
+            continue;
           }
           if(smallmenu.selection >= 14) {
             textArea text;

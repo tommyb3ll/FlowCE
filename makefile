@@ -45,9 +45,9 @@ CXXFLAGS = -std=c++14 -Wall -Wextra -Oz -Iustl -Isrc/tommath -DMP_16BIT -DTICE -
 %ui_font.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
 
 CPP_EXTENSION = cc
-APP_NAME = KhiCAS
+APP_NAME = FlowCE
 APP_VERSION = 5.0.0.0000
-DESCRIPTION = KhiCAS
+DESCRIPTION = FlowCE - a fork of KhiCAS - GPL
 
 EXTRA_LDFLAGS = -e 9999
 ALLOCATOR = CUSTOM

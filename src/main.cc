@@ -1521,7 +1521,19 @@ void save_session(){
   }
 }
 
+static bool starting; // main1: the session restored at start (the FlowCE start screen)
 int restore_session(const char * fname){
+  if (focus_on && starting){
+    starting=false;
+    focus_splash(0);
+    const string filename(remove_path(remove_extension(fname)));
+    if (load_console_state_smem((filename+".xw").c_str()))
+      return 1;
+    focus_splash(1); // first start: tips, any key
+    int key;
+    ck_getkey(&key);
+    return 0;
+  }
   clear_screen(); // Bdisp_AllClr_VRAM();
   drawRectangle(0,0,LCD_WIDTH_PX,16,COLOR_BLACK);
 #ifdef WITH_DESOLVE
@@ -2025,8 +2037,10 @@ int main1(){
       do_confirm("! OS incompatible avec mode examen !");
   }
   else if (sptr && sptr->osMajorVersion==5 && sptr->osMinorVersion==8 && sptr->hardwareType==1)
-    confirm("!!! Downgradez l'OS avec CERMASTR","pour utiliser KhiCAS en mode examen");
+    confirm("!!! Downgradez l'OS avec CERMASTR","pour utiliser FlowCE en mode examen");
   // do_confirm("console init");
+  focus_init(); // the palette, for the start screen
+  starting=true;
   restore_session("session");
 #ifndef FAKE_GIAC
   angle_radian(os_get_angle_unit(),contextptr);

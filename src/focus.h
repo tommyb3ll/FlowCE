@@ -30,6 +30,8 @@ int focus_choose(const char * title, const char * const * labels, int n);
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
 int focus_list(const char * title, const char * const * labels, int n, int sel, const char * const * hints = 0);
 void focus_note(const char * title, const char * text); // a message card; the caller reads the key
+void focus_text(const char * title, const char * text); // About, Shortcuts: a text to read
+void focus_splash(int first);           // the start screen (first: tips, "press any key")
 // the graph's table of values: head[ncol], cells row by row, hint on the last line
 void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint);
 // focus_prompt(title, label, std::string & s, numeric): a value prompt (KhiCAS's inputline) as
