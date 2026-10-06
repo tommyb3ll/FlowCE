@@ -51,7 +51,7 @@ static int sym(const char * s, int n, unsigned * cp, int & it) {
   if (n == 1 && s[0] == '\x1e') { cp[0] = 0x2192; return 1; }
   if (n == 1 && s[0] == 'e') { cp[0] = 'e'; it = 1; return 1; }
   int k = 0;
-  for (; k < n && k < 3; ++k) cp[k] = (unsigned char)s[k];
+  for (; k < n && k < 6; ++k) cp[k] = (unsigned char)s[k]; // lim, taylor, " deg "
   return k;
 }
 
@@ -61,7 +61,7 @@ static int width_at(int lv, const char * s, int n, int st) {
   int w = 0;
   if (st == MI_SYM) {
     if (n == 1 && s[0] == 'S') return rnd(ui_math_sizes[lv], 85); // sigma: drawn with lines
-    unsigned cp[3];
+    unsigned cp[6];
     int it, k = sym(s, n, cp, it);
     for (int j = 0; j < k; ++j)
       if ((g = glyph(lv, it, cp[j], &f))) w += g->adv;
@@ -145,7 +145,7 @@ static void draw_text(const mi_op & o, const char * s, int lv, int x, int y, con
     const char * t = o.lit ? o.lit : s + o.pos;
     int n = 0;
     while (t[n] && (o.lit || n < o.len)) ++n;
-    unsigned cp[3];
+    unsigned cp[6];
     int it, k = sym(t, n, cp, it);
     for (int j = 0; j < k; ++j)
       if ((g = glyph(l, it, cp[j], &f))) x += ui_draw_glyph(f, cp[j], x, y, r, 0);

@@ -73,7 +73,7 @@ enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP
 // node kinds; leaves first
 enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF, K_THETA,
        K_EMPTY, K_ROW, K_GROUP, K_CALL, K_FRAC, K_POW,
-       K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP };
+       K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP, K_SER };
 enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64 };
 
 struct mi_node {
@@ -237,7 +237,7 @@ static int pgroup() { // ( [ { : content to the matching closer or the end
 static const struct { const char * nm; unsigned char na, k; } spec[] = {
   {"sqrt", 1, K_SQRT}, {"surd", 2, K_SURD}, {"abs", 1, K_ABS}, {"integrate", 2, K_INT},
   {"integrate", 4, K_DEFINT}, {"int", 2, K_INT}, {"int", 4, K_DEFINT}, {"diff", 2, K_DIFF},
-  {"sum", 4, K_SUM}, {"limit", 3, K_LIM}, {"exp", 1, K_EXP}};
+  {"sum", 4, K_SUM}, {"limit", 3, K_LIM}, {"exp", 1, K_EXP}, {"series", 4, K_SER}};
 
 static int pcall(int nm) { // name( args ): normal or special call
   int cl = newnode(K_CALL, T[nm].a, 0, 4), t = nm, na = 0, a, k = 0;
@@ -406,7 +406,7 @@ static int slot(int n, int i) { // i-th slot content of a 2D construct (hidden p
 }
 static int sfont(int k, int i, int sm) { // font of slot i (must match the sl() calls in cons)
   if (k == K_POW || k == K_EXP || (k == K_SURD && i == 1) || (k == K_DEFINT && i >= 2) ||
-      ((k == K_SUM || k == K_LIM) && i >= 1)) return 1;
+      ((k == K_SUM || k == K_LIM || k == K_SER) && i >= 1)) return 1;
   return sm;
 }
 static int needp(int n) { // diff(f,x): f needs parentheses (top level + - = , ...)
@@ -535,6 +535,20 @@ static void cons(int n, int x, int y, int sm) {
     sl(3, (t - D.w) / 2, st - 1 - D.ds, 1);
     sl(0, t + 2, 0, sm);
     cw = t + 4 + A.w;
+  } break;
+  case K_SER: { // series(f,x,a,n), as lim: column "taylor" over "x->a deg n" (small); then f
+    int bx, bb, tw = lw("taylor", 6, sm), aw = lw("", 1, 1), dw = lw(" deg ", 5, 1);
+    u = B.w + aw + C.w + dw + D.w; v = mx(sf.asc, mx(B.as, mx(C.as, D.as)));
+    t = mx(tw, u);
+    dtext("taylor", 6, sm, (t - tw) / 2, 0);
+    bx = (t - u) / 2; bb = f.desc + 1 + v;
+    sl(1, bx, bb, 1);
+    dtext("", 1, 1, bx + B.w, bb);
+    sl(2, bx + B.w + aw, bb, 1);
+    dtext(" deg ", 5, 1, bx + B.w + aw + C.w, bb);
+    sl(3, bx + B.w + aw + C.w + dw, bb, 1);
+    sl(0, t + h, 0, sm);
+    cw = t + h + A.w + 2;
   } break;
   case K_LIM: { // column: lim over x->a; then f
     int bx, bb, lmw = lw("lim", 3, sm), aw = lw("\x1e", 1, 1);

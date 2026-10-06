@@ -36,7 +36,7 @@ static const fm_item m_calc[] = {
   {"diff(,x)", 3, 0, "Derivative", 0, 0},
   {"limit(,x,)", 4, 0, "Limit", 0, 0},
   {"sum(,k,,)", 5, 0, "Sum", 0, 0},
-  {"series(,x,0,5)", 7, "series()", "Taylor series", 0, 0},
+  {"series(,x,0,5)", 7, 0, "Taylor series", 0, 0},
 };
 static const fm_item m_trig[] = {
   {"sin()", 1, 0, 0, 0, 0}, {"cos()", 1, 0, 0, 0, 0}, {"tan()", 1, 0, 0, 0, 0},

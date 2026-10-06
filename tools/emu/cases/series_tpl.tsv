@@ -1,0 +1,7 @@
+# the taylor template (mathinput K_SER)
+ser_menu	{window}
+ser_tpl	{window}6
+ser_fill	{window}6sin(x
+ser_left	{window}6sin(x{right}{left}{left}{left}{left}
+ser_deg	{window}6sin(x{right}{left}{left}{left}{left}{del}3
+ser_run	{window}6sin(x{enter}{run:5000}
