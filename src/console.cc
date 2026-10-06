@@ -20,6 +20,7 @@ namespace xcas {
 using namespace std;
 #include "mathinput.h" // after "#define std ustl": its vector is uSTL's
 #include "focus.h"
+#include "mathedit.h"
 
 #ifdef XLIGHT
 //const int lang=1;
@@ -2309,23 +2310,31 @@ int Console_GetKey(){
       Console_Disp(0);
       continue;
     }
-    // 2D input: ( inserts () with the caret inside, ) steps over a ) already there; ( right
-    // after an empty exponent ^(|) reuses its group (2^(3/2) typed as usual). / stays linear:
-    // 1/2+1 is 1/2 plus 1 (as on a TI), still drawn as a stacked fraction.
-    if (console_input2d() && (key=='(' || key==')')){
-      const char * s=(const char *)Edit_Line;
-      const int p=Current_Col;
-      if (key==')' && s[p]==')')
-        console_set_caret(p+1);
-      else if (key=='(' && p>=2 && s[p-2]=='^' && s[p-1]=='(' && s[p]==')')
-        ;
-      else {
-        Console_Input((const Char *)(key=='('?"()":")"));
-        if (key=='(')
-          Console_MoveCursor(CURSOR_LEFT); // inside the new ()
+    // 2D input: keys that respect the drawn structure (mathedit.cc). / makes a fraction of the
+    // term left of the caret, the caret in its denominator; ( wraps the rest of the slot; ) steps
+    // out of a group or wraps what is left of it; , = < > leave a denominator or an exponent
+    // first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can be extended).
+    if (console_input2d()){
+      int mk=0;
+      if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
+          key==KEY_CHAR_EQUAL || key=='<' || key=='>')
+        mk=key;
+      else if (key==KEY_CHAR_SQUARE)
+        mk=ME_SQUARE;
+      else if (key==KEY_CHAR_RECIP)
+        mk=ME_RECIP;
+      if (mk){
+        char * s=(char *)Edit_Line;
+        int p=Current_Col;
+        const int done=me_key(s,EDIT_LINE_MAX,&p,mk); // EDIT_LINE_MAX: Console_Input's limit
+        console_set_caret(p); // on 0 the caret may have left a denominator or an exponent
+        if (done){
+          Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+          console_changed=1;
+          Console_Disp(0);
+          continue;
+        } // not handled (in a string literal; , = < > elsewhere): inserted as before
       }
-      Console_Disp(0);
-      continue;
     }
     if (console_input2d() && key==KEY_CTRL_F11){ // ALPHA Y= (n/d on a TI): fraction template
       Console_Input((const Char *)"()/()");
@@ -2871,8 +2880,16 @@ int Console_GetKey(){
 
     if (key == KEY_CTRL_DEL && console_input2d()){
       char * s=(char *)Edit_Line;
+      int p=Current_Col;
+      if (me_backspace(s,&p)){ // at the start of a slot: unwraps a call, a fraction, an exponent
+        Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+        console_changed=1;
+        console_set_caret(p);
+        Console_Disp(0);
+        continue;
+      }
       const int len=strlen(s);
-      int from,to,p=Current_Col;
+      int from,to;
       const bool name=p>=2 && ((s[p-2]>='a' && s[p-2]<='z') || (s[p-2]>='A' && s[p-2]<='Z') || (s[p-2]>='0' && s[p-2]<='9'));
       if (p>=2 && p<len && (s[p-2]=='/' || s[p-2]=='^') && s[p-1]=='(' && s[p]==')'){
         from=p-2; // x/(|) or x^(|): the fraction or power goes, x stays (as Symbolab)

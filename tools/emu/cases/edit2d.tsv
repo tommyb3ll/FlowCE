@@ -1,0 +1,22 @@
+# The 2D editing rules (src/mathedit.cc) typed on the keypad: name, keys, the edit line expected
+# (| = caret). tools/emu/edit2d.py <state> this-file
+# the user's reports (2026-10-06)
+den_plus	1/x+1	(1)/(x+1|)
+den_plus2	x/2+1	(x)/(2+1|)
+den_exit	1/2{right}+1	(1)/(2)+1|
+int_rparen	{math}4x+1)	integrate((x+1)|,x)
+den_lparen	1/x^8{left}{left}{left}(	(1)/((|x^(8)))
+pow_lparen	x{sq}{left}{left}(	x^((|2))
+pow_right	x^2{right}+1	x^(2)+1|
+pow_plus	x{sq}{left}+1	x^(2+1|)
+int_del	{math}4x^2{left}{left}{left}{del}	|x^(2)
+# more
+sq_key	x{sq}	x^(2)|
+sq_then_plus	x{sq}+1	x^(2)+1|
+grp_div	(a+b)/	(a+b)/(|)
+den_equal	1/x=2	(1)/(x)=2|
+frac_del	1/{del}2	12|
+den_del	1/2{del}{del}	1|
+sqrt_wrap	{2nd,sq}x+1{right}/	(sqrt(x+1))/(|)
+term_div	a+2b/	a+(2b)/(|)
+pow_eq	x^2=4	x^(2)=4|

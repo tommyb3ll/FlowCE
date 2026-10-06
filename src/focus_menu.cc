@@ -41,12 +41,13 @@ static const fm_item m_trig[] = {
   {"sin()", 1, 0, 0, 0, 0}, {"cos()", 1, 0, 0, 0, 0}, {"tan()", 1, 0, 0, 0, 0},
   {"asin()", 1, 0, 0, 0, 0}, {"acos()", 1, 0, 0, 0, 0}, {"atan()", 1, 0, 0, 0, 0},
   {"sec()", 1, 0, 0, 0, 0}, {"csc()", 1, 0, 0, 0, 0}, {"cot()", 1, 0, 0, 0, 0},
+  {"sinh()", 1, 0, 0, 0, 0}, {"cosh()", 1, 0, 0, 0, 0}, {"tanh()", 1, 0, 0, 0, 0},
 };
 static const fm_item m_sym[] = { // what the keypad has no key for, or hides behind 2nd/alpha
   {"pi", 0, 0, 0, 0, 0}, {"e", 0, 0, 0, 0, 0}, {"oo", 0, 0, 0, 0, 0}, {"theta", 0, 0, 0, 0, 0},
   {"sqrt()", 1, 0, 0, 0, 0}, {"surd(,)", 2, 0, 0, 0, 0}, {"abs()", 1, 0, 0, 0, 0}, {"!", 0, "n!", 0, 0, 0},
-  {"^2", 0, 0, 0, 0, 0}, {"^()", 1, 0, 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0}, {"ln()", 1, 0, 0, 0, 0},
-  {"<=", 0, 0, 0, 0, 0}, {">=", 0, 0, 0, 0, 0}, {"!=", 0, 0, 0, 0, 0}, {"()/()", 4, 0, 0, 0, 0},
+  {"^()", 1, 0, 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0}, {"ln()", 1, 0, 0, 0, 0}, {"()/()", 4, 0, 0, 0, 0},
+  {"=", 0, 0, 0, 0, 0}, {"<=", 0, 0, 0, 0, 0}, {">=", 0, 0, 0, 0, 0}, {"!=", 0, 0, 0, 0, 0},
 };
 static const fm_item m_more[] = {
   {0, 0, 0, "All commands", "search", FA_CATALOG},
@@ -254,7 +255,7 @@ int focus_popover(int key, const char ** text, int * back) {
         if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : m.n - 1;
         if (k == KEY_CTRL_DOWN) ns = sel < m.n - 1 ? sel + 1 : 0;
       }
-      if (k >= KEY_CHAR_1 && k < KEY_CHAR_1 + m.n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
+      if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + m.n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; } // not = < > (past 9)
       if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) {
         const fm_item & it = m.items[sel];
         if (it.act) res = it.act;

@@ -29,7 +29,6 @@ const char * console_approx();
 static const char * shown(const char * s) { return s && !strncmp(s, "list[", 5) ? s + 4 : s; }
 const char * console_fkey_label(int layer, int k); // console.cc: F-key label (layer 0, 2nd, alpha)
 
-int focus_on = 1;
 // timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
 extern "C" { volatile unsigned char focus_phase; }
 
