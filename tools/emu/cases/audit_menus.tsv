@@ -1,0 +1,19 @@
+# the old KhiCAS menus, restyled as Focus cards (2026-10-06)
+s2_f1	{2nd,yequ}
+s2_f2	{2nd,window}
+s2_f3	{2nd,zoom}
+s2_f4	{2nd,trace}
+s2_f5	{2nd,graph}
+a_f2	{alpha,window}
+a_f3	{alpha,zoom}
+a_f4	{alpha,trace}
+a_f5	{alpha,graph}
+apps	{apps}
+vars	{vars}
+stat	{stat}
+mode	{mode}
+more_plot	{graph}2
+more_file	{graph}3
+file_scroll	{graph}3{down}{down}{down}{down}{down}{down}{down}
+s2_f1_sel	{2nd,yequ}{right}{down}
+s2_f1_pick	{2nd,yequ}3

@@ -26,7 +26,15 @@ void focus_repaint(int y0, int y1);     // repaints stage rows [y0, y1) from the
 int focus_hist_line(int dir);           // history by calculations: the line for up/down/left/right
 // a card over the dimmed stage: a title, n choices; returns the index chosen, -1 if cancelled
 int focus_choose(const char * title, const char * const * labels, int n);
+// a list card under a title (0: none) for KhiCAS's own menus (doMenu); a long list scrolls.
+// sel: the item selected first. Returns the item chosen, -1 if cancelled.
+int focus_list(const char * title, const char * const * labels, int n, int sel);
+// KhiCAS's F-key menus (console_menu) as cards: idx = key - F1 after console_menu's renumbering.
+// Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
+int focus_fmenu(int idx, const char * const * entries, int n);
+int focus_screen();                     // 1 if the screen shows the Focus console (popovers can dim it)
 void focus_bar_redraw();                // repaints the F-key bar
+void focus_bar_reset();                 // repaints the F-key bar, plain layer
 void focus_invalidate();                // the next focus_disp repaints everything (after a full-screen view)
 void focus_status_label(const char * s); // a view's label in the status bar ("COMMANDS"); 0: the console's
 void focus_tab(int i, int on, int bank); // the standard layer's tab of F-key i (on: its menu is open)

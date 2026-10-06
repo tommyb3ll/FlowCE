@@ -2967,6 +2967,16 @@ int Console_FMenu(int key){
     s=ptr;
   if (strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
     s=ptr;
+  const int l=strlen(s);
+  if (console_input2d() && l>1 && l<60 && s[l-1]=='('){ // 2D: irem( goes in as irem(|), as typed
+    char buf[64];
+    strcpy(buf,s);
+    buf[l]=')';
+    buf[l+1]=0;
+    const int r=Console_Input((const Char *)buf);
+    Console_MoveCursor(CURSOR_LEFT);
+    return r;
+  }
   return Console_Input((const Char *)s);
 }
 
@@ -3006,7 +3016,8 @@ const char * console_menu(int key,Char* cfg_,int active_app){
       strcpy(tabmenu[int(entry.count)], temp);
       entry.count++;
     }
-    cfg++;
+    if (*cfg) // not past the end of the last line (it read the next string: [A]..[H] then %.4g)
+      cfg++;
   }
   if(entry.count > 0) {
     const char * ret=nullptr;
@@ -3089,6 +3100,16 @@ const char * Console_Draw_FMenu(int key, struct FMenu* menu,Char * cfg,int activ
 
   char ** entries = menu->str;
   nb_entries = menu->count;
+  if (focus_on && active_app==0 && focus_screen()){ // the console: a Focus card of the entries
+    const int r=focus_fmenu(key-KEY_CTRL_F1,(const char * const *)entries,nb_entries);
+    if (r>=0)
+      return entries[r];
+    if (r<=-2){ // another menu's F-key
+      const int j=-2-r;
+      return console_menu(j<6?KEY_CTRL_F1+j:KEY_CTRL_F7+(j-6),cfg,active_app);
+    }
+    return nullptr;
+  }
   //dbg_printf("fmenu key=%i position_number=%i menu=%s\n",key,position_number,menu->str);
 
   for(i=0; i<nb_entries; i++)

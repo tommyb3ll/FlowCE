@@ -13,6 +13,7 @@
 #include "ui_math.h"
 
 extern "C" void GetKey(int * key); // k_csdk.c
+const char * console_fkey_label(int layer, int k); // console.cc: an F-key's label (layer 0, 2nd, alpha)
 
 // an item: a template (KhiCAS text, the caret moved back by `back` after insertion; empty
 // arguments are drawn as boxes) or an action; pv: the preview when it differs from the template
@@ -71,11 +72,12 @@ enum { RH = 30, LW = 252, CH = 40, CH2 = 60, ST = 16, SBOT = 218 };
 static int cellh(const fm_menu & m) { return m.grid == 2 ? CH2 : CH; }
 
 static int px, py, pw, ph, cw; // the card
-static int hdr;                // focus_choose: the title's height at the top of the card
+static int hdr;                // focus_list: the title's height at the top of the card
 static const char * title;
+static int top, vis = 99, rh = RH; // focus_list: the first row shown, the rows shown, their height
 static void geometry(int id, const fm_menu & m) {
   if (m.grid) {
-    cw = m.grid == 2 ? 150 : m.cols == 3 ? 76 : 60;
+    cw = m.grid == 2 ? (m.cols == 3 ? 100 : 150) : m.cols == 3 ? 76 : 60;
     pw = m.cols * cw + 10; ph = ((m.n + m.cols - 1) / m.cols) * cellh(m) + 10;
   } else { pw = LW; ph = m.n * RH + 10; }
   int anchor = id < 5 ? 32 + 64 * id : UI_W / 2;
@@ -88,7 +90,7 @@ static void geometry(int id, const fm_menu & m) {
 // the box of item k (screen coordinates)
 static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & h) {
   if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
-  else { x = px + 5; y = py + 5 + hdr + k * RH; w = pw - 10; h = RH; }
+  else { x = px + 5; y = py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
 }
 
 // the previews of the open menu, laid out once (empty arguments drawn as boxes)
@@ -124,17 +126,20 @@ static void paint_item(const fm_menu & m, int k, int sel) {
   ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
     if (on) ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_CARD);
-    if (m.grid == 2) { // a card: the preview, its label under it
+    if (m.grid == 2) { // a card: the preview, its label under it (a label alone: centered)
+      int alone = PLV[k] < 0;
       preview(k, it.pv ? it.pv : it.text, x + 4, y + 23, w - 8, fg, bg, 1);
-      const ui_face * f = on ? &ui_tb10 : &ui_tr10;
-      int lw = ui_text_width(f, it.label, -1);
-      ui_draw_text(f, it.label, -1, x + (w - lw) / 2, y + h - 8, ui_ramp(1, sub, bg), 0);
+      if (it.label) {
+        const ui_face * f = alone ? (on ? &ui_tb12 : &ui_tr12) : on ? &ui_tb10 : &ui_tr10;
+        int lw = ui_text_width(f, it.label, -1);
+        ui_draw_text(f, it.label, -1, x + (w - lw) / 2, alone ? y + h / 2 + 5 : y + h - 8, ui_ramp(1, alone ? fg : sub, bg), 0);
+      }
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
   } else {
     if (on) ui_rrect(1, x, y, w, h, 6, UC_ACC, UC_CARD);
     char num[2] = {(char)('1' + k), 0};
     int nw = ui_text_width(&ui_tb10, num, -1);
-    ui_draw_text(&ui_tb10, num, -1, x + 10 - nw / 2, y + 19, ui_ramp(1, sub, bg), 0);
+    if (k < 9) ui_draw_text(&ui_tb10, num, -1, x + 10 - nw / 2, y + h / 2 + 4, ui_ramp(1, sub, bg), 0);
     int lx = x + 24;
     if (it.text) {
       ui_clip(x + 20, y, x + 124, y + h);
@@ -142,10 +147,10 @@ static void paint_item(const fm_menu & m, int k, int sel) {
       ui_clip(x, y, x + w, y + h);
       lx = x + 128;
     }
-    ui_draw_text(on ? &ui_tb12 : &ui_tr12, it.label, -1, lx, y + 20, ui_ramp(1, fg, bg), 0);
+    ui_draw_text(on ? &ui_tb12 : &ui_tr12, it.label, -1, lx, y + h / 2 + 5, ui_ramp(1, fg, bg), 0);
     if (it.hint) {
       int hw = ui_text_width(&ui_tr10, it.hint, -1);
-      ui_draw_text(&ui_tr10, it.hint, -1, x + w - 8 - hw, y + 19, ui_ramp(1, sub, bg), 0);
+      ui_draw_text(&ui_tr10, it.hint, -1, x + w - 8 - hw, y + h / 2 + 4, ui_ramp(1, sub, bg), 0);
     }
   }
   ui_noclip();
@@ -168,9 +173,18 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
       }
     }
     for (int k = 0; k < m.n; ++k) { // the items this band touches
+      if (!m.grid && (k < top || k >= top + vis)) continue; // scrolled out of a long list
       int x, y, w, h;
       item_box(m, k, x, y, w, h);
       if (y < e && y + h > b) paint_item(m, k, sel);
+    }
+    if (!m.grid && m.n > vis) { // a long list's scroll bar
+      int ty = py + 5 + hdr, th = vis * rh, tx = px + pw - 10;
+      ui_clip(tx, b > ty ? b : ty, tx + 4, e < ty + th ? e : ty + th);
+      ui_fill(tx, ty, 4, th, ui_col(1, UC_LINE));
+      ui_fill(tx, ty + th * top / m.n, 4, th * vis / m.n, ui_col(1, UC_SUB));
+      if (!rows) ui_clip(0, b, UI_W, e);
+      else ui_noclip();
     }
     if (rows) ui_band_end();
   }
@@ -183,27 +197,161 @@ static void repaint_item(const fm_menu & m, int k, int sel) {
   paint_rows(m, y, y + h, sel, 0);
 }
 
-int focus_choose(const char * t, const char * const * labels, int n) {
-  static fm_item it[4];
-  if (n > 4) n = 4;
-  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = 0; it[k].act = (char)(k + 1); }
+// a list card, centered, under a title (or none): KhiCAS's own menus (doMenu: config, variables,
+// file...) and confirmations. A long list scrolls. Returns the item chosen, -1 if cancelled.
+int focus_list(const char * t, const char * const * labels, int n, int sel) {
+  if (n < 1) return -1;
+  if (n > 60) n = 60;
+  fm_item * it = new fm_item[n];
+  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = 0; it[k].act = 0; }
   fm_menu m = {0, 1, (char)n, it};
-  title = t; hdr = 26;
-  pw = 230; ph = hdr + n * RH + 10;
+  title = t; hdr = t ? 26 : 0;
+  rh = n > 5 ? 24 : RH;
+  vis = (SBOT - ST - 16 - hdr) / rh;
+  if (vis > n) vis = n;
+  if (sel < 0 || sel >= n) sel = 0;
+  top = sel >= vis ? sel - vis + 1 : 0;
+  pw = 236; ph = hdr + vis * rh + 10;
   px = (UI_W - pw) / 2; py = ST + (SBOT - ST - ph) / 2;
   PL = 0;
-  int sel = 0, res = -1;
+  int res = -1;
   ui_dim(1);
   paint_rows(m, py, py + ph + 4, sel, 1);
   ui_band_close();
   for (;;) {
     int k;
     GetKey(&k);
+    if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
     if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) break;
     int ns = sel;
     if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
     if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
-    if (k >= KEY_CHAR_1 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
+    if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
+    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = sel; break; }
+    if (ns != sel) {
+      int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
+      sel = ns;
+      if (nt != top) { // scrolled: all the rows
+        top = nt;
+        paint_rows(m, py + 5 + hdr, py + 5 + hdr + vis * rh, sel, 0);
+      } else {
+        repaint_item(m, old, sel);
+        repaint_item(m, sel, sel);
+      }
+      ui_band_close();
+    }
+  }
+  hdr = 0; top = 0; vis = 99; rh = RH;
+  delete[] it;
+  ui_dim(0);
+  focus_repaint(py - 2, py + ph + 6);
+  focus_bar_redraw();
+  return res;
+}
+
+int focus_choose(const char * t, const char * const * labels, int n) { return focus_list(t, labels, n, 0); }
+
+// KhiCAS's own F-key menus (their config is in console.cc: the 2nd and alpha layers, plot,
+// matrices, lists...) as a grid of cards: the command drawn in 2D over a short label.
+static const char * const fm_lab[] = { // command, label
+  "mod", "Modulo", "irem", "Remainder", "ifactor", "Prime factors", "gcd", "GCD", "isprime", "Is prime?",
+  "nextprime", "Next prime", "powmod", "Power mod", "iegcd", "Bezout", "exact", "Exact", "approx", "Decimal",
+  "floor", "Floor", "ceil", "Ceiling", "round", "Round", "sign", "Sign", "max", "Maximum", "min", "Minimum",
+  "abs", "Modulus", "arg", "Argument", "re", "Real part", "im", "Imag. part", "conj", "Conjugate",
+  "csolve", "Solve in C", "cfactor", "Factor in C", "cpartfrac", "Partial fr. C", "proot", "Roots",
+  "pcoeff", "From roots", "quo", "Quotient", "rem", "Remainder", "egcd", "Bezout", "resultant", "Resultant",
+  "matrix", "New matrix", "det", "Determinant", "matpow", "Power", "ranm", "Random", "rref", "Row reduce",
+  "tran", "Transpose", "egvl", "Eigenvalues", "egv", "Eigenvectors", "makelist", "New list", "range", "Range",
+  "seq", "Sequence", "len", "Length", "append", "Append", "ranv", "Random", "sort", "Sort", "apply", "Apply",
+  "hex", "Hexadecimal", "bin", "Binary", "debug", "Debug", "python", "Python", "f", "Function",
+  "plot", "Function", "plotseq", "Cobweb", "plotlist", "Points", "plotparam", "Parametric",
+  "plotpolar", "Polar", "plotfield", "Slope field", "histogram", "Histogram", "barplot", "Bar chart",
+  "draw_pixel", "Pixel", "draw_line", "Line", "draw_rectangle", "Rectangle", "draw_polygon", "Polygon",
+  "draw_circle", "Circle", "draw_string", "Text", "get_pixel", "Read pixel", "clearscreen", "Clear",
+  "rand", "Random", "randint", "Random integer", "binomial", "Binomial", "and", "And", "or", "Or",
+};
+static int namec(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'; }
+static const char * fm_label(const char * s) {
+  while (*s == ' ') ++s;
+  int n = 0;
+  while (namec(s[n])) ++n;
+  if (!n) return 0;
+  for (unsigned i = 0; i < sizeof(fm_lab) / sizeof(fm_lab[0]); i += 2)
+    if (!strncmp(fm_lab[i], s, n) && !fm_lab[i][n]) return fm_lab[i + 1];
+  return 0;
+}
+// the open menu's tab when the bar shows text (2nd, alpha): bright, in bank 1
+static void tab_text(int i, const char * w, int fg) {
+  char b[16];
+  int n = 0;
+  while (*w == ' ') ++w;
+  while (w[n] && n < 15) { b[n] = w[n]; ++n; }
+  while (n && b[n - 1] == ' ') --n;
+  b[n] = 0;
+  int cx = 32 + 64 * i, tw = ui_text_width(&ui_tb10, b, -1);
+  ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
+  ui_fill(cx - 32, SBOT + 1, 64, UI_H - SBOT - 1, ui_col(1, UC_BAR));
+  ui_rrect(1, cx - 30, SBOT + 3, 60, UI_H - SBOT - 5, 6, UC_ACCSOFT, UC_BAR);
+  ui_draw_text(&ui_tb10, b, -1, cx - tw / 2, SBOT + 15, ui_ramp(1, fg, UC_ACCSOFT), 0);
+  ui_noclip();
+}
+// idx: the menu, numbered as console_menu does (key - F1: 0-4 plain, 5-9 2nd, 10-14 alpha, 15+
+// others). Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
+int focus_fmenu(int idx, const char * const * e, int n) {
+  if (n > 9) n = 9;
+  if (n < 1) return -1;
+  fm_item it[9];
+  char pv[9][24];
+  for (int k = 0; k < n; ++k) {
+    const char * s = e[k];
+    int L = strlen(s), w = L > 0, sym = L > 0;
+    for (int i = 0; i < L; ++i) {
+      if (!namec(s[i]) || (s[i] >= '0' && s[i] <= '9')) w = 0;
+      if (namec(s[i])) sym = 0;
+    }
+    it[k].text = s; it[k].back = 0; it[k].pv = 0; it[k].hint = 0; it[k].act = 0;
+    it[k].label = fm_label(s);
+    if (s[0] == ' ' || sym) { // an operator ( mod ) or a symbol (: & #): the text alone, upright
+      int a = 0, b = L;
+      while (s[a] == ' ') ++a;
+      while (b > a && s[b - 1] == ' ') --b;
+      if (b - a > 22) b = a + 22;
+      memcpy(pv[k], s + a, b - a); pv[k][b - a] = 0;
+      it[k].label = pv[k]; it[k].text = 0;
+    } else if (!it[k].label && w) { it[k].label = s; it[k].text = 0; } // red, filled: the word alone
+    else if (L > 1 && L < 23 && s[L - 1] == '(') { // irem( drawn as irem(□)
+      memcpy(pv[k], s, L); pv[k][L] = ')'; pv[k][L + 1] = 0;
+      it[k].pv = pv[k];
+    }
+  }
+  fm_menu m = {2, 3, (char)n, it};
+  int col = idx < 5 ? 4 : idx < 15 ? idx % 5 : 5, layer = idx / 5;
+  geometry(col, m);
+  prepare(m);
+  ui_dim(1);
+  if (col < 5) { // the open menu's tab, bright
+    int band = ui_band_open(24) >= 22;
+    if (band) { ui_band_begin(SBOT, UI_H); ui_band_load(); }
+    if (layer == 0) focus_tab(col, 1, 1);
+    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_ACC : UC_GREEN);
+    if (band) ui_band_end();
+  }
+  int sel = 0, res = -1;
+  paint_rows(m, py, py + ph + 4, sel, 1);
+  ui_band_close();
+  for (;;) {
+    int k;
+    GetKey(&k);
+    if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
+    int j = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F6 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F7 && k <= KEY_CTRL_F20 ? k - KEY_CTRL_F7 + 6 : -1;
+    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || j == idx || (j >= 0 && j < 5)) break;
+    if (j >= 0) { res = -2 - j; break; }
+    int ns = sel;
+    if (k == KEY_CTRL_LEFT) ns = sel > 0 ? sel - 1 : n - 1;
+    if (k == KEY_CTRL_RIGHT) ns = sel < n - 1 ? sel + 1 : 0;
+    if (k == KEY_CTRL_UP) ns = sel >= 3 ? sel - 3 : sel;
+    if (k == KEY_CTRL_DOWN) ns = sel + 3 < n ? sel + 3 : sel;
+    if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = sel; break; }
     if (ns != sel) {
       int old = sel;
@@ -213,10 +361,11 @@ int focus_choose(const char * t, const char * const * labels, int n) {
       ui_band_close();
     }
   }
-  hdr = 0;
+  delete[] PL;
+  PL = 0;
   ui_dim(0);
   focus_repaint(py - 2, py + ph + 6);
-  focus_bar_redraw();
+  focus_bar_reset(); // 2nd and alpha were used up by the key that opened the menu
   return res;
 }
 

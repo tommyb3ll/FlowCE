@@ -721,6 +721,8 @@ int focus_hist_line(int dir) {
 
 void focus_repaint(int y0, int y1) { stage_rows(y0, y1); ui_band_close(); }
 void focus_bar_redraw() { bar_draw(bar_keyflag, 1); }
+void focus_bar_reset() { bar_draw(0, 1); }
+int focus_screen() { return screen_is_ours(); }
 // a full-screen view (the command search) drew over everything with entries >= 128, so
 // screen_is_ours() cannot tell: forget what is on screen
 void focus_invalidate() { PM.ll = -1; }

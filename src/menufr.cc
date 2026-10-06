@@ -11,6 +11,7 @@
 #include "menuGUI.h"
 #include "textGUI.h"
 #include "console.h"
+#include "focus.h"
 #if !defined std
 #define std ustl
 #endif
@@ -26,6 +27,20 @@ void fix_f(int & key){
 #define MB_ElementCount strlen
 
 int doMenu(Menu* menu, MenuItemIcon* icontable) { // returns code telling what user did. selection is on menu->selection. menu->selection starts at 1!
+  if (focus_on && focus_screen() && menu->numitems>0 && menu->numitems<=40 &&
+      (menu->type==MENUTYPE_NORMAL || menu->type==MENUTYPE_NO_NUMBER)){ // over the console: a Focus card
+    const char * lab[40];
+    int i=0;
+    for (;i<menu->numitems && menu->items[i].type==MENUITEM_NORMAL && menu->items[i].text;++i)
+      lab[i]=menu->items[i].text;
+    if (i==menu->numitems){
+      const int r=focus_list(menu->title,lab,i,menu->selection-1);
+      if (r<0)
+        return MENU_RETURN_EXIT;
+      menu->selection=r+1;
+      return MENU_RETURN_SELECTION;
+    }
+  }
   int itemsStartY=menu->startY; // char Y where to start drawing the menu items. Having a title increases this by one
   int itemsHeight=menu->height;
   const bool showtitle = (menu->title != nullptr);
