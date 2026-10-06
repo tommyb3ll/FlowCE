@@ -1,0 +1,6 @@
+# ENTRY (2nd enter): the last input on the edit line, the one before at the next press
+entry1	2+3
+entry2	x^2	{2nd,enter}
+entry3	7*6	{2nd,enter}{2nd,enter}
+entry4	1+1	{2nd,enter}{2nd,enter}{enter}
+entry5	9-4	{2nd,enter}{2nd,enter}{2nd,enter}{2nd,enter}{2nd,enter}{2nd,enter}{2nd,enter}

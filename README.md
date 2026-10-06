@@ -70,6 +70,7 @@ about 10 minutes. A simpler install is planned.
 | F1 to F5 | algebra, calculus, trig, symbols, more (with 2nd or alpha: more menus) |
 | math | templates: fraction, root, integrals, derivative, limit, sum |
 | ▲ / ▼ | history / search every command |
+| 2nd enter | the last input again (ENTRY); press again for the one before |
 | F4 on an answer | its other forms |
 | clear | erases the line; on an empty line, the answer |
 | `/` `^` | a fraction of what is before, an exponent; ▶ leaves it |

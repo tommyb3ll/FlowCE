@@ -3015,6 +3015,25 @@ int Console_GetKey(){
       //if (ret!=CONSOLE_SUCCEEDED) return ret;
       continue;
     }
+    if (focus_on && key==KEY_CHAR_CR){
+      // TI's ENTRY (2nd enter): the last input on the edit line, the one before at the next
+      // press (KhiCAS ran the whole session again)
+      static int entry=-1; // the input line copied last
+      int l=Last_Line-1;
+      if (entry>=0 && entry<Last_Line && Line[entry].type==LINE_TYPE_INPUT && Edit_Line && !strcmp((const char *)Line[entry].str,(const char *)Edit_Line))
+        l=entry-1;
+      while (l>=0 && Line[l].type!=LINE_TYPE_INPUT)
+        --l;
+      if (l>=0 && Line[l].str){
+        entry=l;
+        for (int k=0;Current_Line<Last_Line && k<4000;++k)
+          Console_MoveCursor(CURSOR_DOWN);
+        Console_Clear_EditLine();
+        Console_Input(Line[l].str);
+        Console_Disp(1);
+      }
+      continue;
+    }
     if (key == KEY_CHAR_CR && (Current_Line!=Last_Line || Cursor.x==0)){
       run_session(0);
       return 0;
