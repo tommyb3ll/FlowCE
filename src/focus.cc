@@ -20,6 +20,8 @@ extern "C" int os_get_angle_unit();
 extern "C" int os_key_flags();      // k_csdk.c: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
 bool console_edit2d();              // console.cc: the edit line is math (not Python)
 int console_caret();                // console.cc: caret index in the edit line, -1 if in the history
+extern const char * console_form_name; // main.cc: the form F4 last gave console_form_line()
+const char * console_form_line();
 const char * console_fkey_label(int layer, int k); // console.cc: F-key label (layer 0, 2nd, alpha)
 
 int focus_on = 1;
@@ -268,11 +270,14 @@ static void hero_paint() { // in the current clip
         ui_draw_text(&ui_mi24, "C", -1, cx, base, ramp(UC_SUB, UC_BG), 0);
       }
     }
-    // the forms key
-    int cw2 = ui_text_width(&ui_tb9, "forms", -1) + ui_text_width(&ui_tb9, "F4", -1) + 20, cx = (UI_W - cw2) / 2, cy = y0 + h - 13;
-    ui_rrect(0, cx, cy - 10, cw2, 13, 6, UC_ACCSOFT, UC_BG);
-    int w1 = ui_text(&ui_tb9, "forms", cx + 6, cy, UC_ACC, UC_ACCSOFT, 0);
-    ui_text(&ui_tb9, "F4", cx + 12 + w1, cy, UC_SUB, UC_ACCSOFT, 0);
+    // the forms chip: the form shown (F4 cycles them, main.cc console_cycle_form)
+    if (!is_text(r)) {
+      const char * fn = (const char *)Line[e.out].str == console_form_line() ? console_form_name : "exact";
+      int cw2 = ui_text_width(&ui_tb9, fn, -1) + ui_text_width(&ui_tb9, "F4", -1) + 20, cx = (UI_W - cw2) / 2, cy = y0 + h - 13;
+      ui_rrect(0, cx, cy - 10, cw2, 13, 6, UC_ACCSOFT, UC_BG);
+      int w1 = ui_text(&ui_tb9, fn, cx + 6, cy, UC_ACC, UC_ACCSOFT, 0);
+      ui_text(&ui_tb9, "F4", cx + 12 + w1, cy, UC_SUB, UC_ACCSOFT, 0);
+    }
   } else {
     int m = y0 + h / 2;
     ui_text(&ui_tr12, "Type a calculation", UI_W / 2, m, UC_SUB, UC_BG, 1);
@@ -371,6 +376,72 @@ extern "C" void focus_status_msg(const char * msg) {
   status_draw(0);
 }
 
+// The standard layer is the prototype's: an icon and a word per key (algebra, calculus, trig,
+// symbols or forms, more), the menus being Focus popovers (focus_menu.cc); 2nd and alpha show
+// KhiCAS's own menus, as text.
+enum { IC_X2, IC_INT, IC_WAVE, IC_PI, IC_FORMS, IC_MORE, IC_SEARCH };
+#define P16(a, b) X + (int)((a) * 16), Y + (int)((b) * 16)
+// the prototype's icons, strokes in a 16 x 16 box centered at x, cy
+void focus_icon(int ic, int x, int cy, int bank, int c, int bg) {
+  const unsigned char * r = ui_ramp(bank, c, bg);
+  int X = (x - 8) * 16, Y = (cy - 8) * 16, th = 22;
+  switch (ic) {
+  case IC_X2: {
+    mi_layout L;
+    mi_build("x^2", 3, -1, ui_math_metrics(6, 0), L);
+    ui_math_draw(L, "x^2", 6, x - L.width / 2, cy + 4, bank, c, bg, c);
+  } break;
+  case IC_INT: {
+    int q[] = {P16(10, 2.5), P16(8.6, 1.3), P16(7.1, 2.1), P16(6.8, 4), P16(6.2, 12), P16(5.9, 14.1), P16(4.4, 14.9), P16(3, 13.5)};
+    ui_poly16(q, 8, th, r);
+  } break;
+  case IC_WAVE: { // a period of sine: 8 - 4.5 sin(2 pi i / 14), 1/16 px
+    static const unsigned char sy[15] = {128, 97, 72, 58, 58, 72, 97, 128, 159, 184, 198, 198, 184, 159, 128};
+    int q[30];
+    for (int k = 0; k < 15; ++k) { q[2 * k] = X + (1 + k) * 16; q[2 * k + 1] = Y + sy[k]; }
+    ui_poly16(q, 15, th, r);
+  } break;
+  case IC_PI: { // the math font's pi
+    const ui_glyph * g = ui_glyph_of(&ui_mu17, 0x3c0);
+    if (g) ui_draw_glyph(&ui_mu17, 0x3c0, x - g->adv / 2, cy + 5, r, 0);
+  } break;
+  case IC_FORMS: {
+    int a[] = {P16(2, 5.5), P16(13, 5.5), P16(10.5, 3)}, b[] = {P16(14, 10.5), P16(3, 10.5), P16(5.5, 13)};
+    ui_poly16(a, 3, th, r); ui_poly16(b, 3, th, r);
+  } break;
+  case IC_MORE:
+    for (int k = 0; k < 3; ++k) ui_rrect(bank, x - 7 + 5 * k, cy - 1, 3, 3, 1, c, bg);
+    break;
+  case IC_SEARCH: { // a circle of radius 4.2 around (7, 7) and a handle
+    static const signed char cx[13] = {67, 61, 45, 22, -2, -27, -48, -63, -67, -59, -42, -19, 67}, cy2[13] = {0, 25, 47, 63, 67, 62, 45, 23, -2, -31, -52, -64, 0};
+    int q[26];
+    for (int k = 0; k < 13; ++k) { q[2 * k] = X + 112 + cx[k]; q[2 * k + 1] = Y + 112 + cy2[k]; }
+    ui_poly16(q, 13, th, r);
+    int h[] = {P16(10.2, 10.2), P16(14, 14)};
+    ui_poly16(h, 2, th + 4, r);
+  } break;
+  }
+}
+#undef P16
+
+static int forms_key(); // F4 shows forms (a result is selected, or shown large)
+static const char * const tab_word[5] = {"algebra", "calculus", "trig", "symbols", "more"};
+static const unsigned char tab_icon[5] = {IC_X2, IC_INT, IC_WAVE, IC_PI, IC_MORE};
+
+// the tab of F-key i in the standard layer; on: its popover is open (drawn bright, bank 1)
+void focus_tab(int i, int on, int bank) {
+  int cx = 32 + 64 * i, by = SBOT + 15, fm = i == 3 && forms_key();
+  const char * w = fm ? "forms" : tab_word[i];
+  ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
+  ui_fill(cx - 32, SBOT + 1, 64, MB - 1, ui_col(bank, UC_BAR));
+  if (on) ui_rrect(bank, cx - 30, SBOT + 3, 60, MB - 5, 6, UC_ACCSOFT, UC_BAR);
+  const ui_face * f = on ? &ui_tb10 : &ui_tr10;
+  int bg = on ? UC_ACCSOFT : UC_BAR, lw = ui_text_width(f, w, -1), x0 = cx - (16 + lw) / 2;
+  focus_icon(fm ? IC_FORMS : tab_icon[i], x0 + 7, by - 4, bank, UC_ACC, bg);
+  ui_draw_text(f, w, -1, x0 + 16, by, ui_ramp(bank, on ? UC_ACC : UC_BARINK, bg), 0);
+  ui_noclip();
+}
+
 static int bar_keyflag;
 static char bar_sig[100];
 static void bar_draw(int keyflag, int force) {
@@ -381,7 +452,8 @@ static void bar_draw(int keyflag, int force) {
   char lab[5][20], sig[sizeof(bar_sig)];
   int k = 0;
   sig[k++] = '0' + layer;
-  for (int i = 0; i < 5; ++i) { // labels without the padding of the classic bar
+  if (!layer) sig[k++] = '0' + forms_key();
+  else for (int i = 0; i < 5; ++i) { // labels without the padding of the classic bar
     const char * p = console_fkey_label(layer, i);
     while (*p == ' ') ++p;
     int n = strlen(p);
@@ -394,12 +466,19 @@ static void bar_draw(int keyflag, int force) {
   if (!force && !strcmp(sig, bar_sig)) { focus_phase = ph; return; }
   strcpy(bar_sig, sig);
   focus_phase = 11;
+  int band = ui_band_open(MB) >= MB; // no blank frame when the labels change
+  if (band) ui_band_begin(SBOT, UI_H);
   ui_clip(0, SBOT, UI_W, UI_H);
   ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
   ui_fill(0, SBOT, UI_W, 1, col(UC_LINE));
-  int fg = layer == 1 ? UC_ACC : layer == 2 ? UC_GREEN : UC_BARINK;
-  for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
+  if (!layer) for (int i = 0; i < 5; ++i) focus_tab(i, 0, 0);
+  else {
+    int fg = layer == 1 ? UC_ACC : UC_GREEN;
+    for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
+  }
   ui_noclip();
+  if (band) ui_band_end();
+  ui_band_close();
   focus_phase = ph;
 }
 void focus_bar(int keyflag) { bar_draw(keyflag, 0); }
@@ -569,6 +648,16 @@ void focus_disp(int mode) {
   PM = M;
   focus_phase = 0;
 }
+
+// F4 cycles the forms of a result: one selected in the history, or the last one shown large
+int focus_result_line() {
+  int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // the history line of the cursor
+  if (cl >= 0 && cl < Last_Line && Line[cl].type == LINE_TYPE_OUTPUT) return cl;
+  return hm == HM_RESULT && NE ? E[NE - 1].out : -1;
+}
+static int forms_key() { return focus_result_line() >= 0; }
+void focus_repaint(int y0, int y1) { stage_rows(y0, y1); ui_band_close(); }
+void focus_bar_redraw() { bar_draw(bar_keyflag, 1); }
 
 void focus_init() { ui_set_theme(&ui_theme_paper); read_battery(); }
 extern "C" void focus_idle(void) { // getkey, after a few idle seconds

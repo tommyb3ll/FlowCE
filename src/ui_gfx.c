@@ -39,6 +39,7 @@ void ui_band_begin(int y0, int y1) {
   ui_fb = strip - y0 * UI_W; // screen row y lands at strip row y - y0
   ui_noclip();
 }
+void ui_band_load(void) { memcpy(strip, FB + band_y0 * UI_W, (band_y1 - band_y0) * UI_W); }
 void ui_band_end(void) {
   memcpy(FB + band_y0 * UI_W, strip, (band_y1 - band_y0) * UI_W);
   ui_fb = FB; band_y0 = 0; band_y1 = UI_H;
@@ -49,7 +50,7 @@ void ui_band_end(void) {
 const ui_theme ui_theme_paper = {{
   {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {36, 92, 204}, {226, 234, 250},
   {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {78, 86, 98}, {39, 140, 74}, {208, 214, 222},
-  {255, 255, 255}}, {30, 36, 46}, 36};
+  {255, 255, 255}, {247, 248, 250}}, {30, 36, 46}, 36};
 
 enum { BANK = 64, MAXR = (BANK - UC_COUNT) / 2 };
 static const ui_theme * TH = &ui_theme_paper;
@@ -64,13 +65,15 @@ static unsigned short rgb565(int r, int g, int b) {
   return (unsigned short)(((r & 0xf8) << 7) | ((g & 0xf8) << 2) | (b >> 3));
 }
 // slot s of bank: base color s < UC_COUNT, else mid (s - UC_COUNT) & 1 of ramp (s - UC_COUNT) / 2
+static void base_rgb(int s, int * c) { // a theme color; UC_DIM: the background dimmed
+  const unsigned char * a = TH->rgb[s == UC_DIM ? UC_BG : s];
+  for (int i = 0; i < 3; ++i) c[i] = a[i] + (s == UC_DIM ? ((TH->dim_to[i] - a[i]) * TH->dim_pct) / 100 : 0);
+}
 static void slot_rgb(int bank, int s, int * c) {
-  const unsigned char * a, * b;
-  int k;
-  if (s < UC_COUNT) { a = TH->rgb[s]; c[0] = a[0]; c[1] = a[1]; c[2] = a[2]; }
+  if (s < UC_COUNT) base_rgb(s, c);
   else {
-    k = (s - UC_COUNT) >> 1;
-    a = TH->rgb[rbg[bank][k]]; b = TH->rgb[rfg[bank][k]];
+    int k = (s - UC_COUNT) >> 1, a[3], b[3];
+    base_rgb(rbg[bank][k], a); base_rgb(rfg[bank][k], b);
     int t = ((s - UC_COUNT) & 1) ? 2 : 1; // 1/3 or 2/3 of the way to the ink
     for (int i = 0; i < 3; ++i) c[i] = a[i] + ((b[i] - a[i]) * t) / 3;
   }

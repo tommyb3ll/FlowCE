@@ -67,6 +67,14 @@ int main(int argc, char ** argv) {
       math_centered(ex[i], 4, 4, y + 46, 312, 30, UC_INK, 0, -1);
       y += 78;
     }
+  } else if (scene == "pv") { // template previews (boxes)
+    const char * ex[] = {"^2", "^()", "()^()", "diff(,x)", "limit(,x,)", "sum(,k,,)", "factor()", "pi"};
+    for (int i = 0; i < 8; ++i) {
+      mi_layout L;
+      int lv = ui_math_fit(ex[i], (int)strlen(ex[i]), -1, 2, 150, 56, MI_F_CALLBOX, L);
+      int x = 4 + (i % 2) * 160, y = 4 + (i / 2) * 58;
+      ui_math_draw(L, ex[i], lv, x + (150 - L.width) / 2, y + (56 - L.asc - L.desc) / 2 + L.asc, 0, UC_INK, UC_BG, UC_ACC);
+    }
   } else if (scene == "sizes") {
     int y = 4;
     for (int lv = 0; lv < UI_NSIZES; ++lv) {

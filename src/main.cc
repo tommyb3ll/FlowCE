@@ -653,6 +653,8 @@ bool console_draw2d(const char * s,int top,int height,int ymin){
 static const char * form_line; // text of the result being cycled (its str pointer)
 static std::string * form_orig;
 static int form_idx;
+const char * console_form_name="exact"; // the form of console_form_line (Focus chip)
+const char * console_form_line(){ return form_line; }
 void console_cycle_form(int l){
   using namespace giac;
   static const unary_function_ptr * const ops[]={at_simplify,at_ratnormal,at_factor,at_expand,at_evalf};
@@ -689,14 +691,18 @@ void console_cycle_form(int l){
   }
   logptr(savelog,contextptr);
   gen lay;
-  const int rows=console_rows2d(r,lay);
+  const int rows=focus_on?0:console_rows2d(r,lay); // Focus draws 2D itself: no continuation rows
   const std::string text=form_idx?r.print(contextptr):*form_orig;
   if (console_replace_result(l,text.c_str(),rows?rows:1)){
     form_line=(const char *)Line[l].str;
     if (rows)
       h2d_store(form_line,lay);
   }
-  statuslinemsg((std::string("form: ")+names[form_idx]+"    F4: next").c_str());
+  console_form_name=form_idx?names[form_idx]:"exact"; // Focus: the forms chip
+  if (focus_on)
+    statuslinemsg("");
+  else
+    statuslinemsg((std::string("form: ")+names[form_idx]+"    F4: next").c_str());
 }
 #endif
 

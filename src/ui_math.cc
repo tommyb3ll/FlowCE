@@ -7,6 +7,7 @@ extern "C" volatile unsigned char focus_phase; // focus.cc: timing probe (tools/
 #include "ui_font.h"
 #include "ui_fontdata.h"
 #include <stdlib.h>
+#include <string.h>
 
 const unsigned char ui_math_sizes[UI_NSIZES] = {34, 28, 24, 20, 17, 14, 12, 10};
 static const ui_face * const MU[UI_NSIZES] = {&ui_mu34, &ui_mu28, &ui_mu24, &ui_mu20, &ui_mu17, &ui_mu14, &ui_mu12, &ui_mu10};
@@ -46,6 +47,7 @@ static int sym(const char * s, int n, unsigned * cp, int & it) {
   it = 0;
   if (n == 2 && s[0] == 'p' && s[1] == 'i') { cp[0] = 0x3c0; return 1; }
   if (n == 2 && s[0] == 'o' && s[1] == 'o') { cp[0] = 0x221e; return 1; }
+  if (n == 5 && !strncmp(s, "theta", 5)) { cp[0] = 0x3b8; it = 1; return 1; }
   if (n == 1 && s[0] == '\x1e') { cp[0] = 0x2192; return 1; }
   if (n == 1 && s[0] == 'e') { cp[0] = 'e'; it = 1; return 1; }
   int k = 0;
@@ -83,8 +85,8 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
   if (lv < 0) lv = 0;
   if (lv >= UI_NSIZES) lv = UI_NSIZES - 1;
   if (!met_ready) {
-    MET = (mi_metrics (*)[UI_NSIZES])calloc(2 * UI_NSIZES, sizeof(mi_metrics));
-    for (int k = 0; k < 2; ++k)
+    MET = (mi_metrics (*)[UI_NSIZES])calloc(3 * UI_NSIZES, sizeof(mi_metrics));
+    for (int k = 0; k < 3; ++k)
       for (int l = 0; l < UI_NSIZES; ++l) {
         mi_metrics & m = MET[k][l];
         int s = ui_math_sizes[l], ss = ui_math_sizes[script(l)];
@@ -96,11 +98,11 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
         m.gap = (short)(rnd(s, 13) < 2 ? 2 : rnd(s, 13));
         m.rad = (short)rnd(s, 56);
         m.isw = (short)rnd(s, 50);
-        m.flags = (short)(k ? MI_F_IMPLDOT : 0);
+        m.flags = (short)(k == 1 ? MI_F_IMPLDOT : k == 2 ? MI_F_CALLBOX : 0);
       }
     met_ready = 1;
   }
-  return MET[(flags & MI_F_IMPLDOT) ? 1 : 0][lv];
+  return MET[(flags & MI_F_IMPLDOT) ? 1 : (flags & MI_F_CALLBOX) ? 2 : 0][lv];
 }
 
 int ui_math_fit(const char * s, int n, int caret, int maxlv, int w, int h, int flags, mi_layout & L) {

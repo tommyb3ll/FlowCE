@@ -28,11 +28,13 @@ int ui_band_open(int maxrows);       // allocates the strip (fewer rows when mem
                                      // returns its rows, 0 = none (draw on the screen directly)
 void ui_band_close(void);            // frees it
 void ui_band_begin(int y0, int y1);  // screen rows [y0, y1), at most the strip's rows
+void ui_band_load(void);             // starts the band from the screen's pixels (draw over them)
 void ui_band_end(void);              // copies the band to the screen
 
 // theme colors
+// UC_DIM: the background as dimmed by ui_dim (for the edges of popovers drawn over the dimmed scene)
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,
-       UC_GREEN, UC_SHADOW, UC_WHITE, UC_COUNT };
+       UC_GREEN, UC_SHADOW, UC_WHITE, UC_DIM, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
 extern const ui_theme ui_theme_paper;
 

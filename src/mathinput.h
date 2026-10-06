@@ -23,7 +23,8 @@ typedef int (*mi_wfn)(const char * s, int n, int sm, int st);
 // width, integral sign width (0: the classic 1, 2, 6, 6 px).
 // flags: MI_F_IMPLDOT draws * as implicit multiplication (a 1 px gap, no dot) unless a digit
 // follows it (2*x -> 2x, x*y -> xy, 2*3 -> 2.3): for results printed by giac.
-enum { MI_F_IMPLDOT = 1 };
+// MI_F_CALLBOX: f() shows a box in its empty argument (template previews)
+enum { MI_F_IMPLDOT = 1, MI_F_CALLBOX = 2 };
 struct mi_metrics { mi_font big, small; short opgap; mi_wfn wf; short bar, gap, rad, isw, flags; };
 
 // display list op codes

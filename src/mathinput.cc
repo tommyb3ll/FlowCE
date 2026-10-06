@@ -71,7 +71,7 @@ enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP
        OP_POW, TK_OTHER = 31 };
 
 // node kinds; leaves first
-enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF,
+enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF, K_THETA,
        K_EMPTY, K_ROW, K_GROUP, K_CALL, K_FRAC, K_POW,
        K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP };
 enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64 };
@@ -193,6 +193,8 @@ static int newnode(int k, int a, int b, int ops) {
 }
 static int leaf(int k) { int n = newnode(k, ta, tb, 1); T[n].c = tc; return n; }
 static int box(int p) { return newnode(K_EMPTY, p, p, 1); }
+// the symbol drawn for a name (ui_math maps these literals to glyphs)
+static const char * symlit(int k) { return k == K_PI ? "pi" : k == K_INF ? "oo" : "theta"; }
 // budget exhausted: keep a reserve for the nodes created while unwinding (<= 2 per level)
 static int over() { return nops > MAXOPS - 16 || nn + 2 * dep + 16 > MAXN; }
 static int flat() { // the rest of the buffer as plain text
@@ -257,7 +259,7 @@ static int pcall(int nm) { // name( args ): normal or special call
   else {
     T[cl].kid = nm;
     T[nm].f |= F_FN; // a function name: upright
-    if (na == 1 && T[t].k == K_EMPTY) T[t].f |= F_NOBOX; // f(): no box
+    if (na == 1 && T[t].k == K_EMPTY && !(M->flags & MI_F_CALLBOX)) T[t].f |= F_NOBOX; // f(): no box
   }
   return cl;
 }
@@ -268,7 +270,8 @@ static int primary() {
   if (k == TK_NAME) {
     n = leaf(K_TEXT); lex(tb);
     if (namei(n, "pi")) T[n].k = K_PI;
-    else if (namei(n, "infinity")) T[n].k = K_INF;
+    else if (namei(n, "infinity") || namei(n, "oo")) T[n].k = K_INF;
+    else if (namei(n, "theta")) T[n].k = K_THETA;
     else T[n].f |= F_NAME;
     return tt == '(' ? pcall(n) : n;
   }
@@ -556,7 +559,7 @@ static void measure(int n, int sm) {
   d.as = f.asc; d.ds = f.desc;
   if (k < K_EMPTY) { // leaf: leading blanks, glyphs, gaps
     if (k == K_DOT) w += hidedot(n) ? 1 : h + 2;
-    else if (k == K_PI || k == K_INF) w += lw(k == K_PI ? "pi" : "oo", 1, sm);
+    else if (k == K_PI || k == K_INF || k == K_THETA) w += lw(symlit(k), 1, sm);
     else if (k != K_BLANK) {
       w += tw(c, d.b - c, sm, style(n, k));
       if (k == K_OP) w += 2 * M->opgap;
@@ -673,9 +676,9 @@ static void place(int n, int x, int y, int dp, int sm) {
       int gx = xx + (k == K_OP ? M->opgap : 0);
       if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.asc / 4 - 1, h + 2, 2, c, 1, 0); }
       else {
-        int st = style(n, k), sy = k == K_PI || k == K_INF;
-        op(MI_TEXT, sm, gx, y, sy ? lw(k == K_PI ? "pi" : "oo", 1, sm) : tw(c, d.b - c, sm, st),
-           f.asc + f.desc, c, d.b - c, k == K_PI ? "pi" : k == K_INF ? "oo" : 0, sy ? (int)MI_SYM : st);
+        int st = style(n, k), sy = k == K_PI || k == K_INF || k == K_THETA;
+        op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : tw(c, d.b - c, sm, st),
+           f.asc + f.desc, c, d.b - c, sy ? symlit(k) : 0, sy ? (int)MI_SYM : st);
         for (p = c + 1; p < d.b; ++p) // inside a glyph: alias
           if (k < K_PI && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
           else alias(p, p + 1);
@@ -805,7 +808,7 @@ int mi_backspace(const char * s, int len, int caret, int & from, int & to, const
   }
   // visible char: delete one glyph
   from = i; to = c;
-  if (k == K_PI || k == K_INF) { if (i >= T[n].c) { from = T[n].c; to = T[n].b; } }
+  if (k == K_PI || k == K_INF || k == K_THETA) { if (i >= T[n].c) { from = T[n].c; to = T[n].b; } }
   else {
     while (from > T[n].a && !gstart(from)) --from;
     while (to < T[n].b && !gstart(to)) ++to;

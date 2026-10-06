@@ -2206,6 +2206,48 @@ int Console_GetKey(){
       return -2;
     if (key==KEY_CTRL_SHIFT || key==KEY_CTRL_ALPHA)
       continue;
+    // Focus: F1-F3, F5 and the math key open popovers (focus_menu.cc); F4 cycles the forms of a
+    // result (selected, or shown large), else opens the symbols
+    if (focus_on && key==KEY_CTRL_F4 && Current_Line==Last_Line && focus_result_line()>=0){
+#ifdef WITH_EQW
+      console_cycle_form(focus_result_line());
+#endif
+      Console_Disp(1);
+      continue;
+    }
+    if (focus_on && (key==KEY_CTRL_F1 || key==KEY_CTRL_F2 || key==KEY_CTRL_F3 || key==KEY_CTRL_F5 || key==KEY_CTRL_SYMB
+                     || (key==KEY_CTRL_F4 && focus_result_line()<0))){
+      const char * text=0; int back=0;
+      int a=focus_popover(key,&text,&back);
+      if (a==FA_INSERT){
+        for (int g=0;Current_Line<Last_Line && g<1000;++g) // a template goes to the edit line
+          Console_MoveCursor(CURSOR_DOWN);
+        quick_item q={0,text,(signed char)back};
+        return console_insert_template(q);
+      }
+      if (a==FA_CATALOG){
+        char buf[512];
+        if (!showCatalog(buf,0,0))
+          buf[0]=0;
+        Console_Disp(1);
+        return Console_Input((const Char*)buf);
+      }
+      if (a==FA_PLOT)
+        return Console_FMenu(KEY_CTRL_F3);
+      if (a==FA_CLEAR){
+        if (do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
+          Console_Init();
+          Console_Clear_EditLine();
+        }
+        Console_Disp(1);
+        continue;
+      }
+      if (a!=FA_FILE){
+        Console_Disp(1);
+        continue;
+      }
+      key=KEY_CTRL_F5; // File: KhiCAS's menu, below
+    }
     //if (1){ char buf1[32],buf2[32]; sprint_double(buf1,key),sprint_double(buf2,KEY_CTRL_F7); confirm(buf1,buf2); }
     if (key==KEY_CHAR_MAT) key=KEY_CTRL_F10;
     if (key==KEY_CTRL_STATS) {
