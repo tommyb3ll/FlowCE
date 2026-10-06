@@ -1,0 +1,15 @@
+# trig answers after auto_simplify without giac's simplify (quality and time)
+t1	diff(sin(x)/x,x)
+t2	diff(tan(x),x)
+t3	diff(sin(x)*cos(x),x)
+t4	sin(x)^2+cos(x)^2
+t5	diff(ln(sin(x)),x)
+t6	diff(sec(x),x)
+t7	diff(sin(x)^2,x)
+t8	integrate(sin(x)^2*cos(x),x)
+t9	diff(cos(x)/(1+sin(x)),x)
+t10	(1-cos(x)^2)/sin(x)
+t11	diff(x*sin(x),x)
+t12	tan(x)*cos(x)
+t13	diff(sin(2x),x)
+t14	1/cos(x)^2-tan(x)^2

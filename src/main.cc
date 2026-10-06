@@ -472,6 +472,7 @@ static void oom_rearm(){
     oom_soft=0;
   }
 }
+extern "C" { extern volatile unsigned char focus_phase; } // focus.cc: the phase probe
 static int eval_stopped; // the last do_eval: 1 interrupted (ON), 2 out of memory
 
 void do_eval(giac::gen & g){
@@ -702,8 +703,10 @@ static giac::gen auto_simplify(const giac::gen & g){
 #endif
   if (!simplify_candidate(g))
     return g;
-  const bool trig=taille(g,16)<16 && (has_op(g,*at_sin) || has_op(g,*at_cos)) && !xcas::has_radical(g);
-  gen s=(*(trig?at_simplify:at_ratnormal))(g,contextptr);
+  // giac's simplify took 5.8 s of the 6.4 s of d/dx sin(x)/x (on any small trig answer): trig
+  // answers now get ratnormal and the cheap sin^2+cos^2=1 rewrite below
+  const bool trig=false;
+  gen s=ratnormal(g,contextptr);
   if (!trig && g.type==_SYMB){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2*x+1)
     gen d=_denom(s,contextptr);
     if (d.type==_SYMB){
@@ -2093,6 +2096,7 @@ void do_run(const char * s){
   if (1 && xcas_python_eval==0){
     if (!contextptr)
       contextptr=new giac::context;
+    focus_phase=80; // evaluation phases, for tools/emu (80 parse ... 89 shown)
     const int defn=simple_definition(buf);
     stdostream * savelog=giac::logptr(contextptr);
     if (defn)
@@ -2136,8 +2140,11 @@ void do_run(const char * s){
       g=tab;
       eval_stopped=0;
     }
-    else
+    else {
+      focus_phase=81;
       do_eval(g);
+    }
+    focus_phase=82;
     std::string msg; // a plain message instead of the result
     if (eval_stopped){ // ON, or memory ran out: what the calculation built is freed
       msg=eval_stopped==2?"Out of memory":"Interrupted";
@@ -2150,10 +2157,13 @@ void do_run(const char * s){
         g=known_sum(g,msg);
       if (g.type==giac::_FRAC && giac::is_positive(-g._FRACptr->den,contextptr)) // -3/-4 (telescoping sums)
         g=(-g._FRACptr->num)/(-g._FRACptr->den);
+      focus_phase=83;
       if (autosimp && !tabled)
         g=auto_simplify(g);
+      focus_phase=84;
       if (g.type==giac::_SYMB && giac::taille(g,200)<200 && !giac::contains(g,giac::at_order_size)) // (series: as is)
         g=positive_first(g);
+      focus_phase=85;
       if (var.type==giac::_IDNT){
         if (g.type==giac::_VECT && g._VECTptr->empty())
           msg="no solution";
@@ -2214,6 +2224,7 @@ void do_run(const char * s){
             printed=x.print(contextptr);
         }
       }
+      focus_phase=86;
       textbook(printed);
       textbook_constants(printed);
       const char * str = printed.c_str();

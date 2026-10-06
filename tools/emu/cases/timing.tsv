@@ -1,0 +1,3 @@
+# timing probes
+tay7	series(atan(x),x,0,7)
+c1a	diff(sin(x)/x,x)
