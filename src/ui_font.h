@@ -11,8 +11,9 @@ extern "C" {
 // in the face's bits, advance, box size,
 // box offset from the pen (ox right, oy down from the baseline: negative = above)
 typedef struct { unsigned char code; unsigned short off; unsigned char adv, w, h; signed char ox, oy; } ui_glyph;
-// a face: nominal size and layout ascent/descent in pixels, glyphs sorted by code point
-typedef struct { unsigned char size, asc, desc, count; const ui_glyph * glyphs; const unsigned char * bits; } ui_face;
+// a face: nominal size and layout ascent/descent in pixels, glyphs sorted by code; index: glyph
+// position of each code (0x80 + number of extra symbols codes; 255 = missing)
+typedef struct { unsigned char size, asc, desc, count; const ui_glyph * glyphs; const unsigned char * bits, * index; } ui_face;
 
 // next code point of UTF-8 text at *s (advances *s); 0 at the end
 unsigned ui_utf8(const char ** s, const char * end);

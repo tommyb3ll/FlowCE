@@ -25,14 +25,10 @@ static int code_of(unsigned cp) {
 }
 
 const ui_glyph * ui_glyph_of(const ui_face * f, unsigned cp) {
-  int c = code_of(cp), lo = 0, hi = f->count - 1;
+  int c = code_of(cp);
   if (c < 0) return 0;
-  while (lo <= hi) {
-    int mid = (lo + hi) >> 1, m = f->glyphs[mid].code;
-    if (m == c) return f->glyphs + mid;
-    if (m < c) lo = mid + 1; else hi = mid - 1;
-  }
-  return 0;
+  unsigned char i = f->index[c];
+  return i == 255 ? 0 : f->glyphs + i;
 }
 
 int ui_text_width(const ui_face * f, const char * s, int n) {
@@ -46,27 +42,65 @@ int ui_text_width(const ui_face * f, const char * s, int n) {
   return w;
 }
 
+// the 4 pixels of a glyph byte, high bits first: their masks and the level-2 value under each
+static const unsigned char pmask[4] = {0xc0, 0x30, 0x0c, 0x03}, pmid[4] = {0x80, 0x20, 0x08, 0x02};
+#ifdef TICE
+// the same loop in assembly (tools/asm/ui_blit.asm), for glyphs not clipped horizontally and not
+// opaque: KhiCAS runs from flash, where every instruction fetch is slow
+#include "ui_blit_code.h"
+typedef void (*ui_blit_fn)(unsigned char *, const unsigned char *, unsigned char, unsigned char,
+                           unsigned char, const unsigned char *);
+unsigned char ui_blit_c; // test switch (tools/emu pokes it): 1 = always the C loop
+#endif
+
 int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque) {
   const ui_glyph * g = ui_glyph_of(f, cp);
   if (!g) return 0;
   int x0 = x + g->ox, y0 = y + g->oy, w = g->w, h = g->h;
   if (x0 >= ui_cx1 || y0 >= ui_cy1 || x0 + w <= ui_cx0 || y0 + h <= ui_cy0 || !w) return g->adv;
-  const unsigned char * b = f->bits + g->off;
-  int xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w; // visible columns
-  unsigned i = 0;
-  for (int yy = 0; yy < h; ++yy, i += w) {
-    int sy = y0 + yy;
-    if (sy < ui_cy0 || sy >= ui_cy1) continue;
-    unsigned char * row = ui_fb + sy * UI_W + x0;
-    for (int xx = xa; xx < xb; ++xx) {
-      unsigned k = i + xx;
-      unsigned char byte = b[k >> 2];
-      if (!byte && !opaque) { xx += 3 - (k & 3); continue; } // 4 transparent pixels
-      int lv = (byte >> (6 - 2 * (k & 3))) & 3;
-      if (!lv) { if (opaque) row[xx] = ramp[0]; continue; }
-      unsigned char * p = row + xx, o = *p;
-      int ol = o == ramp[3] ? 3 : o == ramp[2] ? 2 : o == ramp[1] ? 1 : 0; // overlaps keep the darker shade
-      if (lv > ol) *p = ramp[lv];
+  // visible columns [xa, xb) and rows [ya, yb) of the glyph box (all < 256)
+  unsigned char xa = x0 < ui_cx0 ? ui_cx0 - x0 : 0, xb = x0 + w > ui_cx1 ? ui_cx1 - x0 : w;
+  unsigned char ya = y0 < ui_cy0 ? ui_cy0 - y0 : 0, yb = y0 + h > ui_cy1 ? ui_cy1 - y0 : h;
+  unsigned char r0 = ramp[0], r1 = ramp[1], r2 = ramp[2], r3 = ramp[3], uw = w, clipx = xa || xb < uw;
+  // pixels are packed 4 per byte, high bits first, rows back to back. No shifts in the loop
+  // (each one is a helper call on the eZ80): masks walk the byte, consumed bits are cleared,
+  // so a zero byte means the rest of it is transparent.
+  unsigned k = (unsigned)ya * uw;
+  const unsigned char * bp = f->bits + g->off + k / 4;
+  unsigned char * row = ui_fb + (y0 + ya) * UI_W + x0;
+#ifdef TICE
+  if (!ui_blit_c && !clipx && !opaque) {
+    ((ui_blit_fn)(const void *)ui_blit2_code)(row, bp, k & 3, uw, yb - ya, ramp);
+    return g->adv;
+  }
+#endif
+  unsigned char mi = k & 3, b = *bp++;
+  if (mi) b &= 0xff >> (2 * mi);
+  for (unsigned char yy = ya; yy < yb; ++yy, row += UI_W) {
+    unsigned char * q = row;
+    for (unsigned char xx = 0; xx < uw;) {
+      if (!b && !opaque) { // the rest of this byte is transparent
+        unsigned char t = 4 - mi;
+        if (t > uw - xx) t = uw - xx;
+        xx += t; q += t; mi += t;
+        if (mi == 4) { mi = 0; b = *bp++; }
+        continue;
+      }
+      unsigned char m = pmask[mi], v = b & m;
+      b ^= v;
+      if (!clipx || (xx >= xa && xx < xb)) {
+        if (v) {
+          unsigned char o = *q, c = v == m ? r3 : v == pmid[mi] ? r2 : r1;
+          if (o == r0 || opaque) *q = c;
+          else { // overlaps keep the darker shade
+            unsigned char lv = v == m ? 3 : v == pmid[mi] ? 2 : 1;
+            unsigned char ol = o == r3 ? 3 : o == r2 ? 2 : o == r1 ? 1 : 0;
+            if (lv > ol) *q = c;
+          }
+        } else if (opaque) *q = r0;
+      }
+      ++xx; ++q;
+      if (++mi == 4) { mi = 0; b = *bp++; }
     }
   }
   return g->adv;

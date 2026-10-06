@@ -40,6 +40,10 @@ CXXFLAGS = -std=c++14 -Wall -Wextra -Oz -Iustl -Isrc/tommath -DMP_16BIT -DTICE -
     -Wno-unused-variable -Wno-unused-but-set-variable -Wno-deprecated-register -Wno-reorder-ctor -Wno-inline-new-delete \
     -Wno-deprecated-copy-with-user-provided-copy $(LANG_DEF) $(FEATURE_DEFS)
 
+# The Focus drawing code works per pixel: compiled for speed (with -Oz, shifts and multiplies
+# become helper calls). Small files: a few KB of flash.
+%ui_font.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
+
 CPP_EXTENSION = cc
 APP_NAME = KhiCAS
 APP_VERSION = 5.0.0.0000

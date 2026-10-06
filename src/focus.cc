@@ -13,14 +13,18 @@
 #include "ui_math.h"
 #ifdef TICE
 #include <sys/power.h>
+#include <sys/rtc.h>
 #endif
 
 extern "C" int os_get_angle_unit();
 extern "C" int os_key_flags();      // k_csdk.c: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
 bool console_edit2d();              // console.cc: the edit line is math (not Python)
 int console_caret();                // console.cc: caret index in the edit line, -1 if in the history
+const char * console_fkey_label(int layer, int k); // console.cc: F-key label (layer 0, 2nd, alpha)
 
 int focus_on = 1;
+// timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
+extern "C" { volatile unsigned char focus_phase; }
 
 enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
        IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292 };
@@ -186,27 +190,42 @@ static void key_hint(int x, int base, const char * k, const char * label) {
   ui_text(&ui_tr9, label, x + w + 4, base, UC_SUB, UC_BG, 0);
 }
 
+// the box drawn by the last edit-line hero (cleared on the next one instead of the whole region);
+// hb_y0 = -1: unknown (the region held something else)
+static int hb_x0, hb_y0 = -1, hb_x1, hb_y1, hb_top, hb_h;
+
 static void draw_hero(int y0, int h) {
   const char * s = (const char *)Console_GetEditLine();
   int caret = console_caret();
   if (s && *s && console_edit2d()) { // the layout first, then clear and draw at once (no blank frame)
     mi_layout L;
+    focus_phase = 2;
     hero_lv = ui_math_refit(s, strlen(s), caret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
-    ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
-    ui_fill(0, y0, UI_W, h, col(UC_BG));
-    {
-      int x = (UI_W - L.width) / 2, base = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
-      if (L.width > 296) { // caret kept in view
-        x = UI_W / 2 - L.cx;
-        if (x > 12) x = 12;
-        if (x + L.width < UI_W - 12) x = UI_W - 12 - L.width;
-      }
-      ui_math_draw(L, s, hero_lv, x, base, 0, UC_INK, UC_BG, UC_ACC);
-      if (caret >= 0) ui_math_caret(L, x, base, 0, UC_ACC);
+    focus_phase = 3;
+    int x = (UI_W - L.width) / 2, base = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
+    if (L.width > 296) { // caret kept in view
+      x = UI_W / 2 - L.cx;
+      if (x > 12) x = 12;
+      if (x + L.width < UI_W - 12) x = UI_W - 12 - L.width;
     }
+    // ink can overhang the layout box a little (italics, anti-aliasing, the caret)
+    int nx0 = x - 6, ny0 = base - L.asc - 4, nx1 = x + L.width + 6, ny1 = base + L.desc + 4;
+    ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
+    if (hb_y0 < 0 || hb_top != y0 || hb_h != h) ui_fill(0, y0, UI_W, h, col(UC_BG));
+    else { // the union of the old and new boxes
+      int cx0 = nx0 < hb_x0 ? nx0 : hb_x0, cy0 = ny0 < hb_y0 ? ny0 : hb_y0;
+      int cx1 = nx1 > hb_x1 ? nx1 : hb_x1, cy1 = ny1 > hb_y1 ? ny1 : hb_y1;
+      ui_fill(cx0, cy0, cx1 - cx0, cy1 - cy0, col(UC_BG));
+    }
+    hb_x0 = nx0; hb_y0 = ny0; hb_x1 = nx1; hb_y1 = ny1; hb_top = y0; hb_h = h;
+    focus_phase = 4;
+    ui_math_draw(L, s, hero_lv, x, base, 0, UC_INK, UC_BG, UC_ACC);
+    focus_phase = 5;
+    if (caret >= 0) ui_math_caret(L, x, base, 0, UC_ACC);
     ui_noclip();
     return;
   }
+  hb_y0 = -1;
   ui_clip(0, y0 < ST ? ST : y0, UI_W, SBOT);
   ui_fill(0, y0, UI_W, h, col(UC_BG));
   if (s && *s) { // Python: plain text
@@ -262,20 +281,33 @@ static void draw_hero_peek(int y) { // history mode: the edit line, small, at th
 }
 
 // ------------------------------------------------------------------ status bar and F-key bar
-extern "C" void focus_status_msg(const char * msg) {
+// Both bars are redrawn only when what they show changes (each key would otherwise redraw them
+// up to three times); full redraws pass force.
+static int hist_sel = -1; // entry selected in the history, -1 in edit mode
+// the status bar in 3 zones redrawn separately: mode label | message | 2nd/alpha chip, battery
+enum { SZ_L = 112, SZ_R = 232 };
+static char stat_l[24], stat_m[sizeof(smsg)];
+static int stat_r = -1;
 
-  if (!msg || !strcmp(msg, session_filename)) smsg[0] = 0;
-  else { strncpy(smsg, msg, sizeof(smsg) - 1); smsg[sizeof(smsg) - 1] = 0; }
-  focus_status();
+// text with extra letter spacing (the status label)
+static void spaced_text(const ui_face * f, const char * s, int x, int base, const unsigned char * rp, int sp) {
+  for (; *s; ++s) x += ui_draw_glyph(f, (unsigned char)*s, x, base, rp, 0) + sp;
 }
 
-static int hist_sel = -1; // entry selected in the history, -1 in edit mode
+// battery level 0-4: boot_GetBatteryStatus takes about 150 ms, so it is read at startup and
+// when the calculator has been idle for a few seconds (focus_idle), never while keys are handled
+static int battery_lv = 4;
+static void read_battery() {
+#ifdef TICE
+  battery_lv = boot_GetBatteryStatus();
+#endif
+}
 
-extern "C" void focus_status(void) {
+static void status_draw(int force) {
   if (!focus_on) return;
-  ui_clip(0, 0, UI_W, SB);
-  ui_fill(0, 0, UI_W, SB, col(UC_BG));
-  char buf[24];
+  unsigned char ph = focus_phase;
+  focus_phase = 12;
+  char buf[sizeof(stat_l)];
   if (hist_sel >= 0) {
     strcpy(buf, "HISTORY  ");
     int n = hist_sel + 1, t = NE, k = strlen(buf);
@@ -283,68 +315,101 @@ extern "C" void focus_status(void) {
     buf[k++] = '0' + n % 10; buf[k++] = ' '; buf[k++] = '/'; buf[k++] = ' ';
     if (t >= 10) buf[k++] = '0' + t / 10;
     buf[k++] = '0' + t % 10; buf[k] = 0;
-  } else strcpy(buf, os_get_angle_unit() ? "RAD    CAS" : "DEG    CAS");
-  ui_text(&ui_tb9, buf, 8, 12, UC_SUB, UC_BG, 0);
-  int fl = os_key_flags(), x = UI_W - 30;
-  if (fl & 3) { // 2nd / alpha chip
-    const char * t = (fl & 1) ? "2nd" : (fl & 4) ? ((fl & 8) ? "a-lock" : "A-LOCK") : ((fl & 8) ? "a" : "A");
-    int w = ui_text_width(&ui_tb9, t, -1) + 10, c = (fl & 1) ? UC_ACC : UC_GREEN;
-    x -= w + 4;
-    ui_rrect(0, x, 2, w, 12, 4, c, UC_BG);
-    ui_text(&ui_tb9, t, x + w / 2, 11, UC_WHITE, c, 1);
+  } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
+  int fl = os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
+  int dl = force || strcmp(buf, stat_l), dm = force || strcmp(smsg, stat_m), dr = force || r != stat_r;
+  if (!dl && !dm && !dr) { focus_phase = ph; return; }
+  focus_phase = 13;
+  if (dl) {
+    strcpy(stat_l, buf);
+    ui_clip(0, 0, SZ_L, SB);
+    ui_fill(0, 0, SZ_L, SB, col(UC_BG));
+    spaced_text(&ui_tb9, buf, 8, 12, ramp(UC_SUB, UC_BG), 1);
   }
-  if (smsg[0]) ui_text(&ui_tb9, smsg, (x + 70) / 2, 12, UC_ACC, UC_BG, 1);
-  // battery
-  int bx = UI_W - 24, lv = 4;
-#ifdef TICE
-  lv = boot_GetBatteryStatus();
-#endif
-  ui_rframe(0, bx, 4, 15, 8, 2, UC_SUB, UC_BG);
-  ui_fill(bx + 15, 6, 1, 4, col(UC_SUB));
-  ui_fill(bx + 2, 6, lv > 0 ? (lv * 11 + 3) / 4 : 1, 4, col(lv <= 1 ? UC_ACC : UC_SUB));
+  if (dm) {
+    strcpy(stat_m, smsg);
+    ui_clip(SZ_L, 0, SZ_R, SB);
+    ui_fill(SZ_L, 0, SZ_R - SZ_L, SB, col(UC_BG));
+    if (smsg[0]) ui_text(&ui_tb9, smsg, (SZ_L + SZ_R) / 2, 12, UC_ACC, UC_BG, 1);
+  }
+  if (dr) {
+    stat_r = r;
+    ui_clip(SZ_R, 0, UI_W, SB);
+    ui_fill(SZ_R, 0, UI_W - SZ_R, SB, col(UC_BG));
+    if (fl & 3) { // 2nd / alpha chip
+      const char * t = (fl & 1) ? "2nd" : (fl & 4) ? ((fl & 8) ? "a-lock" : "A-LOCK") : ((fl & 8) ? "a" : "A");
+      int w = ui_text_width(&ui_tb9, t, -1) + 10, c = (fl & 1) ? UC_ACC : UC_GREEN, x = UI_W - 34 - w;
+      ui_rrect(0, x, 2, w, 12, 4, c, UC_BG);
+      ui_text(&ui_tb9, t, x + w / 2, 11, UC_WHITE, c, 1);
+    }
+    int bx = UI_W - 24; // battery
+    ui_rframe(0, bx, 4, 15, 8, 2, UC_SUB, UC_BG);
+    ui_fill(bx + 15, 6, 1, 4, col(UC_SUB));
+    ui_fill(bx + 2, 6, lv > 0 ? (lv * 11 + 3) / 4 : 1, 4, col(lv <= 1 ? UC_ACC : UC_SUB));
+  }
   ui_noclip();
+  focus_phase = ph;
+}
+extern "C" void focus_status(void) { status_draw(0); }
+
+extern "C" void focus_status_msg(const char * msg) {
+  char m[sizeof(smsg)];
+  if (!msg || !strcmp(msg, session_filename)) m[0] = 0;
+  else { strncpy(m, msg, sizeof(m) - 1); m[sizeof(m) - 1] = 0; }
+  if (!strcmp(m, smsg)) return;
+  strcpy(smsg, m);
+  status_draw(0);
 }
 
 static int bar_keyflag;
-void focus_bar(int keyflag) {
+static char bar_sig[100];
+static void bar_draw(int keyflag, int force) {
+  unsigned char ph = focus_phase;
+  focus_phase = 10;
   bar_keyflag = keyflag;
-  std::string menu(" "), shiftmenu = menu, alphamenu;
-  int bgc = 0;
-  get_current_console_menu(menu, shiftmenu, alphamenu, bgc, 0);
-  const std::string & m = keyflag == 1 ? shiftmenu : (keyflag & 0xc) ? alphamenu : menu;
+  int layer = keyflag == 1 ? 1 : (keyflag & 0xc) ? 2 : 0;
+  char lab[5][20], sig[sizeof(bar_sig)];
+  int k = 0;
+  sig[k++] = '0' + layer;
+  for (int i = 0; i < 5; ++i) { // labels without the padding of the classic bar
+    const char * p = console_fkey_label(layer, i);
+    while (*p == ' ') ++p;
+    int n = strlen(p);
+    while (n && p[n - 1] == ' ') --n;
+    if (n > 19) n = 19;
+    memcpy(lab[i], p, n); lab[i][n] = 0;
+    if (k + n + 2 < (int)sizeof(sig)) { memcpy(sig + k, lab[i], n); k += n; sig[k++] = '|'; }
+  }
+  sig[k] = 0;
+  if (!force && !strcmp(sig, bar_sig)) { focus_phase = ph; return; }
+  strcpy(bar_sig, sig);
+  focus_phase = 11;
   ui_clip(0, SBOT, UI_W, UI_H);
   ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
   ui_fill(0, SBOT, UI_W, 1, col(UC_LINE));
-  int fg = keyflag == 1 ? UC_ACC : (keyflag & 0xc) ? UC_GREEN : UC_BARINK;
-  const char * p = m.c_str();
-  for (int i = 0; i < 5 && *p; ++i) {
-    while (*p == ' ') ++p;
-    const char * e = p;
-    while (*e && *e != '|') ++e;
-    const char * t = e;
-    while (t > p && t[-1] == ' ') --t;
-    char lab[20];
-    int n = t - p < 19 ? (int)(t - p) : 19;
-    memcpy(lab, p, n); lab[n] = 0;
-    ui_text(&ui_tr10, lab, 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
-    p = *e ? e + 1 : e;
-  }
+  int fg = layer == 1 ? UC_ACC : layer == 2 ? UC_GREEN : UC_BARINK;
+  for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
   ui_noclip();
+  focus_phase = ph;
 }
+void focus_bar(int keyflag) { bar_draw(keyflag, 0); }
 
 // ------------------------------------------------------------------ the stage
 static int col_n, col_h, last_full_col_n = -1, last_hero_y = -1, last_mode = -1;
 
 static int fast_ok, last_LL = -1;
 void focus_disp(int mode) {
+  focus_phase = 1;
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;
   if (!(mode & 1) && fast_ok && nonempty && console_caret() >= 0 && Last_Line == last_LL) {
     draw_hero(last_hero_y, SBOT - last_hero_y); // typing: nothing above the edit line moved
+    focus_phase = 0;
     return;
   }
   if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
   scan();
+  focus_phase = 6;
   int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // a history line, or -1
   int hist = cl >= 0 && cl < Last_Line && NE > 0;
   const char * s = (const char *)Console_GetEditLine();
@@ -378,9 +443,10 @@ void focus_disp(int mode) {
   last_mode = hist; last_full_col_n = col_n; last_hero_y = hero_y;
   fast_ok = !hist && nonempty; last_LL = Last_Line;
   ui_set_theme(&ui_theme_paper); // cheap; repairs entries 128-255 if anything reset the palette
-  focus_status();
+  status_draw(1);
   // entries, top to bottom (each draws its own background: no full clear, no flash)
   int clip_bot = hist ? SBOT : hero_y;
+  hb_y0 = -1; // a full redraw: the hero region is cleared whole
   ui_clip(0, ST, UI_W, clip_bot);
   int yy = ST - scroll;
   if (yy > ST) ui_fill(0, ST, UI_W, yy - ST, col(UC_BG));
@@ -394,13 +460,21 @@ void focus_disp(int mode) {
     yy += e.h;
   }
   ui_noclip();
+  focus_phase = 7;
   if (hist) {
     if (yy < SBOT) draw_hero_peek(yy);
   } else draw_hero(hero_y, SBOT - hero_y);
-  focus_bar(bar_keyflag);
+  focus_phase = 8;
+  bar_draw(bar_keyflag, 1);
+  focus_phase = 0;
 }
 
-void focus_init() { ui_set_theme(&ui_theme_paper); }
+void focus_init() { ui_set_theme(&ui_theme_paper); read_battery(); }
+extern "C" void focus_idle(void) { // getkey, after a few idle seconds
+  if (!focus_on) return;
+  read_battery();
+  status_draw(0);
+}
 void focus_evaluated() { hero_last = 1; }
 int focus_clear_hero() {
   if (!hero_last) return 0;

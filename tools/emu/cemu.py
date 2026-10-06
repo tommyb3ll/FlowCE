@@ -51,6 +51,18 @@ def bmp2png(src, dst, scale=1):
                           + chunk(b'IDAT', zlib.compress(b''.join(rows), 9)) + chunk(b'IEND', b''))
 
 
+def map_symbol(name, variant='en'):
+    """Address of a symbol in the last build's linker map (statics included), or None."""
+    try:
+        for line in open(f'{KB}/out/{variant}/DEMO.map', errors='replace'):
+            parts = line.split()
+            if len(parts) >= 3 and parts[0] == name and parts[1] == '=':
+                return int(parts[2], 16)
+    except OSError:
+        pass
+    return None
+
+
 class Emu:
     def __init__(self, image=None, rom=None, shotdir='/tmp', verbose=False):
         args = [HEADLESS] + (['--image', image] if image else ['--rom', rom or ROM])
@@ -82,6 +94,9 @@ class Emu:
         if not settle:
             self.run(KEY_GAP_MS)
             return 0
+        t = self.wait_idle(timeout=5000)
+        if t is not None:
+            return t
         return self.wait_stable(step=20, stable=4, timeout=5000)
 
     def keys(self, names, settle=False):
@@ -116,6 +131,28 @@ class Emu:
                     i = j
         self.key_latencies = getattr(self, 'key_latencies', []) + lat
         return lat
+
+    def polls(self):
+        """getkey's poll counter (src/k_csdk.c getkey_polls), None if this build has none."""
+        if not hasattr(self, '_polls_addr'):
+            self._polls_addr = map_symbol('_getkey_polls')
+        if self._polls_addr is None:
+            return None
+        b = self.peek(self._polls_addr, 3)
+        return b[0] | b[1] << 8 | b[2] << 16
+
+    def wait_idle(self, step=5, timeout=300000):
+        """Run until KhiCAS polls the keypad again (ready for the next key; a key pressed while it is
+        busy is lost). Returns the emulated ms waited, None without the counter (old builds)."""
+        c0 = self.polls()
+        if c0 is None:
+            return None
+        t = 0
+        while t < timeout:
+            self.run(step); t += step
+            if self.polls() != c0:
+                return t
+        return t
 
     def hash(self):
         return self.cmd('screen-hash').split()[-1]

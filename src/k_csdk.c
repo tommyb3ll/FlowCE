@@ -64,6 +64,7 @@ static const int STATUS_AREA_PX=18;
 //saveSScreen		equ 0D0EA1Fh ; 21945 bytes	; Set GraphDraw Flag to redraw graph if used
 //cursorImage		equ 0E30800h ; 1020 bytes
 #include "k_csdk.h"
+#include "focus.h"
 #include <ti/getkey.h>
 #include <ti/getcsc.h>
 #include <ti/screen.h>
@@ -145,6 +146,8 @@ void dbgprint(int i){
 #define kb_DisableOnLatch() ((*(volatile uint8_t*)0xF0002C) &= ~1)
 #define kb_ClearOnLatch() ((*(volatile uint8_t*)0xF00028) = 1)
 
+// getkey polls (test harness: tools/emu waits for this counter to move = ready for the next key)
+volatile unsigned getkey_polls;
 int getkey(int allow_suspend){
   sync_screen();
   display_time();//statusline(0);
@@ -176,7 +179,10 @@ int getkey(int allow_suspend){
       if (j<joff){
         if ((j&0x3ff)==0x3ff)
           display_time();
+        if ((j&0x1ff)==0x1ff)
+          focus_idle();
         i=os_GetCSC();
+        ++getkey_polls;
       }
       os_wait_1ms(10);      
     }
@@ -847,7 +853,6 @@ int os_draw_string(int x,int y,int c,int bg,const char * s,int fake){
 }
 #endif
 
-#include "focus.h"
 int os_key_flags(void){ // for the Focus status bar: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
   return (shift?1:0)|(alpha?2:0)|(alphalock?4:0)|(alpha==2?8:0);
 }

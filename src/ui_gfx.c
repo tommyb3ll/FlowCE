@@ -97,10 +97,6 @@ static void put(int x, int y, int lv, const unsigned char * r) { // keeps the da
   if (lv > ol) *p = r[lv];
 }
 
-// coverage of a pixel at distance d (in 1/8 px) outside an edge, as a shade: the prototype's
-// quantization of coverage 0.5 - d (d < 0: inside)
-static int edge_level(int d8) { return d8 <= -2 ? 3 : d8 <= 1 ? 2 : d8 <= 3 ? 1 : 0; }
-
 static int isqrt(long v) { // floor(sqrt(v)), v < 2^31
   long r = 0, b = 1L << 30;
   while (b > v) b >>= 2;
@@ -108,19 +104,30 @@ static int isqrt(long v) { // floor(sqrt(v)), v < 2^31
   return (int)r;
 }
 
+// shade of a pixel at squared distance q (1/64 px^2) from the center of a disc of radius R (1/8
+// px), the prototype's quantization of the coverage 0.5 - d of a pixel at distance d (1/8 px)
+// outside the edge: 3 if d <= -2, 2 if d <= 1, 1 if d <= 3; d = floor(sqrt(q)) - R is compared
+// without the square root: d <= t <=> q < (R + t + 1)^2
+static int disc_level(int q, int R) {
+  int a = R - 1, b = R + 2, c = R + 4;
+  return a > 0 && q < a * a ? 3 : b > 0 && q < b * b ? 2 : c > 0 && q < c * c ? 1 : 0;
+}
 // corners of a rounded rectangle: pixels of the r x r corner boxes by distance to the arc
+// (24-bit integers only: r <= 60)
 static void corners(int x, int y, int w, int h, int r, const unsigned char * ramp, int ring) {
+  int R = r * 8;
   for (int q = 0; q < 4; ++q) {
     int bx = (q & 1) ? x + w - r : x, by = (q & 2) ? y + h - r : y;
     int cx8 = ((q & 1) ? x + w - r : x + r) * 8, cy8 = ((q & 2) ? y + h - r : y + r) * 8;
-    for (int py = by; py < by + r; ++py)
+    for (int py = by; py < by + r; ++py) {
+      int ey = py * 8 + 4 - cy8, ex = bx * 8 + 4 - cx8, d2 = ex * ex + ey * ey;
       for (int px = bx; px < bx + r; ++px) {
-        long ex = px * 8 + 4 - cx8, ey = py * 8 + 4 - cy8;
-        int d = isqrt(ex * ex + ey * ey) - r * 8; // signed distance to the arc, 1/8 px
         // a 1 px ring is the disc of radius r minus the disc of radius r - 1
-        int lv = ring ? edge_level(d) - edge_level(d + 8) : edge_level(d);
+        int lv = ring ? disc_level(d2, R) - disc_level(d2, R - 8) : disc_level(d2, R);
         put(px, py, lv, ramp);
+        d2 += 16 * ex + 64; ex += 8;
       }
+    }
   }
 }
 

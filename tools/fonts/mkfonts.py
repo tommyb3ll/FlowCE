@@ -175,7 +175,16 @@ def main():
         for i in range(0, len(gl), 6):
             c.append('  ' + ','.join(gl[i:i + 6]) + ',')
         c.append('};')
-        c.append('const ui_face %s = {%d,%d,%d,%d,%s_glyphs,%s_bits};' % (f.name, f.size, f.asc, f.desc, len(gl), f.name, f.name))
+        # code -> position in the glyph table (255: missing): O(1) lookups on the calculator
+        index = [255] * (0x80 + len(EXTRA))
+        for i, g in enumerate(f.glyphs):
+            index[g[0]] = i
+        total += len(index)
+        c.append('static const unsigned char %s_index[%d] = {' % (f.name, len(index)))
+        for i in range(0, len(index), 24):
+            c.append('  ' + ','.join(str(b) for b in index[i:i + 24]) + ',')
+        c.append('};')
+        c.append('const ui_face %s = {%d,%d,%d,%d,%s_glyphs,%s_bits,%s_index};' % (f.name, f.size, f.asc, f.desc, len(gl), f.name, f.name, f.name))
         c.append('')
         h.append('extern const ui_face %s;' % f.name)
     h += ['#ifdef __cplusplus', '}', '#endif', '#endif', '']

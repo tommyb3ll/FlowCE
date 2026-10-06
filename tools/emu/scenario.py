@@ -12,13 +12,37 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cemu import Emu, KB
 
 
-def bottom_bar(e):
-    """Bytes of the F-key menu bar (bottom 18 rows): tells console vs 2D viewer apart."""
+def screen(e):
     bmp = f'/tmp/cemu_bar_{os.getpid()}.bmp'
     e.cmd(f'screenshot {bmp}')
     d = open(bmp, 'rb').read()
     off, = struct.unpack_from('<I', d, 10)
-    return d[off: off + 18 * 320 * 3]          # BMP is bottom-up: the first rows are the bottom of the screen
+    return d[off:]                             # BMP is bottom-up: the first rows are the bottom of the screen
+
+
+def bottom_bar(e):
+    """Bytes of the F-key menu bar (bottom 18 rows): tells console vs 2D viewer apart."""
+    return screen(e)[: 18 * 320 * 3]
+
+
+def focus_ui(e):
+    """The Focus interface: a light status bar (the classic one is black)."""
+    top = screen(e)[226 * 320 * 3: 236 * 320 * 3]
+    return sum(top) > len(top) * 200
+
+
+def focus_busy(e):
+    """Focus: the status bar shows a message in the accent blue ("cancel: stop calcul." while
+    computing; no other message stays after an evaluation)."""
+    top = screen(e)[224 * 320 * 3: 240 * 320 * 3]
+    n = 0
+    for y in range(16):
+        row = top[y * 960: (y + 1) * 960]
+        for x in range(60, 250):
+            b, g, r = row[3 * x], row[3 * x + 1], row[3 * x + 2]
+            if b > 150 and b > r + 80:
+                n += 1
+    return n > 12
 
 
 def main(state, outdir, casefile):
@@ -26,7 +50,7 @@ def main(state, outdir, casefile):
     cases = [l.rstrip('\r\n').split('\t', 1) for l in open(casefile, encoding='utf-8')
              if l.strip() and not l.startswith('#')]
     e0 = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir=outdir)
-    console_bar = bottom_bar(e0); e0.close()
+    console_bar = bottom_bar(e0); focus = focus_ui(e0); e0.close()
     rows = []
     for i, (name, text) in enumerate(cases, 1):
         e = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir=outdir)
@@ -35,12 +59,17 @@ def main(state, outdir, casefile):
             e.cmd('key enter 80'); e.ms += 80
             # While KhiCAS computes, the F-key bar is blank ("cancel: stop calcul." in the status bar).
             # Done = bar visible again (console bar, or the 2D result viewer's bar). Resolution 50 ms.
+            # Focus keeps its bar: done = the busy message is gone from the status bar.
             e.run(150)                     # let KhiCAS start computing (clears the F-bar) before checking
             t = 150
             while t < 600000:
-                bar = bottom_bar(e)
-                if bar.count(255) != len(bar):
-                    break
+                if focus:
+                    if not focus_busy(e):
+                        break
+                else:
+                    bar = bottom_bar(e)
+                    if bar.count(255) != len(bar):
+                        break
                 e.run(50); t += 50
             e.wait_stable(step=50, stable=4, timeout=5000)
             viewer = bottom_bar(e) != console_bar

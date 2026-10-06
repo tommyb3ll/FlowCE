@@ -29,7 +29,11 @@ try:
     e.wait_stable(timeout=400000)
     if not any('written' in l for l in e.debug_output()):
         e.shot('install_failed'); sys.exit('INST did not finish writing (see install_failed.png)')
-    e.key('enter'); e.run(6000)                                        # INST resets the calculator
+    # INST says 'Success! Will now reset'. Do not press ENTER there: INST then returns into flash it
+    # has just overwritten with KhiCAS (where the arTIfiCE shell was), and whatever KhiCAS code lies
+    # at that address runs - harmless for most builds, a hang for some (2026-10-05: one landed in
+    # giac's root finder). A hardware reset (the button on the back) is always safe.
+    e.reset(); e.run(6000)
     e.key('clear'); e.run(300); e.os_fake()
     e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:KhiCAS
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen

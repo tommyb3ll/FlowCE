@@ -10,6 +10,7 @@ extern "C" {
 extern int focus_on;                    // 1: the console is drawn by focus.cc
 void focus_status(void);                // status bar (statusline / statusflags in focus mode)
 void focus_status_msg(const char * msg); // a message in the status bar ("computing...")
+void focus_idle(void); // getkey, idle for a few seconds: slow refreshes (battery)
 #ifdef __cplusplus
 }
 

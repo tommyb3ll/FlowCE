@@ -63,3 +63,34 @@ patch(root + '/tests/autotester/headless_cli.cpp', HL_MARK,
         return true;
     }
 ''')
+
+# 3) headless runner: `keydown <name>` / `keyup <name>` (press and release separately, to sample
+#    the calculator's state with peek while a key is held - see tools/emu/phases.py).
+KD_MARK = '/* khicas-review: keydown/keyup */'
+patch(root + '/tests/autotester/headless_cli.cpp', KD_MARK,
+      '    respond("ERR unknown command " + command);',
+      '''    if (command == "keydown" || command == "keyup") { ''' + KD_MARK + '''
+        std::string name; input >> name;
+        autotester::key_coord_t coord{};
+        if (!autotester::keyCoordForName(name, coord)) {
+            respond("ERR unknown key " + name);
+        } else {
+            cemucore::emu_keypad_event(coord.y, coord.x, command == "keydown");
+            respond("OK " + command);
+        }
+        return true;
+    }
+''')
+
+# 4) headless runner: `regs` prints PC and SP (where a hung calculator is stuck).
+RG_MARK = '/* khicas-review: regs */'
+patch(root + '/tests/autotester/headless_cli.cpp', RG_MARK,
+      '    respond("ERR unknown command " + command);',
+      '''    if (command == "regs") { ''' + RG_MARK + '''
+        char b[96];
+        std::snprintf(b, sizeof b, "OK regs pc=%06X sp=%06X halted=%d", (unsigned)cemucore::cpu.registers.PC,
+                      (unsigned)cemucore::cpu.registers.SPL, (int)cemucore::cpu.halted);
+        respond(b);
+        return true;
+    }
+''')
