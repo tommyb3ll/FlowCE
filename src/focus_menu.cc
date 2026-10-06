@@ -199,6 +199,74 @@ static void repaint_item(const fm_menu & m, int k, int sel) {
   paint_rows(m, y, y + h, sel, 0);
 }
 
+static void tab_text(int i, const char * w, int fg);
+// opens card m (its geometry set): the scene dims at once, tab col of the bar is drawn open
+// (layer 0: its icon and word; 2nd, alpha: its text label), the card is painted
+static void open_card(const fm_menu & m, int col, int layer, int sel) {
+  ui_dim(1);
+  if (col < 5) {
+    int band = ui_band_open(24) >= 22;
+    if (band) { ui_band_begin(SBOT, UI_H); ui_band_load(); }
+    if (!layer) focus_tab(col, 1, 1);
+    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_ACC : UC_GREEN);
+    if (band) ui_band_end();
+  }
+  paint_rows(m, py, py + ph + 4, sel, 1);
+  ui_band_close();
+}
+// closes the card: the scene comes back; under it, the stage is repainted (repaint) unless a
+// view owns the screen (the graph redraws itself); bar0: the bar's plain layer
+static void close_card(int bar0, int repaint) {
+  delete[] PL;
+  PL = 0;
+  ui_dim(0);
+  if (focus_view || !repaint) return;
+  focus_repaint(py - 2, py + ph + 6);
+  if (bar0) focus_bar_reset();
+  else focus_bar_redraw();
+}
+static int cur; // the open menu (focus_popover's id, focus_fmenu's index): its own key closes it
+// the menu keys (1: not one): F1-F5 and math switch popovers (-2 - id), 2nd/alpha F-keys switch
+// KhiCAS's menus (-2 - index), a plain F-key closes those
+static int fk_pop(int k) {
+  int nk = k == KEY_CTRL_SYMB ? 5 : (k >= KEY_CTRL_F1 && k <= KEY_CTRL_F5) ? k - KEY_CTRL_F1 : -1;
+  return nk < 0 ? 1 : nk == cur ? -1 : -2 - nk;
+}
+static int fk_kh(int k) {
+  int j = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F6 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F7 && k <= KEY_CTRL_F20 ? k - KEY_CTRL_F7 + 6 : -1;
+  return j < 0 ? 1 : (j == cur || j < 5) ? -1 : -2 - j;
+}
+// the keys of an open card: arrows (in a grid, by columns), 1-9 and EXE pick (the item, >= 0),
+// EXIT/AC cancel (-1); fk: the menu keys; a long list scrolls
+static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
+  for (;;) {
+    int k;
+    GetKey(&k);
+    if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
+    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) return -1;
+    int f = fk ? fk(k) : 1, n = m.n, c = m.grid ? m.cols : 1, ns = sel;
+    if (f != 1) return f;
+    if (m.grid && k == KEY_CTRL_LEFT) ns = sel > 0 ? sel - 1 : n - 1;
+    if (m.grid && k == KEY_CTRL_RIGHT) ns = sel < n - 1 ? sel + 1 : 0;
+    if (k == KEY_CTRL_UP) ns = m.grid ? (sel >= c ? sel - c : sel) : sel > 0 ? sel - 1 : n - 1;
+    if (k == KEY_CTRL_DOWN) ns = m.grid ? (sel + c < n ? sel + c : sel) : sel < n - 1 ? sel + 1 : 0;
+    if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
+    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
+    if (ns != sel) {
+      int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
+      sel = ns;
+      if (nt != top) { // a long list scrolled: all its rows
+        top = nt;
+        paint_rows(m, py + 5 + hdr, py + 5 + hdr + vis * rh, sel, 0);
+      } else {
+        repaint_item(m, old, sel);
+        repaint_item(m, sel, sel);
+      }
+      ui_band_close();
+    }
+  }
+}
+
 // a list card, centered, under a title (or none): KhiCAS's own menus (doMenu: config, variables,
 // file...) and confirmations. A long list scrolls. Returns the item chosen, -1 if cancelled.
 int focus_list(const char * t, const char * const * labels, int n, int sel) {
@@ -216,37 +284,11 @@ int focus_list(const char * t, const char * const * labels, int n, int sel) {
   pw = 236; ph = hdr + vis * rh + 10;
   px = (UI_W - pw) / 2; py = ST + (SBOT - ST - ph) / 2;
   PL = 0;
-  int res = -1;
-  ui_dim(1);
-  paint_rows(m, py, py + ph + 4, sel, 1);
-  ui_band_close();
-  for (;;) {
-    int k;
-    GetKey(&k);
-    if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
-    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) break;
-    int ns = sel;
-    if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
-    if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
-    if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
-    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = sel; break; }
-    if (ns != sel) {
-      int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
-      sel = ns;
-      if (nt != top) { // scrolled: all the rows
-        top = nt;
-        paint_rows(m, py + 5 + hdr, py + 5 + hdr + vis * rh, sel, 0);
-      } else {
-        repaint_item(m, old, sel);
-        repaint_item(m, sel, sel);
-      }
-      ui_band_close();
-    }
-  }
+  open_card(m, 5, 0, sel);
+  int res = run_keys(m, sel, 0);
   hdr = 0; top = 0; vis = 99; rh = RH;
   delete[] it;
-  ui_dim(0);
-  if (!focus_view) { focus_repaint(py - 2, py + ph + 6); focus_bar_redraw(); }
+  close_card(0, 1);
   return res;
 }
 
@@ -326,49 +368,13 @@ int focus_fmenu(int idx, const char * const * e, int n) {
     }
   }
   fm_menu m = {2, 3, (char)n, it};
-  int col = idx < 5 ? 4 : idx < 15 ? idx % 5 : 5, layer = idx / 5;
+  int col = idx < 5 ? 4 : idx < 15 ? idx % 5 : 5;
   geometry(col, m);
   prepare(m);
-  ui_dim(1);
-  if (col < 5) { // the open menu's tab, bright
-    int band = ui_band_open(24) >= 22;
-    if (band) { ui_band_begin(SBOT, UI_H); ui_band_load(); }
-    if (layer == 0) focus_tab(col, 1, 1);
-    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_ACC : UC_GREEN);
-    if (band) ui_band_end();
-  }
-  int sel = 0, res = -1;
-  paint_rows(m, py, py + ph + 4, sel, 1);
-  ui_band_close();
-  for (;;) {
-    int k;
-    GetKey(&k);
-    if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
-    int j = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F6 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F7 && k <= KEY_CTRL_F20 ? k - KEY_CTRL_F7 + 6 : -1;
-    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || j == idx || (j >= 0 && j < 5)) break;
-    if (j >= 0) { res = -2 - j; break; }
-    int ns = sel;
-    if (k == KEY_CTRL_LEFT) ns = sel > 0 ? sel - 1 : n - 1;
-    if (k == KEY_CTRL_RIGHT) ns = sel < n - 1 ? sel + 1 : 0;
-    if (k == KEY_CTRL_UP) ns = sel >= 3 ? sel - 3 : sel;
-    if (k == KEY_CTRL_DOWN) ns = sel + 3 < n ? sel + 3 : sel;
-    if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; }
-    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = sel; break; }
-    if (ns != sel) {
-      int old = sel;
-      sel = ns;
-      repaint_item(m, old, sel);
-      repaint_item(m, sel, sel);
-      ui_band_close();
-    }
-  }
-  delete[] PL;
-  PL = 0;
-  ui_dim(0);
-  if (!focus_view) { // 2nd and alpha were used up by the key that opened the menu
-    focus_repaint(py - 2, py + ph + 6);
-    focus_bar_reset();
-  }
+  open_card(m, col, idx / 5, 0);
+  cur = idx;
+  int res = run_keys(m, 0, fk_kh);
+  close_card(1, 1); // 2nd and alpha were used up by the key that opened the menu
   return res;
 }
 
@@ -377,61 +383,20 @@ int focus_popover(int key, const char ** text, int * back) {
   if (id < 0 || id > 5) return FA_NONE;
   for (;;) {
     const fm_menu & m = MENUS[id];
-    int sel = 0;
     geometry(id, m);
     prepare(m);
-    ui_dim(1); // the scene dims at once
-    if (id < 5) { // the open menu's tab, bright
-      int band = ui_band_open(24) >= 22;
-      if (band) { ui_band_begin(SBOT, UI_H); ui_band_load(); }
-      focus_tab(id, 1, 1);
-      if (band) ui_band_end();
+    open_card(m, id, 0, 0);
+    cur = id;
+    int r = run_keys(m, 0, fk_pop), res = FA_NONE;
+    if (r >= 0) {
+      const fm_item & it = m.items[r];
+      if (it.act) res = it.act;
+      else { *text = it.text; *back = it.back; res = FA_INSERT; }
     }
-    paint_rows(m, py, py + ph + 4, sel, 1);
-    ui_band_close();
-    int next = -1, res = FA_NONE;
-    for (;;) {
-      int k;
-      GetKey(&k);
-      if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
-      int nk = k == KEY_CTRL_SYMB ? 5 : (k >= KEY_CTRL_F1 && k <= KEY_CTRL_F5) ? k - KEY_CTRL_F1 : -1;
-      if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || nk == id) break;
-      if (nk >= 0) { next = nk; break; }
-      int ns = sel;
-      if (m.grid) {
-        if (k == KEY_CTRL_LEFT) ns = sel > 0 ? sel - 1 : m.n - 1;
-        if (k == KEY_CTRL_RIGHT) ns = sel < m.n - 1 ? sel + 1 : 0;
-        if (k == KEY_CTRL_UP) ns = sel >= m.cols ? sel - m.cols : sel;
-        if (k == KEY_CTRL_DOWN) ns = sel + m.cols < m.n ? sel + m.cols : sel;
-      } else {
-        if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : m.n - 1;
-        if (k == KEY_CTRL_DOWN) ns = sel < m.n - 1 ? sel + 1 : 0;
-      }
-      if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + m.n) { sel = k - KEY_CHAR_1; k = KEY_CTRL_EXE; } // not = < > (past 9)
-      if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) {
-        const fm_item & it = m.items[sel];
-        if (it.act) res = it.act;
-        else { *text = it.text; *back = it.back; res = FA_INSERT; }
-        break;
-      }
-      if (ns != sel) {
-        int old = sel;
-        sel = ns;
-        repaint_item(m, old, sel);
-        repaint_item(m, sel, sel);
-        ui_band_close();
-      }
-    }
-    // close: the scene comes back, the card's rows are repainted from the stage (not under the
-    // command search, which covers the screen at once)
-    delete[] PL;
-    PL = 0;
-    ui_dim(0);
-    if (res != FA_CATALOG) {
-      focus_repaint(py - 2, py + ph + 6);
-      focus_bar_redraw();
-    }
-    if (next < 0) return res;
-    id = next;
+    // the card's rows are repainted from the stage (not under the command search, which covers
+    // the screen at once)
+    close_card(0, res != FA_CATALOG);
+    if (r > -2) return res;
+    id = -2 - r;
   }
 }

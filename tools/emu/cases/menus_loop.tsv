@@ -1,0 +1,11 @@
+# the shared menu key loop (focus_menu.cc run_keys): open, move, switch, pick, cancel
+pop_switch	{yequ}{window}{right}{down}
+pop_pick	{window}{down}{enter}
+pop_cancel	{yequ}{clear}
+pop_toggle	{yequ}{yequ}
+kh_switch	{2nd,yequ}{2nd,window}{right}
+kh_pick	{2nd,window}5
+kh_plain	{2nd,yequ}{yequ}
+list_scroll	{graph}5{down}{down}{down}{down}{down}{down}{down}{down}
+list_pick	{mode}4
+graph_zoom	plot(sin(x{enter}{run:5000}{zoom}{down}{enter}{run:4000}
