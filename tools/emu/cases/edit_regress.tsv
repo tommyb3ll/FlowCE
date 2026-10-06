@@ -41,3 +41,9 @@ n6	{window}2x{left}{left}1{left}{left}0{right}{right}{right}	integrate(|x,x,0,1)
 n7	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}	integrate(x,|x,0,1)
 n8	{window}2x{left}{left}1{left}{left}0{right}{right}{right}{right}{right}{right}{right}	integrate(x,x,0,1)|
 n9	{window}2x{down}0{up}{up}1	integrate(x,x,0,1|)
+ans_left	{2nd,(-)}{left}	|ans()
+ans_right	{2nd,(-)}{left}{right}	ans()|
+ans_del	{2nd,(-)}{del}	|
+ans_neg	{2nd,(-)}{left}{(-)}{right}*3	-ans()*3|
+ans_mid	2{2nd,(-)}+1{left}{left}{left}	2|ans()+1
+ans_del2	2{2nd,(-)}+1{left}{left}{del}	2|+1

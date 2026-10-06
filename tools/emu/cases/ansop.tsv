@@ -1,0 +1,14 @@
+# TI: an operator first on an empty line works on the last answer (Ans)
+op1	2+3	*2{enter}
+op2	7	{sq}{enter}
+op3	10	/4{enter}
+op4	4	{inv}{enter}
+op5	x^2	+1{enter}
+op6	5	-2{enter}
+op7	6	{(-)}2{enter}
+op8	3	{sto}a{enter}
+op9	2	^3{enter}
+op10	a+1
+op11	5	{2nd,(-)}{left}{left}{(-)}{right}*3{enter}
+op12	5	{2nd,(-)}{del}7{enter}
+op13	4	{2nd,(-)}+{2nd,(-)}{left}{left}{right}{right}{enter}

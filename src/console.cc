@@ -2391,6 +2391,12 @@ int Console_GetKey(){
     // first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can be extended).
     if (focus_on && key=='\t') // the TI-84 CE's x^-1 key (the French model's exact/decimal key: a tab)
       key=KEY_CHAR_RECIP;
+    // TI: an operator first on an empty line works on the last answer (*2: Ans*2; the (-) key is
+    // a minus sign)
+    if (focus_on && Current_Line==Last_Line && Edit_Line && !Edit_Line[0] && focus_result_line()>=0 &&
+        (key==KEY_CHAR_PLUS || key==KEY_CHAR_MINUS || key==KEY_CHAR_MULT || key==KEY_CHAR_DIV || key==KEY_CHAR_POW ||
+         key==KEY_CHAR_SQUARE || key==KEY_CHAR_RECIP || key==KEY_CHAR_STORE))
+      Console_Input((const Char *)"ans()");
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
@@ -2966,6 +2972,14 @@ int Console_GetKey(){
     if (key == KEY_CTRL_DEL && console_input2d()){
       char * s=(char *)Edit_Line;
       int p=Current_Col;
+      if (focus_on && p>=5 && !strncmp(s+p-5,"ans()",5)){ // Ans goes as a whole
+        memmove(s+p-5,s+p,strlen(s+p)+1);
+        Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+        console_changed=1;
+        console_set_caret(p-5);
+        Console_Disp(0);
+        continue;
+      }
       int depth=0;
       for (int i=0;i<p-1;++i)
         depth+=s[i]=='('?1:s[i]==')'?-1:0;
@@ -3639,6 +3653,14 @@ int console_caret(){ return Edit_Line && Current_Line==Last_Line && !Line[Last_L
 static const mi_metrics & edit_metrics(){ return focus_on ? focus_metrics() : mi_device_metrics; }
 
 static void console_set_caret(int p){
+  if (focus_on && Edit_Line){ // ans() is one piece (drawn Ans, its () hidden): the caret steps
+    const char * s=(const char *)Edit_Line; // over it, in the direction it moves
+    for (const char * q=strstr(s,"ans()");q;q=strstr(q+5,"ans()"))
+      if (p>q-s && p<q-s+5){ // to its start only from just after it
+        p=p<Current_Col && Current_Col==q-s+5?q-s:q-s+5;
+        break;
+      }
+  }
   const int sc=p>COL_DISP_MAX-1?p-(COL_DISP_MAX-1):0;
   Line[Current_Line].start_col=sc;
   Cursor.x=p-sc;

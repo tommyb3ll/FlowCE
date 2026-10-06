@@ -74,7 +74,8 @@ about 10 minutes. A simpler install is planned.
 | F4 on an answer | its other forms |
 | clear | erases the line; on an empty line, the answer |
 | `/` `^` | a fraction of what is before, an exponent; ▶ leaves it |
-| `(-)` | a minus sign; 2nd `(-)`: the last answer (ans) |
+| `(-)` | a minus sign; 2nd `(-)`: the last answer (Ans) |
+| `+` `−` `×` `÷` `^` `x²` first | works on the last answer, as on a TI (`×2` is Ans·2) |
 | ON or clear while computing | stops the calculation |
 | more → Graph | graphs the line or the answer; in the graph: F2 window and curve study, 2nd graph: table |
 | mode | settings, shortcuts, about |

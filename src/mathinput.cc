@@ -220,7 +220,7 @@ static int namei(int n, const char * w) { // name core == w
 // the name a function is drawn with, as textbooks and TI write it (asin: arcsin, log10: log), 0:
 // its own. The caret steps over it as a whole.
 static const char * dname(int n) {
-  static const char * const al[] = {"asin", "arcsin", "acos", "arccos", "atan", "arctan", "log10", "log", 0};
+  static const char * const al[] = {"asin", "arcsin", "acos", "arccos", "atan", "arctan", "log10", "log", "ans", "Ans", 0};
   if (!(T[n].f & F_FN)) return 0;
   for (int i = 0; al[i]; i += 2)
     if (namei(n, al[i])) return al[i + 1];
@@ -284,6 +284,7 @@ static int pcall(int nm) { // name( args ): normal or special call
     T[cl].kid = nm;
     T[nm].f |= F_FN; // a function name: upright
     if (na == 1 && T[t].k == K_EMPTY && (!(M->flags & MI_F_CALLBOX) || namei(nm, "ans"))) T[t].f |= F_NOBOX; // f(), ans(): no box
+    if (na == 1 && T[t].k == K_EMPTY && namei(nm, "ans") && (T[cl].f & F_CLOSED)) T[cl].f |= F_HID; // ans(): Ans, as on a TI
   }
   return cl;
 }
