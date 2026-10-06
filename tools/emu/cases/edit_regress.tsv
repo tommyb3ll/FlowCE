@@ -30,6 +30,8 @@ neg_pow	2^{(-)}x{right}-1	2^(-x)-1|
 ln_key	{ln}x{right}/x	(ln(x))/(x|)
 del_call	{sin}x{right}{del}	sin(x|)
 del_group	(x+1){del}{del}	(x+|)
+k2	5{inv}	5^(-1)|
+k2b	x{inv}	x^(-1)|
 n1	{window}2x{left}{left}	integrate(x,x,,|)
 n2	{window}2x{left}{left}1	integrate(x,x,,1|)
 n3	{window}2x{left}{left}1{left}{left}	integrate(x,x,|,1)

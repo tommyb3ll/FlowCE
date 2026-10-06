@@ -37,3 +37,5 @@ neg_pow	2^{(-)}x{right}-1	2^(-x)-1|
 ln_key	{ln}x{right}/x	(ln(x))/(x|)
 del_call	{sin}x{right}{del}	sin(x|)
 del_group	(x+1){del}{del}	(x+|)
+k2	5{inv}	5^(-1)|
+k2b	x{inv}	x^(-1)|

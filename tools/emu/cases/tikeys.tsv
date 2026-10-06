@@ -1,0 +1,10 @@
+# TI keys: EE, x^-1, e^x, 10^x, pi, i, sto, sin^-1 (edit line after typing)
+k1	2{2nd,comma}3
+k2	5{inv}
+k3	{2nd,ln}2
+k4	{2nd,log}3
+k5	{2nd,^}
+k6	3{2nd,.}
+k7	5{sto}
+k8	{2nd,sin}1/2
+k9	{2nd,cos}0

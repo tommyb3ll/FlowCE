@@ -2389,6 +2389,8 @@ int Console_GetKey(){
     // term left of the caret, the caret in its denominator; ( wraps the rest of the slot; ) steps
     // out of a group or wraps what is left of it; , = < > leave a denominator or an exponent
     // first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can be extended).
+    if (focus_on && key=='\t') // the TI-84 CE's x^-1 key (the French model's exact/decimal key: a tab)
+      key=KEY_CHAR_RECIP;
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
