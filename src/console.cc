@@ -768,7 +768,9 @@ static int focus_confirm(const char * msg1,const char * msg2,bool acexit){
   if (!f[0] || !f[1]){
     focus_note(msg1,msg2);
     GetKey(&key);
-    return (key==KEY_CTRL_EXIT || key==KEY_CTRL_AC) && acexit?-1:KEY_CTRL_F1;
+    if (key==KEY_CTRL_EXIT || key==KEY_CTRL_AC) // cancels, as in the classic confirm
+      return acexit?-1:KEY_CTRL_F5;
+    return KEY_CTRL_F1;
   }
   char lab[2][24];
   const char * L[2]={lab[0],lab[1]};
@@ -2625,8 +2627,9 @@ int Console_GetKey(){
           }
           if (smallmenu.selection==4) {
             char filename[MAX_FILENAME_SIZE+1];
-            drawRectangle(0, 16, LCD_WIDTH_PX, LCD_HEIGHT_PX-24, _WHITE);
-            if (get_filename(filename,".xw")){
+            if (!focus_on) // (Focus: the prompt card over the console)
+              drawRectangle(0, 16, LCD_WIDTH_PX, LCD_HEIGHT_PX-24, _WHITE);
+            if (get_filename(filename,".xw","New session")){
               if (console_changed==0 || strcmp(session_filename,"session")==0 || confirm(lang?"Session courante perdue?":"Current session will be lost",lang?"F1: annul, F5: ok":"F1: cancel, F5: ok")==KEY_CTRL_F5){
                 Console_Init();
                 Console_Clear_EditLine();

@@ -4,6 +4,7 @@
 #include "k_csdk.h"
 #include "textGUI.h"
 #include "console.h"
+#include "focus.h"
 #include "main.h"
 #include <ti/vars.h>
 #include <cstring>
@@ -271,7 +272,7 @@ void save_console_state_smem(const char * filename,bool xwaspy){
   }
 }
 
-int get_filename(char * filename,const char * extension){
+int get_filename(char * filename,const char * extension,const char * title){
   lock_alpha();
   if (extension){
     const int l=strlen(extension);
@@ -279,7 +280,7 @@ int get_filename(char * filename,const char * extension){
       handle_f5();
   }
   string str;
-  const int res=inputline((lang==1)?"EXIT ou chaine vide: annulation":"EXIT or empty string: cancel",(lang==1)?"Nom de fichier:":"Filename:",str,false);
+  const int res=inputline(focus_on?(title?title:"Save as"):(lang==1)?"EXIT ou chaine vide: annulation":"EXIT or empty string: cancel",(lang==1)?"Nom de fichier:":focus_on?"Name:":"Filename:",str,false);
   if (res==KEY_CTRL_EXIT || str.empty())
     return 0;
   if (extension && *extension){
@@ -296,7 +297,7 @@ int get_filename(char * filename,const char * extension){
   if (!file_exists(filename))
     return 1;
   if (confirm((lang==1)?"  Le fichier existe!":"  File exists!",
-              (lang==1)?"OK: ecraser,Back: annuler":"OK:overwrite, Back: cancel"
+              (lang==1)?"F1: ecraser, F5: annuler":"F1: overwrite, F5: cancel"
               )==KEY_CTRL_F1)
     return 1;
   return 0;

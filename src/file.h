@@ -16,7 +16,7 @@ std::string get_timatrix(int i);
 #define MAX_ITEMS_IN_DIR 200
 #define MAX_TEXTVIEWER_FILESIZE 16*1024
 extern "C" int file_exists(const char * filename);
-int get_filename(char * filename,const char * extension);
+int get_filename(char * filename,const char * extension,const char * title=0); // title: the Focus prompt's ("Save as")
 
 typedef struct
 {

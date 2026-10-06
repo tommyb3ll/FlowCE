@@ -477,7 +477,7 @@ static int eval_stopped; // the last do_eval: 1 interrupted (ON), 2 out of memor
 
 void do_eval(giac::gen & g){
 #ifdef FAKE_GIAC
-  statuslinemsg(!lang?"cancel: stop calcul.":"annul: stoppe calcul",COLOR_RED);
+  statuslinemsg(!lang?(focus_on?"ON or clear: stop":"cancel: stop calcul."):"annul: stoppe calcul",COLOR_RED);
   os_wait_1ms(1000);
 #else
   freeze=giac::ctrl_c=giac::kbd_interrupted=giac::interrupted=false;
@@ -486,7 +486,7 @@ void do_eval(giac::gen & g){
     dbg_printf("Eval %s\n",g.print(contextptr).c_str());
 #endif
   giac::set_abort();
-  statuslinemsg(!lang?"cancel: stop calcul.":"annul: stoppe calcul",COLOR_RED);
+  statuslinemsg(!lang?(focus_on?"ON or clear: stop":"cancel: stop calcul."):"annul: stoppe calcul",COLOR_RED);
   g=giac::eval(g,giac::eval_level(contextptr),contextptr);
   eval_stopped=giac::interrupted?(oom_hit?2:1):0;
   if (giac::interrupted && !focus_on){ // Focus: the history says it (run)
