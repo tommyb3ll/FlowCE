@@ -285,6 +285,7 @@ static void hero_paint() { // in the current clip
     // F4 cycles them, main.cc console_cycle_form), centered together as in the prototype
     if (!is_text(r)) {
       const char * fn = (const char *)Line[e.out].str == console_form_line() ? console_form_name : "exact";
+      if (fn[0] == 'e' && strchr(r, '.') && !r[strspn(r, "0123456789.-+e")]) fn = "decimal"; // 2.00927
       const char * ap = !strcmp((const char *)Line[e.out].str, console_approx_for) ? console_approx() : "";
       char abuf[40] = "";
       if (*ap) { strcpy(abuf, "\xe2\x89\x88 "); strncat(abuf, ap, sizeof(abuf) - 5); } // ≈ value

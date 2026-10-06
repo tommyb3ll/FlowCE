@@ -650,6 +650,24 @@ static void result_approx(const giac::gen & g){
   decimal_digits(dd,contextptr);
 }
 
+// giac prints each right side of x=... in parentheses: drops them when they enclose the whole side
+static void strip_equation_parens(std::string & s){
+  for (size_t i=0;i+1<s.size();++i){
+    if (s[i]!='=' || s[i+1]!='(')
+      continue;
+    size_t j=i+1;
+    int d=0;
+    for (;j<s.size();++j){
+      if (s[j]=='(' || s[j]=='[') ++d;
+      else if ((s[j]==')' || s[j]==']') && --d==0) break;
+    }
+    if (j<s.size() && (j+1==s.size() || s[j+1]==',')){
+      s.erase(j,1);
+      s.erase(i+1,1);
+    }
+  }
+}
+
 static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x){
   using namespace giac;
   if (s.type!=_VECT || s._VECTptr->empty())
@@ -1377,7 +1395,9 @@ void do_run(const char * s){
     if (taille(g,256)>=256)
       Console_Output("Done");
     else {
-      const std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
+      std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
+      if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
+        strip_equation_parens(printed);
       const char * str = printed.c_str();
       if (focus_on)
         console_approx_for=str;

@@ -264,6 +264,13 @@ static int pcall(int nm) { // name( args ): normal or special call
   return cl;
 }
 
+// a function name written with a power before its argument (sin^2(x), TI style)
+static int fnpow(int n) {
+  static const char * const fn[] = {"sin", "cos", "tan", "sec", "csc", "cot", "sinh", "cosh", "tanh", "ln", "log"};
+  for (unsigned i = 0; i < sizeof(fn) / sizeof(fn[0]); ++i)
+    if (namei(n, fn[i])) return 1;
+  return 0;
+}
 static int primary() {
   int k = tt, n;
   if (k == TK_NUM || k == TK_STR) { n = leaf(K_TEXT); lex(tb); return n; }
@@ -273,6 +280,7 @@ static int primary() {
     else if (namei(n, "infinity") || namei(n, "oo")) T[n].k = K_INF;
     else if (namei(n, "theta")) T[n].k = K_THETA;
     else T[n].f |= F_NAME;
+    if (tt == '^' && fnpow(n)) T[n].f |= F_FN; // sin^2(x): sin is a function, upright
     return tt == '(' ? pcall(n) : n;
   }
   return otype(k) >= 0 ? pgroup() : 0;
