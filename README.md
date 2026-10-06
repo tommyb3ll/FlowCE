@@ -83,8 +83,8 @@ system: follow your test's calculator rules (some tests, like the ACT, don't all
    [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
    (always the latest release), drag it onto the calculator in TI Connect CE and send it
    (45 files: AppIns00-42, A and INST).
-3. **Run the installer:** `prgm` → `A` → `enter` → `enter` (the arTIfiCE shell), then `INST` →
-   `enter` → `enter`. It counts down from 42 to 0; don't touch the calculator.
+3. **Run the installer:** `prgm` → `enter` → `enter` opens the arTIfiCE shell; `enter` starts
+   INST and `enter` again installs. It counts down from 42 to 0; don't touch the calculator.
 4. At *"Success! Will now reset"*, press `enter` (a few times if the screen looks odd).
 5. **Start:** `clear`, then `apps` → **FlowCE**.
 
