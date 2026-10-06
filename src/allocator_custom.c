@@ -90,6 +90,18 @@ void* _custom_malloc(size_t alloc_size)
     // This allows callers to query how much free memory there is left
     if (alloc_size == MAGIC_SIZE_QUERY_FREEMEM)
         return (void*)((heap_ptrend - heap_ptr) + (heap2_ptrend - heap2_ptr));
+    if (alloc_size == MAGIC_SIZE_QUERY_FREEMEM - 1) { // the freed blocks (total, low 16 bits: largest / 2)
+        size_t total = 0, big = 0;
+        for (block_t* b = _alloc_base.ptr; b; b = b->ptr) { total += b->size; if (b->size > big) big = b->size; }
+        for (block_t* b = _alloc2_base.ptr; b; b = b->ptr) { total += b->size; if (b->size > big) big = b->size; }
+        return (void*)total;
+    }
+    if (alloc_size == MAGIC_SIZE_QUERY_FREEMEM - 2) { // the largest freed block
+        size_t big = 0;
+        for (block_t* b = _alloc_base.ptr; b; b = b->ptr) if (b->size > big) big = b->size;
+        for (block_t* b = _alloc2_base.ptr; b; b = b->ptr) if (b->size > big) big = b->size;
+        return (void*)big;
+    }
 
     if (alloc_size <= sizeof(char6_t))
     {

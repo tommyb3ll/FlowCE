@@ -22,10 +22,14 @@ def main():
         line = line.rstrip('\n')
         if not line.strip() or line.startswith('#'):
             continue
-        name, keys = line.split('\t')[:2]
+        parts = line.split('\t')
+        name, keys = parts[0], parts[1]
         e = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir=out)
         try:
             e.run(800)
+            if len(parts) > 2:  # a third column: text put on the edit line first (Emu.paste)
+                e.wait_idle(timeout=5000)
+                e.paste(parts[2])
             for k in keyseq(keys):
                 if k.startswith('run:'):  # {run:MS}: let a computation finish
                     e.run(int(k[4:]))

@@ -1,0 +1,4 @@
+w_poly	{enter}{run:6000}	integrate(x*(x+1)^12,x)
+w_exp	{enter}{run:6000}	expand((x+1)^9)
+w_mid	{enter}{run:6000}	expand((x+1)^6)
+w_inf	{enter}{run:6000}	limit((1+1/n)^n,n,inf)

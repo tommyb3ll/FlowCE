@@ -1,0 +1,23 @@
+# A long session of Calc 1/2 problems (tools/emu/session_mem.py): memory after each, no reload
+d1	diff(x^2*sin(x),x)
+i1	integrate(x*e^x,x)
+i2	integrate(1/(x^2+1),x)
+l1	limit(sin(x)/x,x,0)
+s1	solve(x^2-5x+6=0,x)
+f1	factor(x^3-x)
+i3	integrate(sin(x)^2,x,0,pi)
+t1	series(cos(x),x,0,6)
+i4	integrate(x^2/sqrt(x^2+9),x)
+d2	diff(tan(x)^3,x)
+i5	integrate(ln(x),x)
+l2	limit((1+1/n)^n,n,inf)
+u1	sum(1/k^2,k,1,inf)
+p1	integrate(x*(x+1)^12,x)	{trace}{trace}{trace}
+c1	integrate(x^3*csc(2x^4)^2,x)
+i6	integrate(e^(2x)*sin(3x),x)
+pf	partfrac(1/(x^2-1))
+i7	integrate(1/(x^3+1),x)
+d3	diff(x^x,x)
+i8	integrate(sec(x)^3,x)
+p2	integrate(x*(x+1)^12,x)	{trace}{trace}{trace}
+c2	integrate(x^3*csc(2x^4)^2,x)

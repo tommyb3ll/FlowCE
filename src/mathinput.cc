@@ -277,7 +277,7 @@ static int primary() {
   if (k == TK_NAME) {
     n = leaf(K_TEXT); lex(tb);
     if (namei(n, "pi")) T[n].k = K_PI;
-    else if (namei(n, "infinity") || namei(n, "oo")) T[n].k = K_INF;
+    else if (namei(n, "infinity") || namei(n, "oo") || namei(n, "inf")) T[n].k = K_INF;
     else if (namei(n, "theta")) T[n].k = K_THETA;
     else T[n].f |= F_NAME;
     if (tt == '^' && fnpow(n)) T[n].f |= F_FN; // sin^2(x): sin is a function, upright

@@ -248,7 +248,65 @@ static void hero_prepare(int y0, int h) {
   else hm = HM_HINT;
 }
 
-static void hero_paint() { // in the current clip
+// A result too wide for one line even at the smallest size is wrapped at its top-level + and -
+// (between terms) on up to WL lines of one level: each term is measured once, the lines are
+// packed greedily. The lines are copies (0-terminated) in WB; wrapped() caches the last result.
+enum { WL = 6 };
+static char * WB;                    // the lines, one after the other
+static const char * wl_src;          // the result wrapped (Line str), its hash
+static unsigned wl_hash;
+static int wl_n, wl_lv, wl_w, wl_h;  // lines, level, widest line, height of a line
+static short wl_at[WL];              // line k: WB + wl_at[k]
+__attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh, int lvmax) {
+  unsigned h = shash(r);
+  if (r == wl_src && h == wl_hash) return wl_n;
+  wl_src = r; wl_hash = h; wl_n = 0;
+  int n = strlen(r), nc = 0, d = 0;
+  short cut[48];
+  cut[nc++] = 0;
+  for (int i = 1; i < n && nc < 47; ++i) { // the terms: r[cut[k], cut[k+1])
+    char c = r[i];
+    if (c == '(' || c == '[') ++d;
+    else if (c == ')' || c == ']') --d;
+    else if (!d && (c == '+' || c == '-') && !strchr("^*/(e=,", r[i - 1])) cut[nc++] = (short)i;
+  }
+  cut[nc] = (short)n;
+  if (nc < 2 || n > 600) return 0;
+  free(WB);
+  if (!(WB = (char *)malloc(n + WL + 1))) return 0;
+  short tw[48];
+  mi_layout L;
+  for (int lv = 3; lv < lvmax; ++lv) { // larger than the single line's level
+    const mi_metrics & m = ui_math_metrics(lv, MI_F_IMPLDOT);
+    int lh = 0;
+    for (int k = 0; k < nc; ++k) { // each term's width at this level (its sign drawn as binary)
+      mi_build(r + cut[k], cut[k + 1] - cut[k], -1, m, L);
+      tw[k] = (short)(L.width + (k ? 2 * m.opgap + 2 : 0));
+      if (L.asc + L.desc > lh) lh = L.asc + L.desc;
+    }
+    int lines = 0, k = 0, w = 0, p = 0;
+    while (k < nc && lines < WL) {
+      int j = k, lw = 0;
+      while (j < nc && (j == k || lw + tw[j] <= maxw)) lw += tw[j++];
+      wl_at[lines++] = (short)p;
+      memcpy(WB + p, r + cut[k], cut[j] - cut[k]);
+      p += cut[j] - cut[k];
+      WB[p++] = 0;
+      if (lw > w) w = lw;
+      k = j;
+    }
+    if (k == nc && lines * (lh + 4) <= maxh) {
+      for (k = w = 0; k < lines; ++k) { // the real widths
+        mi_build(WB + wl_at[k], strlen(WB + wl_at[k]), -1, m, L);
+        if (L.width > w) w = L.width;
+      }
+      if (w <= maxw) { wl_n = lines; wl_lv = lv; wl_w = w; wl_h = lh + 4; return wl_n; }
+    }
+  }
+  return 0;
+}
+
+__attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
   if (hm == HM_MATH) {
@@ -274,7 +332,15 @@ static void hero_paint() { // in the current clip
       fitc c = fitted(r, HERO_LV, anti ? 256 : 292, bot - top > 18 ? bot - top : 18, MI_F_IMPLDOT);
       int cw = anti ? ui_text_width(&ui_mu24, "+ ", -1) + ui_text_width(&ui_mi24, "C", -1) + 6 : 0;
       int x = (UI_W - c.w - cw) / 2, base = top + (bot - top - (c.a + c.d)) / 2 + c.a;
-      draw_math(r, c, x, base, UC_INK, UC_BG, MI_F_IMPLDOT);
+      if ((c.w > (anti ? 256 : 292) || c.lv >= 5) && wrapped(r, anti ? 256 : 292, bot - top, c.w > (anti ? 256 : 292) ? UI_NSIZES : c.lv)) { // on several lines
+        int bx = (UI_W - wl_w) / 2, b0 = top + (bot - top - wl_n * wl_h) / 2 + wl_h - 6;
+        for (int k = 0; k < wl_n; ++k) {
+          const char * t = WB + wl_at[k];
+          fitc lc = fitted(t, wl_lv, 600, 200, MI_F_IMPLDOT);
+          draw_math(t, lc, bx + (k ? 10 : 0), b0 + k * wl_h, UC_INK, UC_BG, MI_F_IMPLDOT);
+          if (k == wl_n - 1) { c = lc; x = bx + (k ? 10 : 0); base = b0 + k * wl_h; }
+        }
+      } else draw_math(r, c, x, base, UC_INK, UC_BG, MI_F_IMPLDOT);
       if (anti) {
         int cx = x + c.w + 6;
         cx += ui_draw_text(&ui_mu24, "+ ", -1, cx, base, ramp(UC_SUB, UC_BG), 0);

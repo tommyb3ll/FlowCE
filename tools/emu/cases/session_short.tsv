@@ -1,0 +1,9 @@
+# a few problems to attribute memory (session_mem.py)
+d1	diff(x^2*sin(x),x)
+i1	integrate(x*e^x,x)
+i4	integrate(x^2/sqrt(x^2+9),x)
+d2	diff(tan(x)^3,x)
+i5	integrate(ln(x),x)
+one	1+1
+one2	1+1
+one3	1+1

@@ -1,0 +1,15 @@
+# long results wrap; textbook p/q/m
+w_poly	{enter}{run:6000}	integrate(x*(x+1)^12,x)
+w_poly_f4	{enter}{run:6000}{trace}{run:4000}	integrate(x*(x+1)^12,x)
+w_csc	{enter}{run:16000}	integrate(x^3*csc(2x^4)^2,x)
+w_exp	{enter}{run:6000}	expand((x+1)^9)
+w_long	{enter}{run:6000}	integrate(x^5*e^x,x)
+# down opens the search; textbook answers; decimal line under pi
+dn_empty	{down}
+dn_num	2{down}
+dn_word	inte{down}
+r_pi	{enter}{run:4000}	integrate(sin(x)^2,x,0,pi)
+r_e	{enter}{run:5000}	limit((1+1/n)^n,n,inf)
+r_sqrt	{enter}{run:4000}	solve(2x^2=1,x)
+r_poly	{enter}{run:4000}	integrate(x^2,x)
+r_ln	{enter}{run:4000}	integrate(x/(x^2+1),x)

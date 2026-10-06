@@ -26,14 +26,19 @@ void ui_clip(int x0, int y0, int x1, int y1) {
 }
 void ui_noclip(void) { ui_cx0 = 0; ui_cy0 = band_y0; ui_cx1 = UI_W; ui_cy1 = band_y1; }
 
+// The strip is allocated once, at its full size, and kept: freed and allocated again around
+// every repaint, it came back each time from fresh heap (small allocations took the freed space
+// in between), and a session of calculations ran the heap out (KhiCAS aborts then: the user's
+// crashes after a while, 2026-10-06).
+enum { STRIP_ROWS = 64 };
 int ui_band_open(int maxrows) {
-  if (strip && strip_rows >= maxrows) return strip_rows;
-  ui_band_close();
-  for (int r = maxrows; r >= 8; r /= 2)
-    if ((strip = (unsigned char *)malloc(UI_W * r))) return strip_rows = r;
-  return 0;
+  (void)maxrows;
+  if (!strip)
+    for (int r = STRIP_ROWS; r >= 8 && !strip; r /= 2)
+      if ((strip = (unsigned char *)malloc(UI_W * r))) strip_rows = r;
+  return strip_rows;
 }
-void ui_band_close(void) { free(strip); strip = 0; strip_rows = 0; }
+void ui_band_close(void) {}
 void ui_band_begin(int y0, int y1) {
   band_y0 = y0; band_y1 = y1;
   ui_fb = strip - y0 * UI_W; // screen row y lands at strip row y - y0

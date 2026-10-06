@@ -627,6 +627,7 @@ static giac::gen equation_unknown(const giac::gen & g){
   return u.size()==1?u.front():gen(0);
 }
 // solutions as equations: x=-2, x=2 (one: x=3), drawn without parentheses (kdisplay.cc)
+extern "C" { volatile int heap_free_probe, heap_list_probe, heap_big_probe; } // heap after the last evaluation (tools/emu)
 // Focus: the decimal value of an exact numeric result, shown under it (console_approx), for the
 // result printed as console_approx_for
 static std::string * approx_text;
@@ -653,13 +654,13 @@ static void result_approx(const giac::gen & g){
 // Results as textbooks write them: pi/2, x^3/3, sqrt(2)/2, x-x^3/6+O(x^6), e (giac prints
 // 1/2*pi, 1/3*x^3, x-1/6*x^3+x^6*order_size(x), exp(1)). Each top-level term (split at + - , =):
 // p/q*m -> p*m/q, m*order_size(v) -> O(m); exp(1) -> e. Inside brackets nothing changes.
-// Plain chars (uSTL string ops are large and substr(pos) is broken): never longer than the text.
-static void textbook(std::string & str){
+// Plain chars (uSTL string ops are large and substr(pos) is broken).
+__attribute__((noinline)) static void textbook(std::string & str){
   const char * s=str.c_str();
   const int n=strlen(s);
   if (n>=1024 || (!strchr(s,'/') && !strstr(s,"order_size(") && !strstr(s,"exp(1)")))
     return;
-  char * out=(char *)malloc(n+1);
+  char * out=(char *)malloc(2*n+1); // p/q/m -> p/(q*m) adds 2 chars per term
   if (!out)
     return;
   int k=0;
@@ -700,6 +701,15 @@ static void textbook(std::string & str){
         memcpy(out+k,s+b+1,e-b-1); k+=e-b-1;
         out[k++]='/';
         memcpy(out+k,s+a+1,b-a-1); k+=b-a-1;
+        continue;
+      }
+      if (b>a+1 && b<e && s[b]=='/'){ // 1/8/tan(2*x^4) -> 1/(8*tan(2*x^4))
+        memcpy(out+k,s+t,a+1-t); k+=a+1-t;
+        out[k++]='(';
+        memcpy(out+k,s+a+1,b-a-1); k+=b-a-1;
+        out[k++]='*';
+        memcpy(out+k,s+b+1,e-b-1); k+=e-b-1;
+        out[k++]=')';
         continue;
       }
     }
@@ -1466,6 +1476,14 @@ void do_run(const char * s){
       std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
       if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
         strip_equation_parens(printed);
+      if (printed.size()>70){ // (a long polynomial)/182: term by term (x^14/14+...), which wraps
+        const giac::gen d=giac::_denom(g,contextptr);
+        if ((d.type==giac::_INT_ || d.type==giac::_ZINT) && !giac::is_one(d) && giac::_numer(g,contextptr).is_symb_of_sommet(giac::at_plus)){
+          const giac::gen x=giac::expand(g,contextptr);
+          if (!giac::is_undef(x) && x.type!=giac::_STRNG)
+            printed=x.print(contextptr);
+        }
+      }
       textbook(printed);
       const char * str = printed.c_str();
       if (focus_on)
@@ -1483,6 +1501,9 @@ void do_run(const char * s){
     }
     }
     Console_NewLine(LINE_TYPE_OUTPUT,1);
+    heap_free_probe=(int)malloc(0xffffff); // for tools/emu: free heap after each evaluation
+    heap_list_probe=(int)malloc(0xfffffe); // the freed blocks (reusable), and the largest one
+    heap_big_probe=(int)malloc(0xfffffd);
 #ifdef WITH_EQW
     if (rows2d) // drawn from the evaluated result, not from its parsed text
       h2d_store((const char *)Line[Last_Line-1].str,lay2d);

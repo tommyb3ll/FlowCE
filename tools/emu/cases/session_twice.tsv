@@ -1,0 +1,10 @@
+# giac retention: one-time (static tables) or per call (leak)?
+i4a	integrate(x^2/sqrt(x^2+9),x)
+i4b	integrate(x^2/sqrt(x^2+9),x)
+i4c	integrate(x^2/sqrt(x^2+16),x)
+u1a	sum(1/k^2,k,1,inf)
+u1b	sum(1/k^2,k,1,inf)
+l2a	limit((1+1/n)^n,n,inf)
+l2b	limit((1+1/n)^n,n,inf)
+p1a	integrate(x*(x+1)^12,x)
+p1b	integrate(x*(x+1)^12,x)
