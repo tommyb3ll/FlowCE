@@ -91,6 +91,7 @@ static void draw_math(const char * s, const fitc & c, int x, int base, int ink, 
 // messages ("Done", "f(x) defined", warnings) rather than math
 static bool is_text(const char * s) {
   if (!*s) return true;
+  if (s[0] == '"' && s[1] == '/' && s[2] == '/') return true; // an error: "// Error: ..."
   if (*s == '"') return false;
   for (const char * p = s; *p; ++p)
     if (*p == ' ' && ((p[1] | 32) >= 'a' && (p[1] | 32) <= 'z') && p > s && p[-1] != ',') return true;
@@ -121,6 +122,27 @@ static int ui_text(const ui_face * f, const char * s, int x, int base, int fg, i
   else if (align == 2) x -= w;
   ui_draw_text(f, s, -1, x, base, ramp(fg, bg), 0);
   return w;
+}
+
+// a message (an error, "Out of memory", "no limit...") centered on up to 4 lines of width w
+// between top and bot, cut at spaces; giac's "// " prefix dropped
+static void ui_text_wrapped(const char * s, int top, int bot, int w) {
+  if (s[0] == '"') ++s;
+  if (s[0] == '/' && s[1] == '/') for (s += 2; *s == ' '; ++s) ;
+  const char * ln[4];
+  int ll[4], n = 0;
+  while (*s && !(s[0] == '"' && !s[1]) && n < 4) {
+    int j = 0, last = -1;
+    while (s[j] && !(s[j] == '"' && !s[j + 1]) && ui_text_width(&ui_tr12, s, j + 1) <= w) { if (s[j] == ' ') last = j; ++j; }
+    if (s[j] && last > 0) j = last;
+    if (!j) j = 1;
+    ln[n] = s; ll[n++] = j;
+    s += j;
+    while (*s == ' ') ++s;
+  }
+  int y = (top + bot) / 2 - (n - 1) * 8 + 4;
+  for (int k = 0; k < n; ++k, y += 16)
+    ui_draw_text(&ui_tr12, ln[k], ll[k], (UI_W - ui_text_width(&ui_tr12, ln[k], ll[k])) / 2, y, ramp(UC_SUB, UC_BG), 0);
 }
 
 // ------------------------------------------------------------------ entries
@@ -166,7 +188,17 @@ static int entry_of_line(int l) {
 
 static void draw_result(const fent & e, int right, int base, int ink, int bg) {
   const char * s = shown(Line[e.out].str);
-  if (is_text(s)) { ui_text(&ui_tr10, s, right, base, UC_SUB, bg, 2); return; }
+  if (is_text(s)) { // one line, right-aligned, cut with ... when longer than the row
+    if (s[0] == '"') ++s;
+    if (s[0] == '/' && s[1] == '/') for (s += 2; *s == ' '; ++s) ;
+    int n = strlen(s), cut = 0;
+    if (n && s[n - 1] == '"') --n;
+    while (n > 1 && ui_text_width(&ui_tr10, s, n) > 280) { --n; cut = 1; }
+    int w = ui_text_width(&ui_tr10, s, n) + (cut ? ui_text_width(&ui_tr10, "...", 3) : 0);
+    int x = ui_draw_text(&ui_tr10, s, n, right - w, base, ramp(UC_SUB, bg), 0);
+    if (cut) ui_draw_text(&ui_tr10, "...", 3, right - w + x, base, ramp(UC_SUB, bg), 0);
+    return;
+  }
   fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
   int cw = 0;
   if (e.in >= 0 && is_antideriv(Line[e.in].str)) { // "+ C" in the secondary color
@@ -325,7 +357,7 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     }
     const char * r = shown(Line[e.out].str);
     int bot = y0 + h - (is_text(r) ? 14 : 25); // above the forms chip (tall fractions ran into it)
-    if (is_text(r)) ui_text(&ui_tr12, r, UI_W / 2, (top + bot) / 2 + 4, UC_SUB, UC_BG, 1);
+    if (is_text(r)) ui_text_wrapped(r, top, bot, 296);
     else {
       int anti = e.in >= 0 && is_antideriv(Line[e.in].str);
       fitc c = fitted(r, HERO_LV, anti ? 256 : 292, bot - top > 18 ? bot - top : 18, MI_F_IMPLDOT);

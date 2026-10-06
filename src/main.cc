@@ -560,6 +560,22 @@ static int factor_rank(const giac::gen & t){
     return 2;
   return t.type==_VECT?4:3;
 }
+// n/d with the sign in front: -3/(16(x-1)), not (-3)/(16(x-1)) (a sum then prints "- 3/...")
+static giac::gen tb_quotient(const giac::gen & n,const giac::gen & d){
+  using namespace giac;
+  if ((n.type==_INT_ || n.type==_ZINT) && is_strictly_positive(-n,contextptr))
+    return symbolic(at_neg,symbolic(at_division,makesequence(-n,d)));
+  if (n.is_symb_of_sommet(at_prod) && n._SYMBptr->feuille.type==_VECT && !n._SYMBptr->feuille._VECTptr->empty()){
+    const gen & c=n._SYMBptr->feuille._VECTptr->front(); // -3*x: -(3x)/d
+    if ((c.type==_INT_ || c.type==_ZINT) && is_strictly_positive(-c,contextptr)){
+      vecteur v(*n._SYMBptr->feuille._VECTptr);
+      v.front()=-c;
+      const gen m=is_one(v.front()) && v.size()==2?v.back():symbolic(at_prod,gen(v,_SEQ__VECT));
+      return symbolic(at_neg,symbolic(at_division,makesequence(m,d)));
+    }
+  }
+  return symbolic(at_division,makesequence(n,d));
+}
 // a sum of two terms starts with the positive one: 4-x^2, ln|x-2|-ln|x+2|, x-ln(e^x+1)
 // (giac gives -x^2+4, -ln|x+2|+ln|x-2|, -ln(e^x+1)+x)
 static giac::gen positive_first(const giac::gen & g){
@@ -584,13 +600,25 @@ static giac::gen positive_first(const giac::gen & g){
     for (unsigned i=1;i<w.size();++i)
       for (unsigned j=i;j>0 && factor_rank(w[j])<factor_rank(w[j-1]);--j)
         swapgen(w[j],w[j-1]);
+    // two denominators or more, one fraction: (18*x-7)*inv(9)*inv(x^2+9) is (18x-7)/(9(x^2+9)), not
+    // ((18x-7)/9)/(x^2+9) (partfrac)
+    int ninv=0;
+    for (unsigned i=0;i<w.size();++i)
+      ninv+=w[i].is_symb_of_sommet(at_inv);
+    if (ninv>=2){
+      vecteur nu,de;
+      for (unsigned i=0;i<w.size();++i)
+        (w[i].is_symb_of_sommet(at_inv)?de:nu).push_back(w[i].is_symb_of_sommet(at_inv)?w[i]._SYMBptr->feuille:w[i]);
+      const gen n=nu.empty()?gen(1):nu.size()==1?nu.front():symbolic(at_prod,gen(nu,_SEQ__VECT));
+      return tb_quotient(n,symbolic(at_prod,gen(de,_SEQ__VECT)));
+    }
     // 1/2*(x+1) -> (x+1)/2, 3/2*u -> 3*u/2: arctan((x+1)/2), not arctan(1/2*(x+1)) (the 1/2: a
     // fraction or inv(2))
     const bool fr=w.size()==2 && w[0].type==_FRAC && is_strictly_positive(w[0]._FRACptr->den,contextptr);
     const bool iv=w.size()==2 && w[0].is_symb_of_sommet(at_inv) && w[0]._SYMBptr->feuille.type==_INT_ && w[0]._SYMBptr->feuille.val>1;
     if (fr || iv){
       const gen num=iv || is_one(w[0]._FRACptr->num)?w[1]:symbolic(at_prod,makesequence(w[0]._FRACptr->num,w[1]));
-      return symbolic(at_division,makesequence(num,iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den));
+      return tb_quotient(num,iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den);
     }
   }
   return symbolic(g._SYMBptr->sommet,f);
@@ -976,8 +1004,13 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
     const vecteur & v=*a._VECTptr;
     // constant bounds: numbers, pi, e (an infinite bound is left to giac)
     if (v[1].type==_IDNT && evalf(v[2],1,contextptr).type==_DOUBLE_ && evalf(v[3],1,contextptr).type==_DOUBLE_ && hard_radicand(v[0],v[1])
-        && !usub(eval(v[0],1,contextptr),v[1]))
-      return symbolic(g._SYMBptr->sommet,makesequence(v[0],v[1],evalf(v[2],1,contextptr),evalf(v[3],1,contextptr)));
+        && !usub(eval(v[0],1,contextptr),v[1])){
+      // numerically, after x = a+(b-a)*sin(pi*t/2)^2: its dx vanishes at both ends and cancels an
+      // endpoint singularity (ellipse perimeters: 13.3616 for 13.3649 before)
+      const gen a=evalf(v[2],1,contextptr),b=evalf(v[3],1,contextptr),t=gen("t__n",contextptr);
+      const gen x=a+(b-a)*pow(symbolic(at_sin,cst_pi*t/2),2),dx=(b-a)*cst_pi/2*symbolic(at_sin,cst_pi*t);
+      return symbolic(g._SYMBptr->sommet,makesequence(subst(v[0],v[1],x,false,contextptr)*dx,t,gen(0.0),gen(1.0)));
+    }
     return g;
   }
   if (a.type==_VECT){
@@ -1009,6 +1042,17 @@ static giac::gen equation_unknown(const giac::gen & g){
 extern "C" { volatile int heap_free_probe, heap_list_probe, heap_big_probe; } // heap after the last evaluation (tools/emu)
 // Focus: the decimal value of an exact numeric result, shown under it (console_approx), for the
 // result printed as console_approx_for
+// 862519 rather than 8.62519e5 (6 significant digits, as giac prints, without the exponent)
+static void plain_decimal(const giac::gen & g,std::string & out){
+  if (g.type!=giac::_DOUBLE_)
+    return;
+  const double d=g._DOUBLE_val;
+  if ((d>=1e5 && d<1e6) || (d<=-1e5 && d>-1e6)){
+    char b[16];
+    sprintf(b,"%ld",(long)(d+(d>0?0.5:-0.5))); // (%f: no floats in the calculator's printf)
+    out=b;
+  }
+}
 static std::string * approx_text;
 const char * console_approx_for="";
 const char * console_approx(){ return approx_text?approx_text->c_str():""; }
@@ -1030,6 +1074,7 @@ static void result_approx(const giac::gen & g){
   decimal_digits(6,contextptr);
   *approx_text=a.print(contextptr);
   decimal_digits(dd,contextptr);
+  plain_decimal(a,*approx_text);
   const size_t k=approx_text->find("*i"); // 1.5+0.5*i: 1.5+0.5i
   if (k!=std::string::npos && k+2==approx_text->size())
     approx_text->erase(k,1);
@@ -1304,7 +1349,14 @@ void console_cycle_form(int l){
   }
   gen lay;
   const int rows=focus_on?0:console_rows2d(r,lay); // Focus draws 2D itself: no continuation rows
-  const std::string text=form_idx?r.print(contextptr):*form_orig;
+  std::string text=*form_orig;
+  if (form_idx){ // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2
+    if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
+      r=positive_first(r);
+    text=r.print(contextptr);
+    textbook(text);
+    textbook_constants(text);
+  }
   if (console_replace_result(l,text.c_str(),rows?rows:1)){
     form_line=(const char *)Line[l].str;
     if (rows)
@@ -1887,6 +1939,8 @@ void do_run(const char * s){
       else if (g._SYMBptr->feuille.type!=giac::_VECT) // solve(expr): giac solves for x
         var=giac::gen("x",contextptr);
     }
+    // a definite integral (integrate(f,x,a,b)): undef means it diverges
+    const bool definite=(g.is_symb_of_sommet(giac::at_integrate) || g.is_symb_of_sommet(giac::at_int)) && g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==4;
     g=numeric_hard_integrals(g);
     giac::gen tab=table_integral(g); // sec, csc: the textbook form, at once
     if (giac::is_zero(tab))
@@ -1928,6 +1982,8 @@ void do_run(const char * s){
       if (focus_on)
         result_approx(g);
     }
+    if (definite && msg.empty() && giac::is_undef(g)) // through an asymptote: int(2x/(x^2-4),x,0,4)
+      msg="diverges (the integrand is unbounded on the interval)";
     if (oom_hit && msg.empty()){ // memory ran out while simplifying
       msg="Out of memory";
       g=0;
@@ -1958,6 +2014,7 @@ void do_run(const char * s){
       Console_Output("Done");
     else {
       std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
+      plain_decimal(g,printed);
       if (var.type==giac::_IDNT) // solutions: x=-sqrt(2),x=sqrt(2), not x=(-sqrt(2)),x=(sqrt(2))
         strip_equation_parens(printed);
       if (printed.size()>70){ // (a long polynomial)/182: term by term (x^14/14+...), which wraps
