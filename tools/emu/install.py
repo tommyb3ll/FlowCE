@@ -5,7 +5,7 @@
 Usage (WSL): install.py [variant=en] [state=base] [shotdir=/tmp]
 Needs: $KB/out/<variant>/AppIns*.8xv (tools/dev/build.sh), $KB/emu/arTIfiCE.8xp, the ROM ($KHICAS_ROM).
 """
-import glob, os, struct, sys
+import glob, os, shutil, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cemu import Emu, KB, ROM
 
@@ -51,5 +51,6 @@ try:
         sys.exit('KhiCAS did not start (see install_%s_notstarted.png)' % state)
     print('installed', len(apps), 'AppIns ->', e.shot(f'install_{state}'))
     e.save(f'{KB}/emu/states/{state}.ce')
+    shutil.copy(f'{KB}/out/{variant}/DEMO.map', f'{KB}/emu/states/{state}.map') # probe addresses
 finally:
     e.close()

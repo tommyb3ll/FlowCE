@@ -51,10 +51,11 @@ def bmp2png(src, dst, scale=1):
                           + chunk(b'IDAT', zlib.compress(b''.join(rows), 9)) + chunk(b'IEND', b''))
 
 
-def map_symbol(name, variant='en'):
-    """Address of a symbol in the last build's linker map (statics included), or None."""
+def map_symbol(name, variant='en', mapfile=None):
+    """Address of a symbol in a linker map (statics included), or None. mapfile: the map saved with
+    an emulator state (install.py); default: the last build's."""
     try:
-        for line in open(f'{KB}/out/{variant}/DEMO.map', errors='replace'):
+        for line in open(mapfile or f'{KB}/out/{variant}/DEMO.map', errors='replace'):
             parts = line.split()
             if len(parts) >= 3 and parts[0] == name and parts[1] == '=':
                 return int(parts[2], 16)
@@ -74,6 +75,9 @@ class Emu:
         if not ready.startswith('CEMU_HEADLESS_READY'):
             raise RuntimeError('cemu-headless failed to start: ' + ready)
         self.shotdir, self.verbose, self.ms = shotdir, verbose, 0
+        # the linker map of the build in this state (saved by install.py), for probe addresses
+        m = image[:-3] + '.map' if image and image.endswith('.ce') else None
+        self.mapfile = m if m and os.path.exists(m) else None
 
     def cmd(self, line):
         self.p.stdin.write(line + '\n'); self.p.stdin.flush()
@@ -135,7 +139,7 @@ class Emu:
     def polls(self):
         """getkey's poll counter (src/k_csdk.c getkey_polls), None if this build has none."""
         if not hasattr(self, '_polls_addr'):
-            self._polls_addr = map_symbol('_getkey_polls')
+            self._polls_addr = map_symbol('_getkey_polls', mapfile=self.mapfile)
         if self._polls_addr is None:
             return None
         b = self.peek(self._polls_addr, 3)

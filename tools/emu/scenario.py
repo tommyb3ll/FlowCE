@@ -57,20 +57,24 @@ def main(state, outdir, casefile):
         try:
             lat = e.type(text)
             e.cmd('key enter 80'); e.ms += 80
-            # While KhiCAS computes, the F-key bar is blank ("cancel: stop calcul." in the status bar).
-            # Done = bar visible again (console bar, or the 2D result viewer's bar). Resolution 50 ms.
-            # Focus keeps its bar: done = the busy message is gone from the status bar.
-            e.run(150)                     # let KhiCAS start computing (clears the F-bar) before checking
-            t = 150
-            while t < 600000:
-                if focus:
-                    if not focus_busy(e):
-                        break
-                else:
-                    bar = bottom_bar(e)
-                    if bar.count(255) != len(bar):
-                        break
-                e.run(50); t += 50
+            if e.polls() is not None:
+                # done = KhiCAS polls the keypad again (getkey_polls, builds since 2026-10-05)
+                t = e.wait_idle(step=50, timeout=600000) + 80
+            else:
+                # Older builds. While KhiCAS computes, the F-key bar is blank ("cancel: stop calcul."
+                # in the status bar); done = the bar is back (console, or the 2D result viewer's bar).
+                # Focus keeps its bar: done = the busy message is gone. Resolution 50 ms.
+                e.run(150)                 # let KhiCAS start computing before checking
+                t = 150
+                while t < 600000:
+                    if focus:
+                        if not focus_busy(e):
+                            break
+                    else:
+                        bar = bottom_bar(e)
+                        if bar.count(255) != len(bar):
+                            break
+                    e.run(50); t += 50
             e.wait_stable(step=50, stable=4, timeout=5000)
             viewer = bottom_bar(e) != console_bar
             e.shot(f'{i:02d}_{name}' + ('_viewer' if viewer else ''))

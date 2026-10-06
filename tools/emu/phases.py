@@ -16,8 +16,8 @@ from cemu import Emu, KB, map_symbol
 
 state, args = sys.argv[1], sys.argv[2:]
 window = int(args.pop(0)) if args and args[0].isdigit() else 300
-PH = map_symbol('_focus_phase')
 e = Emu(image=f'{KB}/emu/states/{state}.ce', shotdir='/tmp')
+PH = map_symbol('_focus_phase', mapfile=e.mapfile)
 try:
     e.wait_idle(timeout=5000)
     e.run(30)
