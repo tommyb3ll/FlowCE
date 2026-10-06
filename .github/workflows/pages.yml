@@ -1,0 +1,46 @@
+name: Web page
+
+# Publishes the FlowCE page (site/) on GitHub Pages, with the latest release's FlowCE.b84 for its
+# web installer. Runs when the page or its media change, and when a release is published.
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'docs/**', '.github/workflows/pages.yml']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the page with the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern FlowCE.b84 --dir "$RUNNER_TEMP"
+          bash site/build.sh "$RUNNER_TEMP/FlowCE.b84" "$tag"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

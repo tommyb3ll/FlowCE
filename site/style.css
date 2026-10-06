@@ -1,0 +1,227 @@
+/* FlowCE's own colors: the app's Paper and Night themes (src/ui_gfx.c) */
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --ink: #111419;
+  --sub: #5f6874;
+  --line: #dbe0e7;
+  --acc: #245ccc;
+  --acc-soft: #e2eafa;
+  --on-acc: #ffffff;
+  --green: #278c4a;
+  --red: #c74440;
+  --shadow: 0 1px 2px rgba(17, 20, 25, .06), 0 8px 24px rgba(17, 20, 25, .07);
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0f14;
+    --card: #161c24;
+    --ink: #eaeef3;
+    --sub: #97a2b0;
+    --line: #262e3a;
+    --acc: #64a5ff;
+    --acc-soft: #182840;
+    --on-acc: #070b11;
+    --green: #56c882;
+    --red: #ff7066;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.6 "Atkinson Hyperlegible", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--acc); text-underline-offset: 2px; }
+img { max-width: 100%; height: auto; }
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+h2 { font-size: 1.7rem; margin: 0 0 1.2rem; }
+h3 { font-size: 1.08rem; }
+p { margin: 0 0 .8rem; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+section { padding: 3.2rem 0 0; }
+.fine { font-size: .88rem; color: var(--sub); }
+.m { font-family: "STIX Two Text", Georgia, serif; font-size: 1.05em; }
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 .4em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--card);
+  font: 700 .82em/1.6 "Atkinson Hyperlegible", system-ui, sans-serif;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* the app's wordmark: italic serif, "CE" in the accent color */
+.wordmark {
+  font-family: "STIX Two Text", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 1.5rem;
+}
+.wordmark span { color: var(--acc); }
+.wordmark.big { font-size: clamp(3.2rem, 9vw, 5.2rem); }
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.top-in { display: flex; align-items: center; justify-content: space-between; height: 58px; }
+.top nav { display: flex; gap: 1.2rem; }
+.top nav a { color: var(--sub); text-decoration: none; font-weight: 700; font-size: .95rem; }
+.top nav a:hover { color: var(--ink); }
+
+.hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: 3rem; align-items: center; padding-top: 3.5rem; }
+.hero .lead { font-size: 1.45rem; font-weight: 700; margin: .4rem 0 .9rem; }
+.cta { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1.4rem 0 .9rem; }
+.screen { margin: 0; }
+.screen img, .gallery img, .gif {
+  display: block;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: 700 1rem "Atkinson Hyperlegible", system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--acc); }
+.btn.primary { background: var(--acc); border-color: var(--acc); color: var(--on-acc); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { background: var(--red); border-color: var(--red); color: var(--on-acc); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.confirm { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .8rem; font-weight: 700; cursor: pointer; }
+.confirm input { width: 18px; height: 18px; accent-color: var(--red); }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.25rem 1rem;
+}
+.card h3 { margin: .55rem 0 .45rem; }
+.card p { font-size: .95rem; color: var(--sub); margin: 0; }
+.glyph {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--acc-soft);
+  color: var(--acc);
+  font: italic 500 1.35rem "STIX Two Text", Georgia, serif;
+}
+
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.gallery figure { margin: 0; }
+.gallery figcaption { text-align: center; font-size: .9rem; color: var(--sub); margin-top: .45rem; }
+
+#install .intro { max-width: 760px; }
+.installer {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: .4rem 1.4rem;
+  margin: 1.4rem 0 1rem;
+}
+.notice {
+  margin: 1rem 0 .4rem;
+  padding: .8rem 1rem;
+  border-radius: 10px;
+  background: var(--acc-soft);
+}
+.steps { list-style: none; margin: 0; padding: 0; }
+.step { border-bottom: 1px solid var(--line); padding: 1.1rem 0; }
+.step:last-child { border-bottom: 0; }
+.step-head { display: flex; align-items: center; gap: .8rem; }
+.num {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  font-weight: 700;
+  color: var(--sub);
+}
+.step.active .num { border-color: var(--acc); color: var(--acc); }
+.step.done .num { background: var(--green); border-color: var(--green); color: var(--card); }
+.step-body { padding: .6rem 0 0 calc(30px + .8rem); }
+/* a step's animation shows while it is the current one; clearing the memory's until it is done */
+.step .gif { display: none; }
+.step.active .gif, .step[data-step="clear"]:not(.done) .gif { display: block; }
+.gif { width: 100%; max-width: 380px; margin: .9rem 0 .4rem; }
+ol.sub { margin: 0 0 .9rem; padding-left: 1.2rem; }
+.status { margin-top: .7rem; font-size: .95rem; }
+.status:empty { display: none; }
+.status .ok { color: var(--green); font-weight: 700; }
+.status .bad { color: var(--red); font-weight: 700; }
+.status ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+.progress { margin-top: .9rem; max-width: 520px; }
+.bar { height: 10px; border-radius: 99px; background: var(--acc-soft); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--acc); transition: width .2s; }
+
+details.manual {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .8rem 1.2rem;
+  margin: .7rem 0;
+}
+details.manual summary { cursor: pointer; font-weight: 700; }
+details.manual ol, details.manual ul { margin: .7rem 0 .2rem; padding-left: 1.3rem; }
+details.manual li { margin-bottom: .45rem; }
+
+table.keys { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.keys td { padding: .6rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.keys tr:last-child td { border-bottom: 0; }
+.keys td:first-child { white-space: nowrap; width: 1%; }
+
+.credits p { color: var(--sub); max-width: 820px; }
+.foot { padding: 2.5rem 16px 3rem; color: var(--sub); font-size: .88rem; }
+
+@media (max-width: 820px) {
+  .hero { grid-template-columns: 1fr; gap: 1.8rem; padding-top: 2rem; }
+  .cards, .gallery { grid-template-columns: 1fr 1fr; }
+  .top nav { gap: .8rem; }
+}
+@media (max-width: 540px) {
+  body { font-size: 16px; }
+  .cards, .gallery { grid-template-columns: 1fr; }
+  .top nav a:not([href="#install"]) { display: none; }
+  .installer { padding: .2rem 1rem; }
+  .step-body { padding-left: 0; }
+  .keys td:first-child { white-space: normal; }
+}

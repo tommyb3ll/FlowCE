@@ -138,3 +138,6 @@ __pycache__/
 
 # Claude Code agent worktrees (isolated scratch checkouts)
 .claude/
+
+# the assembled web page (site/build.sh)
+_site/
