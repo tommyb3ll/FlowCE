@@ -148,6 +148,16 @@ void dbgprint(int i){
 
 // getkey polls (test harness: tools/emu waits for this counter to move = ready for the next key)
 volatile unsigned getkey_polls;
+// A key read by key_waiting() while drawing, returned by the next getkey: drawing that checks
+// between steps loses no key (os_GetCSC only sees a key still down when it is called).
+static unsigned char key_csc;
+int key_waiting(void){
+  if (!key_csc){
+    key_csc=os_GetCSC();
+    ++getkey_polls;
+  }
+  return key_csc;
+}
 int getkey(int allow_suspend){
   sync_screen();
   display_time();//statusline(0);
@@ -181,7 +191,8 @@ int getkey(int allow_suspend){
           display_time();
         if ((j&0x1ff)==0x1ff)
           focus_idle();
-        i=os_GetCSC();
+        i=key_csc?key_csc:os_GetCSC();
+        key_csc=0;
         ++getkey_polls;
       }
       os_wait_1ms(10);      

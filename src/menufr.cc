@@ -403,24 +403,7 @@ void reset_alpha(){
 }
 
 #define XCAS_ONLY 0
-#define CAT_CATEGORY_ALL 0
-#define CAT_CATEGORY_ALGEBRA 1
-#define CAT_CATEGORY_LINALG 2
-#define CAT_CATEGORY_CALCULUS 3
-#define CAT_CATEGORY_ARIT 4
-#define CAT_CATEGORY_COMPLEXNUM 5
-#define CAT_CATEGORY_POLYNOMIAL 6
-#define CAT_CATEGORY_PROG 7
-#define CAT_CATEGORY_PROGCMD 8
-#define CAT_CATEGORY_REAL 9
-#define CAT_CATEGORY_OPTIONS 10
-#define CAT_CATEGORY_MATRIX 11
-#define CAT_CATEGORY_LIST 12
-#define CAT_CATEGORY_TRIG 13
-#define CAT_CATEGORY_SOLVE 14
-#define CAT_CATEGORY_PHYS 15
-#define CAT_CATEGORY_UNIT 16
-#define CAT_CATEGORY_PLOT 17
+// CAT_CATEGORY_*: menuGUI.h
 
 void init_locale(){
 #ifndef XLIGHT
@@ -993,6 +976,11 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
 
 constexpr const int CAT_COMPLETE_COUNT_EN=sizeof(completeCaten)/sizeof(catalogFunc);
 // int CAT_COMPLETE_COUNT=sizeof(completeCat)/sizeof(catalogFunc);
+
+const catalogFunc * catalog_entries(int & n){
+  n=(lang==1)?CAT_COMPLETE_COUNT_FR:CAT_COMPLETE_COUNT_EN;
+  return (lang==1)?completeCatfr:completeCaten;
+}
 
 std::string insert_string(int index){
   std::string s;

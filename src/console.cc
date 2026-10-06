@@ -1864,12 +1864,48 @@ const char * trig(){
     return nullptr;
   }
 
+  // Focus: the command search (focus_catalog.cc) opened with query q. Its choice goes to the edit
+  // line, replacing the back chars before the caret (the word that was the query); in 2D a
+  // name( is inserted as name() with the caret inside, as the function keys do. The caller
+  // redraws (Console_Disp(1)).
+  static bool console_search(const char * q,int back){
+    char out[64];
+    if (!focus_catalog(q,out,sizeof(out)-1) || !out[0])
+      return false;
+    for (int g=0;Current_Line<Last_Line && g<1000;++g) // from the history: to the edit line
+      Console_MoveCursor(CURSOR_DOWN);
+    for (;back>0 && Current_Col>0;--back){ // Console_Backspace would redraw at each char
+      Console_DelStr(Edit_Line,Current_Col,1);
+      Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+      Console_MoveCursor(CURSOR_LEFT);
+    }
+    const int l=strlen(out);
+    const bool call=console_input2d() && l>1 && out[l-1]=='(';
+    if (call)
+      strcpy(out+l,")");
+    Console_Input((const Char *)out);
+    if (call)
+      Console_MoveCursor(CURSOR_LEFT);
+    return true;
+  }
+
   bool console_help_insert(bool warn=true){
     if (!Edit_Line)
       return false;
     char buf[strlen((char *)Edit_Line)+1];
     strcpy(buf,(char *)Edit_Line);
     buf[Line[Current_Line].start_col+Cursor.x]=0;
+    if (focus_on){ // the command search, the word before the caret (as help_insert finds it) as query
+      int l=strlen(buf),back=0;
+      if (l && buf[l-1]=='('){
+        buf[--l]=0;
+        ++back;
+      }
+      while (l>0 && (is_alphanum(buf[l-1]) || buf[l-1]=='_'))
+        --l;
+      back+=strlen(buf+l);
+      return console_search(buf+l,back);
+    }
     int back;
     const string s=help_insert(buf,back,warn);
     if (s.empty())
@@ -2225,12 +2261,9 @@ int Console_GetKey(){
         quick_item q={0,text,(signed char)back};
         return console_insert_template(q);
       }
-      if (a==FA_CATALOG){
-        char buf[512];
-        if (!showCatalog(buf,0,0))
-          buf[0]=0;
-        Console_Disp(1);
-        return Console_Input((const Char*)buf);
+      if (a==FA_CATALOG){ // "All commands": the command search (Console_GetLine redraws)
+        console_search("",0);
+        return CONSOLE_SUCCEEDED;
       }
       if (a==FA_PLOT)
         return Console_FMenu(KEY_CTRL_F3);
@@ -2247,6 +2280,12 @@ int Console_GetKey(){
         continue;
       }
       key=KEY_CTRL_F5; // File: KhiCAS's menu, below
+    }
+    // the CATALOG key (2nd 0): the command search. Handled here rather than in keytostring,
+    // which the script editor and inputline share (their screens are not Focus ones)
+    if (focus_on && key==KEY_CTRL_CATALOG){
+      console_search("",0);
+      return CONSOLE_SUCCEEDED;
     }
     //if (1){ char buf1[32],buf2[32]; sprint_double(buf1,key),sprint_double(buf2,KEY_CTRL_F7); confirm(buf1,buf2); }
     if (key==KEY_CHAR_MAT) key=KEY_CTRL_F10;

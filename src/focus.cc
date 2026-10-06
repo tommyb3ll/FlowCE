@@ -303,6 +303,7 @@ static int hist_sel = -1; // entry selected in the history, -1 in edit mode
 enum { SZ_L = 112, SZ_R = 232 };
 static char stat_l[24], stat_m[sizeof(smsg)];
 static int stat_r = -1;
+static const char * stat_view; // a full-screen view's label (focus_status_label), 0: the console's
 
 // text with extra letter spacing (the status label)
 static void spaced_text(const ui_face * f, const char * s, int x, int base, const unsigned char * rp, int sp) {
@@ -323,7 +324,8 @@ static void status_draw(int force) {
   unsigned char ph = focus_phase;
   focus_phase = 12;
   char buf[sizeof(stat_l)];
-  if (hist_sel >= 0) {
+  if (stat_view) { strncpy(buf, stat_view, sizeof(buf) - 1); buf[sizeof(buf) - 1] = 0; }
+  else if (hist_sel >= 0) {
     strcpy(buf, "HISTORY  ");
     int n = hist_sel + 1, t = NE, k = strlen(buf);
     if (n >= 10) buf[k++] = '0' + n / 10;
@@ -331,7 +333,8 @@ static void status_draw(int force) {
     if (t >= 10) buf[k++] = '0' + t / 10;
     buf[k++] = '0' + t % 10; buf[k] = 0;
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
-  int fl = os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
+  // a view types letters directly (the command search locks alpha): no 2nd/alpha chip there
+  int fl = stat_view ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
   int dl = force || strcmp(buf, stat_l), dm = force || strcmp(smsg, stat_m), dr = force || r != stat_r;
   if (!dl && !dm && !dr) { focus_phase = ph; return; }
   focus_phase = 13;
@@ -366,6 +369,7 @@ static void status_draw(int force) {
   focus_phase = ph;
 }
 extern "C" void focus_status(void) { status_draw(0); }
+void focus_status_label(const char * s) { stat_view = s; status_draw(0); }
 
 extern "C" void focus_status_msg(const char * msg) {
   char m[sizeof(smsg)];
@@ -378,8 +382,7 @@ extern "C" void focus_status_msg(const char * msg) {
 
 // The standard layer is the prototype's: an icon and a word per key (algebra, calculus, trig,
 // symbols or forms, more), the menus being Focus popovers (focus_menu.cc); 2nd and alpha show
-// KhiCAS's own menus, as text.
-enum { IC_X2, IC_INT, IC_WAVE, IC_PI, IC_FORMS, IC_MORE, IC_SEARCH };
+// KhiCAS's own menus, as text. (The IC_* icons are listed in focus.h.)
 #define P16(a, b) X + (int)((a) * 16), Y + (int)((b) * 16)
 // the prototype's icons, strokes in a 16 x 16 box centered at x, cy
 void focus_icon(int ic, int x, int cy, int bank, int c, int bg) {
@@ -482,6 +485,24 @@ static void bar_draw(int keyflag, int force) {
   focus_phase = ph;
 }
 void focus_bar(int keyflag) { bar_draw(keyflag, 0); }
+
+// the bar as 5 text tabs (the command search's categories), tab on drawn as an open menu's tab
+void focus_bar_tabs(const char * const * labels, int on) {
+  int band = ui_band_open(MB) >= MB;
+  if (band) ui_band_begin(SBOT, UI_H);
+  ui_clip(0, SBOT, UI_W, UI_H);
+  ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
+  ui_fill(0, SBOT, UI_W, 1, col(UC_LINE));
+  for (int i = 0; i < 5; ++i) {
+    int cx = 32 + 64 * i, bg = i == on ? UC_ACCSOFT : UC_BAR;
+    if (i == on) ui_rrect(0, cx - 30, SBOT + 3, 60, MB - 5, 6, UC_ACCSOFT, UC_BAR);
+    ui_text(i == on ? &ui_tb10 : &ui_tr10, labels[i], cx, SBOT + 15, i == on ? UC_ACC : UC_BARINK, bg, 1);
+  }
+  ui_noclip();
+  if (band) ui_band_end();
+  ui_band_close();
+  bar_sig[0] = 0; // the console's own bar is drawn again by the next bar_draw
+}
 
 // ------------------------------------------------------------------ the stage
 // A model (what the stage shows) is computed first; painting rows draws whatever intersects them.
@@ -658,6 +679,9 @@ int focus_result_line() {
 static int forms_key() { return focus_result_line() >= 0; }
 void focus_repaint(int y0, int y1) { stage_rows(y0, y1); ui_band_close(); }
 void focus_bar_redraw() { bar_draw(bar_keyflag, 1); }
+// a full-screen view (the command search) drew over everything with entries >= 128, so
+// screen_is_ours() cannot tell: forget what is on screen
+void focus_invalidate() { PM.ll = -1; }
 
 void focus_init() { ui_set_theme(&ui_theme_paper); read_battery(); }
 extern "C" void focus_idle(void) { // getkey, after a few idle seconds

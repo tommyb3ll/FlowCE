@@ -123,6 +123,7 @@ extern "C" {
   
   void GetKey(int * key);
   int getkey(int allow_suspend); // transformed
+  int key_waiting(void); // a key was pressed (kept for the next getkey): long drawing can stop
   inline void ck_getkey(int *key){ GetKey(key);}
   void enable_back_interrupt();
   inline void set_abort(){  enable_back_interrupt(); }

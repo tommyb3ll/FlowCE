@@ -225,12 +225,15 @@ int focus_popover(int key, const char ** text, int * back) {
         ui_band_close();
       }
     }
-    // close: the scene comes back, the card's rows are repainted from the stage
+    // close: the scene comes back, the card's rows are repainted from the stage (not under the
+    // command search, which covers the screen at once)
     delete[] PL;
     PL = 0;
     ui_dim(0);
-    focus_repaint(py - 2, py + ph + 6);
-    focus_bar_redraw();
+    if (res != FA_CATALOG) {
+      focus_repaint(py - 2, py + ph + 6);
+      focus_bar_redraw();
+    }
     if (next < 0) return res;
     id = next;
   }
