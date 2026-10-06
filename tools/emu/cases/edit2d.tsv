@@ -20,3 +20,9 @@ den_del	1/2{del}{del}	1|
 sqrt_wrap	{2nd,sq}x+1{right}/	(sqrt(x+1))/(|)
 term_div	a+2b/	a+(2b)/(|)
 pow_eq	x^2=4	x^(2)=4|
+# inside a call: leaving an exponent or a denominator stops before the call's )
+int_pow_right	integrate(x^2{right},x)	integrate(x^(2),x)|
+call_pow_right	f(x^2{right}+1	f(x^(2)+1|)
+sin_pow_right	{sin}x^2{right}+1	sin(x^(2)+1|)
+sq_in_call	{sin}x{sq}+1	sin(x^(2)+1|)
+den_in_call	{sin}1/x{right}+1	sin((1)/(x)+1|)
