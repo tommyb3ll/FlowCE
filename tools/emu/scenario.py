@@ -59,7 +59,7 @@ def main(state, outdir, casefile):
             e.cmd('key enter 80'); e.ms += 80
             if e.polls() is not None:
                 # done = KhiCAS polls the keypad again (getkey_polls, builds since 2026-10-05)
-                t = e.wait_idle(step=50, timeout=600000) + 80
+                t = e.wait_idle(step=50, timeout=int(os.environ.get("SCEN_TIMEOUT", "600000"))) + 80
             else:
                 # Older builds. While KhiCAS computes, the F-key bar is blank ("cancel: stop calcul."
                 # in the status bar); done = the bar is back (console, or the 2D result viewer's bar).

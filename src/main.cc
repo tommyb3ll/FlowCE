@@ -554,6 +554,62 @@ static giac::gen auto_simplify(const giac::gen & g){
   return s;
 }
 
+// A definite integral over constant bounds whose integrand holds a square root (or another
+// fractional power) of something that is not a polynomial of degree <= 2 in the variable almost
+// never has an elementary antiderivative: giac then searches until memory runs out (exam day:
+// sqrt(1+sin(x)^4*cos(x)^6) from 0 to 2 left the calculator dead; the ellipse perimeter took
+// 80 s and exited). Those are integrated numerically: their bounds are made decimal, which makes
+// giac integrate numerically. sqrt(1+16x^2) or sqrt(9-x^2) stay exact. KhiCAS cannot stop giac
+// on a timer instead (see auto_simplify).
+static bool hard_radicand(const giac::gen & f,const giac::gen & x){
+  using namespace giac;
+  if (f.type!=_SYMB)
+    return false;
+  const gen & a=f._SYMBptr->feuille;
+  gen base;
+  bool frac=false;
+  if (f._SYMBptr->sommet==at_sqrt){
+    base=a;
+    frac=true;
+  }
+  else if (f._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2){
+    const gen & e=a._VECTptr->back();
+    frac=e.type==_FRAC || (e.type==_SYMB && e._SYMBptr->sommet==at_division);
+    base=a._VECTptr->front();
+  }
+  if (frac && !is_constant_wrt(base,x,contextptr)){
+    const gen d3=derive(derive(derive(base,x,contextptr),x,contextptr),x,contextptr);
+    if (!is_zero(ratnormal(d3,contextptr)))
+      return true;
+  }
+  if (a.type==_VECT){
+    for (const_iterateur it=a._VECTptr->begin();it!=a._VECTptr->end();++it)
+      if (hard_radicand(*it,x))
+        return true;
+    return false;
+  }
+  return hard_radicand(a,x);
+}
+static giac::gen numeric_hard_integrals(const giac::gen & g){
+  using namespace giac;
+  if (g.type!=_SYMB)
+    return g;
+  const gen & a=g._SYMBptr->feuille;
+  if ((g._SYMBptr->sommet==at_integrate || g._SYMBptr->sommet==at_int) && a.type==_VECT && a._VECTptr->size()==4){
+    const vecteur & v=*a._VECTptr;
+    if (v[1].type==_IDNT && lidnt(v[2]).empty() && lidnt(v[3]).empty() && hard_radicand(v[0],v[1]))
+      return symbolic(g._SYMBptr->sommet,makesequence(v[0],v[1],evalf(v[2],1,contextptr),evalf(v[3],1,contextptr)));
+    return g;
+  }
+  if (a.type==_VECT){
+    vecteur w(*a._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=numeric_hard_integrals(*it);
+    return symbolic(g._SYMBptr->sommet,gen(w,a.subtype));
+  }
+  return symbolic(g._SYMBptr->sommet,numeric_hard_integrals(a));
+}
+
 // An equation typed alone (x^2-4=0, 2x+1=5, sin(x)=1/2) is solved for its only unknown, as an
 // online calculator does; x=5 or f(x)=... never get here (equaltosto stores, the input pre-pass
 // turns f(x)= into a definition). Returns the unknown, or 0.
@@ -1273,9 +1329,13 @@ void do_run(const char * s){
     if (unknown.type==giac::_IDNT)
       g=giac::symbolic(giac::at_solve,giac::makesequence(g,unknown));
     giac::gen var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
-    if (var.type!=giac::_IDNT && g.is_symb_of_sommet(giac::at_solve) && g._SYMBptr->feuille.type==giac::_VECT
-        && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
-      var=g._SYMBptr->feuille._VECTptr->back();
+    if (var.type!=giac::_IDNT && g.is_symb_of_sommet(giac::at_solve)){
+      if (g._SYMBptr->feuille.type==giac::_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
+        var=g._SYMBptr->feuille._VECTptr->back();
+      else if (g._SYMBptr->feuille.type!=giac::_VECT) // solve(expr): giac solves for x
+        var=giac::gen("x",contextptr);
+    }
+    g=numeric_hard_integrals(g);
     const giac::gen ga=add_autosimplify(g,contextptr);
     // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
     // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8
