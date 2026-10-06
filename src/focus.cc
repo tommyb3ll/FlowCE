@@ -22,6 +22,11 @@ bool console_edit2d();              // console.cc: the edit line is math (not Py
 int console_caret();                // console.cc: caret index in the edit line, -1 if in the history
 extern const char * console_form_name; // main.cc: the form F4 last gave console_form_line()
 const char * console_form_line();
+extern const char * console_approx_for; // main.cc: the decimal value of that printed result
+const char * console_approx();
+
+// what a result line shows: giac prints the lists of solve as list[a,b], shown [a,b]
+static const char * shown(const char * s) { return s && !strncmp(s, "list[", 5) ? s + 4 : s; }
 const char * console_fkey_label(int layer, int k); // console.cc: F-key label (layer 0, 2nd, alpha)
 
 int focus_on = 1;
@@ -145,7 +150,7 @@ static void scan() {
     for (int l = e.m0; l >= 0 && l < e.out; ++l)
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
     if (e.out >= 0) {
-      const char * s = Line[e.out].str;
+      const char * s = shown(Line[e.out].str);
       if (is_text(s)) e.outh = 13;
       else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
     }
@@ -160,7 +165,7 @@ static int entry_of_line(int l) {
 }
 
 static void draw_result(const fent & e, int right, int base, int ink, int bg) {
-  const char * s = Line[e.out].str;
+  const char * s = shown(Line[e.out].str);
   if (is_text(s)) { ui_text(&ui_tr10, s, right, base, UC_SUB, bg, 2); return; }
   fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
   int cw = 0;
@@ -191,7 +196,7 @@ static void draw_entry(const fent & e, int y, int sel, int selout) {
       ++n;
     }
   if (e.out >= 0) {
-    const char * s = Line[e.out].str;
+    const char * s = shown(Line[e.out].str);
     int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
     draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
   }
@@ -200,11 +205,17 @@ static void draw_entry(const fent & e, int y, int sel, int selout) {
 }
 
 // ------------------------------------------------------------------ hero (the edit line)
-static void key_hint(int x, int base, const char * k, const char * label) {
-  int w = ui_text_width(&ui_tb9, k, -1) + 8;
+// a small up or down triangle centered at x, cy (the arrow keys)
+static void arrow(int x, int cy, int up, int c) {
+  for (int k = 0; k < 4; ++k) ui_fill(x - k, cy + (up ? k - 2 : 1 - k), 2 * k + 1, 1, col(c));
+}
+// a keycap (a word, or an arrow: "^" up, "v" down) then its label; returns the x after the label
+static int key_hint(int x, int base, const char * k, const char * label) {
+  int ar = (k[0] == '^' || k[0] == 'v') && !k[1], w = ar ? 15 : ui_text_width(&ui_tb9, k, -1) + 8;
   ui_rframe(0, x, base - 9, w, 12, 3, UC_SUB, UC_BG);
-  ui_text(&ui_tb9, k, x + w / 2, base, UC_SUB, UC_BG, 1);
-  ui_text(&ui_tr9, label, x + w + 4, base, UC_SUB, UC_BG, 0);
+  if (ar) arrow(x + w / 2, base - 3, k[0] == '^', UC_SUB);
+  else ui_text(&ui_tb9, k, x + w / 2, base, UC_SUB, UC_BG, 1);
+  return x + w + 4 + ui_text(&ui_tr9, label, x + w + 4, base, UC_SUB, UC_BG, 0);
 }
 
 // The hero is prepared (what it shows, the edit line's layout and position) before it is painted:
@@ -222,7 +233,7 @@ static void hero_prepare(int y0, int h) {
     if (!HL) HL = new mi_layout;
     mi_layout & L = *HL;
     focus_phase = 2;
-    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, 0, L);
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, MI_F_CALLBOX, L);
     focus_phase = 3;
     hx = (UI_W - L.width) / 2; hbase = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
     if (L.width > 296) { // caret kept in view
@@ -256,7 +267,7 @@ static void hero_paint() { // in the current clip
       top += c.a + c.d + 6;
     }
     int bot = y0 + h - 14;
-    const char * r = Line[e.out].str;
+    const char * r = shown(Line[e.out].str);
     if (is_text(r)) ui_text(&ui_tr12, r, UI_W / 2, (top + bot) / 2 + 4, UC_SUB, UC_BG, 1);
     else {
       int anti = e.in >= 0 && is_antideriv(Line[e.in].str);
@@ -270,19 +281,28 @@ static void hero_paint() { // in the current clip
         ui_draw_text(&ui_mi24, "C", -1, cx, base, ramp(UC_SUB, UC_BG), 0);
       }
     }
-    // the forms chip: the form shown (F4 cycles them, main.cc console_cycle_form)
+    // the footer: the decimal value of an exact result, then the forms chip (the form shown;
+    // F4 cycles them, main.cc console_cycle_form), centered together as in the prototype
     if (!is_text(r)) {
       const char * fn = (const char *)Line[e.out].str == console_form_line() ? console_form_name : "exact";
-      int cw2 = ui_text_width(&ui_tb9, fn, -1) + ui_text_width(&ui_tb9, "F4", -1) + 20, cx = (UI_W - cw2) / 2, cy = y0 + h - 13;
+      const char * ap = !strcmp((const char *)Line[e.out].str, console_approx_for) ? console_approx() : "";
+      char abuf[40] = "";
+      if (*ap) { strcpy(abuf, "\xe2\x89\x88 "); strncat(abuf, ap, sizeof(abuf) - 5); } // ≈ value
+      int aw = *abuf ? ui_text_width(&ui_tr10, abuf, -1) + 12 : 0;
+      int cw2 = ui_text_width(&ui_tb9, fn, -1) + ui_text_width(&ui_tb9, "F4", -1) + 20, cy = y0 + h - 13;
+      int x0 = (UI_W - aw - cw2) / 2, cx = x0 + aw;
+      if (*abuf) ui_draw_text(&ui_tr10, abuf, -1, x0, cy, ramp(UC_SUB, UC_BG), 0);
       ui_rrect(0, cx, cy - 10, cw2, 13, 6, UC_ACCSOFT, UC_BG);
       int w1 = ui_text(&ui_tb9, fn, cx + 6, cy, UC_ACC, UC_ACCSOFT, 0);
       ui_text(&ui_tb9, "F4", cx + 12 + w1, cy, UC_SUB, UC_ACCSOFT, 0);
     }
   } else {
-    int m = y0 + h / 2;
+    int m = y0 + h / 2 - 2, b = m + 20;
     ui_text(&ui_tr12, "Type a calculation", UI_W / 2, m, UC_SUB, UC_BG, 1);
-    key_hint(62, m + 20, "math", "templates");
-    key_hint(170, m + 20, "up", "history");
+    int x = UI_W / 2 - 110; // the prototype's three hints: math templates, up history, down search
+    x = key_hint(x, b, "math", "templates") + 12;
+    x = key_hint(x, b, "^", "history") + 12;
+    key_hint(x, b, "v", "search");
   }
 }
 
@@ -290,9 +310,10 @@ static void hero_peek_paint(int y) { // history mode: the edit line, small, at t
   ui_fill(10, y + 2, UI_W - 20, 1, col(UC_LINE));
   const char * s = (const char *)Console_GetEditLine();
   int b = y + 20;
-  if (s && *s && console_edit2d()) { fitc c = fitted(s, 5, 230, 22, 0); draw_math(s, c, 14, b, UC_SUB, UC_BG, 0); }
+  if (s && *s && console_edit2d()) { fitc c = fitted(s, 5, 230, 22, MI_F_CALLBOX); draw_math(s, c, 14, b, UC_SUB, UC_BG, MI_F_CALLBOX); }
   else ui_text(&ui_tr10, "New calculation", 14, b, UC_SUB, UC_BG, 0);
-  ui_text(&ui_tb9, "down: back", UI_W - 12, b, UC_SUB, UC_BG, 2);
+  int w = ui_text(&ui_tb9, "back", UI_W - 12, b, UC_SUB, UC_BG, 2);
+  arrow(UI_W - 12 - w - 9, b - 4, 0, UC_SUB);
 }
 
 // ------------------------------------------------------------------ status bar and F-key bar
@@ -696,4 +717,4 @@ int focus_clear_hero() {
   focus_disp(1);
   return 1;
 }
-const mi_metrics & focus_metrics() { return ui_math_metrics(hero_lv, 0); }
+const mi_metrics & focus_metrics() { return ui_math_metrics(hero_lv, MI_F_CALLBOX); } // as drawn

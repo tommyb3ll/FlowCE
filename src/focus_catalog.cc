@@ -93,6 +93,9 @@ static int classify(const catalogFunc * c) {
   cat_state & s = *S;
   const char * nm = c->name;
   if (nm[0] == ' ') return 3;
+#ifndef WITH_TABVAR
+  if (!strncmp(nm, "tabvar", 6)) return 3; // not in this build (makefile FEATURE_DEFS)
+#endif
   if (s.tab) { // any of its 3 category bytes in the tab's categories
     const unsigned char * t = TCAT[s.tab - 1], * b = (const unsigned char *)&c->category;
     int k = 0;

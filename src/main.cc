@@ -571,6 +571,29 @@ static giac::gen equation_unknown(const giac::gen & g){
   return u.size()==1?u.front():gen(0);
 }
 // solutions as equations: x=-2, x=2 (one: x=3), drawn without parentheses (kdisplay.cc)
+// Focus: the decimal value of an exact numeric result, shown under it (console_approx), for the
+// result printed as console_approx_for
+static std::string * approx_text;
+const char * console_approx_for="";
+const char * console_approx(){ return approx_text?approx_text->c_str():""; }
+static void result_approx(const giac::gen & g){
+  using namespace giac;
+  if (!approx_text)
+    approx_text=new std::string;
+  approx_text->clear();
+  console_approx_for="";
+  if (g.type==_INT_ || g.type==_ZINT || g.type==_DOUBLE_ || g.type==_FLOAT_ || g.type==_STRNG || g.type==_VECT
+      || !lidnt(g).empty() || taille(g,64)>=64)
+    return;
+  const gen a=evalf(g,1,contextptr);
+  if (a.type!=_DOUBLE_ && a.type!=_CPLX)
+    return;
+  const int dd=decimal_digits(contextptr);
+  decimal_digits(6,contextptr);
+  *approx_text=a.print(contextptr);
+  decimal_digits(dd,contextptr);
+}
+
 static giac::gen solutions_as_equations(const giac::gen & s,const giac::gen & x){
   using namespace giac;
   if (s.type!=_VECT || s._VECTptr->empty())
@@ -1249,6 +1272,10 @@ void do_run(const char * s){
     const giac::gen unknown=equation_unknown(g);
     if (unknown.type==giac::_IDNT)
       g=giac::symbolic(giac::at_solve,giac::makesequence(g,unknown));
+    giac::gen var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
+    if (var.type!=giac::_IDNT && g.is_symb_of_sommet(giac::at_solve) && g._SYMBptr->feuille.type==giac::_VECT
+        && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==giac::_IDNT)
+      var=g._SYMBptr->feuille._VECTptr->back();
     const giac::gen ga=add_autosimplify(g,contextptr);
     // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
     // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8
@@ -1258,12 +1285,14 @@ void do_run(const char * s){
     if (autosimp)
       g=auto_simplify(g);
     std::string msg; // a plain message instead of the result
-    if (unknown.type==giac::_IDNT){
+    if (var.type==giac::_IDNT){
       if (g.type==giac::_VECT && g._VECTptr->empty())
         msg="no solution";
       else
-        g=solutions_as_equations(g,unknown);
+        g=solutions_as_equations(g,var);
     }
+    if (focus_on)
+      result_approx(g);
     if (defn){
       giac::logptr(savelog,contextptr);
       if (g.is_symb_of_sommet(giac::at_program)) // the 2D input above shows the function
@@ -1288,7 +1317,10 @@ void do_run(const char * s){
     if (taille(g,256)>=256)
       Console_Output("Done");
     else {
-      const char * str = g.print(contextptr).c_str();
+      const std::string printed=g.print(contextptr); // (a pointer into the temporary dangled)
+      const char * str = printed.c_str();
+      if (focus_on)
+        console_approx_for=str;
       Console_Output(str);
       vector<unsigned char> v;
       tokenize(str,v);
