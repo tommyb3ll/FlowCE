@@ -17,6 +17,7 @@ struct answer_ctx {
   bool tabled;       // the answer was known without eval (sec, csc, power sums): g is it
   bool autosimp;     // the result gets auto_simplify (not factor(...), expand(...), programs)
   bool typed_sum, typed_limit; // the text has sum( or limit( (an oscillating result's message)
+  bool typed_sec;    // the text has sec(, csc( or cot(: the answer is written with them too
 };
 
 // the typed text, in place (capacity cap): paper notation and TI implicit multiplication; Focus:
