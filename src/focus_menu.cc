@@ -553,7 +553,8 @@ int focus_fmenu(int idx, const char * const * e, int n) {
     }
     it[k].text = s; it[k].back = 0; it[k].pv = 0; it[k].hint = 0; it[k].act = 0;
     it[k].label = fm_label(s);
-    if (s[0] == ' ' || sym) { // an operator ( mod ) or a symbol (: & #): the text alone, upright
+    if (!strcmp(s, "()/()")) it[k].label = "Fraction"; // misc (ALPHA Y=): drawn as the template
+    else if (s[0] == ' ' || sym) { // an operator ( mod ) or a symbol (: & #): the text alone, upright
       int a = 0, b = L;
       while (s[a] == ' ') ++a;
       while (b > a && s[b - 1] == ' ') --b;
