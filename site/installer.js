@@ -1,9 +1,10 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
 // release bundle (files/FlowCE.b84) over WebUSB and opens its installer, which then needs one key
 // press on the calculator. Steps and texts: index.html.
-import { Calculator, KEY, TI_CE, readBundle, readTIFile } from './dusb.js';
+import { Calculator, KEY, LinkError, TI_CE, TYPE_APP, readBundle, readTIFile } from './dusb.js';
 
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const step = name => document.querySelector(`.step[data-step="${name}"]`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MB = n => (n / 1e6).toFixed(2) + ' MB';
@@ -92,6 +93,11 @@ function friendly(e) {
     return 'The calculator stopped answering. Make sure it is on the home screen, unplug it and plug it back in, then press Connect calculator again.';
   if (e && e.code === 'calc')
     return 'The calculator refused a file. Usually part of FlowCE is already on it: erase it, then try again.';
+  if (e && e.code === 'short')
+    return 'The calculator still doesn\'t have enough free memory: some apps stay after the erase (on some calculators, ' +
+      'TI\'s language apps). Delete them in TI Connect CE (select them in the calculator\'s file list, then Delete), or on ' +
+      'the calculator: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → 2: Mem Mgmt/Del… → Apps…, then <kbd>del</kbd> on each. ' +
+      'Then press Connect calculator again.';
   if (e && e.name === 'NetworkError')
     return 'The calculator was disconnected. Plug it back in and press Connect calculator again.';
   if (e && e.name === 'SecurityError')
@@ -101,9 +107,9 @@ function friendly(e) {
 
 // The message, and the browser's own words under it (for reports)
 function problem(e) {
-  const raw = String(e && e.message || e).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  const raw = esc(e && e.message || e);
   const f = friendly(e);
-  return `<span class="bad">${f}</span>` + (f === raw ? '' : `<div class="fine">Details: ${raw}</div>`);
+  return `<span class="bad">${f}</span>` + (f === raw || (e && e.code === 'short') ? '' : `<div class="fine">Details: ${raw}</div>`);
 }
 
 async function loadBundle() {
@@ -227,6 +233,30 @@ async function erase(c) {
   }
 }
 
+// Still short after the erase: the reset kept apps (TI's language apps on a friend's calculator, OS
+// 5.3.1, 2026-10-07; TI Connect CE could delete them). What is still archived, apps included, is
+// deleted one by one as TI Connect CE does: the user agreed to erasing all apps and archived files.
+// Throws (code 'short': the steps to do it by hand) if the calculator still lacks room.
+async function clearLeftovers(c) {
+  let left = [];
+  try {
+    left = (await c.dirList()).filter(v => v.type === TYPE_APP || v.archived);
+  } catch (e) {
+    console.warn('FlowCE: listing the calculator failed:', e);
+  }
+  for (let i = 0; i < left.length; i++) {
+    say('st-install', `The erase left ${left.length} item${left.length > 1 ? 's' : ''} on the calculator (often TI's ` +
+      `language apps). Deleting ${esc(left[i].text)} (${i + 1} of ${left.length})…`);
+    try {
+      await c.deleteVar(left[i]);
+    } catch (e) {
+      console.warn('FlowCE: deleting ' + left[i].text + ' failed:', e);
+    }
+  }
+  if (left.length) await check(c);
+  if (state.needErase) throw new LinkError('short', 'not enough free memory after the erase');
+}
+
 // "text 0:42", every second, until the returned function is called
 function ticking(id, text) {
   const t0 = Date.now();
@@ -309,7 +339,7 @@ async function install() {
       c = calc = c2;
       say('st-install', 'Erased. Checking the calculator…');
       await check(c);
-      if (state.needErase) throw new Error('The calculator still doesn\'t have enough free memory. Erase it on the calculator (see below), then press Connect calculator again.');
+      if (state.needErase) await clearLeftovers(c);
     }
     await proceed(c);
   } catch (e) {
@@ -330,7 +360,7 @@ async function resume(c) {
     say('st-install', 'Checking the calculator…');
     await c.ping();
     await check(c);
-    if (state.needErase) throw new Error('The calculator still doesn\'t have enough free memory. Erase it on the calculator (see below), then press Connect calculator again.');
+    if (state.needErase) await clearLeftovers(c);
     await proceed(c);
   } catch (e) {
     say('st-install', problem(e));
@@ -403,6 +433,9 @@ function init() {
   window.addEventListener('beforeunload', ev => {
     if (busy) { ev.preventDefault(); ev.returnValue = ''; }
   });
+  // ?debug: the connected calculator from the console, to try a command on a real one
+  // (flowceDebug.calc().dirList(), .deleteVar(v)) before the installer relies on it
+  if (new URLSearchParams(location.search).has('debug')) window.flowceDebug = { calc: () => calc, check: () => check(calc) };
 }
 
 init();
