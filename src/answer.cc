@@ -1431,8 +1431,8 @@ static giac::gen power_sum(const giac::gen & g){
   if (n_power(f,n))
     return symbolic(at_sum,makesequence(f,n,a,plus_inf));
   const vecteur ids=lidnt(f);
-  if (ids.size()!=1 || !(ids.front()==n))
-    return 0;
+  if (ids.size()!=1 || !(ids.front()==n)) // a power series in x with n!: known_sum's (giac's
+    return ids.size()==2 && contains(f,at_factorial)?symbolic(at_sum,makesequence(f,n,a,plus_inf)):gen(0); // sum hung)
   const gen R=subst(f,symbolic(at_pow,makesequence(gen(-1),n)),1,false,contextptr); // f=(-1)^n*R
   const bool isalt=alternating(f,n);
   const vecteur lv=lvar(R);
