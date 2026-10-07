@@ -8,14 +8,13 @@ const step = name => document.querySelector(`.step[data-step="${name}"]`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MB = n => (n / 1e6).toFixed(2) + ' MB';
 const OS_MAX = [5, 8, 4], OS_MIN = [5, 3, 0];
-const RAM_NEED = 40000; // INST runs in RAM (a copy of it, and its own data)
 // Windows binds the calculator to TI's driver: the old one (tiehdusb) can't be used by browsers
 const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent);
 
 let calc = null;          // the connected calculator
 let vars = null;          // the bundle's variables, in sending order
 let autoInst = false;     // INST is patched (below): one key starts it, and it restarts the calculator
-let state = null;         // the last check: { blocked, needErase, eraseAll }
+let state = null;         // the last check: { blocked, needErase }
 let busy = false;         // installing
 let waitingReset = false; // the installer runs on the calculator: its restart ends the install
 let awaitingReconnect = false; // erased: waiting for the calculator to come back
@@ -145,23 +144,19 @@ async function check(c = calc) {
   } else if (info.os && cmp(info.os, OS_MIN) < 0) {
     lines.push(`OS ${info.osText} is older than the versions FlowCE was tested on (5.3 to 5.8.4); it may not work.`);
   }
-  // usually only the archive is erased (what INST asks for); everything when RAM is short too
-  const lowRam = info.freeRam !== null && info.freeRam < RAM_NEED;
-  const needErase = (info.freeFlash !== null && info.freeFlash < need) || lowRam;
+  // only the free archive decides (the RAM figure a real calculator reports is not its free RAM:
+  // it read as too little even right after a full reset, and the page erased again and again)
+  console.info('FlowCE: calculator', info);
+  const needErase = info.freeFlash !== null && info.freeFlash < need;
   if (info.freeFlash !== null)
-    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase && !lowRam ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : needErase ? '.' : ' (enough for FlowCE).'));
-  if (lowRam) lines.push(`Free RAM: ${Math.round(info.freeRam / 1000)} KB; the installer needs about ${RAM_NEED / 1000} KB, so all of the memory will be erased.`);
-  state = { blocked, needErase, eraseAll: lowRam };
+    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : ' (enough for FlowCE).'));
+  state = { blocked, needErase };
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
     mark('connect', 'done');
     mark('install', 'active');
   }
   $('erase-part').hidden = !needErase;
-  $('erase-what').innerHTML = lowRam
-    ? 'FlowCE needs almost all of the calculator\'s memory, so the calculator is <strong>erased first</strong>: everything except the OS goes (apps, programs and variables). Back up anything you want to keep.'
-    : 'FlowCE needs almost all of the calculator\'s memory, so its <strong>archive is erased first</strong>: all apps and archived programs and variables go (the OS and what\'s in RAM stay). Back up anything you want to keep.';
-  $('erase-label').textContent = lowRam ? 'I understand: erase everything on my calculator' : 'I understand: erase all apps and archived files on my calculator';
   updateInstall();
   return state;
 }
@@ -210,13 +205,12 @@ async function reconnect(ms, wanted = () => true) {
   return null;
 }
 
-// Erase with remote keys, as a person would: quit, MEM, 7 Reset..., then right (ARCHIVE), 3 Both...
-// (what INST asks for: apps and archived variables go, RAM stays), or right right (ALL), 1 All
-// Memory..., and 2 Reset. Then the calculator either answers again on the same connection (c), or
-// restarts its USB, and the browser has to be given it again (null). Throws if nothing was erased.
-async function erase(c, all) {
-  const keys = [KEY.quit, KEY.clear, KEY.mem, KEY.k7, ...(all ? [KEY.right, KEY.right, KEY.k1] : [KEY.right, KEY.k3])];
-  for (const k of keys) {
+// Reset the archive with remote keys, as a person would: quit, MEM, 7 Reset..., right (ARCHIVE),
+// 3 Both..., 2 Reset (what INST asks for: apps and archived variables go, RAM stays). Then the
+// calculator either answers again on the same connection (c), or restarts its USB, and the
+// browser has to be given it again (null). Throws if nothing was erased.
+async function erase(c) {
+  for (const k of [KEY.quit, KEY.clear, KEY.mem, KEY.k7, KEY.right, KEY.k3]) {
     await c.pressKey(k);
     await sleep(800);
   }
@@ -289,21 +283,26 @@ async function install() {
   let c = calc;
   try {
     if (state.needErase) {
-      const stop = ticking('st-install', 'Erasing the calculator. It shows <em>"' +
-        (state.eraseAll ? 'MEM Cleared' : 'Arc Vars &amp; Apps Cleared') + '"</em> when it\'s done; nothing to press.');
+      const stop = ticking('st-install', 'Erasing the calculator. It shows <em>"Arc Vars &amp; Apps Cleared"</em> when it\'s done; nothing to press.');
       let c2;
       try {
-        c2 = await erase(c, state.eraseAll);
+        c2 = await erase(c);
       } finally {
         stop();
       }
       if (!c2) {
         // the calculator restarted its USB. It has no serial number, so the browser forgot it and has
-        // to be asked again (a click); keep looking meanwhile, in case this browser does remember it
+        // to be asked again (a click): the one button left, green; keep looking meanwhile, in case
+        // this browser does remember it
         awaitingReconnect = true;
-        $('btn-reconnect').hidden = false;
-        say('st-install', 'Erased. The calculator restarted its USB connection, so the browser needs it picked again: ' +
-          'click <strong>Reconnect calculator</strong> and choose it in the list. Nothing to press on the calculator.');
+        const b = $('btn-reconnect');
+        $('btn-install').hidden = true;
+        b.hidden = false;
+        b.classList.add('attn');
+        b.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        b.focus({ preventScroll: true });
+        say('st-install', '<strong>Erased. Now click the green Reconnect calculator button</strong> and pick the calculator ' +
+          'in the list: it restarted its USB connection, so the browser asks once more. Nothing to press on the calculator.');
         reconnect(180000, () => awaitingReconnect).then(c3 => { if (c3 && awaitingReconnect) resume(c3); });
         return; // busy until resume()
       }
@@ -324,6 +323,8 @@ async function resume(c) {
   if (!awaitingReconnect) return;
   awaitingReconnect = false;
   $('btn-reconnect').hidden = true;
+  $('btn-reconnect').classList.remove('attn');
+  $('btn-install').hidden = false;
   calc = c;
   try {
     say('st-install', 'Checking the calculator…');

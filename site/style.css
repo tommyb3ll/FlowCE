@@ -32,6 +32,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* (.btn and others set display, which beat the attribute) */
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -119,6 +120,10 @@ kbd {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.danger { background: var(--red); border-color: var(--red); color: var(--on-acc); }
 .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+/* the button to press now (Reconnect after the erase): green, with a soft pulse */
+.btn.attn { background: var(--green); border-color: var(--green); color: var(--card); animation: attn 1.6s ease-in-out infinite; }
+@keyframes attn { 0%, 100% { box-shadow: 0 0 0 0 rgba(39, 140, 74, .55); } 50% { box-shadow: 0 0 0 9px rgba(39, 140, 74, 0); } }
+@media (prefers-reduced-motion: reduce) { .btn.attn { animation: none; } }
 .confirm { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .8rem; font-weight: 700; cursor: pointer; }
 .confirm input { width: 18px; height: 18px; accent-color: var(--red); }
 
