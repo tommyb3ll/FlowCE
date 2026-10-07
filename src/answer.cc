@@ -374,16 +374,30 @@ static int x_power(const giac::gen & t){
     return x_power(t._SYMBptr->feuille._VECTptr->front());
   if (t.is_symb_of_sommet(at_neg))
     return x_power(t._SYMBptr->feuille);
-  const gen & u=t;
+  // (60 times the exponent: x^(3/2) 90, x 60, sqrt(x) 30, so that 2x^(3/2)-3x+6sqrt(x))
   gen b,e;
-  if (var_power(u,b,e))
-    return e.type==_INT_ && e.val>0?e.val:0;
-  if (!u.is_symb_of_sommet(at_prod) || u._SYMBptr->feuille.type!=_VECT)
-    return 0;
-  for (const_iterateur it=u._SYMBptr->feuille._VECTptr->begin();it!=u._SYMBptr->feuille._VECTptr->end();++it)
-    if (var_power(*it,b,e))
-      return e.type==_INT_ && e.val>0?e.val:0;
-  return 0;
+  if (!var_power(t,b,e) && t.is_symb_of_sommet(at_prod) && t._SYMBptr->feuille.type==_VECT)
+    for (const_iterateur it=t._SYMBptr->feuille._VECTptr->begin();it!=t._SYMBptr->feuille._VECTptr->end() && !var_power(*it,b,e);++it)
+      ;
+  const gen k=e*60;
+  return k.type==_INT_ && k.val>0?k.val:k.type==_FRAC && is_strictly_positive(k,contextptr)?_floor(k,contextptr).val:0;
+}
+// positive_first's divisions as giac's products: ratnormal took 16*(x^2/8) for 16 times an unknown
+// function (5-16x^2/8); eval rewrote cot as cos/sin
+static giac::gen undiv(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    vecteur w(*g._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=undiv(*it);
+    return gen(w,g.subtype);
+  }
+  if (g.type!=_SYMB)
+    return g;
+  const gen f=undiv(g._SYMBptr->feuille);
+  if (g._SYMBptr->sommet==at_division && f.type==_VECT && f._VECTptr->size()==2)
+    return symbolic(at_prod,makesequence(f._VECTptr->front(),symb_inv(f._VECTptr->back())));
+  return symbolic(g._SYMBptr->sommet,f);
 }
 // the power of a term's trig factor: 5 for -2sin(x)^5/5, 1 for 3tan(x), 0 for 2/x or ln|x|
 static int fn_power(const giac::gen & t){
@@ -530,8 +544,7 @@ giac::gen positive_first(const giac::gen & g){
       const gen c=sum_content(w[i]);
       if (is_one(c))
         continue;
-      w[i]=positive_first(ratnormal(eval(w[i],1,contextptr)/c,contextptr)); // (eval: the divisions
-      // positive_first built are giac's again; ratnormal kept 16*(x^2/8): 5-16x^2/8)
+      w[i]=positive_first(ratnormal(undiv(w[i])/c,contextptr));
       w.insert(w.begin(),c); // (the sum moves to i+1: the loop goes on after it)
       ++i;
     }
@@ -932,7 +945,7 @@ static giac::gen table_integral(const giac::gen & g){
     else
       break;
   }
-  if (n!=-1 && n!=-2 && n!=-3)
+  if (n>-1 || n<-8)
     return 0;
   n=-n;
   const bool c=d.is_symb_of_sommet(at_cos);
@@ -947,6 +960,12 @@ static giac::gen table_integral(const giac::gen & g){
   // (-csc(u)*cot(u)+ln|csc(u)-cot(u)|)/2; divided by a: sec(3x) /3, sec(x/2) 2*...
   // squares: tan(u), -cot(u) (giac: -2/(2*tan(x)) for csc(x)^2)
   gen r=n==2?(c?t:symbolic(at_neg,t)):n==3?symbolic(at_plus,makesequence(c?symbolic(at_prod,makesequence(s,t)):symbolic(at_neg,symbolic(at_prod,makesequence(s,t))),l)):l;
+  if (n>=4){ // even powers by t=tan(u) (cot(u)): the polynomial (1+t^2)^(n/2-1) integrated,
+    if (n%2) // put back unevaluated: sec(x)^6 is tan+2tan^3/3+tan^5/5 at once (giac: 41 s on the
+      return 0; // calculator); odd ones are giac's
+    // (in x, then t for x: no new variable)
+    return quotesubst(_integrate(makesequence(pow(x*x+1,n/2-1,contextptr)*(c?1:-1)/a,x),contextptr),x,t,contextptr);
+  }
   gen q=n==3?gen(2):gen(1);
   if (a.type==_INT_)
     q=q*a;
