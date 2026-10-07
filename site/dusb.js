@@ -19,7 +19,7 @@ export const PID = { PRODUCT_NAME: 0x0002, OS_VERSION: 0x000b, FREE_RAM: 0x000e,
 // TI-OS key codes (tilibs keys83p.h)
 export const KEY = {
   right: 0x01, left: 0x02, up: 0x03, down: 0x04, enter: 0x05, clear: 0x09, apps: 0x27, prgm: 0x2d,
-  mem: 0x36, quit: 0x40, resetMem: 0x4e, k1: 0x8f, k2: 0x90, k7: 0x95,
+  mem: 0x36, quit: 0x40, resetMem: 0x4e, k1: 0x8f, k2: 0x90, k3: 0x91, k7: 0x95,
 };
 
 const be = (n, len) => Array.from({ length: len }, (_, i) => Math.floor(n / 2 ** (8 * (len - 1 - i))) & 255);
@@ -161,8 +161,9 @@ export class Calculator {
 
   /* commands */
 
+  // answered as soon as the calculator is back on an OS screen: a long timeout waits out a busy one
   async ping(timeout = 30000) {
-    await this.send(VIRT.PING, MODE_NORMAL, null, Math.min(timeout, 10000));
+    await this.send(VIRT.PING, MODE_NORMAL, null, timeout);
     await this.expect(VIRT.MODE_SET, timeout);
   }
 

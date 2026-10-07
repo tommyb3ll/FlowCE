@@ -72,7 +72,8 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 
 **The easy way: [install from the FlowCE page](https://tommyb3ll.github.io/FlowCE/#install).** Plug in
 the calculator, open the page in Chrome or Edge and click Install: it checks the calculator,
-erases it (after you agree), sends FlowCE and starts the installer. On Windows it needs
+erases its archive (after you agree), sends FlowCE and opens the installer. Then press `enter`
+once on the calculator: it installs and restarts by itself. On Windows it needs
 [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw) 6.1 or
 newer installed (for its USB driver). Or install it by hand:
 

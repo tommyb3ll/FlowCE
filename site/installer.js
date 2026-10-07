@@ -1,5 +1,6 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// release bundle (files/FlowCE.b84) over WebUSB and starts its installer. Steps and texts: index.html.
+// release bundle (files/FlowCE.b84) over WebUSB and opens its installer, which then needs one key
+// press on the calculator. Steps and texts: index.html.
 import { Calculator, KEY, TI_CE, readBundle, readTIFile } from './dusb.js';
 
 const $ = id => document.getElementById(id);
@@ -7,15 +8,61 @@ const step = name => document.querySelector(`.step[data-step="${name}"]`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MB = n => (n / 1e6).toFixed(2) + ' MB';
 const OS_MAX = [5, 8, 4], OS_MIN = [5, 3, 0];
+const RAM_NEED = 40000; // INST runs in RAM (a copy of it, and its own data)
 // Windows binds the calculator to TI's driver: the old one (tiehdusb) can't be used by browsers
 const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent);
 
 let calc = null;          // the connected calculator
 let vars = null;          // the bundle's variables, in sending order
-let state = null;         // the last check: { blocked, needErase }
+let autoInst = false;     // INST is patched (below): one key starts it, and it restarts the calculator
+let state = null;         // the last check: { blocked, needErase, eraseAll }
 let busy = false;         // installing
 let waitingReset = false; // the installer runs on the calculator: its restart ends the install
 let awaitingReconnect = false; // erased: waiting for the calculator to come back
+
+// INST (KhiCAS's app_tools) waits for enter at "enter: install app" and for a key at "Success! Will
+// now reset", then returns into the arTIfiCE shell, which needs mode before the OS runs the
+// kResetMem key INST leaves for it. It reads the keyboard with os_GetCSC, which keys sent from the
+// computer never reach. So INST is patched as it is sent, where exactly these bytes are found (the
+// release's INST stays as it is): no prompt, no wait, and out to the home screen, which resets.
+const INST_PATCHES = [
+  // the prompt: call os_GetCSC; cp sk_Enter; jr z,install; cp sk_Clear; jr nz,prompt
+  // -> ld a,sk_Enter: install at once
+  { find: [0xcd, 0x3c, 0x1d, 0x02, 0xfe, 0x09, 0x28, 0x15, 0xfe, 0x0f, 0x20, 0xf4], at: 0, put: [0x3e, 0x09, 0x00, 0x00] },
+  // "Success!": xor a; (ix-146) = a, success; jr wait-for-a-key -> jr past the wait, to the test of
+  // that flag, which sets kbdKey = kResetMem. Checked: the wait (+28) and the test (+35) are there.
+  {
+    find: [0xaf, 0x01, 0x6e, 0xff, 0xff, 0xed, 0x22, 0x00, 0x09, 0x77, 0x18, 0x10, 0x21], at: 10, put: [0x18, 0x17],
+    check: [[28, [0xcd, 0x3c, 0x1d, 0x02, 0xb7, 0x28, 0xf9]],
+      [35, [0x01, 0x6e, 0xff, 0xff, 0xed, 0x22, 0x00, 0x09, 0xcb, 0x46, 0x20, 0x11, 0x3e, 0x4e, 0x32, 0x8c, 0x05, 0xd0]]],
+  },
+  // the program's exit: ...; call ClrLCDFull; call HomeUp; call DrawStatusBar; pop hl; ret (into
+  // the shell) -> jp JForceCmdNoChar: the OS home screen, which runs the pending kResetMem
+  {
+    find: [0xfd, 0xcb, 0x09, 0xa6, 0xfd, 0xcb, 0x03, 0xc6, 0xcd, 0x08, 0x08, 0x02, 0xcd, 0x28, 0x08, 0x02, 0xcd, 0x3c, 0x1a, 0x02, 0xe1, 0xc9],
+    at: 8, put: [0xc3, 0x60, 0x01, 0x02],
+  },
+];
+
+function indexOf(a, pat, from = 0) {
+  outer: for (let i = from; i <= a.length - pat.length; i++) {
+    for (let j = 0; j < pat.length; j++) if (a[i + j] !== pat[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+
+// INST's data, patched; null if it isn't the INST these patches were made for
+function patchInst(data) {
+  const d = data.slice();
+  for (const p of INST_PATCHES) {
+    const i = indexOf(d, p.find);
+    if (i < 0 || indexOf(d, p.find, i + 1) >= 0) return null;
+    for (const [off, bytes] of p.check || []) if (indexOf(d.subarray(i + off, i + off + bytes.length), bytes) !== 0) return null;
+    d.set(p.put, i + p.at);
+  }
+  return d;
+}
 
 function mark(name, how) {
   const li = step(name);
@@ -71,14 +118,19 @@ async function loadBundle() {
   }
   // the programs (arTIfiCE "A", INST) first, then AppIns00..42 in order
   list.sort((a, b) => (a.name.startsWith('AppIns') - b.name.startsWith('AppIns')) || a.name.localeCompare(b.name));
-  if (list.filter(v => v.name.startsWith('AppIns')).length < 2 || !list.some(v => v.name === 'INST'))
+  const inst = list.find(v => v.name === 'INST');
+  if (list.filter(v => v.name.startsWith('AppIns')).length < 2 || !inst)
     throw new Error('the FlowCE download is incomplete');
+  const patched = patchInst(inst.data);
+  if (patched) inst.data = patched;
+  autoInst = !!patched;
   vars = list;
   return vars;
 }
 
+// (nothing to click while INST runs: whatever reaches the calculator then could cancel its reset)
 function updateInstall() {
-  $('btn-install').disabled = busy || !calc || !state || state.blocked || (state.needErase && !$('erase-ok').checked);
+  $('btn-install').disabled = busy || waitingReset || !calc || !state || state.blocked || (state.needErase && !$('erase-ok').checked);
 }
 
 // The calculator's OS and free memory: what the install has to do
@@ -93,16 +145,23 @@ async function check(c = calc) {
   } else if (info.os && cmp(info.os, OS_MIN) < 0) {
     lines.push(`OS ${info.osText} is older than the versions FlowCE was tested on (5.3 to 5.8.4); it may not work.`);
   }
-  const needErase = info.freeFlash !== null && info.freeFlash < need;
+  // usually only the archive is erased (what INST asks for); everything when RAM is short too
+  const lowRam = info.freeRam !== null && info.freeRam < RAM_NEED;
+  const needErase = (info.freeFlash !== null && info.freeFlash < need) || lowRam;
   if (info.freeFlash !== null)
-    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; FlowCE needs ${MB(need)}, so the calculator will be erased.` : ' (enough for FlowCE).'));
-  state = { blocked, needErase };
+    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase && !lowRam ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : needErase ? '.' : ' (enough for FlowCE).'));
+  if (lowRam) lines.push(`Free RAM: ${Math.round(info.freeRam / 1000)} KB; the installer needs about ${RAM_NEED / 1000} KB, so all of the memory will be erased.`);
+  state = { blocked, needErase, eraseAll: lowRam };
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
     mark('connect', 'done');
     mark('install', 'active');
   }
   $('erase-part').hidden = !needErase;
+  $('erase-what').innerHTML = lowRam
+    ? 'FlowCE needs almost all of the calculator\'s memory, so the calculator is <strong>erased first</strong>: everything except the OS goes (apps, programs and variables). Back up anything you want to keep.'
+    : 'FlowCE needs almost all of the calculator\'s memory, so its <strong>archive is erased first</strong>: all apps and archived programs and variables go (the OS and what\'s in RAM stay). Back up anything you want to keep.';
+  $('erase-label').textContent = lowRam ? 'I understand: erase everything on my calculator' : 'I understand: erase all apps and archived files on my calculator';
   updateInstall();
   return state;
 }
@@ -130,11 +189,11 @@ async function connect() {
   }
 }
 
-// After a reset the calculator comes back by itself (sometimes only once its message is dismissed):
-// keep trying the calculators this page may use, for up to ms
-async function reconnect(ms) {
+// After a reset the calculator comes back by itself: keep trying the calculators this page may use,
+// for up to ms or while wanted()
+async function reconnect(ms, wanted = () => true) {
   const end = Date.now() + ms;
-  while (Date.now() < end) {
+  while (Date.now() < end && wanted()) {
     const devs = (await navigator.usb.getDevices()).filter(d => d.vendorId === TI_CE.vendorId && d.productId === TI_CE.productId);
     for (const d of devs) {
       const c = new Calculator(d);
@@ -151,20 +210,39 @@ async function reconnect(ms) {
   return null;
 }
 
-// Reset All Memory with remote keys, as a person would: quit, MEM, 7 Reset..., right right (ALL),
-// 1 All Memory..., 2 Reset. The calculator restarts.
-async function erase(c) {
-  const keys = [KEY.quit, KEY.clear, KEY.mem, KEY.k7, KEY.right, KEY.right, KEY.k1, KEY.k2];
-  for (let i = 0; i < keys.length; i++) {
-    try {
-      await c.pressKey(keys[i]);
-    } catch (e) {
-      if (i < keys.length - 1) throw e; // the last key resets the calculator: losing it there is expected
-    }
+// Erase with remote keys, as a person would: quit, MEM, 7 Reset..., then right (ARCHIVE), 3 Both...
+// (what INST asks for: apps and archived variables go, RAM stays), or right right (ALL), 1 All
+// Memory..., and 2 Reset. Then the calculator either answers again on the same connection (c), or
+// restarts its USB, and the browser has to be given it again (null). Throws if nothing was erased.
+async function erase(c, all) {
+  const keys = [KEY.quit, KEY.clear, KEY.mem, KEY.k7, ...(all ? [KEY.right, KEY.right, KEY.k1] : [KEY.right, KEY.k3])];
+  for (const k of keys) {
+    await c.pressKey(k);
     await sleep(800);
   }
-  await c.close();
-  if (calc === c) calc = null;
+  try {
+    await c.pressKey(KEY.k2, 180000); // Reset: acknowledged, then the calculator erases
+    await sleep(1500);
+    await c.ping(180000); // answered once the erase is done (a timer for the slowest calculator)
+    return c;
+  } catch (e) {
+    console.warn('FlowCE: the calculator left after the erase:', e);
+    await c.close(); // cancels what is still waiting
+    if (calc === c) calc = null;
+    return null;
+  }
+}
+
+// "text 0:42", every second, until the returned function is called
+function ticking(id, text) {
+  const t0 = Date.now();
+  const show = () => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    say(id, `${text} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+  };
+  show();
+  const t = setInterval(show, 1000);
+  return () => clearInterval(t);
 }
 
 async function sendAll(c) {
@@ -182,20 +260,7 @@ async function sendAll(c) {
   $('bar').style.width = '100%';
 }
 
-// INST runs inside the arTIfiCE shell, which may not take keys from the computer: try, briefly
-async function startInst(c) {
-  try {
-    await sleep(5000); // the shell loads
-    await c.pressKey(KEY.enter, 4000); // INST, the shell's only program
-    await sleep(3000);
-    await c.pressKey(KEY.enter, 4000); // "enter: install app"
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// The rest of the install, once the calculator has room: send, open arTIfiCE, try to start INST
+// The rest of the install, once the calculator has room: send, open the arTIfiCE shell
 async function proceed(c) {
   await sendAll(c);
   say('st-install', 'Opening the installer on the calculator…');
@@ -207,12 +272,13 @@ async function proceed(c) {
   mark('install', 'done');
   mark('finish', 'active');
   waitingReset = true;
-  say('st-finish', 'Starting the installer…');
-  const auto = await Promise.race([startInst(c), sleep(16000).then(() => false)]);
-  say('st-finish', (auto
-    ? 'The installer is running: it counts down from 42 to 0.'
-    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 42 to 0.') +
-    ' At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
+  // The shell and INST don't read the USB: a key sent now would wait, and land after INST, where it
+  // could replace the reset INST leaves for the OS. So nothing more is sent.
+  say('st-finish', autoInst
+    ? '<strong>Press <kbd>enter</kbd> on the calculator</strong> (the arTIfiCE shell shows INST). That\'s the only key: ' +
+      'it installs FlowCE, counting down from 42 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
+    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 42 to 0. ' +
+      'At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
 }
 
 async function install() {
@@ -220,19 +286,31 @@ async function install() {
   busy = true;
   updateInstall();
   $('btn-connect').disabled = true;
-  const c = calc;
+  let c = calc;
   try {
     if (state.needErase) {
-      say('st-install', 'Erasing the calculator…');
-      await erase(c);
-      // the calculator has no USB serial number: the browser forgets it when it restarts and has
-      // to be asked again (a click); keep looking meanwhile, in case this browser does remember it
-      awaitingReconnect = true;
-      $('btn-reconnect').hidden = false;
-      say('st-install', 'The calculator is restarting. When it shows <em>"Memory cleared"</em>, press <kbd>enter</kbd> on it, ' +
-        'then click <strong>Reconnect calculator</strong> and pick it again (the browser asks once more after a restart).');
-      reconnect(120000).then(c2 => { if (c2 && awaitingReconnect) resume(c2); });
-      return; // busy until resume()
+      const stop = ticking('st-install', 'Erasing the calculator. It shows <em>"' +
+        (state.eraseAll ? 'MEM Cleared' : 'Arc Vars &amp; Apps Cleared') + '"</em> when it\'s done; nothing to press.');
+      let c2;
+      try {
+        c2 = await erase(c, state.eraseAll);
+      } finally {
+        stop();
+      }
+      if (!c2) {
+        // the calculator restarted its USB. It has no serial number, so the browser forgot it and has
+        // to be asked again (a click); keep looking meanwhile, in case this browser does remember it
+        awaitingReconnect = true;
+        $('btn-reconnect').hidden = false;
+        say('st-install', 'Erased. The calculator restarted its USB connection, so the browser needs it picked again: ' +
+          'click <strong>Reconnect calculator</strong> and choose it in the list. Nothing to press on the calculator.');
+        reconnect(180000, () => awaitingReconnect).then(c3 => { if (c3 && awaitingReconnect) resume(c3); });
+        return; // busy until resume()
+      }
+      c = calc = c2;
+      say('st-install', 'Erased. Checking the calculator…');
+      await check(c);
+      if (state.needErase) throw new Error('The calculator still doesn\'t have enough free memory. Erase it on the calculator (see below), then press Connect calculator again.');
     }
     await proceed(c);
   } catch (e) {
@@ -260,6 +338,7 @@ async function resume(c) {
 }
 
 async function reconnectClick() {
+  if (!awaitingReconnect) return;
   let c;
   try {
     c = await Calculator.request();
@@ -273,14 +352,15 @@ async function reconnectClick() {
 
 function done() {
   busy = false;
-  $('btn-connect').disabled = false;
+  $('btn-connect').disabled = waitingReset;
   updateInstall();
 }
 
 function finished() {
   waitingReset = false;
   mark('finish', 'done');
-  say('st-finish', '<span class="ok">The calculator restarted: FlowCE is installed.</span> Press <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+  $('btn-connect').disabled = busy;
+  say('st-finish', '<span class="ok">The calculator restarted.</span> When it shows <em>"RAM Cleared"</em>, FlowCE is installed: press <kbd>apps</kbd> → <strong>FlowCE</strong>.');
 }
 
 function init() {
