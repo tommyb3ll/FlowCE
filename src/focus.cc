@@ -750,8 +750,8 @@ bool focus_busy_tick() {
   int fr = (int)((t >> 13) % 3);
   if (fr == busy_fr) return false;
   int m = hy0 + hh / 2 - 2, b = m + 20; // where hero_paint wrote the prompt
+  if (!screen_is_ours() || (busy_fr < 0 && (hm != HM_HINT || M.hist))) { busy_t0 = -1; return false; } // (a program draws)
   if (busy_fr < 0) {
-    if (hm != HM_HINT || M.hist || !screen_is_ours()) { busy_t0 = -1; return false; }
     ui_noclip();
     ui_fill(0, m - 18, UI_W, b + 10 - (m - 18), col(UC_BG)); // the prompt and its key hints
     ui_text(&ui_tr12, "Calculating", UI_W / 2, m, UC_SUB, UC_BG, 1);

@@ -1233,7 +1233,7 @@ void do_run(const char * s){
       if (focus_on && msg.empty()) // ("diverges": g is not shown)
         result_approx(g);
       if (giac::interrupted || giac::ctrl_c){ // ON while simplifying: giac's "Stopped by user
-        msg="Interrupted";                    // interruption" texts were in the result
+        msg=oom_hit?"Out of memory":"Interrupted"; // interruption" texts were in the result
         g=0;
       }
     }
