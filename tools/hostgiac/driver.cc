@@ -10,6 +10,8 @@
 //   -k       the whole giac path of KhiCAS's do_run instead (khicas_post.cc: pre-pass, equation ->
 //            solve, add_autosimplify, eval, auto_simplify/merge_sqrt, decimal value, graph view)
 //   -p       print each result (first round)
+//   -T       with -p: each result followed by "  @@" and its time in ms (wall clock)
+//   -F       with -k: the answer, then its F4 forms as the calculator cycles them (answer.cc)
 //   -m       print the heap growth of every evaluation (bytes and blocks still allocated
 //            after it, everything included: leaks and anything kept by giac)
 //   -t K     trace round K (>=2): group the blocks allocated during each evaluation of round K
@@ -17,6 +19,7 @@
 //   -d D     stack depth printed by -t (default 14)
 //   -L       leak 100 bytes on purpose (checks that LeakSanitizer reports leaks)
 // At exit LeakSanitizer reports the unreachable blocks (ASAN_OPTIONS=detect_leaks=1).
+#include <time.h> // (before giac: first.h defines a clock macro)
 #include "giacPCH.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +119,8 @@ static void report_retained(const char * label){
 
 extern "C" bool khicas_implicit_mult(char * line,int maxlen); // tiinput_glue.cc
 std::string khicas_do_run(const char * s) __attribute__((weak)); // khicas_post.cc (KDISPLAY=1)
-static void eval_one(const char * s,bool autosimp,bool print,bool prepass){
+std::string khicas_forms(const char * s) __attribute__((weak)); // -F: the answer and its F4 forms
+static std::string eval_one(const char * s,bool autosimp,bool prepass){
   ctrl_c=kbd_interrupted=interrupted=false; // do_eval
   std::string text(s);
   if (prepass){ // do_run: buffer of max(2*S+32,256) chars
@@ -131,24 +135,23 @@ static void eval_one(const char * s,bool autosimp,bool print,bool prepass){
   if (autosimp)
     g=add_autosimplify(g,contextptr);
   g=eval(g,eval_level(contextptr),contextptr);
-  if (print){
-    printf("%s -> %s\n",s,g.print(contextptr).c_str());
-    fflush(stdout);
-  }
   ctrl_c=kbd_interrupted=interrupted=false;
+  return g.print(contextptr);
 }
 
 int main(int argc,char ** argv){
   int N=1,trace_round=0;
-  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false;
+  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false,timing=false,forms=false;
   const char * file=0;
-  static const char * exprs[1024]; int ne=0;
+  static const char * exprs[8192]; int ne=0;
   for (int i=1;i<argc;++i){
     if (!strcmp(argv[i],"-n") && i+1<argc) N=atoi(argv[++i]);
     else if (!strcmp(argv[i],"-f") && i+1<argc) file=argv[++i];
-    else if (!strcmp(argv[i],"-e") && i+1<argc && ne<1023) exprs[ne++]=argv[++i];
+    else if (!strcmp(argv[i],"-e") && i+1<argc && ne<8191) exprs[ne++]=argv[++i];
     else if (!strcmp(argv[i],"-a")) autosimp=true;
     else if (!strcmp(argv[i],"-p")) print=true;
+    else if (!strcmp(argv[i],"-T")) timing=true;
+    else if (!strcmp(argv[i],"-F")) forms=true;
     else if (!strcmp(argv[i],"-i")) prepass=true;
     else if (!strcmp(argv[i],"-k")){
       if (!khicas_do_run){ fprintf(stderr,"-k: built without kdisplay.cc (KDISPLAY=0)\n"); return 2; }
@@ -164,7 +167,7 @@ int main(int argc,char ** argv){
     FILE * f=fopen(file,"r");
     if (!f){ perror(file); return 2; }
     char line[4096];
-    while (ne<1023 && fgets(line,sizeof(line),f)){
+    while (ne<8191 && fgets(line,sizeof(line),f)){
       size_t l=strlen(line);
       while (l && (line[l-1]=='\n' || line[l-1]=='\r' || line[l-1]==' ')) line[--l]=0;
       if (!l || line[0]=='#') continue;
@@ -187,12 +190,17 @@ int main(int argc,char ** argv){
       const bool tr=measure || r==trace_round;
       size_t before=__sanitizer_get_current_allocated_bytes();
       if (tr) track_start();
-      if (dorun){
-        const std::string res=khicas_do_run(exprs[k]);
-        if (print && r==1){ printf("%s -> %s\n",exprs[k],res.c_str()); fflush(stdout); }
+      struct timespec t0,t1;
+      clock_gettime(CLOCK_MONOTONIC,&t0);
+      const std::string res=dorun?(forms?khicas_forms(exprs[k]):khicas_do_run(exprs[k])):eval_one(exprs[k],autosimp,prepass);
+      clock_gettime(CLOCK_MONOTONIC,&t1);
+      if (print && r==1){
+        if (timing)
+          printf("%s -> %s  @@%.1f\n",exprs[k],res.c_str(),(t1.tv_sec-t0.tv_sec)*1e3+(t1.tv_nsec-t0.tv_nsec)/1e6);
+        else
+          printf("%s -> %s\n",exprs[k],res.c_str());
+        fflush(stdout);
       }
-      else
-        eval_one(exprs[k],autosimp,print && r==1,prepass);
       if (tr) track_stop();
       size_t after=__sanitizer_get_current_allocated_bytes();
       if (measure)

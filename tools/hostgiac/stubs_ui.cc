@@ -22,6 +22,7 @@ extern "C" {
   int select_item(const char ** ptr,const char * title,bool askfor1){ return -1; }
 }
 int focus_view=0;
+void focus_table(const char * const * head,int ncol,const char * const * cells,int nrow,const char * hint){} // (the table view)
 bool stringtodouble(const std::string & s1,double & d){ d=atof(s1.c_str()); return true; }
 bool inputdouble(const char * msg1,double & d){ return false; }
 void draw_arc(int xc,int yc,int rx,int ry,int color,double theta1,double theta2){}

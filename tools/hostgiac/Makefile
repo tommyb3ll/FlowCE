@@ -16,13 +16,14 @@ CXXFLAGS := -std=c++14 -nostdinc++ -fno-exceptions -fno-rtti -fno-threadsafe-sta
             $(DEFS) -I$(T)/src -I$(T)/ustl -I$(REPO)/src/tommath -isystem $(HG)/include -w -MMD -MP
 CFLAGS := -g $(OPT) $(SAN) -DMP_16BIT -I$(REPO)/src/tommath -w -MMD -MP
 
-# KDISPLAY=1 (default): kdisplay.cc too (merge_sqrt, graph view: the driver's -k option), with
+# KDISPLAY=1 (default): kdisplay.cc too (merge_sqrt, graph view: the driver's -k option, which
+# runs src/answer.cc, do_run's steps), with
 # src/ui_gfx.c, ui_font.c, ui_fontdata.c drawing off screen and stubs_ui.cc
 KDISPLAY ?= 1
 ifeq ($(KDISPLAY),1)
 GIAC_SRC := $(wildcard $(T)/giac/*.cc)
 UI_SRC := $(REPO)/src/ui_gfx.c $(REPO)/src/ui_font.c $(REPO)/src/ui_fontdata.c
-HOST_EXTRA := $(OBJ)/host/stubs_ui.o $(OBJ)/host/khicas_post.o
+HOST_EXTRA := $(OBJ)/host/stubs_ui.o $(OBJ)/host/khicas_post.o $(OBJ)/khicas/answer.o
 else
 GIAC_SRC := $(filter-out $(T)/giac/kdisplay.cc,$(wildcard $(T)/giac/*.cc))
 endif
@@ -66,6 +67,6 @@ $(OBJ)/khicas/%.o: $(REPO)/src/%.cc
 $(OBJ)/host/%.o: $(HG)/%.cc
 	@mkdir -p $(dir $@)
 	@echo "  CXX $<"
-	@g++ $(CXXFLAGS) -iquote $(T)/giac -c $< -o $@
+	@g++ $(CXXFLAGS) -iquote $(T)/giac -I$(T) -c $< -o $@
 
 -include $(OBJS:.o=.d)
