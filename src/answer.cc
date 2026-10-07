@@ -368,7 +368,7 @@ static bool factor_before(const giac::gen & a,const giac::gen & b){
   return da<db || (da==db && (aa<ab || (aa==ab && ca<cb)));
 }
 // the power of the variable a term has as a factor: 3*x/8 1, x^2*e^x 2, sin(2x)/4 0
-static int x_power(const giac::gen & t){
+static __attribute__((noinline)) int x_power(const giac::gen & t){
   using namespace giac;
   if (t.is_symb_of_sommet(at_division) && t._SYMBptr->feuille.type==_VECT) // x^3/3
     return x_power(t._SYMBptr->feuille._VECTptr->front());
@@ -981,7 +981,7 @@ static bool trig_factor(const giac::gen & h,int e,const giac::gen & x,giac::gen 
 }
 static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=0){
   using namespace giac;
-  gen f=f0;
+  gen f=!depth && f0.is_symb_of_sommet(at_division)?eval(f0,1,contextptr):f0; // ((cos(x)^3+sin(x))/cos(x)^2: a product)
   if (f.is_symb_of_sommet(at_prod) && depth==0 && f._SYMBptr->feuille.type==_VECT)
     for (const_iterateur it=f._SYMBptr->feuille._VECTptr->begin();it!=f._SYMBptr->feuille._VECTptr->end();++it)
       if (it->is_symb_of_sommet(at_plus) || it->is_symb_of_sommet(at_binary_minus)){
@@ -1032,6 +1032,44 @@ static giac::gen table_integral(const giac::gen & g){
       || g._SYMBptr->feuille._VECTptr->back().type!=_IDNT)
     return r;
   return trig_powers(g._SYMBptr->feuille._VECTptr->front(),g._SYMBptr->feuille._VECTptr->back());
+}
+
+// integrate(f,x,a,b) over constant bounds with an antiderivative F of the above (sec(x)^3 from 0 to
+// pi/4, sin(x)^5*cos(x)^2 from 0 to pi/2): F(b)-F(a), kept when a quadrature of f agrees, so F is
+// continuous on [a,b] (not across a pole of tan(x)); 0 otherwise.
+// giac's definite integration solved inequations and searched singularities: 36 s on the
+// calculator for sec(x)^3 from 0 to pi/4
+static __attribute__((noinline)) giac::gen table_definite(const giac::gen & g){
+  using namespace giac;
+  if (!g.is_symb_of_sommet(at_integrate) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=4)
+    return 0;
+  const vecteur & v=*g._SYMBptr->feuille._VECTptr;
+  const gen & f=v[0],& x=v[1],A=evalf(v[2],1,contextptr),B=evalf(v[3],1,contextptr);
+  // (not the numeric integrals of numeric_hard_integrals, decimal bounds: evaluating their
+  // integrands for the table took 30 s on the calculator; nor radicals, not in the table)
+  if (x.type!=_IDNT || A.type!=_DOUBLE_ || B.type!=_DOUBLE_ || v[2].type==_DOUBLE_ || v[3].type==_DOUBLE_ || xcas::has_radical(f))
+    return 0;
+  const gen F=table_integral(symbolic(at_integrate,makesequence(f,x)));
+  if (is_zero(F))
+    return 0;
+  const gen r=eval(subst(F,x,v[3],false,contextptr)-subst(F,x,v[2],false,contextptr),1,contextptr),re=evalf(r,1,contextptr);
+  if (re.type!=_DOUBLE_)
+    return 0;
+  // Gauss-Legendre, 4 points on [a,a+.3(b-a)], [..,a+.65(b-a)], [..,b] (not symmetric: an odd pole
+  // in the middle does not cancel)
+  static const double gx[]={0.0694318442,0.3300094782,0.6699905218,0.9305681558},gw[]={0.1739274226,0.3260725774,0.3260725774,0.1739274226},
+    cut[]={0,0.3,0.65,1};
+  const double a=A._DOUBLE_val,w=B._DOUBLE_val-a;
+  double s=0,m=0;
+  for (int k=0;k<12;++k){
+    const double h=(cut[k/4+1]-cut[k/4])*w;
+    const gen y=evalf(subst(f,x,gen(a+cut[k/4]*w+gx[k%4]*h),false,contextptr),1,contextptr);
+    if (y.type!=_DOUBLE_ || !(y._DOUBLE_val==y._DOUBLE_val))
+      return 0;
+    s+=gw[k%4]*h*y._DOUBLE_val;
+    m+=std::abs(gw[k%4]*h*y._DOUBLE_val);
+  }
+  return std::abs(s-re._DOUBLE_val)<=1e-3*m?safe_normal(r):gen(0); // (sec(pi/4) is 2/sqrt(2))
 }
 
 // g with fn applied to each of its nodes from the leaves up: fn gets a node, its argument already
@@ -1198,6 +1236,7 @@ static void split_geo(const giac::gen & t,const giac::gen & n,giac::gen & r,giac
   }
   q=sign>0?q*t:q/t;
 }
+static giac::gen less_terms(giac::gen s,const giac::gen & f,const giac::gen & n,int from,int to); // (below)
 // sums of c*r^n/n, c*n*r^n, c*r^n, c*r^n/n! from n=a, r constant in n (x allowed: power series):
 // -c*ln(1-r), c*r/(1-r)^2, c*r^a/(1-r), c*e^r, less the terms before a. 0: f is none of these, or the
 // sum diverges (|r|>1)
@@ -1236,9 +1275,7 @@ static giac::gen power_series(const giac::gen & f,const giac::gen & n,int a){
     return 0;
   if (from>=a) // 1/(1-x), x/(1-x)^2 as textbooks write them (normal: -1/(x-1))
     return s;
-  for (int k=from;k<a;++k)
-    s=s-subst(f,n,k,false,contextptr);
-  return normal(s,contextptr);
+  return normal(less_terms(s,f,n,from,a),contextptr);
 }
 
 // The textbook Maclaurin series: sum((-1)^n*x^(2n+1)/(2n+1)!,n,0,inf) is sin(x) (giac left it).
@@ -1333,6 +1370,12 @@ static bool sum200(const giac::gen & f,const giac::gen & n,int a,bool alt,double
     s-=(3*t1+t2)/4;
   return true;
 }
+// s less the terms f(k) for k=from..to-1 (a sum from n=to: the closed form's terms before it)
+static __attribute__((noinline)) giac::gen less_terms(giac::gen s,const giac::gen & f,const giac::gen & n,int from,int to){
+  for (int k=from;k<to;++k)
+    s=s-giac::subst(f,n,k,false,contextptr);
+  return s;
+}
 static giac::gen known_sum(const giac::gen & g,std::string & msg){
   using namespace giac;
   if (!g.is_symb_of_sommet(at_sum) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=4)
@@ -1388,23 +1431,17 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
   const gen dp=_degree(makesequence(P,n),contextptr),dq=_degree(makesequence(Q,n),contextptr);
   if (rational && dp.type==_INT_ && dq.type==_INT_){
     const int p=dq.val-dp.val;
-    const gen c=_lcoeff(makesequence(P,n),contextptr)/_lcoeff(makesequence(Q,n),contextptr);
+    const gen lq=_lcoeff(makesequence(Q,n),contextptr),c=_lcoeff(makesequence(P,n),contextptr)/lq;
     if (!isalt && p<=1) // like the harmonic series
       return is_positive(c,contextptr)?plus_inf:minus_inf;
-    if (!isalt && dp.val==0 && p%2==0 && p<=8 && a.val>=1 && is_zero(ratnormal(Q-_lcoeff(makesequence(Q,n),contextptr)*pow(n,p),contextptr))){
+    if (!isalt && dp.val==0 && p%2==0 && p<=8 && a.val>=1 && is_zero(ratnormal(Q-lq*pow(n,p),contextptr))){
       static const int zd[]={6,90,945,9450}; // zeta(2k)=pi^(2k)*b/zd: b=1,1,1,1
-      gen s=c*pow(cst_pi,p)/zd[p/2-1];
-      for (int k=1;k<a.val;++k)
-        s=s-subst(R,n,k,false,contextptr);
-      return ratnormal(s,contextptr);
+      return ratnormal(less_terms(c*pow(cst_pi,p)/zd[p/2-1],R,n,1,a.val),contextptr);
     }
     if (isalt && p==1 && a.val>=0){ // c/(n+b): -ln(2) for 1/n, pi/4 for 1/(2n+1)
-      const gen b=ratnormal(Q/_lcoeff(makesequence(Q,n),contextptr)-n,contextptr);
+      const gen b=ratnormal(Q/lq-n,contextptr);
       if (dp.val==0 && dq.val==1 && is_zero(b) && a.val>=1){
-        gen s=-c*ln(2,contextptr);
-        for (int k=1;k<a.val;++k)
-          s=s-subst(f,n,k,false,contextptr);
-        return s;
+        return less_terms(-c*ln(2,contextptr),f,n,1,a.val);
       }
       if (dp.val==0 && dq.val==1 && b==fraction(1,2) && a.val==0) // c/(n+1/2): c*pi/2
         return ratnormal(c*cst_pi/2,contextptr);
@@ -1434,10 +1471,7 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
   const gen cf=ratnormal(f*symbolic(at_factorial,n),contextptr);
   const gen r=ratnormal(subst(cf,n,n+1,false,contextptr)/cf,contextptr);
   if (is_constant_wrt(r,n,contextptr) && a.val>=0){
-    gen s=subst(cf,n,0,false,contextptr)*exp(r,contextptr);
-    for (int k=0;k<a.val;++k)
-      s=s-subst(f,n,k,false,contextptr);
-    return ratnormal(s,contextptr);
+    return ratnormal(less_terms(subst(cf,n,0,false,contextptr)*exp(r,contextptr),f,n,0,a.val),contextptr);
   }
   // terms shrinking like r^n, added up to a negligible one: (n!)^2/(2n)! 0.736399, (-1)^n/(2n)!
   // 0.540302 (cos(1))
@@ -2534,8 +2568,8 @@ static giac::gen normal_node(const giac::gen & g,const giac::gen & f0,const giac
     if (e.type==_INT_ && e.val>0 && e.val%2==0 && vb.size()==1 && is_constant_wrt(derive(b,vb.front(),contextptr),vb.front(),contextptr))
       return symbolic(at_prod,makesequence(e,symbolic(at_ln,symbolic(at_abs,b))));
   }
-  if (u==at_ln && f.type==_SYMB && lidnt(f).empty()){ // -ln(2)/2, not ln(sqrt(2)/2)
-    const gen l=symbolic(at_ln,f),r=ratnormal(lnexpand(l,contextptr),contextptr);
+  if (u==at_ln && f.type==_SYMB && lidnt(f).empty()){ // -ln(2)/2, not ln(sqrt(2)/2); ln(sqrt(2)+1), not
+    const gen l=symbolic(at_ln,xcas::has_radical(f)?safe_normal(f):f),r=ratnormal(lnexpand(l,contextptr),contextptr); // ln(2/sqrt(2)+1)
     return !is_undef(r) && r.type!=_STRNG && taille(r,100)<taille(l,100)?r:l;
   }
   if ((u==at_atan || u==at_asin || u==at_acos || u==at_ln || u==at_abs || u==at_exp || u==at_sin || u==at_cos || u==at_tan)
@@ -2898,7 +2932,9 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   gen tab=table_integral(g); // sec, csc, sin(x)^3*cos(x)^2: the textbook form, at once
   if (is_zero(tab))
     tab=power_sum(g); // sum(1/sqrt(n),n,1,inf)
-  const gen parts=is_zero(tab)?parts_table(g):gen(0); // x*sec(x)^2 by parts
+  gen parts=is_zero(tab)?parts_table(g):gen(0); // x*sec(x)^2 by parts
+  if (is_zero(tab) && is_zero(parts) && a.definite)
+    parts=table_definite(g); // sec(x)^3 from 0 to pi/4 (normalized as giac's: sqrt(2), not 2/sqrt(2))
   a.tabled=!is_zero(tab);
   const gen ga=add_autosimplify(g,contextptr);
   // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
