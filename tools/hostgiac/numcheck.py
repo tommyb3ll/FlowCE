@@ -197,7 +197,7 @@ for i, (p, inp) in enumerate(zip(probs, inputs)):
             add(i, f'evalf(subst(({lhs})-({rhs}),x={s}))', 'x=' + s[:30] + ' put back', 1e-6)
     elif k == 'eval' and a[1]:
         ids = sorted(set(re.findall(r'\b([a-zA-Z])\b', rv + ' ' + a[1])) - set('ei'))
-        sub = ','.join(f'{v}={random.Random(v).uniform(0.3, 1.7):.3f}' for v in ids if v not in 'nt') if ids else ''
+        sub = ','.join(f'{v}={random.Random(v).uniform(0.3, 1.7):.3f}' for v in ids) if ids else ''
         e = f'evalf(({rv})-({a[1]}))' if not sub else f'evalf(subst(({rv})-({a[1]}),[{sub}]))'
         add(i, e, 'answer minus expected', 1e-6)
 

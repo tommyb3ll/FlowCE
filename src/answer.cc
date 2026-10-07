@@ -560,6 +560,24 @@ static bool trig_power(const giac::gen & g){
 // (sin(x)^2+cos(x)^2 -> 1). History: simplify under a time budget (interrupted through
 // control_c) exited the app on diff(sqrt(x^2+1),x) and reset the calculator after 80 s on
 // cos(pi/12); KhiCAS must never interrupt giac on its own.
+// normal() of g when it has one radical, a square root (the trig substitution answers it shortens):
+// with several roots (x^(1/6), x^(1/4), sqrt(x)) normal builds an algebraic extension for each
+// and took 15 s on the PC (hours on the calculator) for the derivative of x^(1/6)-7x^(1/4)+3sqrt(x),
+// to be thrown away; g then
+static giac::gen safe_normal(const giac::gen & g){
+  using namespace giac;
+  const vecteur v=lop(g,at_pow);
+  gen base=0;
+  for (const_iterateur it=v.begin();it!=v.end();++it){
+    const gen & f=it->_SYMBptr->feuille;
+    if (f.type!=_VECT || f._VECTptr->size()!=2 || f._VECTptr->back().type!=_FRAC)
+      continue;
+    if (!(f._VECTptr->back()._FRACptr->den==2) || (!is_zero(base) && !is_zero(ratnormal(base-f._VECTptr->front(),contextptr))))
+      return g;
+    base=f._VECTptr->front();
+  }
+  return normal(g,contextptr);
+}
 static giac::gen auto_simplify(const giac::gen & g){
   using namespace giac;
   if ((g.type!=_SYMB && g.type!=_VECT) || is_undef(g) || taille(g,100)>=100)
@@ -606,7 +624,7 @@ static giac::gen auto_simplify(const giac::gen & g){
     }
   }
   if (!trig && xcas::has_radical(s) && !lidnt(s).empty()){ // a trig substitution: normal gives
-    const gen n=normal(s,contextptr);                     // -sqrt(4-x^2)/(4*x) for
+    const gen n=safe_normal(s);                           // -sqrt(4-x^2)/(4*x) for
     if (!is_undef(n) && n.type!=_STRNG && taille(n,1000)<taille(s,1000)) // (x^2+2*sqrt(4-x^2)-4)/(4*(sqrt(4-x^2)-2)*x)
       s=n;
     trace_step("normal",n);
@@ -1007,13 +1025,13 @@ static giac::gen power_series(const giac::gen & f,const giac::gen & n,int a){
 }
 
 // The textbook Maclaurin series: sum((-1)^n*x^(2n+1)/(2n+1)!,n,0,inf) is sin(x) (giac left it).
-// The sum (60 terms) at x=0.3, 0.5, 0.7 against c*F(x)+d for F = sin, cos, sinh, cosh, e^x,
+// The sum (25 terms) at x=0.2, 0.35, 0.5 against c*F(x)+d for F = sin, cos, sinh, cosh, e^x,
 // atan, ln(1+x), with c and d fractions of denominators up to 24 (two points give them, the
 // third checks); 0 if none fits
 static bool small_fraction(double v,giac::gen & q){
   for (int den=1;den<=24;++den){
     const double t=v*den,r=t<0?-(long)(-t+0.5):(long)(t+0.5);
-    if (t-r<1e-9 && r-t<1e-9){
+    if (t-r<1e-5 && r-t<1e-5){
       q=giac::gen((long)r)/den;
       return true;
     }
@@ -1023,16 +1041,20 @@ static bool small_fraction(double v,giac::gen & q){
 static giac::gen series_identify(const giac::gen & f,const giac::gen & n,int a,const giac::gen & x){
   using namespace giac;
   static const unary_function_ptr * const fn[]={at_sin,at_cos,at_sinh,at_cosh,at_exp,at_atan,at_ln};
-  static const double X[3]={0.3,0.5,0.7};
+  static const double X[3]={0.2,0.35,0.5}; // (25 terms: the error stays below 1e-9 there)
   double S[3],v[3];
+
   for (int k=0;k<3;++k){
     const gen fx=subst(f,x,gen(X[k]),false,contextptr);
     S[k]=0;
-    for (int m=a;m<a+60;++m){
+    for (int m=a;m<a+25;++m){
       const gen y=evalf(subst(fx,n,m,false,contextptr),1,contextptr);
-      if (y.type!=_DOUBLE_)
-        return 0;
-      S[k]+=y._DOUBLE_val;
+      const double t=y.type==_DOUBLE_?y._DOUBLE_val:0;
+      if (y.type!=_DOUBLE_ || t!=t || t>1e30 || t<-1e30) // (NaN: past 3.4e38, the calculator's
+        return 0;                                          // floats; giac's (2n+1)! gave NaN)
+      S[k]+=t;
+      if (m>a+3 && (t<0?-t:t)<1e-9*(S[k]<0?-S[k]:S[k])) // the rest is negligible, before n!
+        break;                                            // grows past the floats
     }
   }
   for (int j=0;j<7;++j){
@@ -1045,7 +1067,8 @@ static giac::gen series_identify(const giac::gen & f,const giac::gen & n,int a,c
     }
     const double c=(S[1]-S[0])/(v[1]-v[0]),d=S[0]-c*v[0],e=c*v[2]+d-S[2];
     gen cq,dq;
-    if (e<1e-9 && e>-1e-9 && small_fraction(c,cq) && small_fraction(d,dq) && !is_zero(cq))
+    if (e<1e-5 && e>-1e-5 && small_fraction(c,cq) && small_fraction(d,dq) && !is_zero(cq)) // (the
+      // calculator's doubles have 7 digits)
       return is_zero(dq)?(is_one(cq)?F:cq*F):cq*F+dq;
   }
   return 0;
@@ -2148,12 +2171,17 @@ static void form_compute(answer_forms & F,int k){
 void answer_forms_start(answer_forms & F,const std::string & orig,bool number){
   using namespace giac;
   F.orig=orig;
+  // left unevaluated by giac (sum(...), integrate(...)): no forms (evaluating it again for them
+  // took 69 s for a sum)
+  const bool open=strstr(orig.c_str(),"sum(") || strstr(orig.c_str(),"integrate(") || strstr(orig.c_str(),"limit(");
   // evaluated: ratnormal of the parsed text printed ((x^2)-1)/(x^3+x)
-  F.g=eval(gen(orig,contextptr),1,contextptr);
+  F.g=open?gen(0):eval(gen(orig,contextptr),1,contextptr);
   F.number=number;
   F.trig=!number && (contains(F.g,at_sin) || contains(F.g,at_cos) || contains(F.g,at_tan));
   F.order=number?o_number:F.trig?o_trig:o_plain;
   F.n=number?sizeof(o_number):F.trig?sizeof(o_trig):sizeof(o_plain);
+  if (open)
+    F.n=0;
   F.size=taille(F.g,400);
   F.below=F.trig && trig_below(F.g);
   F.text.assign(F.n,std::string());
@@ -2364,10 +2392,79 @@ static giac::gen integrate_by_parts(const giac::gen & in,const giac::gen & g){
     return g;
   if (!is_undef(F)){
     const gen ex=ratnormal(subst(F,v[1],hi,false,contextptr)-subst(F,v[1],lo,false,contextptr),contextptr),exe=evalf(ex,1,contextptr);
-    if (exe.type==_DOUBLE_ && fabs(exe._DOUBLE_val-num._DOUBLE_val)<1e-6*(1+fabs(num._DOUBLE_val)))
+    if (exe.type==_DOUBLE_ && fabs(exe._DOUBLE_val-num._DOUBLE_val)<1e-4*(1+fabs(num._DOUBLE_val))) // (7-digit floats)
       return ex;
   }
   return num;
+}
+
+// A sum of fractional powers of x (the power rule's answers) in textbook form: -7x^(5/2)+4x^(1/3)/3
+// +28/(9x^(5/9)), not -x^3/sqrt(x)-6x^(5/2)+28x^(1/3)/(9x^(8/9))+x/(3x^(2/3))+x^(1/3) (giac keeps
+// x^(4/9) as (x^(1/9))^4 and never mixes roots; its normal does, slowly). x = t^L, L the lcm of
+// the roots' indices, makes every power an integer power of t: expand collects them, and t^k is
+// x^(k/L) again. pow_den: L, or 0 if g has more than numbers and powers of x
+static int pow_den(const giac::gen & g,const giac::gen & x){
+  using namespace giac;
+  if (g==x || g.type==_INT_ || g.type==_ZINT || g.type==_FRAC)
+    return 1;
+  if (g.type==_VECT){
+    int L=1;
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it){
+      const int d=pow_den(*it,x);
+      if (!d || (L=L/gcd(L,d)*d)>360)
+        return 0;
+    }
+    return L;
+  }
+  if (g.type!=_SYMB)
+    return 0;
+  const unary_function_ptr & u=g._SYMBptr->sommet;
+  const gen & f=g._SYMBptr->feuille;
+  if (u==at_plus || u==at_prod || u==at_neg || u==at_inv)
+    return pow_den(f,x);
+  if (u==at_pow && f.type==_VECT && f._VECTptr->size()==2){
+    const gen & b=f._VECTptr->front(),& e=f._VECTptr->back();
+    if (e.type==_INT_)
+      return pow_den(b,x);
+    if (e.type==_FRAC && b==x && e._FRACptr->den.type==_INT_)
+      return e._FRACptr->den.val;
+  }
+  return 0;
+}
+static giac::gen pow_to(const giac::gen & g,const giac::gen & x,const giac::gen & t,int L,bool back){
+  using namespace giac;
+  if (!back && g==x)
+    return symbolic(at_pow,makesequence(t,L));
+  if (back && g==t)
+    return symbolic(at_pow,makesequence(x,fraction(1,L)));
+  if (g.type==_VECT){
+    vecteur w(*g._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=pow_to(*it,x,t,L,back);
+    return gen(w,g.subtype);
+  }
+  if (g.type!=_SYMB)
+    return g;
+  const gen & f=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->front()==(back?t:x)){
+    const gen e=back?f._VECTptr->back()/L:f._VECTptr->back()*L; // x^(p/q) <-> t^(pL/q)
+    return symbolic(at_pow,makesequence(back?x:t,e));
+  }
+  return symbolic(g._SYMBptr->sommet,pow_to(f,x,t,L,back));
+}
+static giac::gen power_sums(const giac::gen & g){
+  using namespace giac;
+  const vecteur v=lidnt(g);
+  if (v.size()!=1 || !contains(g,at_pow))
+    return g;
+  const int L=pow_den(g,v.front());
+  if (L<2)
+    return g;
+  const gen t=gen("t__p",contextptr),e=expand(pow_to(g,v.front(),t,L,false),contextptr);
+  if (is_undef(e) || e.type==_STRNG)
+    return g;
+  const gen r=eval(pow_to(e,v.front(),t,L,true),1,contextptr);
+  return taille(r,400)<=taille(g,400)?r:g;
 }
 
 // The constant terms of an antiderivative go into + C: -sqrt(x^2+4)/(4x), not giac's
@@ -2382,7 +2479,7 @@ static giac::gen drop_constants(const giac::gen & g,const giac::gen & x){
   gen best=g;
   int bt=taille(g,400);
   for (int k=0;k<2;++k){
-    const gen h=k?normal(g,contextptr):g;
+    const gen h=k?safe_normal(g):g;
     if (is_undef(h) || h.type==_STRNG)
       continue;
     const gen n=_numer(h,contextptr),d=_denom(h,contextptr);
@@ -2512,7 +2609,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
       for (int k=lo.val;k<=hi.val;++k){
         control_c();
         const gen y=evalf(subst(f,v[1],k,false,contextptr),1,contextptr);
-        if (interrupted || y.type!=_DOUBLE_)
+        if (interrupted || y.type!=_DOUBLE_ || y._DOUBLE_val!=y._DOUBLE_val) // (NaN: overflow)
           break;
         s+=y._DOUBLE_val;
         if (k==hi.val)
@@ -2528,8 +2625,10 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     g=integrate_by_parts(a.gin,g);
     trace_step("by parts",g);
   }
-  if (a.autosimp && !a.tabled)
+  if (a.autosimp && !a.tabled){
     g=auto_simplify(g);
+    g=power_sums(g); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
+  }
   trace_step("auto_simplify",g);
   if (g.type==_SYMB && taille(g,200)<200){
     if (contains(g,gen("c_0",contextptr)) && !g.is_symb_of_sommet(at_plus)){ // desolve's constants

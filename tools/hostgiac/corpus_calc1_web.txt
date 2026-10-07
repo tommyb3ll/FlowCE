@@ -1,0 +1,303 @@
+# Calculus 1 (AP Calc AB / college Calc 1) problems collected from web exercise sets, 2026-10-06.
+# Format: kind ; expression ; extra fields  (int, defint, diff, lim, limr, liml, solve, eval).
+# Variables rewritten to x. Student-style input: implicit * in places (2x, 3sin(x), x(x-5), (x-2)(x+3)),
+# e^(...) for exp, log() = base 10, inverse trig as asin/acos/atan.
+# sec^-1, cot^-1, csc^-1 are typed as acos(1/x), atan(1/x), asin(1/x); csch, sech, coth as 1/sinh, 1/cosh, 1/tanh.
+# Derived items use the functions of the cited exercise set: critical points = solve f'(x)=0,
+# inflection points = solve f''(x)=0, increasing/decreasing = f'(x)>0 / <0, tangent/normal lines,
+# extreme values, average values. Higher derivatives are written as diff of diff.
+# (Strang, Herman), CC BY-NC-SA 4.0.
+
+# ============================== LIMITS ==============================
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ComputingLimits.aspx
+lim ; (5x^2-16x+3)/(9-x^2) ; 3
+lim ; (x(x-5)-24)/(x^2-8x) ; 8
+lim ; (x^2-16)/((x-2)(x+3)-6) ; -4
+lim ; ((2+x)^3-8)/x ; 0
+lim ; (x-2)/(sqrt(2)-sqrt(x)) ; 2
+lim ; (3-sqrt(1-4x))/(2x+4) ; -2
+lim ; (3-x)/(sqrt(x+1)-sqrt(5x-11)) ; 3
+lim ; (1/7-1/x)/(x-7) ; 7
+lim ; (1/(4+3x)+1/x)/(x+1) ; -1
+limr ; abs(x)/x ; 0
+liml ; abs(x)/x ; 0
+lim ; abs(x)/x ; 0
+liml ; (2-x)/abs(x-2) ; 2
+limr ; abs(2x+10)/(x+5) ; -5
+liml ; abs(x-4)/(x^2-16) ; 4
+lim ; x^4*cos(3/x) ; 0
+lim ; (x-1)^2*cos(1/(x-1)) ; 1
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffTrigFcns.aspx
+lim ; 3x/sin(x) ; 0
+lim ; sin(2x)/sin(17x) ; 0
+lim ; sin(x+4)/(3x+12) ; -4
+lim ; (cos(8x)-1)/(2x) ; 0
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/InfiniteLimits.aspx
+lim ; -4/(x-1)^2 ; 1
+liml ; 17/(4-x)^3 ; 4
+liml ; (1+x)/(x^3+8) ; -2
+limr ; (1+x)/(x^3+8) ; -2
+lim ; ln(abs(x)) ; 0
+limr ; cot(x) ; pi
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/LimitsAtInfinityI.aspx
+lim ; 8x+9x^3-11x^5 ; -inf
+lim ; 7+8x+(x^4)^(1/3) ; -inf
+lim ; (10x^3-6x)/(7x^3+9) ; inf
+lim ; (5x^8-9)/(x^3+10x^5-3x^8) ; -inf
+lim ; (25x+7)/sqrt(5x^2+2) ; -inf
+lim ; sqrt(9x^4+2x^2+3)/(5x-2x^2) ; -inf
+lim ; (1+x)/(5+2x^4)^(1/4) ; -inf
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/LimitsAtInfinityII.aspx
+lim ; e^((5-9x)/(7+3x)) ; inf
+lim ; e^(x)+12e^(-3x)-2e^(-10x) ; -inf
+lim ; 20e^(-8x)-e^(5x)+3e^(2x)-e^(-7x) ; -inf
+lim ; (6e^(4x)+e^(-15x))/(11e^(4x)+6e^(-15x)) ; -inf
+lim ; (e^(3x)+9e^(-x)-4e^(10x))/(2e^(7x)-e^(-x)) ; -inf
+lim ; (3e^(-14x)-e^(18x))/(e^(-x)-2e^(20x)-e^(-9x)) ; inf
+lim ; atan((x^4+4)/(3x^2+5x^3)) ; -inf
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/LHospitalsRule.aspx
+lim ; e^(-6x)/(4+e^(-3x)) ; -inf
+lim ; (x^3-7x^2+16x-12)/(x^4-4x^3+4x^2) ; 2
+lim ; (x^2-e^(6x))/(4x^2+e^(7x)) ; inf
+lim ; (2cos(4x)-4x^2-2)/(sin(2x)-x^2-2x) ; 0
+lim ; (3e^(2x+6)+x^2-12)/(x^3+6x^2+9x) ; -3
+lim ; sin(pi*x)/ln(x-5) ; 6
+lim ; x*ln(1-2/(3x)) ; inf
+limr ; ln(x)*sin(x) ; 0
+lim ; x*sin(7/x) ; inf
+limr ; x^2*ln(x)^2 ; 0
+limr ; x^(1/x) ; 0
+limr ; (e^(x)+x)^(1/x) ; 0
+lim ; (e^(-2x)+3x)^(1/x) ; inf
+
+
+# ============================== DERIVATIVES ==============================
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffFormulas.aspx
+diff ; x^(1/6)-7x^(1/4)+3sqrt(x)
+diff ; 7x^(4/9)-2sqrt(x^7)+x^(4/3)
+diff ; 6sqrt(x)+x^(5/6)+7/x^(2/9)
+diff ; 2/(3x^9)+1/(7x^3)-9x^2-sqrt(x^3)
+diff ; (x-5)(x^2+1)
+diff ; (x^2*(2-x)+x^5)/(3x)
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ProductQuotientRule.aspx
+diff ; (2-sqrt(x))(3+8x^(2/3))
+diff ; (x-2/x)(7-2x^3)
+diff ; x^(1/3)/(1+x^2)
+diff ; (1-10x+x^2)/(5x+2x^3)
+diff ; ((1-4x)(2+x))/(3+9x)
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffTrigFcns.aspx
+diff ; 8sec(x)*csc(x)
+diff ; 6x^(2/5)+8x*sin(x)
+diff ; 3x-cos(x)/x^3
+diff ; (1+cos(x))/(1-sin(x))
+diff ; 3x-sec(x)/(1+9tan(x))
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffInvTrigFcns.aspx
+diff ; 5asin(x)-acos(x)
+diff ; acos(1/x)-x^3*acos(x)
+diff ; (x-x^2)*asin(x)
+diff ; (x-atan(1/x))(1+asin(1/x))
+diff ; (1+asin(x))/(1-acos(x))
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffHyperFcns.aspx
+diff ; 3/sinh(x)+7sinh(x)
+diff ; tan(x)*tanh(x)
+diff ; e^(x)*cosh(x)
+diff ; (1/tanh(x))/(x+sinh(x))
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ChainRule.aspx
+diff ; (9x^3)^(1/7)
+diff ; tan(1-2e^(x))
+diff ; cos(sin(x)+x^2)
+diff ; cot(1+cot(x))
+diff ; 7^(cos(x))
+diff ; ln(1-csc(x))
+diff ; cos(x)-(1-sin(x))^(1/6)
+diff ; tan(x)^4+tan(x^4)
+diff ; (2x^3-1)^5*(5-3x)^4
+diff ; sqrt(5x)+ln(x^4)*e^(6+9x)
+diff ; e^(x^2+8x)/sqrt(x^4+7)
+diff ; (4x+1)^3/(x^2-x)^6
+diff ; sqrt(x^2+sqrt(1+4x))
+diff ; (cos(9-x^2)+ln(6x+5))^(1/4)
+diff ; (e^(sin(x))-sin(e^(x)))^8
+diff ; cos(1+cos(x)^2)^2
+
+# exponentials/logs in any base, logarithmic differentiation
+
+# higher derivatives (4th, 2nd, 3rd) as diff of diff: the diff kind differentiates once more
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/HigherOrderDerivatives.aspx
+diff ; diff(diff(diff(8sqrt(x)-x^(1/3)+5x^(9/4),x),x),x)
+diff ; diff(diff(diff(9sin(x)-sin(4x)+7cos(2x/3),x),x),x)
+diff ; diff(diff(diff(ln(x^6)-cos(4x)+9sin(2x)+e^(7x),x),x),x)
+diff ; diff(cos(2-7x^2),x)
+diff ; diff(1/sqrt(6x+x^4),x)
+diff ; diff((3sin(x)+8cos(2x))^(-3),x)
+diff ; diff(sin(2x)^3,x)
+diff ; diff(diff(sec(3x),x),x)
+diff ; diff(diff(cos(x-x^2),x),x)
+
+# ============================== APPLICATIONS OF DERIVATIVES ==============================
+# tangent lines y=f(a)+f'(a)(x-a); f not changing; tangent parallel/perpendicular; increasing/decreasing
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffFormulas.aspx
+eval ; subst(3x^5-4x^2+9x-12,x=-1)+subst(diff(3x^5-4x^2+9x-12,x),x=-1)*(x+1) ; 32x+4
+eval ; subst((x^2+1)/x,x=2)+subst(diff((x^2+1)/x,x),x=2)*(x-2) ; 3x/4+1
+eval ; subst(2sqrt(x)-8x^(1/4),x=16)+subst(diff(2sqrt(x)-8x^(1/4),x),x=16)*(x-16) ; -8
+solve ; diff(x^3-9x^2+x-10,x)=0
+solve ; diff(2x^3+3x^2+4x+5,x)=0
+solve ; diff(12x^2-9x+3,x)=-7
+solve ; diff(8+4x+x^2-2x^3,x)=4
+solve ; diff(4x^3-18x^2-336x+27,x)>0
+solve ; diff(x^4+2x^3-15x^2-9,x)<0
+solve ; diff(x^3-24x^2+192x-50,x)>0
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ProductQuotientRule.aspx
+eval ; subst((4-x^3)/(x+2x^2),x=1)+subst(diff((4-x^3)/(x+2x^2),x),x=1)*(x-1) ; -8x/3+11/3
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffTrigFcns.aspx
+eval ; subst(x*sec(x),x=2pi)+subst(diff(x*sec(x),x),x=2pi)*(x-2pi) ; x
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ChainRule.aspx
+eval ; subst((2-4x^2)^5,x=1)+subst(diff((2-4x^2)^5,x),x=1)*(x-1) ; -640x+608
+eval ; subst(e^(2x+4)-8ln(x^2-3),x=-2)+subst(diff(e^(2x+4)-8ln(x^2-3),x),x=-2)*(x+2) ; 34x+69
+solve ; diff((x^2-1)*e^(2-x^2),x)=0
+solve ; diff(x^3*(9-x)^4,x)>0
+solve ; 2+9x-x^2>0
+
+# tangent line, normal line, implicit tangent slope at (2,1), horizontal tangent of x^(1/x)
+
+# implicit derivatives dy/dx written explicitly
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/HigherOrderDerivatives.aspx
+eval ; implicitdiff(6y-y^2=3x^4+9x,x,y) ; (12x^3+9)/(6-2y)
+eval ; implicitdiff(e^(y)+4x=y^3-1,x,y) ; 4/(3y^2-e^(y))
+eval ; implicitdiff(y*cos(x)=3+4y^2,x,y) ; y*sin(x)/(cos(x)-8y)
+
+# critical points (solve f'(x)=0) and the value of f at a critical point
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/CriticalPoints.aspx
+solve ; diff(3x^4-20x^3-132x^2+672x-4,x)=0
+solve ; diff((x-3)^5*(2x+1)^4,x)=0
+solve ; diff((x^2-x)/(x^2+3x+8),x)=0
+solve ; diff(3cos(2x)-5x,x)=0
+solve ; diff((6x+1)*e^(8x-x^2),x)=0
+solve ; diff(x-4ln(x^2+x+2),x)=0
+eval ; subst(x^3-4x^2-7x-1,x=(4+sqrt(37))/3) ; (-407-74sqrt(37))/27
+eval ; subst(3x^4-20x^3+6x^2+120x+5,x=(3+sqrt(29))/2) ; (29sqrt(29)-23)/2
+
+# inflection points (solve f''(x)=0)
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ShapeofGraphPtII.aspx
+solve ; diff(diff(x^4-2x^3-120x^2-84x+35,x),x)=0
+solve ; diff(diff(5x^4-2x^3-18x^2+108x-12,x),x)=0
+solve ; diff(diff(e^(4x)-e^(-x),x),x)=0
+solve ; diff(diff(3x*e^(1-x^2/4),x),x)=0
+solve ; diff(diff((x+1)^3*e^(-x),x),x)=0
+
+# ============================== INTEGRALS ==============================
+# antiderivatives; initial value problems f(x)=f(a)+integral from a to x of f'
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ComputingIndefiniteIntegrals.aspx
+int ; x^(2/7)+3-9x^(7/3)
+int ; 2-(3+x)(4-x^3)
+int ; sqrt(x)*(x^(1/3)-x^(1/4))
+int ; 3x(x^2-1/(6x^2)+x^(2/3))
+int ; sec(x)^2+7sec(x)*tan(x)
+int ; tan(x)*(cot(x)-cos(x))
+int ; (cos(x)^3+sin(x))/cos(x)^2
+int ; 5/(1+x^2)+1/(10sqrt(1-x^2))
+eval ; -23+integrate(12t^5+30t^2,t,4,x) ; 2x^6+10x^3-8855
+eval ; -6+integrate(6e^(t)-4-10t,t,0,x) ; 6e^(x)-4x-5x^2-12
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/SubstitutionRuleIndefinite.aspx
+int ; 12x(7+6x^2)^9
+int ; 3(x^6-4x^(-3))(x^7+14x^(-2)-7)^6
+int ; (x^3/2-1)*sqrt(8x-x^4)
+int ; (2-x^2)*e^(6x-x^3)
+int ; (6x^2-10x^4)/(x^5-x^3)
+int ; (cos(x)+sin(x))*e^(sin(x)-cos(x))
+int ; ln(x^2)^4/x
+int ; (x+sin(2x))/(x^2-cos(2x))
+int ; e^(x)*sec(e^(x))^2*(1+tan(e^(x)))^(-3)
+int ; 3/sqrt(7-4x^2)
+
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/SubstitutionRuleIndefinitePtII.aspx
+int ; (6-5x)*e^(12x-5x^2)+(20x-24)*sec(12x-5x^2)^2
+int ; (sin(1+ln(2x))-sqrt(1+ln(2x)))/x
+int ; x*sin(x^2)*(cos(x^2)^4+8cos(x^2)^2-10)
+int ; csc(x/2)*cot(x/2)*(csc(x/2)^6+3csc(x/2)^4-8csc(x/2))
+int ; (15x+27)/(100x^2+11)
+int ; (2-x)/sqrt(25-2x^2)
+int ; e^(8x)*(4+e^(4x))^(-3)
+
+# FTC; the item on [-2,1] is not integrable as given (source asks to explain why)
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ComputingDefiniteIntegrals.aspx
+defint ; 3x^2-4+4/x^2 ; 1 ; 4
+defint ; 3x^2-4+4/x^2 ; -2 ; 1
+defint ; sin(x)+sec(x)^2 ; 0 ; pi/4
+defint ; 9x-3x^2+4x^3 ; 1 ; 0
+defint ; 9sqrt(x)+10x^(1/4) ; 0 ; 16
+defint ; (3-x)(2x^2+3) ; 0 ; 6
+defint ; 3sin(x)+8csc(x)*cot(x) ; 2pi/3 ; pi/4
+defint ; (4e^(2x)+4x*e^(x))/e^(x) ; -2 ; 1
+defint ; 3/sqrt(1-x^2)+7/(x^2+1) ; 0 ; 1/2
+defint ; abs(x^2-4) ; -3 ; 6
+
+# the item on [0,pi] is not integrable as given (sec^2 blows up at pi/2; naive FTC gives 0)
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/SubstitutionRuleDefinite.aspx
+defint ; 10(1-2x^2)*(7-3x+2x^3)^(1/4) ; 1 ; 0
+defint ; (x-2)*e^(x^2-4x) ; -1 ; 4
+defint ; 7cos(pi*x/2)*(4+sin(pi*x/2))^5 ; 1 ; 6
+defint ; 4sin(3x)/(2+cos(3x))+7sin(3x)/(2+cos(3x))^2 ; 0 ; pi/3
+defint ; sec(x)^2*sqrt(2+tan(x)) ; 0 ; pi
+defint ; e^(-4x)*sqrt(2+e^(-4x))+8e^(x) ; 3 ; 0
+defint ; sin(x/2)*(6+3cos(x/2)^2-4cos(x/2)^4) ; 0 ; pi
+defint ; e^(2x)*sin(e^(2x)-1)+sin(x)*e^(2-cos(x)) ; 0 ; 1
+
+# areas between curves: integral of (top - bottom), abs() where the curves cross
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/AreaBetweenCurves.aspx
+defint ; 0-(3x^2+6x-9) ; -3 ; 1
+defint ; (10-2x^2)-3 ; -sqrt(7/2) ; sqrt(7/2)
+defint ; abs((x^2+2x+4)-(3x+6)) ; -3 ; 3
+defint ; abs((x^2+8)-3x^2) ; -3 ; 4
+defint ; abs(7/x-(1/x-3)) ; -4 ; -1
+defint ; (3+cos(2x))-sin(x/2) ; 0 ; pi/4
+defint ; (x^2-4x+7)-(2-e^(2-x)) ; 0 ; 3
+defint ; abs(e^(2x-1)-e^(5-x)) ; 0 ; 3
+
+# average value f_avg = integral/(b-a), and c with f(c) = f_avg
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/AvgFcnValue.aspx
+eval ; integrate(8x^4-7x^3+2,x,-2,1)/(1-(-2)) ; 567/20
+eval ; integrate((4-x)*e^(x^2-8x),x,1,4)/(4-1) ; (e^(-7)-e^(-16))/6
+eval ; integrate(6x-4x/(x^2+1),x,-3,0)/(0-(-3)) ; -9+2ln(10)/3
+eval ; integrate(cos(3x)*(2+sin(3x))^4,x,0,pi/6)/(pi/6) ; 422/(5pi)
+eval ; integrate(9-2e^(4x+1),x,-1,2)/(2-(-1)) ; 9-(e^9-e^(-3))/6
+eval ; integrate(8-cos(x/4),x,0,4pi)/(4pi) ; 8
+solve ; 10-4x-6x^2=-110
+
+# ============================== EQUATIONS ==============================
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/TrigEquations.aspx
+solve ; 10cos(8x)=-5
+solve ; 2sin(x/4)=sqrt(3)
+solve ; sqrt(6)=-sqrt(8)*cos(3x)
+solve ; 3cos(5x)-1=7
+solve ; 7sqrt(3)+7cot(2x)=0
+solve ; 3sec(x/5)+9=15
+solve ; sqrt(12)*cos(2x)-2sin(2x)=0
+
+# includes equations with no solution or only extraneous roots
+# source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/ExpLogEqns.aspx
+solve ; 15=12+5e^(10x-7)
+solve ; 8+3e^(4-9x)=1
+solve ; 4x^2-3x^2*e^(2-x)=0
+solve ; 3e^(7x)-12e^(8x+5)=0
+solve ; 2x*e^(x^2)-7x*e^(1-5x)=0
+solve ; 3-11ln(x/(3-x))=1
+solve ; 2log(x)-log(3x+7)=1
+solve ; ln(3x+1)-ln(x)=-2
+solve ; ln(x)+ln(x-2)=3
+solve ; 11-5^(9x-1)=3
+solve ; 1+3^(x^2-2)=5
