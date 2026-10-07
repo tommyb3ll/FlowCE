@@ -26,7 +26,7 @@ static const char * const fake_userfns[]={
   0
 };
 static const char * const fake_values[]={
-  "pi","e","i","infinity","inf","oo","undef",
+  "pi","e","i","infinity","inf","oo","undef","\xCF\x80",
   "area","v1", // user variables
   0
 };
@@ -147,7 +147,13 @@ static const tcase cases[]={
   {"x_m",true,"x_m"},                   // '_' inside: not all letters
   {"v1",true,"v1"},
   {"2v1",true,"2*v1"},
-  {"\xCF\x80r",true,"\xCF\x80r"},       // UTF-8: never cut
+  {"\xCF\x80r",true,"\xCF\x80*r"},      // pi is a name of its own (the pi key): pi*r
+  {"\xCF\x80r^2",true,"\xCF\x80*r^2"},
+  {"2\xCF\x80r",true,"2*\xCF\x80*r"},
+  {"r\xCF\x80",true,"r*\xCF\x80"},
+  {"\xCF\x80(x+1)",true,"\xCF\x80*(x+1)"},
+  {"\xCF\x80\xCF\x80",true,"\xCF\x80*\xCF\x80"},
+  {"\xCE\xB8r",true,"\xCE\xB8r"},       // other UTF-8: never cut
   {"2\xCF\x80",true,"2*\xCF\x80"},
   {"2\xCE\xB8",true,"2*\xCE\xB8"},
   // function calls (exception 1)

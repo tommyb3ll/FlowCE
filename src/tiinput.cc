@@ -107,10 +107,15 @@ static int im_numend(const char * s,int i,int n){
   return i;
 }
 
+// pi (UTF-8 CF 80, the pi key) is a name of its own: 2πr and πr^2 are 2*π*r and π*r^2 (as
+// one name, πr was a variable)
+static inline bool im_pi(const char * s,int i,int n){ return i+1<n && (unsigned char)s[i]==0xCF && (unsigned char)s[i+1]==0x80; }
 // end of the name starting at s[i]
 static int im_nameend(const char * s,int i,int n){
+  if (im_pi(s,i,n))
+    return i+2;
   ++i;
-  while (i<n && im_namechar(s[i]))
+  while (i<n && im_namechar(s[i]) && !im_pi(s,i,n))
     ++i;
   return i;
 }

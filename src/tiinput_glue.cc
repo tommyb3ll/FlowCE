@@ -13,7 +13,7 @@ using namespace giac;
 
 namespace {
   // names matched by flex rules of input_lexer.ll instead of the lexer tables
-  const char * const flex_values[]={"I","PI","Pi","e","euler_gamma","i","inf","infinity","minus_inf","oo","pi","plus_inf","undef","unsigned_inf"};
+  const char * const flex_values[]={"I","PI","Pi","e","euler_gamma","i","inf","infinity","minus_inf","oo","pi","plus_inf","undef","unsigned_inf","π"}; // (π: the pi key, UTF-8)
   const char * const keywords[]={"and","break","by","case","catch","continue","default","div","do","elif","else","end","fi","for","from","function","global","if","in","local","mod","not","od","of","or","program","repeat","return","step","switch","then","to","try","until","while","xor"};
 
   bool in_list(const char * const * tab,int n,const char * s){
