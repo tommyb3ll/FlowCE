@@ -2527,6 +2527,28 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   }
   else
     limit_dne(a.gin,g,msg); // lim 1/x at 0: does not exist (giac: an unsigned infinity)
+  // a finite sum: over more than 800 terms giac stops ("Invalid dimension", its list limit), and
+  // sum(1/k^2,k,1,100) is a fraction of 80 digits: decimal values (the terms added in floats; ON
+  // or CLEAR stops)
+  if (a.gin.is_symb_of_sommet(at_sum) && a.gin._SYMBptr->feuille.type==_VECT && a.gin._SYMBptr->feuille._VECTptr->size()==4
+      && (g.type==_STRNG || (g.type==_FRAC && g.print(contextptr).size()>40))){
+    const vecteur & v=*a.gin._SYMBptr->feuille._VECTptr;
+    const gen lo=eval(v[2],1,contextptr),hi=eval(v[3],1,contextptr),f=eval(v[0],1,contextptr);
+    if (g.type==_FRAC)
+      g=evalf(g,1,contextptr);
+    else if (lo.type==_INT_ && hi.type==_INT_ && hi.val-lo.val<1000000 && v[1].type==_IDNT){
+      double s=0;
+      for (int k=lo.val;k<=hi.val;++k){
+        control_c();
+        const gen y=evalf(subst(f,v[1],k,false,contextptr),1,contextptr);
+        if (interrupted || y.type!=_DOUBLE_)
+          break;
+        s+=y._DOUBLE_val;
+        if (k==hi.val)
+          g=gen(s);
+      }
+    }
+  }
   if (g.type==_FRAC && is_positive(-g._FRACptr->den,contextptr)) // -3/-4 (telescoping sums)
     g=(-g._FRACptr->num)/(-g._FRACptr->den);
   focus_phase=83;

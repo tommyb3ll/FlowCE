@@ -1,0 +1,15 @@
+#!/bin/bash
+# hk [-t] [-raw] [-F] [-T] expr ...   (Windows Git Bash) FlowCE's answers from the host build
+# (tools/hostgiac/build.sh worktree), through WSL: the calculator's answer code (src/answer.cc).
+#   -t    ANSWER_TRACE: each step (eval, auto_simplify, positive_first...) and its tree on stderr
+#   -raw  plain giac (no FlowCE steps)
+#   -F    the answer, then its F4 forms as the calculator cycles them, each press timed
+#   -T    each answer's time in ms (PC; the calculator is ~500-1000x slower)
+# Example: tools/hostgiac/hk -T "integrate(x*sec(x)^2,x)" "sum(1/k^2,k,1,1000)"
+D=$(cd "$(dirname "$0")" && pwd)
+W="/mnt/$(echo "${D:1:1}" | tr 'A-Z' 'a-z')${D:2}"
+T=; O=
+while [ $# -gt 0 ]; do
+  case "$1" in -t) T=1;; -raw|-F|-T) O="$O $1";; *) break;; esac; shift
+done
+printf '%s\n' "$@" | MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-22.04 -- env TRACE=$T bash "$W/hk.sh" $O

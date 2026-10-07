@@ -1,0 +1,200 @@
+# Calc 1 and Calc 2 problems for numcheck.py (kind ; expression ; bounds...). Textbook-style.
+# ---- antiderivatives: substitution
+int ; x*sqrt(x^2+1)
+int ; x^2*(x^3+1)^5
+int ; sin(x)*cos(x)^3
+int ; exp(3*x+1)
+int ; x*exp(-x^2)
+int ; 1/(2*x+3)
+int ; ln(x)/x
+int ; cos(sqrt(x))/sqrt(x)
+int ; sec(x)^2*tan(x)
+int ; exp(x)/(1+exp(x))
+int ; 1/(x*ln(x))
+int ; (2*x+1)/(x^2+x+5)
+int ; sin(5*x)
+int ; x/(x^2+4)^2
+int ; tan(x)
+int ; cot(x)
+int ; sec(x)
+int ; csc(x)
+# ---- by parts
+int ; x*exp(x)
+int ; x^2*exp(x)
+int ; x*sin(x)
+int ; x^2*cos(x)
+int ; x*ln(x)
+int ; ln(x)
+int ; ln(x)^2
+int ; atan(x)
+int ; asin(x)
+int ; exp(x)*sin(x)
+int ; exp(2*x)*cos(3*x)
+int ; x*sec(x)^2
+int ; x^3*exp(x^2)
+int ; x*atan(x)
+# ---- trig integrals
+int ; sin(x)^2
+int ; cos(x)^2
+int ; sin(x)^3
+int ; cos(x)^5
+int ; sin(x)^2*cos(x)^2
+int ; sin(x)^3*cos(x)^2
+int ; sin(x)^4
+int ; tan(x)^2
+int ; tan(x)^3
+int ; sec(x)^3
+int ; tan(x)*sec(x)^3
+int ; sec(x)^4
+int ; sin(3*x)*cos(2*x)
+int ; sin(x)*sin(4*x)
+int ; cos(x)*cos(5*x)
+int ; cot(x)^2
+int ; csc(x)^3
+# ---- trig substitution
+int ; sqrt(1-x^2)
+int ; sqrt(4-x^2)
+int ; 1/sqrt(9-x^2)
+int ; x^2/sqrt(1-x^2)
+int ; 1/(x^2*sqrt(x^2+4))
+int ; sqrt(x^2+1)
+int ; 1/sqrt(x^2+9)
+int ; 1/(x^2+9)
+int ; 1/(x^2+2*x+5)
+int ; x^3*sqrt(1-x^2)
+int ; sqrt(x^2-1)/x
+int ; 1/(1+x^2)^2
+int ; 1/sqrt(x^2-4)
+# ---- partial fractions
+int ; 1/(x^2-1)
+int ; (x+5)/(x^2+x-2)
+int ; 1/(x*(x+1))
+int ; x/(x^2-5*x+6)
+int ; 1/(x^3+x)
+int ; (x^2+1)/(x*(x-1)^2)
+int ; 1/(x^2*(x+1))
+int ; (3*x+2)/(x^3-x)
+int ; x^3/(x^2+1)
+int ; (x^4+1)/(x^2-1)
+int ; 1/(x^4-1)
+int ; 1/(x^3+1)
+int ; (2*x^2+3)/(x^4+3*x^2+2)
+int ; 1/((x+1)*(x^2+4))
+# ---- other
+int ; 1/(1+sqrt(x))
+int ; sqrt(x)/(1+x)
+int ; 1/(exp(x)+1)
+int ; x/sqrt(x+1)
+int ; x^(1/3)
+int ; abs(x)
+int ; 1/(x*sqrt(x^2-1))
+int ; exp(sqrt(x))
+int ; sin(ln(x))
+int ; cosh(x)
+int ; x*sinh(x)
+int ; 2^x
+int ; x*2^x
+int ; 1/(sin(x)+cos(x))
+int ; 1/(1+cos(x))
+int ; 1/(1-sin(x))
+int ; sin(x)/(1+cos(x)^2)
+# ---- definite and improper
+defint ; x^2 ; 0 ; 3
+defint ; sin(x) ; 0 ; pi
+defint ; sin(x)^2 ; 0 ; pi
+defint ; x*exp(-x) ; 0 ; 1
+defint ; 1/x ; 1 ; exp(1)
+defint ; sqrt(1-x^2) ; 0 ; 1
+defint ; ln(x) ; 1 ; 2
+defint ; 1/(1+x^2) ; 0 ; 1
+defint ; x*sin(x) ; 0 ; pi
+defint ; exp(x)*cos(x) ; 0 ; pi
+defint ; abs(x-1) ; 0 ; 3
+defint ; 1/sqrt(x) ; 1 ; 4
+defint ; x^3-2*x ; -1 ; 2
+defint ; cos(x)^3 ; 0 ; pi/2
+defint ; sqrt(1+x^2) ; 0 ; 1
+defint ; x/(x^2+1) ; 0 ; 2
+defint ; exp(-x^2) ; 0 ; 1
+defint ; tan(x) ; 0 ; pi/4
+defint ; sec(x)^3 ; 0 ; pi/4
+defint ; 1/(x^2-4) ; 3 ; 5
+defint ; sqrt(4-x^2) ; -2 ; 2
+defint ; x^(1/3) ; -1 ; 8
+defint ; 1/(x*(x+1)) ; 1 ; 3
+defint ; sin(x)^4 ; 0 ; pi
+defint ; x^2*sqrt(1-x^2) ; 0 ; 1
+defint ; 2*pi*x*sqrt(x) ; 0 ; 1
+defint ; sqrt(1+4*x^2) ; 0 ; 1
+defint ; pi*(x^2)^2 ; 0 ; 2
+defint ; 1/2*(1+cos(x))^2 ; 0 ; 2*pi
+# ---- derivatives
+diff ; x^3*sin(x)
+diff ; exp(x^2)*cos(x)
+diff ; ln(x^2+1)
+diff ; sqrt(1+x^3)
+diff ; atan(x^2)
+diff ; asin(2*x)
+diff ; x^x
+diff ; tan(x)^3
+diff ; sec(x)*tan(x)
+diff ; (x^2+1)/(x^3-x)
+diff ; sin(cos(x))
+diff ; exp(sin(x))/x
+diff ; ln(sin(x))
+diff ; x^2*ln(x)
+diff ; 2^x*x^2
+diff ; cosh(x)^2
+diff ; x/sqrt(x^2+1)
+diff ; acos(x)
+diff ; cot(x)
+diff ; csc(x)^2
+diff ; abs(x)
+diff ; x^(1/3)
+# ---- limits
+lim ; sin(x)/x ; 0
+lim ; (1-cos(x))/x^2 ; 0
+lim ; (exp(x)-1)/x ; 0
+lim ; (1+1/x)^x ; inf
+lim ; x*ln(x) ; 0
+lim ; (x^2-4)/(x-2) ; 2
+lim ; (sqrt(x+1)-1)/x ; 0
+lim ; tan(x)/x ; 0
+lim ; (3*x^2+1)/(2*x^2-x) ; inf
+lim ; x^(1/x) ; inf
+lim ; (1+2/x)^x ; inf
+lim ; (x-sin(x))/x^3 ; 0
+lim ; ln(x)/x ; inf
+lim ; x^2*exp(-x) ; inf
+lim ; (cos(x)-1)/x ; 0
+lim ; (2^x-1)/x ; 0
+lim ; sin(3*x)/sin(2*x) ; 0
+lim ; x*sin(1/x) ; inf
+limr ; abs(x)/x ; 0
+liml ; abs(x)/x ; 0
+limr ; 1/x ; 0
+lim ; (sqrt(x^2+x)-x) ; inf
+lim ; (1-cos(x))/(x*sin(x)) ; 0
+lim ; atan(x) ; inf
+# ---- series
+sum ; 1/n^2 ; 1
+sum ; 1/2^n ; 0
+sum ; 1/(n*(n+1)) ; 1
+sum ; (-1)^n/n ; 1
+sum ; 1/n^4 ; 1
+sum ; n/2^n ; 1
+sum ; 3^n/4^n ; 0
+sum ; 1/factorial(n) ; 0
+sum ; (-1)^n/(2*n+1) ; 0
+sum ; 1/(n^2-1) ; 2
+sum ; 1/(4*n^2-1) ; 1
+# ---- solve
+solve ; x^2-5*x+6=0
+solve ; x^3-x=0
+solve ; exp(x)=5
+solve ; ln(x)=2
+solve ; 2*x^2+3*x-2=0
+solve ; x^4-5*x^2+4=0
+solve ; sqrt(x+3)=x-3
+solve ; abs(x-2)=3
+solve ; x^2+x-1=0
