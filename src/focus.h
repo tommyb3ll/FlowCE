@@ -64,5 +64,8 @@ int focus_popover(int key, const char ** text, int * back);
 // empty. Returns 1 and fills out (0-terminated, at most outsize bytes) with the text to insert,
 // or 0 when cancelled. On return the console redraws everything (Console_Disp(1)).
 int focus_catalog(const char * query, char * out, int outsize);
+// a call's template from its catalog signature: "irem(" -> "irem(,)", a box per required argument.
+// Returns its length (the caret goes back to just after its "("), 0 if the command has none.
+int focus_call_template(const char * s, char * out, int outsize);
 #endif
 #endif

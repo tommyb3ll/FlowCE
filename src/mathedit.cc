@@ -196,6 +196,8 @@ int me_key(char * s, int cap, int * caret, int key) {
   if (key == ',' || key == '=' || key == '<' || key == '>') {
     for (t = 0; o > 0 && s[o] == '(' && (s[o - 1] == '/' || s[o - 1] == '^') && (e = mt(s, o)) >= p; t = 1)
       o = grp(s, p = e + 1, &a); // leave the denominator / exponent (p only grows)
+    // a comma before an empty argument (a template's next box: irem(17|,)) is stepped over
+    if (key == ',' && C(p) == ',' && (C(p + 1) == ',' || cls(C(p + 1)))) { *caret = p + 1; return 1; }
     if (!t) return 0;
     t = (key == ',' || key == '=') && C(p) == key; // step over it, else the caller inserts it
     *caret = p + t;

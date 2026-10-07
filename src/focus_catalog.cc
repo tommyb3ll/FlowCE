@@ -66,6 +66,55 @@ static int insert_text(const catalogFunc & c, const char ** t) {
   return p ? p - c.name + 1 : strlen(c.name);
 }
 
+// an argument in brackets that may be left out: plain names ("[n]", "[a,b]"), not a list to fill
+// in ("[x,y,..]", "[t=a..b]", "[[x1,y1],...]")
+static int optional_arg(const char * a, int l) {
+  if (l < 2 || a[0] != '[' || a[l - 1] != ']') return 0;
+  for (int j = 1; j < l - 1; ++j)
+    if (a[j] == '[' || a[j] == '=' || (a[j] == '.' && a[j + 1] == '.')) return 0;
+  return 1;
+}
+
+// a call's template: the command s names ("irem(" or "irem"), "(", one empty argument per
+// required argument of its signature in the catalog, ")": "irem(a,b)" gives irem(,), which the
+// editor draws with a box per argument. Not required: "..." (more of the same) and, at the end,
+// optional arguments in brackets ("diff(f,var,[n])": diff(,)), unless every argument is in
+// brackets ("ichinrem([a,m],[b,n])"). Returns its length, 0 if the command has no signature.
+int focus_call_template(const char * s, char * out, int outsize) {
+  int n = 0;
+  while (letter(s[n]) || s[n] == '_' || (n && s[n] >= '0' && s[n] <= '9')) ++n;
+  if (!n || (s[n] && s[n] != '(') || n + 3 > outsize) return 0;
+  int nc;
+  const catalogFunc * C = catalog_entries(nc);
+  for (int i = 0; i < nc; ++i) {
+    const char * sig = C[i].name;
+    if (strncmp(sig, s, n) || sig[n] != '(') continue;
+    const char * a[12];
+    int al[12], na = 0, depth = 0;
+    for (const char * p = sig + n + 1, * b = p; *p; ++p) { // its arguments, split at top-level commas
+      if (*p == '(' || *p == '[' || *p == '{') ++depth;
+      else if ((*p == ')' || *p == ']' || *p == '}') && depth) --depth;
+      else if ((*p == ',' || *p == ')') && !depth) {
+        if (p > b && na < 12) { a[na] = b; al[na] = p - b; ++na; }
+        if (*p == ')') break;
+        b = p + 1;
+      }
+    }
+    int req = 0, lists = 1;
+    for (; req < na && !(a[req][0] == '.' && a[req][1] == '.'); ++req)
+      if (a[req][0] != '[') lists = 0;
+    while (!lists && req > 0 && optional_arg(a[req - 1], al[req - 1])) --req;
+    memcpy(out, s, n);
+    int k = n;
+    out[k++] = '(';
+    for (int j = 1; j < req && k < outsize - 2; ++j) out[k++] = ',';
+    out[k++] = ')';
+    out[k] = 0;
+    return k;
+  }
+  return 0;
+}
+
 // ------------------------------------------------------------------ matching
 // the query (lowercase, ql chars) at s, ignoring case
 static int at(const char * s, const char * q, int ql) {

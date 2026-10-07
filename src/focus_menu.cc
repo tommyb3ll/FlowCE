@@ -236,8 +236,10 @@ static int fk_kh(int k) {
   int j = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F6 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F7 && k <= KEY_CTRL_F20 ? k - KEY_CTRL_F7 + 6 : -1;
   return j < 0 ? 1 : (j == cur || j < 5) ? -1 : -2 - j;
 }
-// the keys of an open card: arrows (in a grid, by columns), 1-9 and EXE pick (the item, >= 0),
-// EXIT/AC cancel (-1); fk: the menu keys; a long list scrolls
+// the keys of an open card: arrows, 1-9 and EXE pick (the item, >= 0), EXIT/AC cancel (-1); fk:
+// the menu keys; a long list scrolls. The arrows wrap around, as in the TI's menus: in a grid,
+// left of the first item of a row is its last one (right: the reverse), up from the top row is
+// the bottom of the column (down: the reverse); in a list, up from the top is the bottom.
 static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
   for (;;) {
     int k;
@@ -246,10 +248,16 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) return -1;
     int f = fk ? fk(k) : 1, n = m.n, c = m.grid ? m.cols : 1, ns = sel;
     if (f != 1) return f;
-    if (m.grid && k == KEY_CTRL_LEFT) ns = sel > 0 ? sel - 1 : n - 1;
-    if (m.grid && k == KEY_CTRL_RIGHT) ns = sel < n - 1 ? sel + 1 : 0;
-    if (k == KEY_CTRL_UP) ns = m.grid ? (sel >= c ? sel - c : sel) : sel > 0 ? sel - 1 : n - 1;
-    if (k == KEY_CTRL_DOWN) ns = m.grid ? (sel + c < n ? sel + c : sel) : sel < n - 1 ? sel + 1 : 0;
+    if (m.grid) {
+      const int r0 = sel - sel % c, r1 = r0 + c - 1 < n - 1 ? r0 + c - 1 : n - 1; // the row
+      if (k == KEY_CTRL_LEFT) ns = sel > r0 ? sel - 1 : r1;
+      if (k == KEY_CTRL_RIGHT) ns = sel < r1 ? sel + 1 : r0;
+      if (k == KEY_CTRL_UP) ns = sel >= c ? sel - c : sel + (n - 1 - sel) / c * c;
+      if (k == KEY_CTRL_DOWN) ns = sel + c < n ? sel + c : sel % c;
+    } else {
+      if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
+      if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
+    }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
@@ -553,8 +561,8 @@ int focus_fmenu(int idx, const char * const * e, int n) {
       memcpy(pv[k], s + a, b - a); pv[k][b - a] = 0;
       it[k].label = pv[k]; it[k].text = 0;
     } else if (!it[k].label && w) { it[k].label = s; it[k].text = 0; } // red, filled: the word alone
-    else if (L > 1 && L < 23 && s[L - 1] == '(') { // irem( drawn as irem(□)
-      memcpy(pv[k], s, L); pv[k][L] = ')'; pv[k][L + 1] = 0;
+    else if (L > 1 && L < 23 && s[L - 1] == '(') { // irem( drawn as it goes in: irem(□,□)
+      if (!focus_call_template(s, pv[k], sizeof(pv[k]))) { memcpy(pv[k], s, L); pv[k][L] = ')'; pv[k][L + 1] = 0; }
       it[k].pv = pv[k];
     }
   }

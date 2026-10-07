@@ -1908,10 +1908,29 @@ const char * trig(){
     return nullptr;
   }
 
+  // 2D: a command chosen as name( goes in as its template, a box per required argument (irem(,)),
+  // the caret in the first one; name() if the catalog has no signature for it
+  static int console_input_call(const char * s){
+    char buf[64];
+    const int l=strlen(s);
+    int n=focus_call_template(s,buf,sizeof(buf));
+    if (!n){
+      if (l>60)
+        return Console_Input((const Char *)s);
+      strcpy(buf,s);
+      strcpy(buf+l,")");
+      n=l+1;
+    }
+    const int r=Console_Input((const Char *)buf);
+    for (int b=n-l;b>0;--b)
+      Console_MoveCursor(CURSOR_LEFT);
+    return r;
+  }
+
   // Focus: the command search (focus_catalog.cc) opened with query q. Its choice goes to the edit
   // line, replacing the back chars before the caret (the word that was the query); in 2D a
-  // name( is inserted as name() with the caret inside, as the function keys do. The caller
-  // redraws (Console_Disp(1)).
+  // name( is inserted as its template, as the function keys do. The caller redraws
+  // (Console_Disp(1)).
   static bool console_search(const char * q,int back){
     char out[64];
     if (!focus_catalog(q,out,sizeof(out)-1) || !out[0])
@@ -1924,12 +1943,10 @@ const char * trig(){
       Console_MoveCursor(CURSOR_LEFT);
     }
     const int l=strlen(out);
-    const bool call=console_input2d() && l>1 && out[l-1]=='(';
-    if (call)
-      strcpy(out+l,")");
-    Console_Input((const Char *)out);
-    if (call)
-      Console_MoveCursor(CURSOR_LEFT);
+    if (console_input2d() && l>1 && out[l-1]=='(')
+      console_input_call(out);
+    else
+      Console_Input((const Char *)out);
     return true;
   }
 
@@ -3094,15 +3111,8 @@ int Console_FMenu(int key){
   if (!focus_on && strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
     s=ptr;
   const int l=strlen(s);
-  if (console_input2d() && l>1 && l<60 && s[l-1]=='('){ // 2D: irem( goes in as irem(|), as typed
-    char buf[64];
-    strcpy(buf,s);
-    buf[l]=')';
-    buf[l+1]=0;
-    const int r=Console_Input((const Char *)buf);
-    Console_MoveCursor(CURSOR_LEFT);
-    return r;
-  }
+  if (console_input2d() && l>1 && l<60 && s[l-1]=='(') // 2D: irem( goes in as irem(|,□)
+    return console_input_call(s);
   return Console_Input((const Char *)s);
 }
 

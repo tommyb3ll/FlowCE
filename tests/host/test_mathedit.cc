@@ -114,6 +114,12 @@ static const tcase cases[] = {
   {"x/(b|)", ",", "x/(b),|", 0, 0},                   // a denominator without a numerator group
   {"x^(a|", "=", "x^(a=|", 0, 0},                     // unclosed exponent: stays
   {"[1|]", ",", "[1,|]", 0, 0},
+  {"irem(17|,)", ",", "irem(17,|)", 1, 0},           // a template's next box: stepped over
+  {"seq(x|,,,)", ",", "seq(x,|,,)", 1, 0},
+  {"irem(|,)", ",", "irem(,|)", 1, 0},
+  {"f(x^(2|),)", ",", "f(x^(2),|)", 1, 0},
+  {"irem(17|,)", ",5)", "irem(17,5)|", 1, 0},       // typed in full over the template
+  {"f(a|,b)", ",", "f(a,|,b)", 0, 0},                // before a filled argument: a new one
   {"(\"a,b\"|)", ",", "(\"a,b\",|)", 0, 0},
   {"\"(a)/(b|)\"", ",", "\"(a)/(b,|)\"", 0, 0},       // in a string
   {"x|", "+", "x+|", 0, 0},                           // keys that are not handled
