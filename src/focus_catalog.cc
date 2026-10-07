@@ -75,44 +75,94 @@ static int optional_arg(const char * a, int l) {
   return 1;
 }
 
-// a call's template: the command s names ("irem(" or "irem"), "(", one empty argument per
-// required argument of its signature in the catalog, ")": "irem(a,b)" gives irem(,), which the
-// editor draws with a box per argument. Not required: "..." (more of the same) and, at the end,
-// optional arguments in brackets ("diff(f,var,[n])": diff(,)), unless every argument is in
-// brackets ("ichinrem([a,m],[b,n])"). Returns its length, 0 if the command has no signature.
-int focus_call_template(const char * s, char * out, int outsize) {
-  int n = 0;
-  while (letter(s[n]) || s[n] == '_' || (n && s[n] >= '0' && s[n] <= '9')) ++n;
-  if (!n || (s[n] && s[n] != '(') || n + 3 > outsize) return 0;
+// a command's call signature: the catalog entry whose signature is name[0,n) then "(", its
+// arguments split at top-level commas (a[k], al[k] chars; at most 12) and how many are required
+// (the template's boxes): not "..." (more of the same) nor, at the end, optional arguments in
+// brackets ("diff(f,var,[n])": 2), unless every argument is in brackets ("ichinrem([a,m],[b,n])").
+// -1 if there is none.
+struct call_sig { const catalogFunc * c; const char * a[12]; int al[12], na, req; };
+static int call_sig_of(const char * name, int n, call_sig & g) {
   int nc;
   const catalogFunc * C = catalog_entries(nc);
   for (int i = 0; i < nc; ++i) {
     const char * sig = C[i].name;
-    if (strncmp(sig, s, n) || sig[n] != '(') continue;
-    const char * a[12];
-    int al[12], na = 0, depth = 0;
-    for (const char * p = sig + n + 1, * b = p; *p; ++p) { // its arguments, split at top-level commas
+    if (strncmp(sig, name, n) || sig[n] != '(') continue;
+    int depth = 0;
+    g.c = C + i; g.na = 0;
+    for (const char * p = sig + n + 1, * b = p; *p; ++p) {
       if (*p == '(' || *p == '[' || *p == '{') ++depth;
       else if ((*p == ')' || *p == ']' || *p == '}') && depth) --depth;
       else if ((*p == ',' || *p == ')') && !depth) {
-        if (p > b && na < 12) { a[na] = b; al[na] = p - b; ++na; }
+        if (p > b && g.na < 12) { g.a[g.na] = b; g.al[g.na] = p - b; ++g.na; }
         if (*p == ')') break;
         b = p + 1;
       }
     }
-    int req = 0, lists = 1;
-    for (; req < na && !(a[req][0] == '.' && a[req][1] == '.'); ++req)
-      if (a[req][0] != '[') lists = 0;
-    while (!lists && req > 0 && optional_arg(a[req - 1], al[req - 1])) --req;
-    memcpy(out, s, n);
-    int k = n;
-    out[k++] = '(';
-    for (int j = 1; j < req && k < outsize - 2; ++j) out[k++] = ',';
-    out[k++] = ')';
-    out[k] = 0;
-    return k;
+    int lists = 1;
+    for (g.req = 0; g.req < g.na && !(g.a[g.req][0] == '.' && g.a[g.req][1] == '.'); ++g.req)
+      if (g.a[g.req][0] != '[') lists = 0;
+    while (!lists && g.req > 0 && optional_arg(g.a[g.req - 1], g.al[g.req - 1])) --g.req;
+    return i;
   }
-  return 0;
+  return -1;
+}
+static int name_at(const char * s) { // the length of the command name s starts with
+  int n = 0;
+  while (letter(s[n]) || s[n] == '_' || (n && s[n] >= '0' && s[n] <= '9')) ++n;
+  return n;
+}
+
+// a call's template: the command s names ("irem(" or "irem"), "(", one empty argument per
+// required argument of its signature in the catalog, ")": "irem(a,b)" gives irem(,), which the
+// editor draws with a box per argument. Returns its length, 0 if the command has no signature.
+int focus_call_template(const char * s, char * out, int outsize) {
+  int n = name_at(s);
+  call_sig g;
+  if (!n || (s[n] && s[n] != '(') || n + 3 > outsize || call_sig_of(s, n, g) < 0) return 0;
+  memcpy(out, s, n);
+  int k = n;
+  out[k++] = '(';
+  for (int j = 1; j < g.req && k < outsize - 2; ++j) out[k++] = ',';
+  out[k++] = ')';
+  out[k] = 0;
+  return k;
+}
+
+// the name of argument i of a call to name[0,n), from its signature ("powmod(a,n,p)": a, n, p),
+// for the editor's empty boxes (mathinput.h, mi_arg_label): its length, *label pointing at it; 0
+// for commands of one argument (a box says enough) and for "...". Optional ones lose their
+// brackets ("[n]": n); lists keep theirs ("[x,y,..]").
+int focus_arg_label(const char * name, int n, int i, const char ** label) {
+  call_sig g;
+  if (call_sig_of(name, n, g) < 0 || g.req < 2 || i >= g.na) return 0;
+  const char * t = g.a[i];
+  int l = g.al[i];
+  if (t[0] == '.') return 0;
+  if (optional_arg(t, l)) { ++t; l -= 2; }
+  while (l > 0 && *t == ',') { ++t; --l; } // "[,a,b]" (the French catalog's integrate)
+  *label = t;
+  return l;
+}
+
+// the command the caret is in: the innermost call around it (lists and groups inside it skipped)
+// whose signature has 2 or more arguments; -1 if none. For the help line under the edit line.
+int focus_call_entry(const char * s, int caret) {
+  int d = 0;
+  for (int i = caret - 1; i >= 0; --i) {
+    char c = s[i];
+    if (c == ')' || c == ']' || c == '}') ++d;
+    else if (c == '(' || c == '[' || c == '{') {
+      if (d) { --d; continue; }
+      if (c != '(') continue;
+      int b = i;
+      while (b > 0 && (letter(s[b - 1]) || s[b - 1] == '_' || (s[b - 1] >= '0' && s[b - 1] <= '9'))) --b;
+      while (b < i && !letter(s[b])) ++b; // 2irem(: the name starts at its first letter
+      call_sig g;
+      int e = b < i ? call_sig_of(s + b, i - b, g) : -1;
+      if (e >= 0 && g.req >= 2) return e;
+    }
+  }
+  return -1;
 }
 
 // ------------------------------------------------------------------ matching
@@ -178,23 +228,44 @@ static void filter(int narrow) {
   s.stop = -100; // the rows on screen show another list: no scrolling of their pixels
 }
 
-// the selected entry's example, as menufr.cc's help builds it: "#..." is the whole expression,
-// else the command's arguments (insert text + example + ")"); an example already starting with
-// the command, or for an entry that does not insert a call, is taken whole too
+// an entry's example, as menufr.cc's help builds it: "#..." is the whole expression, else the
+// command's arguments (insert text + example + ")"); an example already starting with the
+// command, or for an entry that does not insert a call, is taken whole too. In out (size m), its
+// length; 0 if none.
+static int example_text(const catalogFunc & c, char * out, int m) {
+  const char * e = c.example, * t;
+  if (!e) return 0;
+  int n = insert_text(c, &t), k = 0;
+  m -= 2;
+  int whole = *e == '#' || !n || t[n - 1] != '(' || !strncmp(e, t, n - 1);
+  if (*e == '#') ++e;
+  if (!whole) { k = n < m ? n : m; memcpy(out, t, k); }
+  while (*e && k < m) out[k++] = *e++;
+  if (!whole) out[k++] = ')';
+  out[k] = 0;
+  return k;
+}
+
+// the help line of entry e (focus_call_entry): the first sentence of its description, which
+// names the arguments as the editor's boxes do ("Returns a^n mod p."), and its example
+void focus_entry_help(int e, char * desc, int dsize, char * ex, int esize) {
+  int nc, k = 0;
+  const catalogFunc & c = catalog_entries(nc)[e];
+  for (const char * p = c.desc; p && *p && k < dsize - 1; ++p) {
+    desc[k++] = *p;
+    if (*p == '.' && (!p[1] || p[1] == ' ')) break;
+  }
+  desc[k] = 0;
+  if (!example_text(c, ex, esize)) ex[0] = 0;
+}
+
+// the selected entry's example, laid out
 static void example() {
   cat_state & s = *S;
   s.exlv = -1;
   if (!s.ni) return;
-  const catalogFunc & c = s.C[s.idx[s.sel]];
-  const char * e = c.example, * t;
-  if (!e) return;
-  int n = insert_text(c, &t), k = 0, m = sizeof(s.ex) - 2;
-  int whole = *e == '#' || !n || t[n - 1] != '(' || !strncmp(e, t, n - 1);
-  if (*e == '#') ++e;
-  if (!whole) { k = n < m ? n : m; memcpy(s.ex, t, k); }
-  while (*e && k < m) s.ex[k++] = *e++;
-  if (!whole) s.ex[k++] = ')';
-  s.ex[k] = 0;
+  int k = example_text(s.C[s.idx[s.sel]], s.ex, sizeof(s.ex));
+  if (!k) return;
   focus_phase = 61;
   s.exlv = ui_math_fit(s.ex, k, -1, 5, 296, EH, 0, s.L);
 }

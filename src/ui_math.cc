@@ -85,8 +85,8 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
   if (lv < 0) lv = 0;
   if (lv >= UI_NSIZES) lv = UI_NSIZES - 1;
   if (!met_ready) {
-    MET = (mi_metrics (*)[UI_NSIZES])calloc(4 * UI_NSIZES, sizeof(mi_metrics));
-    for (int k = 0; k < 4; ++k)
+    MET = (mi_metrics (*)[UI_NSIZES])calloc(5 * UI_NSIZES, sizeof(mi_metrics));
+    for (int k = 0; k < 5; ++k)
       for (int l = 0; l < UI_NSIZES; ++l) {
         mi_metrics & m = MET[k][l];
         int s = ui_math_sizes[l], ss = ui_math_sizes[script(l)];
@@ -98,11 +98,11 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
         m.gap = (short)(rnd(s, 13) < 2 ? 2 : rnd(s, 13));
         m.rad = (short)rnd(s, 56);
         m.isw = (short)rnd(s, 50);
-        m.flags = (short)(k == 1 ? MI_F_IMPLDOT : k == 2 ? MI_F_CALLBOX : k == 3 ? MI_F_TIDY : 0);
+        m.flags = (short)(k == 1 ? MI_F_IMPLDOT : k == 2 ? MI_F_CALLBOX : k == 3 ? MI_F_TIDY : k == 4 ? MI_F_CALLBOX | MI_F_HINTS : 0);
       }
     met_ready = 1;
   }
-  return MET[(flags & MI_F_IMPLDOT) ? 1 : (flags & MI_F_CALLBOX) ? 2 : (flags & MI_F_TIDY) ? 3 : 0][lv];
+  return MET[(flags & MI_F_IMPLDOT) ? 1 : (flags & MI_F_HINTS) ? 4 : (flags & MI_F_CALLBOX) ? 2 : (flags & MI_F_TIDY) ? 3 : 0][lv];
 }
 
 int ui_math_fit(const char * s, int n, int caret, int maxlv, int w, int h, int flags, mi_layout & L) {
@@ -246,6 +246,15 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
     } break;
     case MI_BAR: ui_fill(ox + w / 2, oy, osz >= 24 ? 2 : 1, h, r[3]); break;
     case MI_BOX: ui_rframe(bank, ox, oy, w, h, osz >= 24 ? 3 : 2, acc, bg); (void)ra; break;
+    case MI_HINT: { // an argument's name in its empty box: small italics, faint
+      const unsigned char * rs = ui_ramp(bank, UC_SUB, bg);
+      const ui_face * f;
+      const ui_glyph * g;
+      for (int i = 0, l = script(lv); i < o.len;) {
+        unsigned cp = next_cp(o.lit, o.len, i);
+        if ((g = glyph(l, 1, cp, &f))) ox += ui_draw_glyph(f, cp, ox, oy, rs, 0);
+      }
+    } break;
     }
   }
   focus_phase = ph;

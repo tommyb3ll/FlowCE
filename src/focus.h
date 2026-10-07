@@ -67,5 +67,11 @@ int focus_catalog(const char * query, char * out, int outsize);
 // a call's template from its catalog signature: "irem(" -> "irem(,)", a box per required argument.
 // Returns its length (the caret goes back to just after its "("), 0 if the command has none.
 int focus_call_template(const char * s, char * out, int outsize);
+// the name of argument i of a call to name[0,n) (the edit line's empty boxes): its length, 0 if none
+int focus_arg_label(const char * name, int n, int i, const char ** label);
+// the catalog entry of the call the caret is in (2 or more arguments), -1 if none; its help line:
+// the first sentence of its description and its example
+int focus_call_entry(const char * s, int caret);
+void focus_entry_help(int e, char * desc, int dsize, char * ex, int esize);
 #endif
 #endif

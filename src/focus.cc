@@ -265,16 +265,20 @@ enum { HM_HINT, HM_MATH, HM_TEXT, HM_RESULT };
 static int hm = HM_HINT, hy0, hh, hx, hbase, hcaret;
 static mi_layout * HL; // HM_MATH: the edit line's layout (heap)
 static int hb_y0, hb_y1; // HM_MATH: the rows it covers (ink overhang included)
+static int help_e = -1;  // HM_MATH: the command the caret is in (catalog entry), for the help lines
+enum { HELP_H = 32 };    // ... at the bottom of the hero
 
 static void hero_prepare(int y0, int h) {
   hy0 = y0; hh = h;
   const char * s = (const char *)Console_GetEditLine();
   hcaret = console_caret();
+  help_e = -1;
   if (s && *s && console_edit2d()) {
     if (!HL) HL = new mi_layout;
     mi_layout & L = *HL;
     focus_phase = 2;
-    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, MI_F_CALLBOX, L);
+    mi_arg_label = focus_arg_label; // empty arguments show their names (focus_catalog.cc)
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 296, h - 24 > 20 ? h - 24 : 20, MI_F_CALLBOX | MI_F_HINTS, L);
     focus_phase = 3;
     hx = (UI_W - L.width) / 2; hbase = y0 + (h - (L.asc + L.desc)) / 2 + L.asc;
     if (L.width > 296) { // caret kept in view
@@ -283,6 +287,8 @@ static void hero_prepare(int y0, int h) {
       if (hx + L.width < UI_W - 12) hx = UI_W - 12 - L.width;
     }
     hb_y0 = hbase - L.asc - 4; hb_y1 = hbase + L.desc + 4;
+    // in a command of several arguments: what it does and an example, under the line if it fits
+    if (hcaret >= 0 && hb_y1 + 4 <= y0 + h - HELP_H && (help_e = focus_call_entry(s, hcaret)) >= 0) hb_y1 = y0 + h;
     hm = HM_MATH;
   } else if (s && *s) hm = HM_TEXT; // Python: plain text
   else if (hero_last && NE && E[NE - 1].out >= 0) hm = HM_RESULT;
@@ -346,6 +352,24 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   return 0;
 }
 
+// a line of help under the edit line: pre (gray) then t in color fg, centered, cut with an
+// ellipsis when wider than the screen (one pass over t)
+static void help_line(const ui_face * f, const char * t, int base, int fg, const char * pre) {
+  static const char ell[] = "\xe2\x80\xa6";
+  const int maxw = UI_W - 20, pw = pre ? ui_text_width(f, pre, -1) : 0;
+  int n = strlen(t), tw = ui_text_width(f, t, n), cut = tw + pw > maxw;
+  if (cut) { // the chars that fit with the ellipsis after them
+    const int ew = ui_text_width(f, ell, -1);
+    int k = 0, w = 0;
+    for (int cw; k < n && w + (cw = ui_text_width(f, t + k, 1)) <= maxw - pw - ew; ++k) w += cw;
+    n = k; tw = w + ew;
+  }
+  int x = (UI_W - pw - tw) / 2;
+  if (pre) x += ui_draw_text(f, pre, -1, x, base, ramp(UC_SUB, UC_BG), 0);
+  x += ui_draw_text(f, t, n, x, base, ramp(fg, UC_BG), 0);
+  if (cut) ui_draw_text(f, ell, -1, x, base, ramp(fg, UC_BG), 0);
+}
+
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
@@ -354,6 +378,13 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     ui_math_draw(*HL, s, hero_lv, hx, hbase, 0, UC_INK, UC_BG, UC_ACC);
     focus_phase = 5;
     if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
+    if (help_e >= 0) { // the command's description (it names the arguments as the boxes do), an example
+      char d[72], ex[72];
+      focus_entry_help(help_e, d, sizeof(d), ex, sizeof(ex));
+      int b = y0 + h - 22;
+      if (*d) help_line(&ui_tr10, d, b, UC_SUB, 0);
+      if (*ex) help_line(&ui_tr10, ex, b + 14, UC_INK, "e.g.  ");
+    }
   } else if (hm == HM_TEXT) {
     ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
   } else if (hm == HM_RESULT) {
@@ -866,4 +897,4 @@ int focus_clear_hero() {
   focus_disp(1);
   return 1;
 }
-const mi_metrics & focus_metrics() { return ui_math_metrics(hero_lv, MI_F_CALLBOX); } // as drawn
+const mi_metrics & focus_metrics() { return ui_math_metrics(hero_lv, MI_F_CALLBOX | MI_F_HINTS); } // as drawn

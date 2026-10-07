@@ -26,12 +26,14 @@ typedef int (*mi_wfn)(const char * s, int n, int sm, int st);
 // MI_F_CALLBOX: f() shows a box in its empty argument (template previews)
 // MI_F_TIDY: read-only (the history): the user's group around a whole numerator or denominator
 // is not drawn, 1/(x+1) typed is (1)/((x+1))
-enum { MI_F_IMPLDOT = 1, MI_F_CALLBOX = 2, MI_F_TIDY = 4 };
+// MI_F_HINTS (the edit line, with MI_F_CALLBOX): an empty argument of a call whose arguments have
+// names (mi_arg_label) is a box around its name, in the small font (powmod(a,n,p))
+enum { MI_F_IMPLDOT = 1, MI_F_CALLBOX = 2, MI_F_TIDY = 4, MI_F_HINTS = 8 };
 struct mi_metrics { mi_font big, small; short opgap; mi_wfn wf; short bar, gap, rad, isw, flags; };
 
 // display list op codes
 enum { MI_TEXT, MI_DOT, MI_HLINE, MI_SQRT, MI_INTEGRAL, MI_SIGMA, MI_LPAREN, MI_RPAREN,
-       MI_LBRACKET, MI_RBRACKET, MI_LBRACE, MI_RBRACE, MI_BAR, MI_BOX };
+       MI_LBRACKET, MI_RBRACKET, MI_LBRACE, MI_RBRACE, MI_BAR, MI_BOX, MI_HINT };
 
 // Display list op; coordinates in pixels, y grows DOWN, y=0 is the baseline of the
 // top-level line, x=0 its left edge.
@@ -43,6 +45,8 @@ enum { MI_TEXT, MI_DOT, MI_HLINE, MI_SQRT, MI_INTEGRAL, MI_SIGMA, MI_LPAREN, MI_
 //   MI_SQRT: radical sign in the left 6 px (full height), overbar on the top row up to x+w.
 //   MI_INTEGRAL / MI_SIGMA: the sign scaled to the box.  MI_BAR: vertical line, box center.
 //   MI_LPAREN..MI_RBRACE: delimiter scaled to the box.   MI_BOX: empty-slot placeholder.
+//   MI_HINT: an argument's name in its empty box (MI_F_HINTS): the static text lit[0,len) at x,
+//            y=baseline (small font, italic), drawn faint.
 //  pos: buffer position the op belongs to (-1 for literals), informative except for MI_TEXT.
 struct mi_op {
   unsigned char code, small; // small: 1 if in the small font
@@ -71,6 +75,10 @@ enum { MI_T_FRAC, MI_T_DIV, MI_T_POW, MI_T_SQ, MI_T_SQRT, MI_T_NROOT, MI_T_ABS, 
 const mi_template & mi_get_template(int kind);
 
 extern const mi_metrics mi_default_metrics; // big {8,14,4}, small {6,9,3}, opgap 2
+
+// MI_F_HINTS: the name of argument i (0: the first) of a call to name[0,nlen); its length, with
+// *label pointing at it (static text), 0 if it has none. Set by the application (0: no names).
+extern int (*mi_arg_label)(const char * name, int nlen, int i, const char ** label);
 
 // What Backspace should do: delete [from,to) (from==to: delete nothing) and return the new
 // caret. m is only used when Backspace acts like LEFT (hidden structure char).

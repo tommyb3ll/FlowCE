@@ -74,7 +74,7 @@ enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP
 enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF, K_THETA,
        K_EMPTY, K_ROW, K_GROUP, K_CALL, K_FRAC, K_POW,
        K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP, K_SER };
-enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64 };
+enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64, F_LABEL = 128 };
 
 struct mi_node {
   unsigned char k, f;     // kind, flags
@@ -84,6 +84,12 @@ struct mi_node {
 };
 
 static mi_node T[MAXN + 1];  // T[0] = nil, T[MAXN] = overflow sink (never used in practice)
+int (*mi_arg_label)(const char * name, int nlen, int i, const char ** label);
+enum { MAXLB = 12 };         // MI_F_HINTS: the empty boxes (F_LABEL) and the names they show
+static short lbn[MAXLB];
+static const char * lbs[MAXLB];
+static unsigned char lbl[MAXLB];
+static int nlb;
 static int nn, nops, dep, broken, rtail, ftail;
 static unsigned char nopen[3];   // open ( [ { groups
 static const char * S;
@@ -292,8 +298,24 @@ static int pcall(int nm) { // name( args ): normal or special call
     T[nm].f |= F_FN; // a function name: upright
     if (na == 1 && T[t].k == K_EMPTY && (!(M->flags & MI_F_CALLBOX) || namei(nm, "ans"))) T[t].f |= F_NOBOX; // f(), ans(): no box
     if (na == 1 && T[t].k == K_EMPTY && namei(nm, "ans") && (T[cl].f & F_CLOSED)) T[cl].f |= F_HID; // ans(): Ans, as on a TI
+    if ((M->flags & MI_F_HINTS) && mi_arg_label) { // its empty arguments show their names
+      for (int i = 0, q = T[nm].nx; q; q = T[q].nx) {
+        if (T[q].k == K_SEP) ++i;
+        else if (T[q].k == K_EMPTY && !(T[q].f & F_NOBOX) && nlb < MAXLB) {
+          const char * s;
+          int n = mi_arg_label(S + T[nm].c, T[nm].b - T[nm].c, i, &s);
+          if (n > 0 && n < 40) { lbn[nlb] = (short)q; lbs[nlb] = s; lbl[nlb++] = (unsigned char)n; T[q].f |= F_LABEL; ++nops; }
+        }
+      }
+    }
   }
   return cl;
+}
+// the name shown in the empty box n (F_LABEL): its length, *s pointing at it
+static int label(int n, const char ** s) {
+  for (int i = 0; i < nlb; ++i)
+    if (lbn[i] == n) { *s = lbs[i]; return lbl[i]; }
+  return 0;
 }
 
 // a function name written with a power before its argument (sin^2(x), TI style)
@@ -411,11 +433,11 @@ static int pseq(int stopc) {
 }
 
 static int parse() {
-  nn = 1; nops = dep = broken = 0;
+  nn = 1; nops = dep = broken = nlb = 0;
   nopen[0] = nopen[1] = nopen[2] = 0;
   lex(0);
   int r = pseq(0);
-  if (broken) { nn = 1; nops = 0; r = L ? newnode(K_FLAT, 0, L, 1) : 0; } // cannot happen
+  if (broken) { nn = 1; nops = nlb = 0; r = L ? newnode(K_FLAT, 0, L, 1) : 0; } // cannot happen
   return r;
 }
 
@@ -623,7 +645,11 @@ static void measure(int n, int sm) {
       if (k == K_SEP) w += h;
     }
     d.w = w;
-  } else if (k == K_EMPTY) d.w = (d.f & F_NOBOX) ? 0 : f.adv;
+  } else if (k == K_EMPTY) {
+    const char * s;
+    int l = (d.f & F_LABEL) && !sm ? label(n, &s) : 0; // a name: in the small font, 3 px in
+    d.w = (d.f & F_NOBOX) ? 0 : l ? (M->wf ? M->wf(s, l, 1, MI_IT) : l * M->small.adv) + 8 : f.adv;
+  }
   else if (k <= K_CALL) { // row, group, call: items side by side, delimiters as tall as the content
     c = d.kid; w = 0;
     if (k == K_CALL) { measure(c, sm); w = T[c].w; c = T[c].nx; }
@@ -744,7 +770,14 @@ static void place(int n, int x, int y, int dp, int sm) {
     }
     P(d.b, x + d.w, y, sm, dp);
   } else if (k == K_EMPTY) {
-    if (!(d.f & F_NOBOX)) op(MI_BOX, sm, x + 1, y - f.asc + 2, f.adv - 2, f.asc - 2, d.a, 0, 0);
+    const char * s;
+    int l = (d.f & F_LABEL) && !sm ? label(n, &s) : 0;
+    if (l) { // a box down to the descent, the argument's name centered in it
+      const mi_font & g = fnt(1);
+      int top = y - f.asc + 2, bh = f.asc + f.desc - 3;
+      op(MI_BOX, sm, x + 1, top, d.w - 2, bh, d.a, 0, 0);
+      op(MI_HINT, 1, x + 4, top + (bh - g.asc - g.desc) / 2 + g.asc, d.w - 8, g.asc + g.desc, d.a, l, s, MI_IT);
+    } else if (!(d.f & F_NOBOX)) op(MI_BOX, sm, x + 1, y - f.asc + 2, f.adv - 2, f.asc - 2, d.a, 0, 0);
   } else if (k <= K_CALL) { // row, visible group, call
     int vis = k != K_ROW && !(d.f & F_HID), code = MI_LPAREN, last;
     c = d.kid; p = d.a;

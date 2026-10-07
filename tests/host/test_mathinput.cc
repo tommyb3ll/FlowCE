@@ -437,6 +437,58 @@ static void t_boxes() {
   CHECKEQ(cnt(lay("-"), MI_BOX), 1);
 }
 
+// MI_F_HINTS: the empty arguments of a call with named arguments are boxes around the names
+static int test_label(const char * name, int n, int i, const char ** label) {
+  static const char * const pw[] = {"a", "n", "p"};
+  if (n == 6 && !strncmp(name, "powmod", 6) && i < 3) { *label = pw[i]; return 1; }
+  if (n == 8 && !strncmp(name, "linsolve", 8) && i < 2) { *label = i ? "[x,y,..]xx" : "[eq1,eq2,..]"; return i ? 8 : 12; }
+  return 0;
+}
+static void t_labels() {
+  mi_metrics m = MM;
+  m.flags = MI_F_CALLBOX | MI_F_HINTS;
+  mi_arg_label = test_label;
+  mi_layout L, P;
+  const char * s = "powmod(,,)";
+  mi_build(s, slen(s), 7, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 3);                        // a name in each empty box
+  CHECKEQ(cnt(L, MI_BOX), 3);
+  const mi_op & h = OP(opc(L, MI_HINT)), & b = OP(opc(L, MI_BOX));
+  CHECK(h.lit && h.len == 1 && h.lit[0] == 'a' && h.small == 1 && h.style == MI_IT);
+  CHECKEQ(b.w, 6 + 6);                                // the name (one small glyph) and 3 px each side
+  CHECK(h.x >= b.x && h.x + h.w <= b.x + b.w);        // inside its box
+  CHECK(h.y - 9 >= b.y && h.y + 3 <= b.y + b.h);      // (small font: asc 9, desc 3)
+  CHECKEQ(b.y + b.h, 4 - 1);                          // the box reaches into the descent
+  CHECKEQ(L.cx, b.x - 1);                             // the caret at the box's left edge
+  CHECKEQ(OP(opc(L, MI_HINT, 2)).lit[0], 'p');
+  s = "powmod(2,,)";
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 2);                        // a filled argument shows no name
+  CHECKEQ(OP(opc(L, MI_HINT)).lit[0], 'n');
+  s = "linsolve(,)";                                  // names are text, not 0-terminated
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(OP(opc(L, MI_HINT, 1)).len, 8);
+  CHECKEQ(OP(opc(L, MI_BOX, 1)).w, 8 * 6 + 6);
+  s = "f(,)";                                         // no names: plain boxes
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 0); CHECKEQ(cnt(L, MI_BOX), 2);
+  s = "x^(powmod(,,))";                               // in the small font: plain boxes
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 0); CHECKEQ(cnt(L, MI_BOX), 3);
+  m.flags = MI_F_CALLBOX;                             // without the flag: plain boxes
+  s = "powmod(,,)";
+  mi_build(s, slen(s), -1, m, P);
+  CHECKEQ(cnt(P, MI_HINT), 0); CHECKEQ(cnt(P, MI_BOX), 3);
+  // the arrows stop at the same positions with names as without
+  mi_metrics mh = m;
+  mh.flags = MI_F_CALLBOX | MI_F_HINTS;
+  for (const char * t : {"powmod(,,)", "powmod(2,,x+1)", "linsolve(,[x,y])", "1+powmod(,(1)/(),)"})
+    for (int p = 0; p <= slen(t); ++p)
+      for (int dir = 0; dir < 2; ++dir)
+        CHECKEQ(mi_move(t, slen(t), p, dir, mh), mi_move(t, slen(t), p, dir, m));
+  mi_arg_label = 0;
+}
+
 static void t_calls_brackets() {
   const char * s = "f(x,y)";
   mi_layout L = lay(s);
@@ -914,6 +966,7 @@ int main() {
   run_case("blanks, UTF-8, strings", t_blanks_utf8_strings);
   run_case("unbalanced groups", t_unbalanced);
   run_case("placeholder boxes", t_boxes);
+  run_case("argument names in empty boxes (MI_F_HINTS)", t_labels);
   run_case("calls and brackets", t_calls_brackets);
   run_case("depth / op limits", t_limits);
   run_case("caret locations", t_caret);
