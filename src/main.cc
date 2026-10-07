@@ -1388,6 +1388,14 @@ static void plain_decimal(const giac::gen & g,std::string & out){
 static std::string * approx_text;
 const char * console_approx_for="";
 const char * console_approx(){ return approx_text?approx_text->c_str():""; }
+// console_approx_for points into a copy of the printed result (it pointed into a temporary)
+static std::string * approx_for;
+static void set_approx_for(const std::string & s){
+  if (!approx_for)
+    approx_for=new std::string;
+  *approx_for=s;
+  console_approx_for=approx_for->c_str();
+}
 static void result_approx(const giac::gen & g){
   using namespace giac;
   if (!approx_text)
@@ -1749,12 +1757,83 @@ bool console_draw2d(const char * s,int top,int height,int ymin){
 
 #ifdef WITH_EQW
 // F4 on a result selected in the history: its next form in place, with the form's name in the
-// status line: original, simplified, one fraction, factored, expanded, decimal. Each form is
-// computed from the original text (kept here), so decimal never makes the next ones inexact.
-// Like the viewer's F4 (kdisplay.cc): no simplify on radicals, never interrupted.
+// status line. Each form is computed from the original text (kept here), so decimal never makes
+// the next ones inexact. The forms and their order depend on the result:
+//  a number whose decimal value is shown under it: decimal first (F4 gives it at once; the
+//    others, simplify of nested trig especially, can take a second), then simplified, one
+//    fraction, factored, expanded;
+//  an expression with sin, cos or tan: the trig forms first: trig combined (tlin: double
+//    angles, power reduction: 2sin(x)cos(x) is sin(2x), sin(x)^2 is 1/2-cos(2x)/2), trig
+//    expanded (texpand: sin(2x) is 2sin(x)cos(x)), in terms of sin, in terms of cos (Pythagoras:
+//    1-cos(x)^2 is sin(x)^2); then simplified (only when shorter: giac's simplify rewrites sin
+//    and cos in tan, 2sin(x)cos(x) as 2tan(x)/(tan(x)^2+1)), one fraction, factored, expanded,
+//    decimal;
+//  else: simplified, one fraction, factored, expanded, decimal.
+// A form already shown in the round is skipped, and so are forms much larger than the result
+// (trig expanded is not tried past sin(6x)). Like the viewer's F4 (kdisplay.cc): no simplify
+// on radicals, never interrupted.
 static const char * form_line; // text of the result being cycled (its str pointer)
 static std::string * form_orig;
+static std::vector<std::string> * form_seen; // the texts shown in this round, the original first
 static int form_idx;
+// a sin, cos or tan below a fraction bar: 1/cos(x), sin(x)/(1+cos(x)), cos(x)^-2. tlin and
+// texpand make a mess of those (sin(x)/cos(x)^2: 2/(cos(2x)+1)*sin(x)), and a form that puts
+// one there (in terms of sin of tan(x)^5: (...)/(15cos(x)sin(x)^4-...)) is no better
+static bool trig_below(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it)
+      if (trig_below(*it))
+        return true;
+    return false;
+  }
+  if (g.type!=_SYMB)
+    return false;
+  const gen & f=g._SYMBptr->feuille;
+  const bool below=g.is_symb_of_sommet(at_inv) ||
+    (g.is_symb_of_sommet(at_pow) && f.type==_VECT && f._VECTptr->size()==2 && (*f._VECTptr)[1].type==_INT_ && (*f._VECTptr)[1].val<0);
+  if (below && (contains(f,at_sin) || contains(f,at_cos) || contains(f,at_tan)))
+    return true;
+  return trig_below(f);
+}
+// two forms written with the same characters: the same terms or factors in another order
+// (2sin(x)cos(x), 2cos(x)sin(x)). The forms of one result have one value: nothing new
+static bool reordered(const std::string & a,const std::string & b){
+  if (a.size()!=b.size())
+    return false;
+  short c[128]={0};
+  for (size_t i=0;i<a.size();++i)
+    ++c[(unsigned char)a[i]&127];
+  for (size_t i=0;i<b.size();++i)
+    if (--c[(unsigned char)b[i]&127]<0)
+      return false;
+  return true;
+}
+// the decimal form of an expression without its .0: 2.0cos(x)sin(x) is 2cos(x)sin(x), nothing new
+static std::string no_point_zero(const std::string & t){
+  std::string s;
+  for (size_t i=0;i<t.size();++i){
+    if (t[i]=='.' && i && t[i-1]>='0' && t[i-1]<='9' && i+1<t.size() && t[i+1]=='0' && (i+2==t.size() || t[i+2]<'0' || t[i+2]>'9')){
+      ++i; // skip ".0"
+      continue;
+    }
+    s+=t[i];
+  }
+  return s;
+}
+// a multiple angle large enough for texpand to blow up: sin(7x), cos(12*x) (the text as printed)
+static bool big_multiple_angle(const std::string & t){
+  for (size_t i=0;i+4<t.size();++i){
+    if (t.compare(i,4,"sin(") && t.compare(i,4,"cos(") && t.compare(i,4,"tan("))
+      continue;
+    int k=0;
+    for (size_t j=i+4;j<t.size() && t[j]>='0' && t[j]<='9' && k<100;++j)
+      k=10*k+(t[j]-'0');
+    if (k>6)
+      return true;
+  }
+  return false;
+}
 const char * console_form_name="exact"; // the form of console_form_line (Focus chip)
 const char * console_form_line(){ return form_line; }
 // a long text with no + or - outside brackets: x^2*(13x^12+...)/182 cannot be drawn on several
@@ -1773,48 +1852,78 @@ static bool long_one_term(const std::string & t){
 }
 void console_cycle_form(int l){
   using namespace giac;
-  static const unary_function_ptr * const ops[]={at_simplify,at_ratnormal,at_factor,at_expand,at_evalf};
-  static const char * const names[]={"original","simplified","one fraction","factored","expanded","decimal"};
-  const int n=sizeof(ops)/sizeof(ops[0]);
-  if (!form_orig)
+  enum { SIMP, RAT, FACT, EXPA, TLIN, TEXP, TSIN, TCOS, DEC };
+  static const unary_function_ptr * const ops[]={at_simplify,at_ratnormal,at_factor,at_expand,at_tlin,at_texpand,at_trigsin,at_trigcos,at_evalf};
+  static const char * const names[]={"simplified","one fraction","factored","expanded","trig combined","trig expanded","in terms of sin","in terms of cos","decimal"};
+  static const unsigned char o_plain[]={SIMP,RAT,FACT,EXPA,DEC}, o_number[]={DEC,SIMP,RAT,FACT,EXPA},
+    o_trig[]={TLIN,TEXP,TSIN,TCOS,SIMP,RAT,FACT,EXPA,DEC};
+  if (!form_orig){
     form_orig=new std::string;
+    form_seen=new std::vector<std::string>;
+  }
   if ((const char *)Line[l].str!=form_line){
     *form_orig=(const char *)Line[l].str;
     form_idx=0;
+  }
+  if (!form_idx){ // a new round
+    form_seen->clear();
+    form_seen->push_back(*form_orig);
   }
   stdostream * savelog=logptr(contextptr);
   logptr(0,contextptr);
   dconsole_mode=0; // giac's notes ("Warning: unable to find oo integer solutions...") are not shown
   // evaluated: ratnormal of the parsed text printed ((x^2)-1)/(x^3+x)
   const gen g=eval(gen(*form_orig,contextptr),1,contextptr);
-  const std::string cur((const char *)Line[l].str); // forms that read like this or the original are skipped
+  // the forms of this result, in order (form_idx: 1 + the index in it, 0: the original)
+  const bool number=*console_approx() && *form_orig==console_approx_for;
+  const bool trig=!number && (contains(g,at_sin) || contains(g,at_cos) || contains(g,at_tan));
+  const unsigned char * order=number?o_number:trig?o_trig:o_plain;
+  const int n=number?sizeof(o_number):trig?sizeof(o_trig):sizeof(o_plain);
+  const int size=taille(g,400);
+  const bool below=trig && trig_below(g);
+  const std::string cur((const char *)Line[l].str);
   gen r;
   std::string text=*form_orig;
+  int f=-1;
   for (int t=0;t<=n;++t){
     form_idx=(form_idx+1)%(n+1);
     if (!form_idx){
       r=g;
       break;
     }
-    if (ops[form_idx-1]==at_simplify && xcas::has_radical(g))
+    f=order[form_idx-1];
+    if (f==SIMP && xcas::has_radical(g))
+      continue;
+    if ((f==TLIN || f==TEXP) && below)
+      continue;
+    if (f==TEXP && big_multiple_angle(*form_orig))
       continue;
     statuslinemsg("computing...");
-    if (ops[form_idx-1]==at_evalf && !lidnt(g).empty()) // 0.0714286x^14, not x^14/14.0
+    if (f==DEC && !lidnt(g).empty()) // 0.0714286x^14, not x^14/14.0
       r=evalf(expand(g,contextptr),1,contextptr);
     else
-      r=(*ops[form_idx-1])(g,contextptr);
-    if (ops[form_idx-1]==at_factor && !is_undef(r) && r.type!=_STRNG)
+      r=(*ops[f])(g,contextptr);
+    if (f==FACT && !is_undef(r) && r.type!=_STRNG)
       r=xcas::merge_sqrt(r,contextptr); // (1-25*x^2)^(3/2), not (5*x+1)*(5*x-1)*sqrt(...)
-    if (!is_undef(r) && r.type!=_STRNG){
-      // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2; compared as shown
-      if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
-        r=positive_first(r);
-      text=r.print(contextptr);
-      textbook(text);
-      textbook_constants(text);
-      if (text!=cur && text!=*form_orig && !long_one_term(text))
-        break;
-    }
+    if (is_undef(r) || r.type==_STRNG)
+      continue;
+    const int rsize=taille(r,4*size+64);
+    if (trig && f==SIMP && rsize>=size) // giac's simplify rewrites in tan: kept only when shorter
+      continue;
+    if (f>=TLIN && f<=TCOS && rsize>=size && ((trig_below(r) && !below) || rsize>4*size+40))
+      continue; // a trig form that puts trig below a bar, or a blown-up one, unless shorter
+    // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2; compared as shown
+    if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
+      r=positive_first(r);
+    text=r.print(contextptr);
+    textbook(text);
+    textbook_constants(text);
+    const std::string bare=f==DEC && !number?no_point_zero(text):text; // (2.0cos(x)sin(x))
+    bool seen=reordered(text,cur) || reordered(bare,cur) || long_one_term(text);
+    for (size_t k=0;!seen && k<form_seen->size();++k)
+      seen=reordered((*form_seen)[k],text) || reordered((*form_seen)[k],bare);
+    if (!seen)
+      break;
   }
   logptr(savelog,contextptr);
   dconsole_mode=1;
@@ -1828,17 +1937,20 @@ void console_cycle_form(int l){
   const int rows=focus_on?0:console_rows2d(r,lay); // Focus draws 2D itself: no continuation rows
   if (!form_idx)
     text=*form_orig;
+  else
+    form_seen->push_back(text);
   if (console_replace_result(l,text.c_str(),rows?rows:1)){
     form_line=(const char *)Line[l].str;
     if (rows)
       h2d_store(form_line,lay);
   }
-  console_form_name=form_idx?names[form_idx]:"exact"; // Focus: the forms chip
+  const char * name=form_idx?names[f]:"exact";
+  console_form_name=name; // Focus: the forms chip
   oom_rearm();
   if (focus_on)
     statuslinemsg(oom?"Out of memory":"");
   else
-    statuslinemsg((std::string("form: ")+names[form_idx]+"    F4: next").c_str());
+    statuslinemsg((std::string("form: ")+(form_idx?name:"original")+"    F4: next").c_str());
 }
 #endif
 
@@ -2578,7 +2690,7 @@ void do_run(const char * s){
       textbook_constants(printed);
       const char * str = printed.c_str();
       if (focus_on)
-        console_approx_for=str;
+        set_approx_for(printed);
       Console_Output(str);
       vector<unsigned char> v;
       tokenize(str,v);

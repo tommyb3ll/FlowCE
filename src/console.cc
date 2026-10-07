@@ -101,6 +101,7 @@ void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int 
 static bool console_input2d();
 static const mi_metrics & edit_metrics();
 static void console_set_caret(int p);
+int console_caret();
 static int input2d_rows=1; // rows of the 2D edit line at the last full redraw
 static int console_rows_of(const mi_layout & L);
 
@@ -2287,6 +2288,33 @@ static int console_insert_template(const quick_item & q){
   return r;
 }
 
+// F1's algebra actions (solve, factor, expand, simplify, partfrac) act on what is typed when the
+// caret ends the line: x^2-1 then Factor gives factor(x^2-1); on an empty line, on the last
+// answer: factor(Ans), as a TI's menus paste Ans>Frac. ENTER evaluates as usual. Elsewhere (the
+// caret inside the line, nothing to act on) the template goes in. 1 if done.
+static int console_apply_action(const char * text){
+  static const char * const acts[]={"solve(","factor(","expand(","simplify(","partfrac("};
+  const char * open=strchr(text,'(');
+  bool act=false;
+  for (unsigned i=0;open && i<sizeof(acts)/sizeof(acts[0]);++i)
+    act=act || (open-text+1==(int)strlen(acts[i]) && !strncmp(text,acts[i],open-text+1));
+  if (!act || !console_input2d() || !Edit_Line)
+    return 0;
+  const char * e=(const char *)Edit_Line;
+  const int len=strlen(e);
+  std::string s(text,open+1-text); // factor(
+  if (len && console_caret()==len)
+    s+=e;
+  else if (!len && focus_result_line()>=0)
+    s+="ans()";
+  else
+    return 0;
+  s+=open+1; // ) or ,x)
+  Console_Clear_EditLine();
+  Console_Input((const Char *)s.c_str());
+  return 1;
+}
+
 static const char * const console_yesno[]={"Clear history","Cancel"};
 int Console_GetKey(){
   unsigned int key, move_line, move_col;
@@ -2324,6 +2352,8 @@ int Console_GetKey(){
       if (a==FA_INSERT){
         for (int g=0;Current_Line<Last_Line && g<1000;++g) // a template goes to the edit line
           Console_MoveCursor(CURSOR_DOWN);
+        if (console_apply_action(text)) // factor(x^2-1), factor(Ans)
+          return CONSOLE_SUCCEEDED;
         quick_item q={0,text,(signed char)back};
         return console_insert_template(q);
       }
