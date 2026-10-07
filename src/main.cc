@@ -35,6 +35,7 @@ char * pythonjs_static_heap=nullptr;
 char * python_heap=nullptr;
 extern giac::context * contextptr;
 giac::context * contextptr=nullptr;
+namespace giac { extern bool (*control_c_hook)(); } // kglobal.cc: called by each check for ON
 extern "C" int mp_token(const char * line);
 extern "C" {
   extern int execution_in_progress_py;
@@ -1211,6 +1212,8 @@ void do_run(const char * s){
       dconsole_mode=0;
     giac::gen g(buf,contextptr);
     answer_ctx actx; // the steps around eval are in answer.cc (the host tests run them too)
+    focus_busy(1); // "Calculating" after 0.4 s, from giac's checks of the ON key
+    giac::control_c_hook=focus_busy_tick;
     answer_before(g,actx,buf,focus_on);
     if (actx.tabled)
       eval_stopped=0;
@@ -1229,7 +1232,13 @@ void do_run(const char * s){
       answer_after(g,actx,msg,graw);
       if (focus_on)
         result_approx(g);
+      if (giac::interrupted || giac::ctrl_c){ // ON while simplifying: giac's "Stopped by user
+        msg="Interrupted";                    // interruption" texts were in the result
+        g=0;
+      }
     }
+    giac::control_c_hook=0;
+    focus_busy(0);
     if (actx.definite && msg.empty() && giac::is_undef(g)) // through an asymptote: int(2x/(x^2-4),x,0,4)
       msg="diverges (the integrand is unbounded on the interval)";
     if (oom_hit && msg.empty()){ // memory ran out while simplifying

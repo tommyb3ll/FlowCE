@@ -5,6 +5,9 @@
 // its result). All text is drawn with ui_math (STIX Two, 4 shades) and ui_font (Atkinson).
 #include <string.h>
 #include <stdlib.h>
+#ifdef TICE
+#include <time.h>              // clock (before console.h: giac's first.h defines a clock macro)
+#endif
 #include "console.h"           // Line[], Last_Line, Cursor, menus; maps std to ustl
 #include "focus.h"
 #include "ui_gfx.h"
@@ -724,6 +727,38 @@ static int screen_is_ours() { // a grid of 6 x 6 points: a message box over the 
     for (int x = 3; x < UI_W; x += 62)
       if (ui_fb[y * UI_W + x] < 128) return 0;
   return 1;
+}
+
+// Calculating: enter on a long calculation left the prompt ("Type a calculation") on screen for
+// seconds, no sign of work (the user, 2026-10-07). While giac works, its control_c checks call
+// focus_busy_tick (main.cc sets giac::control_c_hook): after 0.4 s the prompt becomes
+// "Calculating" over three dots lit in turn, 4 a second. A quick answer shows nothing.
+static long busy_t0 = -1; // clock() (32768 Hz) when the calculation started; -1: none
+static signed char busy_fr;
+void focus_busy(int on) {
+#ifdef TICE
+  busy_t0 = on ? (long)(clock)() : -1; // ((clock): giac's first.h makes clock() 0)
+  busy_fr = -1;
+#endif
+}
+bool focus_busy_tick() {
+#ifdef TICE
+  if (busy_t0 < 0) return false;
+  long t = (long)(clock)() - busy_t0;
+  if (t < 13107) return false; // 0.4 s
+  int fr = (int)((t >> 13) % 3);
+  if (fr == busy_fr) return false;
+  int m = hy0 + hh / 2 - 2, b = m + 20; // where hero_paint wrote the prompt
+  if (busy_fr < 0) {
+    if (hm != HM_HINT || M.hist || !screen_is_ours()) { busy_t0 = -1; return false; }
+    ui_noclip();
+    ui_fill(0, m - 18, UI_W, b + 10 - (m - 18), col(UC_BG)); // the prompt and its key hints
+    ui_text(&ui_tr12, "Calculating", UI_W / 2, m, UC_SUB, UC_BG, 1);
+  }
+  for (int k = 0; k < 3; ++k) ui_rrect(0, UI_W / 2 - 15 + 12 * k, b - 9, 6, 6, 3, k == fr ? UC_ACC : UC_LINE, UC_BG);
+  busy_fr = (signed char)fr;
+#endif
+  return false;
 }
 
 static void compute_model() {

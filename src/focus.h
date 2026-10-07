@@ -19,6 +19,8 @@ void focus_init();                      // palette; call once the LCD is in 8 bp
 void focus_disp(int redraw_mode);       // Console_Disp: bit 0 = everything, else the edit line
 void focus_bar(int keyflag);            // the F-key bar (keyflag: 1 = 2nd, 4/8 = alpha)
 void focus_evaluated();                 // after an evaluation: the result is shown large
+void focus_busy(int on);                // a calculation starts (1) / ends (0): see focus_busy_tick
+bool focus_busy_tick();                 // giac's control_c_hook while calculating: "Calculating"
 int focus_clear_hero();                 // CLEAR on an empty edit line: 1 if it hid the result
 const mi_metrics & focus_metrics();     // metrics of the edit line as drawn (caret moves)
 int focus_result_line();                // the output line F4 cycles (selected, or shown large); -1

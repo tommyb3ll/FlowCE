@@ -234,6 +234,10 @@ static bool var_power(const giac::gen & t,giac::gen & b,giac::gen & e){
       return true;
     }
   }
+  if (t.is_symb_of_sommet(at_inv) && var_power(t._SYMBptr->feuille,b,e)){ // 1/x^(2/9): -2/9
+    e=-e;
+    return true;
+  }
   return false;
 }
 // the rational content of a sum: the gcd of its terms' numerators over the lcm of their
@@ -315,10 +319,28 @@ static bool poly_key(const giac::gen & t,int & deg,double & c0,giac::gen & v){
   }
   return true;
 }
+// sin, cos, sec, csc, tan, cot (or a power of one) in that order, as textbooks write them:
+// 2sin(x)cos(x), sec(x)tan(x), -csc(x)cot(x) (the calculator's giac gave 2cos(x)sin(x))
+static int trig_key(giac::gen t,int & size){
+  using namespace giac;
+  if (t.is_symb_of_sommet(at_pow) && t._SYMBptr->feuille.type==_VECT)
+    t=t._SYMBptr->feuille._VECTptr->front();
+  const unary_function_ptr * const fs[]={at_sin,at_cos,at_sec,at_csc,at_tan,at_cot};
+  for (int k=0;k<6;++k)
+    if (t.is_symb_of_sommet(fs[k])){
+      size=taille(t._SYMBptr->feuille,64);
+      return k;
+    }
+  return 6;
+}
 static bool factor_before(const giac::gen & a,const giac::gen & b){
   const int ra=factor_rank(a),rb=factor_rank(b);
   if (ra!=rb)
     return ra<rb;
+  int sa,sb;
+  const int ta=trig_key(a,sa),tb=trig_key(b,sb);
+  if (ta<6 && tb<6) // the simpler argument first: sin(x)cos(x)sin(1+cos(x)^2)
+    return sa<sb || (sa==sb && ta<tb);
   int da,db;
   double ca,cb;
   giac::gen va,vb; // (one variable: (x+1)(y-1) stays)
@@ -462,11 +484,12 @@ giac::gen positive_first(const giac::gen & g){
       w.insert(w.begin(),c); // (the sum moves to i+1: the loop goes on after it)
       ++i;
     }
-    // the powers of one variable merged: x*x^(1/3) is x^(4/3)
+    // the powers of one variable merged: x*x^(1/3) is x^(4/3), 1/(x^(2/9)*x) is 1/x^(11/9)
     for (unsigned i=0;i<w.size();++i){
       gen bi,ei;
       if (!var_power(w[i],bi,ei))
         continue;
+      bool merged=false;
       for (unsigned j=i+1;j<w.size();++j){
         gen bj,ej;
         if (!var_power(w[j],bj,ej) || !(bj==bi))
@@ -474,8 +497,18 @@ giac::gen positive_first(const giac::gen & g){
         ei=ei+ej;
         w.erase(w.begin()+j);
         --j;
+        merged=true;
       }
-      w[i]=is_zero(ei)?gen(1):is_one(ei)?bi:symbolic(at_pow,makesequence(bi,ei));
+      if (!merged)
+        continue;
+      if (is_zero(ei) && w.size()>1){ // x^2/x^2: 1
+        w.erase(w.begin()+i);
+        --i;
+        continue;
+      }
+      const bool den=is_strictly_positive(-ei,contextptr);
+      const gen p=den?-ei:ei,q=is_zero(p)?gen(1):is_one(p)?bi:symbolic(at_pow,makesequence(bi,p));
+      w[i]=den?symb_inv(q):q;
     }
     if (w.size()==1)
       return w[0];
@@ -564,19 +597,57 @@ static bool trig_power(const giac::gen & g){
 // with several roots (x^(1/6), x^(1/4), sqrt(x)) normal builds an algebraic extension for each
 // and took 15 s on the PC (hours on the calculator) for the derivative of x^(1/6)-7x^(1/4)+3sqrt(x),
 // to be thrown away; g then
-static giac::gen safe_normal(const giac::gen & g){
+// (radicals: 1 if g's radicals are square roots of one base (or none), -1 if a base has roots of
+// different indices (x^(1/9), x^(1/3), sqrt(x)): factor builds the same extensions for those
+// (d/dx 7x^(4/9)-2sqrt(x^7)+x^(4/3) never ended on the calculator), 0 otherwise)
+static int radicals(const giac::gen & g){
   using namespace giac;
   const vecteur v=lop(g,at_pow);
-  gen base=0;
+  vecteur bases,dens;
   for (const_iterateur it=v.begin();it!=v.end();++it){
     const gen & f=it->_SYMBptr->feuille;
     if (f.type!=_VECT || f._VECTptr->size()!=2 || f._VECTptr->back().type!=_FRAC)
       continue;
-    if (!(f._VECTptr->back()._FRACptr->den==2) || (!is_zero(base) && !is_zero(ratnormal(base-f._VECTptr->front(),contextptr))))
-      return g;
-    base=f._VECTptr->front();
+    const gen & b=f._VECTptr->front(),& d=f._VECTptr->back()._FRACptr->den;
+    unsigned i=0;
+    while (i<bases.size() && !is_zero(ratnormal(bases[i]-b,contextptr)))
+      ++i;
+    if (i<bases.size() && !(dens[i]==d))
+      return -1;
+    if (i==bases.size()){
+      bases.push_back(b);
+      dens.push_back(d);
+    }
   }
-  return normal(g,contextptr);
+  return bases.size()>1 || (bases.size()==1 && !(dens.front()==2))?0:1;
+}
+static giac::gen safe_normal(const giac::gen & g){
+  return radicals(g)==1?giac::normal(g,contextptr):g;
+}
+// a sum's terms rational in its variable, collected: the 4th derivative of ln(x^6)-cos(4x) was
+// 360/x^4-720/x^4-...-2016/x^4-256cos(4x)+..., now -36/x^4-256cos(4x)+... (kept if shorter)
+static giac::gen collect_rational(const giac::gen & g){
+  using namespace giac;
+  const vecteur ids=lidnt(g);
+  if (!g.is_symb_of_sommet(at_plus) || g._SYMBptr->feuille.type!=_VECT || ids.size()!=1)
+    return g;
+  gen r=0;
+  vecteur rest;
+  int n=0;
+  for (const_iterateur it=g._SYMBptr->feuille._VECTptr->begin();it!=g._SYMBptr->feuille._VECTptr->end();++it){
+    const vecteur lv=lvar(*it);
+    if (lv.size()==1 && lv.front()==ids.front()){
+      r=r+*it;
+      ++n;
+    }
+    else
+      rest.push_back(*it);
+  }
+  if (n<2)
+    return g;
+  rest.insert(rest.begin(),ratnormal(r,contextptr));
+  const gen s=rest.size()==1?rest.front():symbolic(at_plus,gen(rest,_SEQ__VECT));
+  return taille(s,1000)<taille(g,1000)?s:g;
 }
 static giac::gen auto_simplify(const giac::gen & g){
   using namespace giac;
@@ -595,7 +666,7 @@ static giac::gen auto_simplify(const giac::gen & g){
   const bool trig=false;
   gen s=ratnormal(g,contextptr);
   trace_step("ratnormal",s);
-  if (!trig && g.type==_SYMB){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2*x+1)
+  if (!trig && g.type==_SYMB && radicals(s)>=0){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2x+1)
     gen d=_denom(s,contextptr);
     if (d.type==_SYMB){
       gen n=_numer(s,contextptr),f=_factor(d,contextptr);
@@ -2555,6 +2626,10 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
     else if (g._SYMBptr->feuille.type!=_VECT) // solve(expr): giac solves for x
       a.var=gen("x",contextptr);
   }
+  // decimals: giac's solve fails (solve(x^2=0.5,x): "Bad Argument Value"): solved exactly, the
+  // solutions in decimals
+  if (g.is_symb_of_sommet(at_solve) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && has_num_coeff(g._SYMBptr->feuille._VECTptr->front()))
+    g=symbolic(at_evalf,symbolic(at_solve,makesequence(exact(g._SYMBptr->feuille._VECTptr->front(),contextptr),g._SYMBptr->feuille._VECTptr->back())));
   // a definite integral (integrate(f,x,a,b)): undef means it diverges
   a.definite=(g.is_symb_of_sommet(at_integrate) || g.is_symb_of_sommet(at_int)) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==4;
   a.ivar=0;
@@ -2627,7 +2702,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   }
   if (a.autosimp && !a.tabled){
     g=auto_simplify(g);
-    g=power_sums(g); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
+    g=collect_rational(power_sums(g)); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
   }
   trace_step("auto_simplify",g);
   if (g.type==_SYMB && taille(g,200)<200){

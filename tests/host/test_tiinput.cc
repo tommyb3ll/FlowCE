@@ -140,6 +140,10 @@ static const tcase cases[]={
   {"myfx",true,"myfx"},
   {"areax",true,"area*x"},
   {"piarea(2)",true,"pi*area*(2)"},     // last piece is a VALUE: not a call
+  {"phi",true,"phi"},                   // Greek letters are names (phi was p*h*i: i!)
+  {"rho^2",true,"rho^2"},
+  {"xi",true,"xi"},
+  {"2tau",true,"2*tau"},
   {"XY",true,"X*Y"},
   {"2ab",true,"2*a*b"},
   {"abcdefghijklmnopqrstuvwxyzabcdef",true,"abcdefghijklmnopqrstuvwxyzabcdef"}, // 32 letters: > 3 pieces
@@ -401,7 +405,16 @@ static const rcase rcases[]={
   {"log10x","log10(x)"},
   {"sinh x","sinh(x)"},
   {"expand(x)","expand(x)"},
-  {"xsin(x)","xsin(x)"},
+  {"xsin(x)","x*sin(x)"},
+  {"xsinx","x*sin(x)"},                       // letters times a function in one name
+  {"xsec^2x","x*sec(x)^2"},                   // (the user's x sec^2 x, 2026-10-07)
+  {"2xlnx","2x*ln(x)"},
+  {"xycosx","xy*cos(x)"},
+  {"e^xsinx","e^x*sin(x)"},
+  {"xsinxcosx","x*sin(x)cos(x)"},
+  {"sin xcosx","sin(x)cos(x)"},
+  {"x2sinx","x2sinx"},                        // a digit inside: a name
+  {"xsin:=1","xsin:=1"},
   {"sin","sin"},
   {"sin sin x","sin sin(x)"},
   {"sin if","sin if"},

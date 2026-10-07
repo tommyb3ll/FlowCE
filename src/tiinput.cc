@@ -184,8 +184,18 @@ static void im_defmarks(const char * s,int n,std::string & mk){
   }
 }
 
+// Greek letters typed as names (spherical coordinates: rho, phi, theta) are names: phi was p*h*i,
+// i the imaginary unit (integrate(rho^2*sin(phi),rho,0,2): "diverges")
+static bool im_greek(const char * s,int len){
+  static const char * const g[]={"alpha","beta","gamma","delta","epsilon","zeta","eta","theta","iota","kappa",
+    "lambda","mu","nu","xi","omicron","rho","sigma","tau","upsilon","phi","chi","psi","omega",0};
+  for (int k=0;g[k];++k)
+    if ((int)strlen(g[k])==len && !strncmp(g[k],s,len))
+      return true;
+  return false;
+}
 static bool im_cuttable(const char * s,int len){
-  if (len<2 || len>IM_MAXCUT)
+  if (len<2 || len>IM_MAXCUT || im_greek(s,len))
     return false;
   for (int k=0;k<len;++k){
     if (!im_alpha(s[k]))
@@ -370,6 +380,13 @@ static int im_fnprefix(const char * s,int len){
   }
   return 0;
 }
+// where a function starts after letters inside the name s[i..j) (xsinx: i+1), j if nowhere
+static int im_fnin(const char * s,int i,int j){
+  int k=i+1;
+  while (k<j && im_alpha(s[k-1]) && !im_fnprefix(s+k,j-k))
+    ++k;
+  return k<j && im_alpha(s[k-1])?k:j;
+}
 // end of the group starting at s[i]=='(' (n if unclosed); strings are skipped
 static int im_groupend(const char * s,int i,int n){
   int depth=0;
@@ -387,13 +404,15 @@ static int im_groupend(const char * s,int i,int n){
 }
 // end of an exponent written after '^' at s[i]: a number, a name, or a group
 // (i if none)
-static int im_powend(const char * s,int i,int n){
+static int im_powend(const char * s,int i,int n,ti_classify_fn classify){
   if (i<n && s[i]=='(')
     return im_groupend(s,i,n);
   if (i<n && (im_digit(s[i]) || (s[i]=='.' && i+1<n && im_digit(s[i+1]))))
     return im_numend(s,i,n);
-  if (i<n && im_namestart(s[i]) && s[i]!='_')
-    return im_nameend(s,i,n);
+  if (i<n && im_namestart(s[i]) && s[i]!='_'){
+    const int e=im_nameend(s,i,n); // (a function in the name is not the power's: x^xsinx)
+    return classify(s+i,e-i)==TI_NAME_UNKNOWN?im_fnin(s,i,e):e;
+  }
   return i;
 }
 // end of a simple operand starting at s[i] (the argument of sin x, sin 2x,
@@ -409,10 +428,13 @@ static int im_runend(const char * s,int i,int n,ti_classify_fn classify){
       const int c=classify(s+j,e-j);
       if (c==TI_NAME_KEYWORD || c==TI_NAME_FUNCTION || c==TI_NAME_USERFN || im_fnprefix(s+j,e-j))
         break; // the next function: sin x cos x
-      j=e;
+      const int m=c==TI_NAME_UNKNOWN?im_fnin(s,j,e):e;
+      j=m;
+      if (m<e)
+        break; // ... or in the name: sin xcosx
     }
     else if (s[j]=='^' && j>i){
-      const int e=im_powend(s,j+1,n);
+      const int e=im_powend(s,j+1,n,classify);
       if (e==j+1)
         break;
       j=e;
@@ -486,6 +508,13 @@ std::string ti_rewrite(const std::string & line,ti_classify_fn classify){
       j=im_nameend(s,i,n);
       const int len=j-i,cls=c=='_'?TI_NAME_KEYWORD:classify(s+i,len);
       const int f=(cls==TI_NAME_FUNCTION || cls==TI_NAME_UNKNOWN)?im_fnprefix(s+i,len):0;
+      const int fi=!f && cls==TI_NAME_UNKNOWN && !(j+1<n && s[j]==':' && s[j+1]=='=')?im_fnin(s,i,j):j;
+      if (fi<j){ // letters times a function in the same name: xsinx, xsec^2x, 2xlnx
+        out.append(s+i,fi-i);
+        out+='*';
+        i=fi; // the function: the rules below
+        continue;
+      }
       int k=i+f; // sinx, sin2x, sinxcosx, ln2, cost: the function, then its argument
       // up to where the next function name starts inside the name. Not before '('
       // (sinx(t) calls sinx) nor when the rest starts with a function (sinsinx).
@@ -494,7 +523,7 @@ std::string ti_rewrite(const std::string & line,ti_classify_fn classify){
       if (f && k>i+f && cls==TI_NAME_UNKNOWN && !(j<n && s[j]=='(')){
         int r=k;
         if (k==j && j<n && s[j]=='^'){ // sinx^2 -> sin(x^2)
-          const int e=im_powend(s,j+1,n);
+          const int e=im_powend(s,j+1,n,classify);
           if (e>j+1)
             r=e;
         }
@@ -509,7 +538,7 @@ std::string ti_rewrite(const std::string & line,ti_classify_fn classify){
         const int p=j;
         if (p<n && s[p]=='^'){ // sin^2(x), sin^2x, sin^-1(x)
           const bool inv=p+2<n && s[p+1]=='-' && s[p+2]=='1' && (p+3>=n || !im_digit(s[p+3]));
-          const int pe=inv?p+3:im_powend(s,p+1,n);
+          const int pe=inv?p+3:im_powend(s,p+1,n,classify);
           int a=pe;
           while (a<n && im_blank(s[a]))
             ++a;
