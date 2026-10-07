@@ -2288,12 +2288,14 @@ static int console_insert_template(const quick_item & q){
   return r;
 }
 
-// F1's algebra actions (solve, factor, expand, simplify, partfrac) act on what is typed when the
-// caret ends the line: x^2-1 then Factor gives factor(x^2-1); on an empty line, on the last
-// answer: factor(Ans), as a TI's menus paste Ans>Frac. ENTER evaluates as usual. Elsewhere (the
+// F1's algebra actions (solve, factor, expand, simplify, partfrac) and F2's calculus ones
+// (integrate, diff, limit, series; not sum: its k) act on what is typed when the caret ends the
+// line: x^2-1 then Factor gives factor(x^2-1), x^2 then Antiderivative integrate(x^2,x); on an
+// empty line, on the last answer: factor(Ans), as a TI's menus paste Ans>Frac. ENTER evaluates as
+// usual. A slot left empty gets the caret: integrate(x^2,x,|,), limit(1/x,x,|). Elsewhere (the
 // caret inside the line, nothing to act on) the template goes in. 1 if done.
 static int console_apply_action(const char * text){
-  static const char * const acts[]={"solve(","factor(","expand(","simplify(","partfrac("};
+  static const char * const acts[]={"solve(","factor(","expand(","simplify(","partfrac(","integrate(","diff(","limit(","series("};
   const char * open=strchr(text,'(');
   bool act=false;
   for (unsigned i=0;open && i<sizeof(acts)/sizeof(acts[0]);++i)
@@ -2309,9 +2311,15 @@ static int console_apply_action(const char * text){
     s+="ans()";
   else
     return 0;
-  s+=open+1; // ) or ,x)
+  s+=open+1; // ) or ,x) or ,x,,)
   Console_Clear_EditLine();
   Console_Input((const Char *)s.c_str());
+  for (const char * p=open+1;p[0] && p[1];++p)
+    if (p[0]==',' && (p[1]==',' || p[1]==')')){ // the first empty slot
+      for (int b=strlen(p+1);b>0;--b)
+        Console_MoveCursor(CURSOR_LEFT);
+      break;
+    }
   return 1;
 }
 

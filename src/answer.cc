@@ -16,6 +16,20 @@ extern "C" {
   bool khicas_implicit_mult(char * line,int maxlen); // paper notation + TI implicit multiplication (tiinput_glue.cc)
   extern volatile unsigned char focus_phase; // focus.cc: the phase probe (tools/emu)
 }
+// symbolic(o,makesequence(a,b)) and symbolic(o,a) out of line: inline, each use took ~100 bytes
+// of eZ80 code (4.4 KB for the 42 of sym2)
+static __attribute__((noinline)) giac::gen sym2(const giac::unary_function_ptr * o,const giac::gen & a,const giac::gen & b){
+  return giac::symbolic(o,giac::makesequence(a,b));
+}
+static __attribute__((noinline)) giac::gen sym1(const giac::unary_function_ptr * o,const giac::gen & a){
+  return giac::symbolic(o,a);
+}
+// e without x in it: giac's is_constant_wrt differentiates e, slow on the calculator for the tests
+// of every factor of an integrand (integrate(asin(x)*x,x) 29.8 s -> 23.2 s without), and calls
+// x<=-3 constant
+static __attribute__((noinline)) bool free_of(const giac::gen & e,const giac::gen & x){
+  return !giac::contains(e,x);
+}
 #ifdef HOSTGIAC
 // ANSWER_TRACE=1 (host only): each step's result and its tree on stderr
 #include <stdio.h>
@@ -122,7 +136,7 @@ static int factor_rank(const giac::gen & t){
 static giac::gen tb_quotient(const giac::gen & n,const giac::gen & d){
   using namespace giac;
   if ((n.type==_INT_ || n.type==_ZINT) && is_strictly_positive(-n,contextptr))
-    return symbolic(at_neg,symbolic(at_division,makesequence(-n,d)));
+    return sym1(at_neg,sym2(at_division,-n,d));
   if (n.is_symb_of_sommet(at_prod) && n._SYMBptr->feuille.type==_VECT && !n._SYMBptr->feuille._VECTptr->empty()){
     const gen & c=n._SYMBptr->feuille._VECTptr->front(); // -3*x: -(3x)/d
     if ((c.type==_INT_ || c.type==_ZINT) && is_strictly_positive(-c,contextptr)){
@@ -130,11 +144,11 @@ static giac::gen tb_quotient(const giac::gen & n,const giac::gen & d){
       v.front()=-c;
       if (is_one(v.front()))
         v.erase(v.begin());
-      const gen m=v.size()==1?v.front():symbolic(at_prod,gen(v,_SEQ__VECT));
-      return symbolic(at_neg,symbolic(at_division,makesequence(m,d)));
+      const gen m=v.size()==1?v.front():sym1(at_prod,gen(v,_SEQ__VECT));
+      return sym1(at_neg,sym2(at_division,m,d));
     }
   }
-  return symbolic(at_division,makesequence(n,d));
+  return sym2(at_division,n,d);
 }
 // the degree of a monomial c*x^k in its variable (v: 0 until the first one is seen), -1 if t is
 // not one (another variable, a function...)
@@ -211,12 +225,12 @@ static giac::gen neg_sum(const giac::gen & p){
     else if (t.is_symb_of_sommet(at_prod) && t._SYMBptr->feuille.type==_VECT && !t._SYMBptr->feuille._VECTptr->empty() && neg_term(t._SYMBptr->feuille._VECTptr->front())){
       vecteur u(*t._SYMBptr->feuille._VECTptr);
       u.front()=-u.front();
-      t=is_one(u.front()) && u.size()==2?u.back():symbolic(at_prod,gen(u,_SEQ__VECT));
+      t=is_one(u.front()) && u.size()==2?u.back():sym1(at_prod,gen(u,_SEQ__VECT));
     }
     else
-      t=symbolic(at_neg,t);
+      t=sym1(at_neg,t);
   }
-  return symbolic(at_plus,gen(w,_SEQ__VECT));
+  return sym1(at_plus,gen(w,_SEQ__VECT));
 }
 // t is a variable's power x^e (x: e=1), e rational
 static bool var_power(const giac::gen & t,giac::gen & b,giac::gen & e){
@@ -396,8 +410,8 @@ static giac::gen undiv(const giac::gen & g){
     return g;
   const gen f=undiv(g._SYMBptr->feuille);
   if (g._SYMBptr->sommet==at_division && f.type==_VECT && f._VECTptr->size()==2)
-    return symbolic(at_prod,makesequence(f._VECTptr->front(),symb_inv(f._VECTptr->back())));
-  return symbolic(g._SYMBptr->sommet,f);
+    return sym2(at_prod,f._VECTptr->front(),symb_inv(f._VECTptr->back()));
+  return sym1(&g._SYMBptr->sommet,f);
 }
 // a sum of two terms starts with the positive one: 4-x^2, ln|x-2|-ln|x+2|, x-ln(e^x+1)
 // (giac gives -x^2+4, -ln|x+2|+ln|x-2|, -ln(e^x+1)+x)
@@ -450,7 +464,7 @@ giac::gen positive_first(const giac::gen & g){
         if (!lead_negative(fac[i]))
           continue;
         fac[i]=positive_first(neg_sum(fac[i]));
-        t=fac.size()==1?fac[0]:symbolic(at_prod,gen(fac,_SEQ__VECT));
+        t=fac.size()==1?fac[0]:sym1(at_prod,gen(fac,_SEQ__VECT));
         break;
       }
     }
@@ -465,7 +479,7 @@ giac::gen positive_first(const giac::gen & g){
       if (neg_term(d[0])==neg_term(d[1]) || (mono_deg(d[0],v0)>=0 && mono_deg(d[1],v1)>=0)) // (not -(x-2)(x-3))
         continue;
       w[i]=positive_first(neg_sum(w[i]));
-      return w.size()==1?w[0]:symbolic(at_prod,gen(w,_SEQ__VECT));
+      return w.size()==1?w[0]:sym1(at_prod,gen(w,_SEQ__VECT));
     }
   }
   if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_INT_){
@@ -475,8 +489,8 @@ giac::gen positive_first(const giac::gen & g){
         && b._SYMBptr->feuille._VECTptr->front().type==_IDNT && b._SYMBptr->feuille._VECTptr->back().type==_FRAC){
       const gen e=(*b._SYMBptr->feuille._VECTptr)[1]*f._VECTptr->back(),x=b._SYMBptr->feuille._VECTptr->front();
       if (is_strictly_positive(-e,contextptr))
-        return symb_inv(is_one(-e)?x:symbolic(at_pow,makesequence(x,-e)));
-      return is_one(e)?x:symbolic(at_pow,makesequence(x,e));
+        return symb_inv(is_one(-e)?x:sym2(at_pow,x,-e));
+      return is_one(e)?x:sym2(at_pow,x,e);
     }
   }
   if (g._SYMBptr->sommet==at_prod && f.type==_VECT && f._VECTptr->size()>=2){
@@ -498,7 +512,7 @@ giac::gen positive_first(const giac::gen & g){
         const gen & e=w[i]._SYMBptr->feuille._VECTptr->back();
         if ((e.type==_FRAC || e.type==_INT_) && is_strictly_positive(-e,contextptr)){
           const gen & b=w[i]._SYMBptr->feuille._VECTptr->front();
-          w[i]=symb_inv(is_one(-e)?b:symbolic(at_pow,makesequence(b,-e)));
+          w[i]=symb_inv(is_one(-e)?b:sym2(at_pow,b,-e));
         }
       }
     // x^2*sign(x) is x*|x| (the integral of |x|: x*|x|/2)
@@ -510,8 +524,8 @@ giac::gen positive_first(const giac::gen & g){
         gen b,e;
         if (j==i || !var_power(w[j],b,e) || !(b==v) || e.type!=_INT_ || e.val<1)
           continue;
-        w[i]=symbolic(at_abs,v);
-        w[j]=e.val==1?gen(1):e.val==2?v:symbolic(at_pow,makesequence(v,e-1));
+        w[i]=sym1(at_abs,v);
+        w[j]=e.val==1?gen(1):e.val==2?v:sym2(at_pow,v,e-1);
         break;
       }
     }
@@ -540,7 +554,7 @@ giac::gen positive_first(const giac::gen & g){
         ei=ratnormal(ei+ej,contextptr);
         w.erase(w.begin()+j);
         --j;
-        w[i]=symbolic(at_pow,makesequence(bi,ei));
+        w[i]=sym2(at_pow,bi,ei);
       }
     }
     // the powers of one variable merged: x*x^(1/3) is x^(4/3), 1/(x^(2/9)*x) is 1/x^(11/9)
@@ -566,7 +580,7 @@ giac::gen positive_first(const giac::gen & g){
         continue;
       }
       const bool den=is_strictly_positive(-ei,contextptr);
-      const gen p=den?-ei:ei,q=is_zero(p)?gen(1):is_one(p)?bi:symbolic(at_pow,makesequence(bi,p));
+      const gen p=den?-ei:ei,q=is_zero(p)?gen(1):is_one(p)?bi:sym2(at_pow,bi,p);
       w[i]=den?symb_inv(q):q;
     }
     if (w.size()==1)
@@ -603,8 +617,8 @@ giac::gen positive_first(const giac::gen & g){
         }
         (w[i].is_symb_of_sommet(at_inv)?de:nu).push_back(w[i].is_symb_of_sommet(at_inv)?w[i]._SYMBptr->feuille:w[i]);
       }
-      const gen n=nu.empty()?gen(1):nu.size()==1?nu.front():symbolic(at_prod,gen(nu,_SEQ__VECT));
-      return tb_quotient(n,symbolic(at_prod,gen(de,_SEQ__VECT)));
+      const gen n=nu.empty()?gen(1):nu.size()==1?nu.front():sym1(at_prod,gen(nu,_SEQ__VECT));
+      return tb_quotient(n,sym1(at_prod,gen(de,_SEQ__VECT)));
     }
     // 1/2*(x+1) -> (x+1)/2, 3/2*u -> 3*u/2: arctan((x+1)/2), not arctan(1/2*(x+1)) (the 1/2: a
     // fraction or inv(2))
@@ -613,16 +627,16 @@ giac::gen positive_first(const giac::gen & g){
     if (fr || iv){
       const gen q=iv?w[0]._SYMBptr->feuille:w[0]._FRACptr->den,p=iv?gen(1):w[0]._FRACptr->num;
       if (w[1].is_symb_of_sommet(at_inv)) // 7/9*inv(x^2): 7/(9x^2), not (7/x^2)/9
-        return tb_quotient(p,symbolic(at_prod,makesequence(q,w[1]._SYMBptr->feuille)));
-      const gen num=is_one(p)?w[1]:symbolic(at_prod,makesequence(p,w[1]));
+        return tb_quotient(p,sym2(at_prod,q,w[1]._SYMBptr->feuille));
+      const gen num=is_one(p)?w[1]:sym2(at_prod,p,w[1]);
       return tb_quotient(num,q);
     }
     if (w[0]==-1){ // -1*e^(-x)*(x^2+2x+2): -e^(-x)*(x^2+2x+2)
       w.erase(w.begin());
-      return symbolic(at_neg,w.size()==1?w[0]:symbolic(at_prod,f));
+      return sym1(at_neg,w.size()==1?w[0]:sym1(at_prod,f));
     }
   }
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 
 // the answer has tan or a power of sin or cos (sin(x)^2, 1/cos(x)): sin^2+cos^2=1 can shorten
@@ -707,7 +721,7 @@ static giac::gen collect_rational(const giac::gen & g){
   if (n<2)
     return g;
   rest.insert(rest.begin(),ratnormal(r,contextptr));
-  const gen s=rest.size()==1?rest.front():symbolic(at_plus,gen(rest,_SEQ__VECT));
+  const gen s=rest.size()==1?rest.front():sym1(at_plus,gen(rest,_SEQ__VECT));
   return taille(s,1000)<taille(g,1000)?s:g;
 }
 static giac::gen auto_simplify(const giac::gen & g){
@@ -789,7 +803,7 @@ static bool quadratic_radicand(const giac::gen & b,const giac::gen & x){
 // (c*p^2*q/r^4: q)
 static void odd_factors(const giac::gen & f,const giac::gen & x,giac::gen & rest){
   using namespace giac;
-  if (is_constant_wrt(f,x,contextptr))
+  if (free_of(f,x))
     return;
   if (f.type==_SYMB){
     const gen & a=f._SYMBptr->feuille;
@@ -826,7 +840,7 @@ static bool hard_radicand(const giac::gen & f,const giac::gen & x){
     frac=e.type==_FRAC || (e.type==_SYMB && e._SYMBptr->sommet==at_division);
     base=a._VECTptr->front();
   }
-  if (frac && !is_constant_wrt(base,x,contextptr)){
+  if (frac && !free_of(base,x)){
     // evaluated first: derive leaves the parsed 1-(x^2) as diff(1-(x^2),x,3), and keeps
     // (3/2*sqrt(x))^2 unsimplified, so sqrt(1-x^2) and arc lengths went numeric (2026-10-06).
     // Factored, textbook arc lengths are easy too: 4t^2+9t^4 = t^2(9t^2+4), perfect squares.
@@ -859,17 +873,17 @@ static giac::gen table0(const giac::gen & g){
     return 0;
   const gen & f0=(*g._SYMBptr->feuille._VECTptr)[0];
   if (f0.is_symb_of_sommet(at_neg)){ // -cot(x): -ln|sin(x)| (by parts of x*csc(x)^2)
-    const gen r=table_integral(symbolic(at_integrate,makesequence(f0._SYMBptr->feuille,x)));
-    return is_zero(r)?r:symbolic(at_neg,r);
+    const gen r=table_integral(sym2(at_integrate,f0._SYMBptr->feuille,x));
+    return is_zero(r)?r:sym1(at_neg,r);
   }
   if (f0.is_symb_of_sommet(at_prod) && f0._SYMBptr->feuille.type==_VECT){ // 3*sec(x)^2, 2*tan(x)
     gen c=1,t=1;
     const vecteur & w=*f0._SYMBptr->feuille._VECTptr;
     for (unsigned i=0;i<w.size();++i)
-      (is_constant_wrt(w[i],x,contextptr)?c:t)=(is_constant_wrt(w[i],x,contextptr)?c:t)*w[i];
-    if (!is_one(c) && !is_constant_wrt(t,x,contextptr)){
-      const gen r=table_integral(symbolic(at_integrate,makesequence(t,x)));
-      return is_zero(r)?r:symbolic(at_prod,makesequence(c,r));
+      (free_of(w[i],x)?c:t)=(free_of(w[i],x)?c:t)*w[i];
+    if (!is_one(c) && !free_of(t,x)){
+      const gen r=table_integral(sym2(at_integrate,t,x));
+      return is_zero(r)?r:sym2(at_prod,c,r);
     }
   }
   // f = cos(u)^-n or sin(u)^-n, however written: sec(u)^3, 1/cos(u)^3, (1/cos(u))^3, cos(u)^-3;
@@ -909,7 +923,7 @@ static giac::gen table0(const giac::gen & g){
   if (!c && !d.is_symb_of_sommet(at_sin))
     return 0;
   const gen u=d._SYMBptr->feuille,a=derive(eval(u,1,contextptr),x,contextptr);
-  if (is_zero(a) || !is_constant_wrt(a,x,contextptr))
+  if (is_zero(a) || !free_of(a,x))
     return 0;
   // ln|sec(u)+tan(u)|, ln|csc(u)-cot(u)|; cubes: (sec(u)*tan(u)+ln|sec(u)+tan(u)|)/2,
   // (-csc(u)*cot(u)+ln|csc(u)-cot(u)|)/2; divided by a: sec(3x) /3, sec(x/2) 2*...
@@ -922,7 +936,7 @@ static giac::gen table0(const giac::gen & g){
   if (ng)
     r=r._SYMBptr->feuille;
   if (q.type==_FRAC){
-    r=symbolic(at_prod,makesequence(q._FRACptr->den,r));
+    r=sym2(at_prod,q._FRACptr->den,r);
     q=q._FRACptr->num;
   }
   if (q.type==_INT_ && q.val<0){
@@ -930,10 +944,10 @@ static giac::gen table0(const giac::gen & g){
     ng=!ng;
   }
   if (!is_one(q))
-    r=symbolic(at_division,makesequence(r,q));
+    r=sym2(at_division,r,q);
   if (ng)
-    r=symbolic(at_neg,r);
-  return sq?symbolic(at_plus,makesequence(r,symbolic(at_neg,x))):r;
+    r=sym1(at_neg,r);
+  return sq?sym2(at_plus,r,sym1(at_neg,x)):r;
 }
 
 // sin^m(v)cos^n(v), tan, sec, csc and cot written as those (tan^3*sec^10 is sin^3*cos^-13), v=a*x+b,
@@ -947,7 +961,7 @@ static giac::gen table0(const giac::gen & g){
 static bool trig_factor(const giac::gen & h,int e,const giac::gen & x,giac::gen & c,giac::gen & v,int & m,int & n){
   using namespace giac;
   static const unary_function_ptr * const fs[]={at_sin,at_cos,at_tan,at_sec,at_csc,at_cot};
-  if (is_constant_wrt(h,x,contextptr)){
+  if (free_of(h,x)){
     c=c*pow(h,e,contextptr);
     return true;
   }
@@ -1003,7 +1017,7 @@ static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=
   if (!trig_factor(f,1,x,c,v,m,n))
     return 0;
   const gen a=derive(eval(v,1,contextptr),x,contextptr); // (evaluated: the parsed x/3 gave none)
-  if (is_zero(v) || is_zero(a) || !is_constant_wrt(a,x,contextptr))
+  if (is_zero(v) || is_zero(a) || !free_of(a,x))
     return 0;
   // the substitution t: tan(v) for tan^m sec^k (m>=0, k=-(m+n)>=2 even), cot(v) for cot^n csc^k,
   // sin(v) for an odd power of cos, cos(v) for an odd power of sin: first the one that leaves a
@@ -1020,7 +1034,7 @@ static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=
   vecteur F;
   for (int i=0,b=1;i<=(j<0?0:j);b=b*(j-i)/(i+1),++i)
     F.push_back(_integrate(makesequence(j<0?cf*pow(x,e,contextptr)*pow(1+w*x*x,j,contextptr):cf*(w<0 && i%2?-b:b)*pow(x,e+2*i,contextptr),x),contextptr));
-  const gen G=F.size()==1?F.front():symbolic(at_plus,gen(F,_SEQ__VECT));
+  const gen G=F.size()==1?F.front():sym1(at_plus,gen(F,_SEQ__VECT));
   return contains(G,at_integrate) || is_undef(G)?gen(0):quotesubst(G,x,symbolic(r==0?at_tan:r==1?at_cot:r==2?at_sin:at_cos,v),contextptr);
 }
 
@@ -1056,10 +1070,12 @@ static __attribute__((noinline)) giac::gen table_definite(const giac::gen & g){
   const vecteur & v=*g._SYMBptr->feuille._VECTptr;
   const gen & f=v[0],& x=v[1],A=evalf(v[2],1,contextptr),B=evalf(v[3],1,contextptr);
   // (not the numeric integrals of numeric_hard_integrals, decimal bounds: evaluating their
-  // integrands for the table took 30 s on the calculator)
-  if (x.type!=_IDNT || A.type!=_DOUBLE_ || B.type!=_DOUBLE_ || v[2].type==_DOUBLE_ || v[3].type==_DOUBLE_ || contains(f,at_integrate))
-    return 0; // (nor a double integral: its inner integral was computed twice)
-  const gen F=table_integral(symbolic(at_integrate,makesequence(f,x)));
+  // integrands for the table took 30 s on the calculator; nor a double integral, computed twice,
+  // nor an arc length with its diff(...), 11 s to give up)
+  if (x.type!=_IDNT || A.type!=_DOUBLE_ || B.type!=_DOUBLE_ || v[2].type==_DOUBLE_ || v[3].type==_DOUBLE_ || contains(f,at_integrate)
+      || contains(f,at_diff))
+    return 0;
+  const gen F=table_integral(sym2(at_integrate,f,x));
   if (is_zero(F))
     return 0;
   const gen r=eval(subst(F,x,v[3],false,contextptr)-subst(F,x,v[2],false,contextptr),1,contextptr),re=evalf(r,1,contextptr);
@@ -1114,8 +1130,8 @@ static giac::gen real_root_node(const giac::gen & e,const giac::gen & a,const gi
       p=eval(p,1,contextptr);
     if (p.type==_FRAC && p._FRACptr->num.type==_INT_ && p._FRACptr->den.type==_INT_ && p._FRACptr->den.val%2){
       if (plot){
-        const gen r=symbolic(at_surd,makesequence(b,p._FRACptr->den));
-        return p._FRACptr->num.val==1?r:symbolic(at_pow,makesequence(r,p._FRACptr->num));
+        const gen r=sym2(at_surd,b,p._FRACptr->den);
+        return p._FRACptr->num.val==1?r:sym2(at_pow,r,p._FRACptr->num);
       }
       const gen be=evalf(b,1,contextptr);
       if (be.type==_DOUBLE_ && be._DOUBLE_val<0){
@@ -1124,7 +1140,7 @@ static giac::gen real_root_node(const giac::gen & e,const giac::gen & a,const gi
       }
     }
   }
-  return symbolic(e._SYMBptr->sommet,a);
+  return sym1(&e._SYMBptr->sommet,a);
 }
 static giac::gen real_roots(const giac::gen & e,bool plot=false){
   return map_nodes(e,real_root_node,plot?1:0);
@@ -1227,9 +1243,9 @@ static void split_geo(const giac::gen & t,const giac::gen & n,giac::gen & r,giac
   }
   if (t.is_symb_of_sommet(at_pow) && t._SYMBptr->feuille.type==_VECT && t._SYMBptr->feuille._VECTptr->size()==2){
     const gen & b=t._SYMBptr->feuille._VECTptr->front(),& e=t._SYMBptr->feuille._VECTptr->back();
-    if (is_constant_wrt(b,n,contextptr) && !is_constant_wrt(e,n,contextptr)){
+    if (free_of(b,n) && !free_of(e,n)){
       const gen k=derive(e,n,contextptr);
-      if (is_constant_wrt(k,n,contextptr)){
+      if (free_of(k,n)){
         r=r*pow(b,sign*k,contextptr);
         q=q*pow(b,sign*ratnormal(e-k*n,contextptr),contextptr);
         return;
@@ -1239,9 +1255,9 @@ static void split_geo(const giac::gen & t,const giac::gen & n,giac::gen & r,giac
       split_geo(b,n,r,q,-sign);
       return;
     }
-    if (b.is_symb_of_sommet(at_pow) && b._SYMBptr->feuille.type==_VECT && b._SYMBptr->feuille._VECTptr->size()==2 && is_constant_wrt(e,n,contextptr)){
+    if (b.is_symb_of_sommet(at_pow) && b._SYMBptr->feuille.type==_VECT && b._SYMBptr->feuille._VECTptr->size()==2 && free_of(e,n)){
       const vecteur & u=*b._SYMBptr->feuille._VECTptr; // (x^n)^2 (giac's x^(2n))
-      split_geo(symbolic(at_pow,makesequence(u[0],u[1]*e)),n,r,q,sign);
+      split_geo(sym2(at_pow,u[0],u[1]*e),n,r,q,sign);
       return;
     }
   }
@@ -1257,26 +1273,26 @@ static giac::gen power_series(const giac::gen & f,const giac::gen & n,int a){
   split_geo(f,n,r,q,1);
   r=normal(r,contextptr);
   q=ratnormal(q,contextptr);
-  if (is_one(r) || !is_constant_wrt(r,n,contextptr))
+  if (is_one(r) || !free_of(r,n))
     return 0;
   const gen re=evalf(r,1,contextptr);
   const double ar=re.type==_DOUBLE_?(re._DOUBLE_val<0?-re._DOUBLE_val:re._DOUBLE_val):0;
   int from=0;
-  if (is_constant_wrt(c=ratnormal(q*n,contextptr),n,contextptr) && a>=1){ // c/n: -c*ln(1-r) (r=-1: -c*ln 2)
+  if (free_of(c=ratnormal(q*n,contextptr),n) && a>=1){ // c/n: -c*ln(1-r) (r=-1: -c*ln 2)
     if (ar>1 || (ar==1 && re._DOUBLE_val>0))
       return 0;
     s=-c*ln(ratnormal(1-r,contextptr),contextptr);
     from=1;
   }
-  else if (is_constant_wrt(c=ratnormal(q/n,contextptr),n,contextptr)){
+  else if (free_of(c=ratnormal(q/n,contextptr),n)){
     if (ar>=1)
       return 0;
     s=c*r/pow(1-r,2,contextptr);
     from=1; // (its n=0 term is 0)
   }
-  else if (is_constant_wrt(c=ratnormal(q*symbolic(at_factorial,n),contextptr),n,contextptr))
+  else if (free_of(c=ratnormal(q*sym1(at_factorial,n),contextptr),n))
     s=c*exp(r,contextptr);
-  else if (is_constant_wrt(c=q,n,contextptr)){
+  else if (free_of(c=q,n)){
     if (ar>=1)
       return 0;
     s=c*pow(r,a,contextptr)/(1-r); // from a: x/(1-x) from 1
@@ -1323,7 +1339,7 @@ static giac::gen series_identify(const giac::gen & f,const giac::gen & n,int a,c
     }
   }
   for (int j=0;j<7;++j){
-    const gen F=symbolic(fn[j],j==6?x+1:x); // (ln(1+x))
+    const gen F=sym1(fn[j],j==6?x+1:x); // (ln(1+x))
     for (int k=0;k<3;++k){
       const gen y=evalf(subst(F,x,gen(X[k]),false,contextptr),1,contextptr);
       if (y.type!=_DOUBLE_)
@@ -1344,7 +1360,7 @@ static bool n_power(const giac::gen & f,const giac::gen & n){
   const vecteur pw=lop(f,at_pow);
   for (const_iterateur it=pw.begin();it!=pw.end();++it)
     if (it->_SYMBptr->feuille.type==_VECT && it->_SYMBptr->feuille._VECTptr->size()==2
-        && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->front(),n,contextptr) && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->back(),n,contextptr))
+        && !free_of(it->_SYMBptr->feuille._VECTptr->front(),n) && !free_of(it->_SYMBptr->feuille._VECTptr->back(),n))
       return true;
   return false;
 }
@@ -1393,7 +1409,7 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
   if (n.type!=_IDNT || !(v[3]==plus_inf) || a.type!=_INT_)
     return g;
   // cos(n*pi) is (-1)^n (giac leaves it: sum(cos(n*pi)/n) is -ln 2)
-  const gen f=subst(v[0],eval(symbolic(at_cos,n*cst_pi),1,contextptr),pow(gen(-1),n,contextptr),false,contextptr);
+  const gen f=subst(v[0],eval(sym1(at_cos,n*cst_pi),1,contextptr),pow(gen(-1),n,contextptr),false,contextptr);
   const vecteur ids=lidnt(f);
   if (ids.size()!=1 || !(ids.front()==n)){ // sum(x^n/n,n,1,inf): a power series in x
     gen ps=power_series(f,n,a.val);
@@ -1401,7 +1417,7 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
       ps=series_identify(f,n,a.val,ids.front()==n?ids.back():ids.front());
     return is_zero(ps)?g:ps;
   }
-  const gen R=subst(f,symbolic(at_pow,makesequence(gen(-1),n)),1,false,contextptr); // f=(-1)^n*R
+  const gen R=subst(f,sym2(at_pow,gen(-1),n),1,false,contextptr); // f=(-1)^n*R
   const bool isalt=alternating(f,n),hard=n_power(f,n);
   // decimal tests first: giac's limit took minutes on the calculator (1/(2n)!, ((n-1)/n)^n).
   // The ratio of terms at n=a+5 and a+10: growing terms diverge; shrinking like r^n (r<0.95,
@@ -1476,9 +1492,9 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
   if (!is_zero(ps))
     return ps;
   // c*r^n/n!: c*e^r (from 0), 1/n! is e
-  const gen cf=ratnormal(f*symbolic(at_factorial,n),contextptr);
+  const gen cf=ratnormal(f*sym1(at_factorial,n),contextptr);
   const gen r=ratnormal(subst(cf,n,n+1,false,contextptr)/cf,contextptr);
-  if (is_constant_wrt(r,n,contextptr) && a.val>=0){
+  if (free_of(r,n) && a.val>=0){
     return ratnormal(less_terms(subst(cf,n,0,false,contextptr)*exp(r,contextptr),f,n,0,a.val),contextptr);
   }
   // terms shrinking like r^n, added up to a negligible one: (n!)^2/(2n)! 0.736399, (-1)^n/(2n)!
@@ -1529,11 +1545,11 @@ static giac::gen power_sum(const giac::gen & g){
   // n in a power's base and exponent (((n-1)/n)^n, n^n/n!): giac's sum simplifies them at
   // length (minutes on the calculator) for nothing; known_sum (answer_after) gets them as is
   if (n_power(f,n))
-    return symbolic(at_sum,makesequence(f,n,a,plus_inf));
+    return sym1(at_sum,makesequence(f,n,a,plus_inf));
   const vecteur ids=lidnt(f);
   if (ids.size()!=1 || !(ids.front()==n)) // a power series in x with n!: known_sum's (giac's
-    return ids.size()==2 && contains(f,at_factorial)?symbolic(at_sum,makesequence(f,n,a,plus_inf)):gen(0); // sum hung)
-  const gen R=subst(f,symbolic(at_pow,makesequence(gen(-1),n)),1,false,contextptr); // f=(-1)^n*R
+    return ids.size()==2 && contains(f,at_factorial)?sym1(at_sum,makesequence(f,n,a,plus_inf)):gen(0); // sum hung)
+  const gen R=subst(f,sym2(at_pow,gen(-1),n),1,false,contextptr); // f=(-1)^n*R
   const bool isalt=alternating(f,n);
   const vecteur lv=lvar(R);
   if (lv.size()==1 && lv.front()==n) // rational: giac, then known_sum
@@ -1558,7 +1574,7 @@ static giac::gen power_sum(const giac::gen & g){
   // factorials, ln(n), trig of n: known_sum without giac's sum, which simplifies the term at
   // length (a minute on the calculator) and leaves these as they are (n^2/2^n: giac's 6)
   return contains(f,at_factorial) || contains(f,at_ln) || contains(f,at_sin) || contains(f,at_cos) || contains(f,at_tan)?
-    symbolic(at_sum,makesequence(f,n,a,plus_inf)):gen(0);
+    sym1(at_sum,makesequence(f,n,a,plus_inf)):gen(0);
 }
 
 // the integrand F (evaluated) is c*b'(x)*b(x)^e for one of its powers b^e (1/b: e=-1), a
@@ -1567,7 +1583,8 @@ static giac::gen power_sum(const giac::gen & g){
 // cos(3x)(2+sin(3x))^4's expanded, (2+sin(3x))^5/15); surface areas: 2*pi*x^3*sqrt(1+9x^4) went numeric
 static giac::gen usub(const giac::gen & F,const giac::gen & x){
   using namespace giac;
-  const vecteur v=mergevecteur(lop(F,at_pow),lop(F,at_inv));
+  const vecteur v=mergevecteur(lop(F,at_pow),lop(F,at_inv)),lv=lvar(F);
+  const bool rat=lv.size()==1 && lv.front()==x; // a rational function: giac's partial fractions
   for (const_iterateur it=v.begin();it!=v.end();++it){
     const bool i=it->is_symb_of_sommet(at_inv);
     gen b=it->_SYMBptr->feuille,e=-1;
@@ -1578,7 +1595,9 @@ static giac::gen usub(const giac::gen & F,const giac::gen & x){
       e=i?-p._VECTptr->back():p._VECTptr->back();
       b=p._VECTptr->front();
     }
-    if (b==x || is_constant_wrt(b,x,contextptr) || !is_constant_wrt(e,x,contextptr))
+    // (not b^e alone: b is linear, giac's at once; nor a rational function's b^+-1, b^+-2: giac's
+    // partial fractions, without seconds of tests on the calculator)
+    if (b==x || *it==F || free_of(b,x) || !free_of(e,x) || (rat && e.type==_INT_ && e.val>=-2 && e.val<=2))
       continue;
     // F/(b^e*b') constant: in decimals at two points first (ratnormal of each power of a rational
     // function, to no avail, took seconds on the calculator)
@@ -1587,13 +1606,13 @@ static giac::gen usub(const giac::gen & F,const giac::gen & x){
     if (at(r,x,0.3271,r1) && at(r,x,0.7193,r2) && std::abs(r1-r2)>1e-4*std::abs(r1))
       continue;
     const gen q=ratnormal(r,contextptr);
-    if (is_undef(q) || !is_constant_wrt(q,x,contextptr))
+    if (is_undef(q) || !free_of(q,x))
       continue;
     if (is_minus_one(e)) // (ln|x^2+1| is ln(x^2+1))
       return q*ln(abs(b,contextptr),contextptr);
     // b^k/k as written ((x^2+9)^(3/2), not giac's (x^2+9)*sqrt(x^2+9)); -1/(x^2+3x+1)
     const gen k=e+1;
-    return q*(is_minus_one(k)?symb_inv(b):symbolic(at_pow,makesequence(b,k)))/k;
+    return q*(is_minus_one(k)?symb_inv(b):sym2(at_pow,b,k))/k;
   }
   return 0;
 }
@@ -1609,12 +1628,12 @@ static giac::gen ftc(const giac::gen & g){
     const gen & F=a._VECTptr->front(),x=a._VECTptr->back();
     if (x.type==_IDNT && (F.is_symb_of_sommet(at_integrate) || F.is_symb_of_sommet(at_int)) && F._SYMBptr->feuille.type==_VECT && F._SYMBptr->feuille._VECTptr->size()==4){
       const vecteur & v=*F._SYMBptr->feuille._VECTptr;
-      if (v[1].type==_IDNT && !(v[1]==x) && is_constant_wrt(v[0],x,contextptr)){
+      if (v[1].type==_IDNT && !(v[1]==x) && free_of(v[0],x)){
         const gen lo=eval(v[2],1,contextptr),hi=eval(v[3],1,contextptr);
         gen r=0;
-        if (!is_constant_wrt(hi,x,contextptr))
+        if (!free_of(hi,x))
           r=subst(v[0],v[1],hi,false,contextptr)*derive(hi,x,contextptr);
-        if (!is_constant_wrt(lo,x,contextptr))
+        if (!free_of(lo,x))
           r=r-subst(v[0],v[1],lo,false,contextptr)*derive(lo,x,contextptr);
         return r;
       }
@@ -1624,9 +1643,9 @@ static giac::gen ftc(const giac::gen & g){
     vecteur w(*a._VECTptr);
     for (iterateur it=w.begin();it!=w.end();++it)
       *it=ftc(*it);
-    return symbolic(g._SYMBptr->sommet,gen(w,a.subtype));
+    return sym1(&g._SYMBptr->sommet,gen(w,a.subtype));
   }
-  return symbolic(g._SYMBptr->sommet,ftc(a));
+  return sym1(&g._SYMBptr->sommet,ftc(a));
 }
 
 static giac::gen numeric_hard_integrals(const giac::gen & g){
@@ -1642,8 +1661,8 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
       // numerically, after x = a+(b-a)*sin(pi*t/2)^2: its dx vanishes at both ends and cancels an
       // endpoint singularity (ellipse perimeters: 13.3616 for 13.3649 before)
       const gen a=evalf(v[2],1,contextptr),b=evalf(v[3],1,contextptr),t=gen("t__n",contextptr);
-      const gen x=a+(b-a)*pow(symbolic(at_sin,cst_pi*t/2),2),dx=(b-a)*cst_pi/2*symbolic(at_sin,cst_pi*t);
-      return symbolic(g._SYMBptr->sommet,makesequence(subst(v[0],v[1],x,false,contextptr)*dx,t,gen(0.0),gen(1.0)));
+      const gen x=a+(b-a)*pow(sym1(at_sin,cst_pi*t/2),2),dx=(b-a)*cst_pi/2*sym1(at_sin,cst_pi*t);
+      return sym1(&g._SYMBptr->sommet,makesequence(subst(v[0],v[1],x,false,contextptr)*dx,t,gen(0.0),gen(1.0)));
     }
     return g;
   }
@@ -1651,9 +1670,9 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
     vecteur w(*a._VECTptr);
     for (iterateur it=w.begin();it!=w.end();++it)
       *it=numeric_hard_integrals(*it);
-    return symbolic(g._SYMBptr->sommet,gen(w,a.subtype));
+    return sym1(&g._SYMBptr->sommet,gen(w,a.subtype));
   }
-  return symbolic(g._SYMBptr->sommet,numeric_hard_integrals(a));
+  return sym1(&g._SYMBptr->sommet,numeric_hard_integrals(a));
 }
 
 // An equation typed alone (x^2-4=0, 2x+1=5, sin(x)=1/2) is solved for its only unknown, as an
@@ -2164,11 +2183,11 @@ static giac::gen half_sqrt(const giac::gen & g,const giac::gen & f,const giac::g
   if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_DOUBLE_){
     const double e=f._VECTptr->back()._DOUBLE_val;
     if (e==0.5)
-      return symbolic(at_pow,makesequence(f._VECTptr->front(),fraction(1,2)));
+      return sym2(at_pow,f._VECTptr->front(),fraction(1,2));
     if (e==-0.5)
-      return symb_inv(symbolic(at_pow,makesequence(f._VECTptr->front(),fraction(1,2))));
+      return symb_inv(sym2(at_pow,f._VECTptr->front(),fraction(1,2)));
   }
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 static giac::gen normal_args(const giac::gen & g); // (below)
 // a term with a denominator: 1/x, x/2, ln(x)/3 (one fraction of a sum of those is a form)
@@ -2322,14 +2341,14 @@ static giac::gen sec_back(const giac::gen & g,const giac::gen & f,const giac::ge
   using namespace giac;
   if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_INT_ && f._VECTptr->back().val<0){
     const int k=-f._VECTptr->back().val; // cos(x)^-1 (trig_powers): 1/cos(x), sec(x)
-    const gen h=k==1?f._VECTptr->front():symbolic(at_pow,makesequence(f._VECTptr->front(),k));
-    return sec_back(symbolic(at_inv,h),h,0);
+    const gen h=k==1?f._VECTptr->front():sym2(at_pow,f._VECTptr->front(),k);
+    return sec_back(sym1(at_inv,h),h,0);
   }
   if (g._SYMBptr->sommet==at_inv && f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT){
     vecteur w(*f._SYMBptr->feuille._VECTptr); // giac's 1/(5cos(x)^5): sec(x)^5/5
     for (iterateur it=w.begin();it!=w.end();++it)
-      *it=sec_back(symbolic(at_inv,*it),*it,0);
-    return symbolic(at_prod,gen(w,_SEQ__VECT));
+      *it=sec_back(sym1(at_inv,*it),*it,0);
+    return sym1(at_prod,gen(w,_SEQ__VECT));
   }
   if (g._SYMBptr->sommet==at_inv){
     gen b=f,n=1;
@@ -2339,7 +2358,7 @@ static giac::gen sec_back(const giac::gen & g,const giac::gen & f,const giac::ge
     }
     if (n.type==_INT_ && (b.is_symb_of_sommet(at_cos) || b.is_symb_of_sommet(at_sin))){
       const gen t=symbolic(b.is_symb_of_sommet(at_cos)?at_sec:at_csc,b._SYMBptr->feuille);
-      return is_one(n)?t:symbolic(at_pow,makesequence(t,n));
+      return is_one(n)?t:sym2(at_pow,t,n);
     }
   }
   if (g._SYMBptr->sommet==at_prod && f.type==_VECT){ // cos(u)*csc(u)^n: cot(u)*csc(u)^(n-1);
@@ -2357,16 +2376,16 @@ static giac::gen sec_back(const giac::gen & g,const giac::gen & f,const giac::ge
         }
         if (!b.is_symb_of_sommet(sn?at_sec:at_csc) || !(b._SYMBptr->feuille==u) || n.type!=_INT_ || n.val<1)
           continue;
-        w[i]=symbolic(sn?at_tan:at_cot,u);
+        w[i]=sym1(sn?at_tan:at_cot,u);
         if (n.val==1)
           w.erase(w.begin()+j);
         else
-          w[j]=n.val==2?b:symbolic(at_pow,makesequence(b,n-1));
-        return w.size()==1?w.front():symbolic(at_prod,gen(w,_SEQ__VECT));
+          w[j]=n.val==2?b:sym2(at_pow,b,n-1);
+        return w.size()==1?w.front():sym1(at_prod,gen(w,_SEQ__VECT));
       }
     }
   }
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 static bool trig_out_of_ln(const giac::gen & g); // (below)
 // sec_back of g if it leaves no sin or cos ((2-cos(x)^2)*sec(x)^3 mixes them: g as it was)
@@ -2594,11 +2613,11 @@ static giac::gen normal_node(const giac::gen & g,const giac::gen & f0,const giac
   if (u==at_ln && f.is_symb_of_sommet(at_pow) && f._SYMBptr->feuille.type==_VECT && f._SYMBptr->feuille._VECTptr->size()==2){
     const gen & b=f._SYMBptr->feuille._VECTptr->front(),& e=f._SYMBptr->feuille._VECTptr->back();
     const vecteur vb=lidnt(b); // ln(x^2), ln((x-1)^2): 2*ln|x-1| (b linear in one variable)
-    if (e.type==_INT_ && e.val>0 && e.val%2==0 && vb.size()==1 && is_constant_wrt(derive(b,vb.front(),contextptr),vb.front(),contextptr))
-      return symbolic(at_prod,makesequence(e,symbolic(at_ln,symbolic(at_abs,b))));
+    if (e.type==_INT_ && e.val>0 && e.val%2==0 && vb.size()==1 && free_of(derive(b,vb.front(),contextptr),vb.front()))
+      return sym2(at_prod,e,sym1(at_ln,sym1(at_abs,b)));
   }
   if (u==at_ln && f.type==_SYMB && lidnt(f).empty()){ // -ln(2)/2, not ln(sqrt(2)/2); ln(sqrt(2)+1), not
-    const gen l=symbolic(at_ln,xcas::has_radical(f)?safe_normal(f):f),r=ratnormal(lnexpand(l,contextptr),contextptr); // ln(2/sqrt(2)+1)
+    const gen l=sym1(at_ln,xcas::has_radical(f)?safe_normal(f):f),r=ratnormal(lnexpand(l,contextptr),contextptr); // ln(2/sqrt(2)+1)
     return !is_undef(r) && r.type!=_STRNG && taille(r,100)<taille(l,100)?r:l;
   }
   if ((u==at_atan || u==at_asin || u==at_acos || u==at_ln || u==at_abs || u==at_exp || u==at_sin || u==at_cos || u==at_tan)
@@ -2650,23 +2669,23 @@ static giac::gen ln_conjugate(const giac::gen & g,const giac::gen & f,const giac
         if (!flip && !sqrt_of(s,P))
           continue;
         const gen a=derive(R,x,contextptr),ae=evalf(a,1,contextptr);
-        if (!is_constant_wrt(a,x,contextptr) || ae.type!=_DOUBLE_ || ae._DOUBLE_val==0 || (ae._DOUBLE_val>0)!=flip)
+        if (!free_of(a,x) || ae.type!=_DOUBLE_ || ae._DOUBLE_val==0 || (ae._DOUBLE_val>0)!=flip)
           break;
         Q=flip?R:-R;
         const gen c=ratnormal(P-Q*Q,contextptr),ce=evalf(c,1,contextptr);
-        if (is_zero(c) || !is_constant_wrt(c,x,contextptr) || ce.type!=_DOUBLE_)
+        if (is_zero(c) || !free_of(c,x) || ce.type!=_DOUBLE_)
           break;
-        gen B=symbolic(at_plus,makesequence(Q,symbolic(at_pow,makesequence(P,fraction(1,2))))); // Q+sqrt(P)
+        gen B=sym2(at_plus,Q,sym2(at_pow,P,fraction(1,2))); // Q+sqrt(P)
         if (ce._DOUBLE_val<0)
-          B=symbolic(at_abs,B);
-        const gen L=ln(abs(c,contextptr),contextptr),m=symbolic(at_neg,symbolic(at_ln,B));
-        return is_zero(L)?m:symbolic(at_plus,makesequence(L,m));
+          B=sym1(at_abs,B);
+        const gen L=ln(abs(c,contextptr),contextptr),m=sym1(at_neg,sym1(at_ln,B));
+        return is_zero(L)?m:sym2(at_plus,L,m);
       }
     }
   }
   if (g._SYMBptr->sommet==at_neg && f.is_symb_of_sommet(at_neg)) // -(-ln(...))
     return f._SYMBptr->feuille;
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 
 // Integration by parts where giac gives up (it left x*sec(x)^2, x*csc(x)^2, x*sec(x)*tan(x),
@@ -2675,7 +2694,7 @@ static giac::gen ln_conjugate(const giac::gen & g,const giac::gen & f,const giac
 static bool poly_in(const giac::gen & t,const giac::gen & x){
   using namespace giac;
   const vecteur lv=lvar(t);
-  return lv.size()==1 && lv.front()==x && is_constant_wrt(_denom(t,contextptr),x,contextptr);
+  return lv.size()==1 && lv.front()==x && free_of(_denom(t,contextptr),x);
 }
 static giac::gen by_parts(const giac::gen & f,const giac::gen & x,int depth){
   using namespace giac;
@@ -2684,22 +2703,22 @@ static giac::gen by_parts(const giac::gen & f,const giac::gen & x,int depth){
   const vecteur fac=f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT?*f._SYMBptr->feuille._VECTptr:vecteur(1,f);
   gen P=1,h=1;
   for (unsigned i=0;i<fac.size();++i)
-    if (poly_in(fac[i],x) || is_constant_wrt(fac[i],x,contextptr))
+    if (poly_in(fac[i],x) || free_of(fac[i],x))
       P=P*fac[i];
     else
       h=h*fac[i];
-  if (is_constant_wrt(P,x,contextptr) || is_one(h))
+  if (free_of(P,x) || is_one(h))
     return undef;
   const gen dg=_degree(makesequence(P,x),contextptr);
   if (dg.type!=_INT_ || dg.val>3)
     return undef;
-  gen H=table_integral(symbolic(at_integrate,makesequence(h,x))); // sec(x)tan(x): sec(x) at once
+  gen H=table_integral(sym2(at_integrate,h,x)); // sec(x)tan(x): sec(x) at once
   if (is_zero(H))
     H=_integrate(makesequence(h,x),contextptr);
   if (is_undef(H) || H.type==_STRNG || contains(H,at_integrate))
     return undef;
   const gen R=ratnormal(derive(P,x,contextptr)*H,contextptr);
-  gen I=table_integral(symbolic(at_integrate,makesequence(R,x)));
+  gen I=table_integral(sym2(at_integrate,R,x));
   if (is_zero(I))
     I=_integrate(makesequence(R,x),contextptr);
   if (is_undef(I) || I.type==_STRNG || contains(I,at_integrate))
@@ -2723,13 +2742,13 @@ static giac::gen parts_table(const giac::gen & g){
   gen P=1,h=1;
   const vecteur & fac=*f._SYMBptr->feuille._VECTptr;
   for (unsigned i=0;i<fac.size();++i)
-    if (poly_in(fac[i],x) || is_constant_wrt(fac[i],x,contextptr))
+    if (poly_in(fac[i],x) || free_of(fac[i],x))
       P=P*fac[i];
     else
       h=h*fac[i];
   gen c=1,v=0; // h with sec, csc, tan, cot (negative powers of sin, cos): x*sec(x)tan(x) took 75 s on
   int m=0,n=0; // the calculator; giac's for x^2*cos(x): (x^2-2)sin(x)+2x*cos(x)
-  if (is_constant_wrt(P,x,contextptr) || (is_zero(table0(symbolic(at_integrate,makesequence(h,x))))
+  if (free_of(P,x) || (is_zero(table0(sym2(at_integrate,h,x)))
       && !(trig_factor(h,1,x,c,v,m,n) && (m<0 || n<0))))
     return 0;
   const gen r=by_parts(f,x,0);
@@ -2799,9 +2818,9 @@ static int pow_den(const giac::gen & g,const giac::gen & x){
 static giac::gen pow_to(const giac::gen & g,const giac::gen & x,const giac::gen & t,int L,bool back){
   using namespace giac;
   if (!back && g==x)
-    return symbolic(at_pow,makesequence(t,L));
+    return sym2(at_pow,t,L);
   if (back && g==t)
-    return symbolic(at_pow,makesequence(x,fraction(1,L)));
+    return sym2(at_pow,x,fraction(1,L));
   if (g.type==_VECT){
     vecteur w(*g._VECTptr);
     for (iterateur it=w.begin();it!=w.end();++it)
@@ -2813,9 +2832,9 @@ static giac::gen pow_to(const giac::gen & g,const giac::gen & x,const giac::gen 
   const gen & f=g._SYMBptr->feuille;
   if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->front()==(back?t:x)){
     const gen e=back?f._VECTptr->back()/L:f._VECTptr->back()*L; // x^(p/q) <-> t^(pL/q)
-    return symbolic(at_pow,makesequence(back?x:t,e));
+    return sym2(at_pow,back?x:t,e);
   }
-  return symbolic(g._SYMBptr->sommet,pow_to(f,x,t,L,back));
+  return sym1(&g._SYMBptr->sommet,pow_to(f,x,t,L,back));
 }
 static giac::gen power_sums(const giac::gen & g){
   using namespace giac;
@@ -2853,9 +2872,9 @@ static giac::gen ln_power(const giac::gen & g,const giac::gen & f,const giac::ge
       for (;p<f.val;++k)
         p*=b;
       if (p==f.val)
-        return k*symbolic(at_ln,int(b));
+        return k*sym1(at_ln,int(b));
     }
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 
 // The constant terms of an antiderivative go into + C: -sqrt(x^2+4)/(4x), not giac's
@@ -2879,11 +2898,11 @@ static giac::gen drop_constants(const giac::gen & g,const giac::gen & x){
     const vecteur & t=*n._SYMBptr->feuille._VECTptr;
     vecteur keep;
     for (unsigned i=0;i<t.size();++i)
-      if (!is_constant_wrt(ratnormal(t[i]/d,contextptr),x,contextptr))
+      if (!free_of(ratnormal(t[i]/d,contextptr),x))
         keep.push_back(t[i]);
     if (keep.empty() || keep.size()==t.size())
       continue;
-    const gen m=keep.size()==1?keep.front():symbolic(at_plus,gen(keep,_SEQ__VECT));
+    const gen m=keep.size()==1?keep.front():sym1(at_plus,gen(keep,_SEQ__VECT));
     gen r=is_one(d)?m:symb_prod(m,symb_inv(d));
     const gen rn=ratnormal(r,contextptr); // (4*ln(x)+1)/4 less 1/4: ln(x), not 4*ln(x)/4
     if (!is_undef(rn) && rn.type!=_STRNG && taille(rn,400)<taille(r,400))
@@ -2915,9 +2934,9 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
     const char * n=f._VECTptr->front()._IDNTptr->id_name;
     const gen & b=f._VECTptr->back();
     if ((!strcmp(n,"perm") || !strcmp(n,"nPr")) && b.type==_VECT && b._VECTptr->size()==2)
-      return symbolic(at_prod,makesequence(symbolic(at_comb,b),symbolic(at_factorial,b._VECTptr->back())));
+      return sym2(at_prod,sym1(at_comb,b),sym1(at_factorial,b._VECTptr->back()));
   }
-  return symbolic(g._SYMBptr->sommet,f);
+  return sym1(&g._SYMBptr->sommet,f);
 }
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
@@ -2930,12 +2949,12 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   if (a.real_in)
     g=real_roots(g,g.is_symb_of_sommet(at_plot) || g.is_symb_of_sommet(at_plotfunc));
   // x=a stores a in x (equaltosto), but x=(-x/2)^2 has x on both sides: an equation to solve
-  const bool selfref=g.is_symb_of_sommet(at_equal) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->front().type==_IDNT && !is_constant_wrt(g._SYMBptr->feuille._VECTptr->back(),g._SYMBptr->feuille._VECTptr->front(),contextptr);
+  const bool selfref=g.is_symb_of_sommet(at_equal) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->front().type==_IDNT && !free_of(g._SYMBptr->feuille._VECTptr->back(),g._SYMBptr->feuille._VECTptr->front());
   if (!selfref)
     g=equaltosto(g,contextptr);
   const gen unknown=equation_unknown(g);
   if (unknown.type==_IDNT)
-    g=symbolic(at_solve,makesequence(g,unknown));
+    g=sym2(at_solve,g,unknown);
   a.var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
   a.vars=0;      // solve(eqs,[x,y]): x=2, y=1
   if (g.is_symb_of_sommet(at_solve) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==_VECT)
@@ -2949,7 +2968,7 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   // decimals: giac's solve fails (solve(x^2=0.5,x): "Bad Argument Value"): solved exactly, the
   // solutions in decimals
   if (g.is_symb_of_sommet(at_solve) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && has_num_coeff(g._SYMBptr->feuille._VECTptr->front()))
-    g=symbolic(at_evalf,symbolic(at_solve,makesequence(exact(g._SYMBptr->feuille._VECTptr->front(),contextptr),g._SYMBptr->feuille._VECTptr->back())));
+    g=sym1(at_evalf,sym2(at_solve,exact(g._SYMBptr->feuille._VECTptr->front(),contextptr),g._SYMBptr->feuille._VECTptr->back()));
   // a definite integral (integrate(f,x,a,b)): undef means it diverges
   a.definite=(g.is_symb_of_sommet(at_integrate) || g.is_symb_of_sommet(at_int)) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==4;
   a.ivar=0;
@@ -2985,7 +3004,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     for (unsigned i=0;i<w.size();++i)
       if (i!=1)
         w[i]=eval(w[i],1,contextptr);
-    const gen s=symbolic(at_sum,gen(w,_SEQ__VECT));
+    const gen s=sym1(at_sum,gen(w,_SEQ__VECT));
     const gen h=known_sum(s,msg);
     if (!(h==s))
       g=h;

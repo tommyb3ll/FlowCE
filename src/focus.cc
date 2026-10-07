@@ -452,7 +452,11 @@ static void hero_peek_paint(int y) { // history mode: the edit line, small, at t
   const char * s = (const char *)Console_GetEditLine();
   int b = y + 20;
   if (s && *s && console_edit2d()) { fitc c = fitted(s, 5, 230, 22, MI_F_CALLBOX); draw_math(s, c, 14, b, UC_SUB, UC_BG, MI_F_CALLBOX); }
-  else ui_text(&ui_tr10, "New calculation", 14, b, UC_SUB, UC_BG, 0);
+  else { // how to reuse a calculation (B. Parisse looked for the way to paste an entry)
+    int x = key_hint(14, b, "enter", "paste") + 12;
+    x = key_hint(x, b, "<", "entry") + 10;
+    key_hint(x, b, ">", "answer");
+  }
   int w = ui_text(&ui_tb9, "back", UI_W - 12, b, UC_SUB, UC_BG, 2);
   arrow(UI_W - 12 - w - 9, b - 4, 0, UC_SUB);
 }
