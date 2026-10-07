@@ -880,6 +880,8 @@ string khicas_state(){
     strcat(buf,angle_radian(contextptr)?"1":"0");
     strcat(buf,");with_sqrt(");
     strcat(buf,withsqrt(contextptr)?"1":"0");
+    strcat(buf,");autosimplify("); // Simplify answers (the mode key)
+    strcat(buf,answer_simplify()?"1":"0");
     strcat(buf,");");
   }
   //dbg_printf("khicas_state %s\n",buf);

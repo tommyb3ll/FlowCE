@@ -32,7 +32,8 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 - **Answers like your textbook.** `arctan((x+1)/2)`, `x − x³/6 + x⁵/120 + O(x⁶)`,
   `C1·cos(x) + C2·sin(x)`, polynomials in descending powers, `log` meaning base 10, `+ C` on
   antiderivatives. Press **F4** for other forms: simplified, one fraction, factored, expanded,
-  decimal.
+  decimal. To keep answers exactly as computed (a factored form you want to store with `sto→`),
+  turn off *Simplify answers* in `mode`.
 - **Calculus 1, 2 and 3, covered.** Derivatives, integrals (trig integrals, trig substitution,
   partial fractions, arc length and surface area), improper integrals that say *diverges* when
   they do, limits that say *does not exist* (with the left and right values), series and power
@@ -121,9 +122,10 @@ What it looks like on the calculator:
 | Key | What it does |
 |---|---|
 | F1 to F5 | menus: algebra, calculus, trig, symbols, more (with `2nd` or `alpha`: more menus; the arrows wrap around) |
+| F1 / F2 action after typing | applies to what you typed: `x^2−1` then Factor is `factor(x^2−1)`, `x^2` then Antiderivative is `∫x² dx` (on an empty line: the last answer) |
 | `math` | templates: fraction, root, integrals, derivative, limit, sum |
 | ▲ / ▼ | history / search every command |
-| `enter` on a history line | reuses that input or answer |
+| ▲, then ◀ / ▶ | picks a calculation's input or answer; `enter` pastes it on the line |
 | F4 on an answer | its other forms |
 | `(-)` | a minus sign; `2nd (-)` is the last answer (Ans) |
 | `+` `−` `×` `÷` `^` `x²` first | works on the last answer, as on a TI (`× 2` is Ans·2) |
@@ -134,7 +136,7 @@ What it looks like on the calculator:
 | `[` `{` | brackets that close themselves; `]` `}` step out |
 | ON or `clear` while computing | stops the calculation |
 | *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table |
-| `mode` | settings, shortcuts, about |
+| `mode` | settings (*Simplify answers* on or off, kept with your session), shortcuts, about |
 | `2nd quit` | quit (your session is kept) |
 
 ## Building

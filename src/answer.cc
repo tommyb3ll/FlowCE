@@ -1583,8 +1583,7 @@ static giac::gen power_sum(const giac::gen & g){
 // cos(3x)(2+sin(3x))^4's expanded, (2+sin(3x))^5/15); surface areas: 2*pi*x^3*sqrt(1+9x^4) went numeric
 static giac::gen usub(const giac::gen & F,const giac::gen & x){
   using namespace giac;
-  const vecteur v=mergevecteur(lop(F,at_pow),lop(F,at_inv)),lv=lvar(F);
-  const bool rat=lv.size()==1 && lv.front()==x; // a rational function: giac's partial fractions
+  const vecteur v=mergevecteur(lop(F,at_pow),lop(F,at_inv));
   for (const_iterateur it=v.begin();it!=v.end();++it){
     const bool i=it->is_symb_of_sommet(at_inv);
     gen b=it->_SYMBptr->feuille,e=-1;
@@ -1595,9 +1594,9 @@ static giac::gen usub(const giac::gen & F,const giac::gen & x){
       e=i?-p._VECTptr->back():p._VECTptr->back();
       b=p._VECTptr->front();
     }
-    // (not b^e alone: b is linear, giac's at once; nor a rational function's b^+-1, b^+-2: giac's
-    // partial fractions, without seconds of tests on the calculator)
-    if (b==x || *it==F || free_of(b,x) || !free_of(e,x) || (rat && e.type==_INT_ && e.val>=-2 && e.val<=2))
+    // (every power is tried, a lone one or a rational function's too: giac took longer on the
+    // calculator for 1/sqrt(x+1) from 0 to 3, 2 s, not 0.7 s, or (2x+1)/(x^2+x+5), 5.7 s, not 1.9 s)
+    if (b==x || free_of(b,x) || !free_of(e,x))
       continue;
     // F/(b^e*b') constant: in decimals at two points first (ratnormal of each power of a rational
     // function, to no avail, took seconds on the calculator)
@@ -2938,6 +2937,13 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
   }
   return sym1(&g._SYMBptr->sommet,f);
 }
+bool answer_simplify(){ // as add_autosimplify, without parsing the setting (~30 ms on the calculator)
+  const std::string s=giac::autosimplify(contextptr);
+  return !(s.empty() || s=="'nop'" || s=="Nop" || s=="nop");
+}
+void answer_set_simplify(bool on){
+  giac::_autosimplify(giac::gen(on?1:0),contextptr); // giac's default (regroup), or none
+}
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
   if (strstr(buf,"perm(") || strstr(buf,"nPr("))
@@ -2986,8 +2992,10 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   a.tabled=!is_zero(tab);
   const gen ga=add_autosimplify(g,contextptr);
   // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
-  // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8
-  a.autosimp=!(ga==g) || g.is_symb_of_sommet(at_diff);
+  // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8. Simplify
+  // answers off: ga is g, nothing is simplified
+  a.simp=answer_simplify();
+  a.autosimp=!(ga==g) || (a.simp && g.is_symb_of_sommet(at_diff));
   g=a.tabled?tab:is_zero(parts)?ga:parts; // (parts: evaluated and normalized as giac's answers)
 }
 
@@ -3085,7 +3093,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   focus_phase=84;
   if (a.typed_sec) // sec(x)tan(x), not sin(x)/cos(x)^2, for the derivative of sec(x)
     g=sec_only(g);
-  if (g.type==_SYMB && !contains(g,at_sum) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
+  if (a.simp && g.type==_SYMB && !contains(g,at_sum) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
     // left: evalf would sum it), its terms collected:
     const gen m=map_nodes(g,ln_power,0),e=radicals(m)==1?normal(m,contextptr):ratnormal(m,contextptr); // 12ln(2)-6ln(4)+3: 3; subst's
     if (!is_undef(e) && e.type!=_STRNG && plus_terms(e)<plus_terms(g) && taille(e,400)<=taille(g,400))

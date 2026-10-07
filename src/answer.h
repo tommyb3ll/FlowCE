@@ -16,9 +16,17 @@ struct answer_ctx {
   bool definite;     // integrate(f,x,a,b): undef means it diverges
   bool tabled;       // the answer was known without eval (sec, csc, power sums): g is it
   bool autosimp;     // the result gets auto_simplify (not factor(...), expand(...), programs)
+  bool simp;         // Simplify answers is on (answer_simplify)
   bool typed_sum, typed_limit; // the text has sum( or limit( (an oscillating result's message)
   bool typed_sec;    // the text has sec(, csc( or cot(: the answer is written with them too
 };
+
+// Simplify answers (the mode key's menu, kept with the session): giac's autosimplify, off as
+// autosimplify(0). Off, results are giac's as evaluated (no normalization; still shown in
+// textbook notation, and integrals and sums still use the tables), e.g. to keep a factored
+// form when an answer is stored with sto.
+bool answer_simplify();
+void answer_set_simplify(bool on);
 
 // the typed text, in place (capacity cap): paper notation and TI implicit multiplication; Focus:
 // log( is log10(, a sum's index i is another letter

@@ -879,30 +879,39 @@ int run_session(int start=0){
   return 0;
 }
 
+bool answer_simplify(); // answer.cc: Simplify answers (giac's autosimplify, kept with the session)
+void answer_set_simplify(bool on);
 void menu_setup(){
   //drawRectangle(0, 18, LCD_WIDTH_PX, LCD_HEIGHT_PX-18, SDK_WHITE);
   Menu smallmenu;
-  smallmenu.numitems=5;
+  smallmenu.numitems=6;
   MenuItem smallmenuitems[smallmenu.numitems];
   smallmenu.items=smallmenuitems;
-  smallmenu.height=5;
+  smallmenu.height=6;
   smallmenu.width=20;
   smallmenu.startY=3;
   smallmenu.scrollbar=1;
   smallmenu.scrollout=1;
   smallmenu.title = (char*)"Config";
-  //smallmenuitems[0].type = MENUITEM_CHECKBOX;
-  smallmenuitems[0].text = (char*)(lang?"Mise a l'heure":"Set time");
-  smallmenuitems[1].text = (char*)(lang?"Effacer variables":"Clear variables");
-  smallmenuitems[2].text = (char *) (lang?"Raccourcis":"Shortcuts");
-  smallmenuitems[3].text = (char*) (lang?"A propos":"About");
-  smallmenuitems[4].text = (char*) "Quit";
+  // off: an answer stays as giac gives it (B. Parisse: to store a result with sto as it is)
+  smallmenuitems[0].type = MENUITEM_CHECKBOX;
+  smallmenuitems[0].text = (char*)(lang?"Simplifier":"Simplify answers");
+  smallmenuitems[1].text = (char*)(lang?"Mise a l'heure":"Set time");
+  smallmenuitems[2].text = (char*)(lang?"Effacer variables":"Clear variables");
+  smallmenuitems[3].text = (char *) (lang?"Raccourcis":"Shortcuts");
+  smallmenuitems[4].text = (char*) (lang?"A propos":"About");
+  smallmenuitems[5].text = (char*) "Quit";
   while(1) {
+    smallmenuitems[0].value = answer_simplify();
     const int sres = doMenu(&smallmenu);
     if (sres==MENU_RETURN_EXIT)
       break;
     if (sres == MENU_RETURN_SELECTION) {
       if (smallmenu.selection==1){
+        answer_set_simplify(!answer_simplify());
+        continue;
+      }
+      if (smallmenu.selection==2){
 	int h,m; get_time(&h,&m);
 	double d=h+m/100.;
 	char buf[64]="Format HH.mm ";
@@ -914,23 +923,23 @@ void menu_setup(){
 	  //break;
 	}
       }
-      if (smallmenu.selection==2 && confirm_overwrite()){
+      if (smallmenu.selection==3 && confirm_overwrite()){
         run("restart");
         //break;
       }
-      if (smallmenu.selection==5)
+      if (smallmenu.selection==6)
 	break;
-      if (smallmenu.selection>=3 && focus_on){ // Shortcuts, About
-        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==3?shortcuts_string:apropos_string);
+      if (smallmenu.selection>=4 && focus_on){ // Shortcuts, About
+        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==4?shortcuts_string:apropos_string);
         Console_Disp(1);
         continue;
       }
-      if (smallmenu.selection>=3) {
+      if (smallmenu.selection>=4) {
 	textArea text;
 	text.editable=false;
 	text.clipline=-1;
 	text.title = smallmenuitems[smallmenu.selection-1].text;
-	add(&text,smallmenu.selection==3?shortcuts_string:apropos_string);
+	add(&text,smallmenu.selection==4?shortcuts_string:apropos_string);
         text.minimini=false;
 	doTextArea(&text);
 	continue;
