@@ -3006,6 +3006,8 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   answer_simplify(); // autosimplify(0) typed: the status bar shows it with this answer
   if (a.definite && a.real_in && has_i(g) && !has_inf_or_undef(g))
     g=real_ftc(a.gin,g); // x^(-1/3) from -1 to 8: 9/2
+  if (interrupted) // ON (main.cc says Interrupted): none of the steps below on giac's errors
+    return;
   if (contains(g,at_bounded_function)) // lim sin(x) at infinity, sum((-1)^n)
     msg=a.typed_sum?"diverges (the terms do not go to 0)":a.typed_limit?"no limit (it oscillates)":"";
   else if (g.is_symb_of_sommet(at_sum)) // an infinite sum giac could not do
@@ -3054,6 +3056,8 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     g=integrate_by_parts(a.gin,g);
     trace_step("by parts",g);
   }
+  if (interrupted)
+    return;
   if (a.autosimp && !a.tabled){
     g=auto_simplify(g);
     g=collect_rational(power_sums(g)); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
@@ -3094,6 +3098,8 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     trace_step("drop_constants",g);
   }
   focus_phase=84;
+  if (interrupted)
+    return;
   if (a.typed_sec) // sec(x)tan(x), not sin(x)/cos(x)^2, for the derivative of sec(x)
     g=sec_only(g);
   if (a.simp && g.type==_SYMB && !contains(g,at_sum) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac

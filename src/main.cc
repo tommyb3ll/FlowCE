@@ -1232,7 +1232,7 @@ void do_run(const char * s){
     }
     else {
       answer_after(g,actx,msg,graw);
-      if (focus_on && msg.empty()) // ("diverges": g is not shown)
+      if (focus_on && msg.empty() && !giac::interrupted) // ("diverges": g is not shown)
         result_approx(g);
       if (giac::interrupted || giac::ctrl_c){ // ON while simplifying: giac's "Stopped by user
         msg=oom_hit?"Out of memory":"Interrupted"; // interruption" texts were in the result
