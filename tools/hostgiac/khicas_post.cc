@@ -39,7 +39,8 @@ std::string khicas_do_run(const char * s){
     }
     else {
       answer_after(g,a,msg,graw);
-      result_approx(g); // focus_on
+      if (msg.empty()) // focus_on
+        result_approx(g);
     }
     if (a.definite && msg.empty() && is_undef(g))
       msg="diverges (the integrand is unbounded on the interval)";

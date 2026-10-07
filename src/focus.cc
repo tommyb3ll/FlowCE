@@ -743,7 +743,8 @@ void focus_busy(int on) {
 }
 bool focus_busy_tick() {
 #ifdef TICE
-  if (busy_t0 < 0) return false;
+  static unsigned char calls;
+  if (busy_t0 < 0 || (++calls & 7)) return false; // the clock every 8 checks (it cost 3% of a sum)
   long t = (long)(clock)() - busy_t0;
   if (t < 13107) return false; // 0.4 s
   int fr = (int)((t >> 13) % 3);
