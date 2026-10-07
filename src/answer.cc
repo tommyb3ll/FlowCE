@@ -2937,12 +2937,14 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
   }
   return sym1(&g._SYMBptr->sommet,f);
 }
+bool answer_simplify_on=true;
 bool answer_simplify(){ // as add_autosimplify, without parsing the setting (~30 ms on the calculator)
   const std::string s=giac::autosimplify(contextptr);
-  return !(s.empty() || s=="'nop'" || s=="Nop" || s=="nop");
+  return answer_simplify_on=!(s.empty() || s=="'nop'" || s=="Nop" || s=="nop");
 }
 void answer_set_simplify(bool on){
   giac::_autosimplify(giac::gen(on?1:0),contextptr); // giac's default (regroup), or none
+  answer_simplify_on=on;
 }
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
@@ -3001,6 +3003,7 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
 
 void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen & graw){
   using namespace giac;
+  answer_simplify(); // autosimplify(0) typed: the status bar shows it with this answer
   if (a.definite && a.real_in && has_i(g) && !has_inf_or_undef(g))
     g=real_ftc(a.gin,g); // x^(-1/3) from -1 to 8: 9/2
   if (contains(g,at_bounded_function)) // lim sin(x) at infinity, sum((-1)^n)

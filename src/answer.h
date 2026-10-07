@@ -27,6 +27,10 @@ struct answer_ctx {
 // form when an answer is stored with sto.
 bool answer_simplify();
 void answer_set_simplify(bool on);
+// the setting as last read or set (each calculation, the session save, the menu), for the status
+// bar: no allocation there (after ON stopped a calculation, memory can be full: a malloc there
+// closed the app)
+extern bool answer_simplify_on;
 
 // the typed text, in place (capacity cap): paper notation and TI implicit multiplication; Focus:
 // log( is log10(, a sum's index i is another letter

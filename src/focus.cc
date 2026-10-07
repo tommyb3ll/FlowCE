@@ -26,7 +26,7 @@ int console_caret();                // console.cc: caret index in the edit line,
 extern const char * console_form_name; // main.cc: the form F4 last gave console_form_line()
 const char * console_form_line();
 extern const char * console_approx_for; // main.cc: the decimal value of that printed result
-bool answer_simplify();             // answer.cc: Simplify answers (mode) is on
+extern bool answer_simplify_on;     // answer.cc: Simplify answers (mode) is on, as last read
 const char * console_approx();
 
 // what a result line shows: giac prints the lists of solve as list[a,b], shown [a,b]
@@ -503,7 +503,7 @@ static void status_draw(int force) {
   // a view types letters directly (the command search locks alpha): no 2nd/alpha chip there
   int fl = stat_view ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
   // the middle: a message, else the modes go on as on a TI ("SIMPLIFY OFF", mode's setting)
-  const char * mid = smsg[0] || stat_view || answer_simplify() ? smsg : "\1SIMPLIFY OFF";
+  const char * mid = smsg[0] || stat_view || answer_simplify_on ? smsg : "\1SIMPLIFY OFF";
   int dl = force || strcmp(buf, stat_l), dm = force || strcmp(mid, stat_m), dr = force || r != stat_r;
   if (!dl && !dm && !dr) { focus_phase = ph; return; }
   focus_phase = 13;

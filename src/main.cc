@@ -1442,6 +1442,7 @@ int main1(){
   focus_init(); // the palette, for the start screen
   starting=true;
   restore_session("session");
+  answer_simplify(); // the restored setting, for the status bar
 #ifndef FAKE_GIAC
   angle_radian(os_get_angle_unit(),contextptr);
 #endif
