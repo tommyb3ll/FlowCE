@@ -1913,16 +1913,17 @@ const char * trig(){
   static int console_input_call(const char * s){
     char buf[64];
     const int l=strlen(s);
-    int n=focus_call_template(s,buf,sizeof(buf));
+    int c=l,n=focus_call_template(s,buf,sizeof(buf),&c);
     if (!n){
       if (l>60)
         return Console_Input((const Char *)s);
       strcpy(buf,s);
       strcpy(buf+l,")");
       n=l+1;
+      c=l;
     }
     const int r=Console_Input((const Char *)buf);
-    for (int b=n-l;b>0;--b)
+    for (int b=n-c;b>0;--b)
       Console_MoveCursor(CURSOR_LEFT);
     return r;
   }
@@ -2403,9 +2404,10 @@ int Console_GetKey(){
       continue;
     }
     // 2D input: keys that respect the drawn structure (mathedit.cc). / makes a fraction of the
-    // term left of the caret, the caret in its denominator; ( wraps the rest of the slot; ) steps
-    // out of a group or wraps what is left of it; , = < > leave a denominator or an exponent
-    // first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can be extended).
+    // term left of the caret, the caret in its denominator; ( [ { wrap the rest of the slot; )
+    // steps out of a group or wraps what is left of it, ] } step over theirs; , = < > leave a
+    // denominator or an exponent first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can
+    // be extended).
     if (focus_on && key=='\t') // the TI-84 CE's x^-1 key (the French model's exact/decimal key: a tab)
       key=KEY_CHAR_RECIP;
     // TI: an operator first on an empty line works on the last answer (*2: Ans*2; the (-) key is
@@ -2417,7 +2419,8 @@ int Console_GetKey(){
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
-          key==KEY_CHAR_EQUAL || key=='<' || key=='>' || key==KEY_CHAR_PLUS || key==KEY_CHAR_MINUS)
+          key==KEY_CHAR_EQUAL || key=='<' || key=='>' || key==KEY_CHAR_PLUS || key==KEY_CHAR_MINUS ||
+          key==KEY_CHAR_LBRCKT || key==KEY_CHAR_RBRCKT || key==KEY_CHAR_LBRACE || key==KEY_CHAR_RBRACE)
         mk=key;
       else if (key==KEY_CHAR_SQUARE)
         mk=ME_SQUARE;

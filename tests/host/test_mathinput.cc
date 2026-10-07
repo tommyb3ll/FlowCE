@@ -469,6 +469,21 @@ static void t_labels() {
   mi_build(s, slen(s), -1, m, L);
   CHECKEQ(OP(opc(L, MI_HINT, 1)).len, 8);
   CHECKEQ(OP(opc(L, MI_BOX, 1)).w, 8 * 6 + 6);
+  s = "linsolve([],[])";                              // lists: the names inside their brackets
+  mi_build(s, slen(s), 10, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 2); CHECKEQ(cnt(L, MI_BOX), 2);
+  CHECKEQ(cnt(L, MI_LBRACKET), 2); CHECKEQ(cnt(L, MI_RBRACKET), 2);
+  CHECKEQ(OP(opc(L, MI_HINT)).len, 10);               // eq1,eq2,.. (no brackets of its own)
+  CHECK(!strncmp(OP(opc(L, MI_HINT)).lit, "eq1,eq2,..", 10));
+  CHECK(OP(opc(L, MI_LBRACKET)).x < OP(opc(L, MI_BOX)).x && OP(opc(L, MI_BOX)).x < OP(opc(L, MI_RBRACKET)).x);
+  CHECKEQ(L.cx, OP(opc(L, MI_BOX)).x - 1);           // the caret inside the first list
+  s = "linsolve([1],[])";
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 1);
+  CHECK(!strncmp(OP(opc(L, MI_HINT)).lit, "x,y,..", 6));
+  s = "f([])";                                        // an empty list elsewhere: no box
+  mi_build(s, slen(s), -1, m, L);
+  CHECKEQ(cnt(L, MI_HINT), 0); CHECKEQ(cnt(L, MI_BOX), 0);
   s = "f(,)";                                         // no names: plain boxes
   mi_build(s, slen(s), -1, m, L);
   CHECKEQ(cnt(L, MI_HINT), 0); CHECKEQ(cnt(L, MI_BOX), 2);
@@ -482,7 +497,8 @@ static void t_labels() {
   // the arrows stop at the same positions with names as without
   mi_metrics mh = m;
   mh.flags = MI_F_CALLBOX | MI_F_HINTS;
-  for (const char * t : {"powmod(,,)", "powmod(2,,x+1)", "linsolve(,[x,y])", "1+powmod(,(1)/(),)"})
+  for (const char * t : {"powmod(,,)", "powmod(2,,x+1)", "linsolve(,[x,y])", "1+powmod(,(1)/(),)",
+                         "linsolve([],[])", "linsolve([1,2],[])", "linsolve([[]],[])"})
     for (int p = 0; p <= slen(t); ++p)
       for (int dir = 0; dir < 2; ++dir)
         CHECKEQ(mi_move(t, slen(t), p, dir, mh), mi_move(t, slen(t), p, dir, m));

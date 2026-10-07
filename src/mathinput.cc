@@ -300,11 +300,20 @@ static int pcall(int nm) { // name( args ): normal or special call
     if (na == 1 && T[t].k == K_EMPTY && namei(nm, "ans") && (T[cl].f & F_CLOSED)) T[cl].f |= F_HID; // ans(): Ans, as on a TI
     if ((M->flags & MI_F_HINTS) && mi_arg_label) { // its empty arguments show their names
       for (int i = 0, q = T[nm].nx; q; q = T[q].nx) {
-        if (T[q].k == K_SEP) ++i;
-        else if (T[q].k == K_EMPTY && !(T[q].f & F_NOBOX) && nlb < MAXLB) {
-          const char * s;
-          int n = mi_arg_label(S + T[nm].c, T[nm].b - T[nm].c, i, &s);
-          if (n > 0 && n < 40) { lbn[nlb] = (short)q; lbs[nlb] = s; lbl[nlb++] = (unsigned char)n; T[q].f |= F_LABEL; ++nops; }
+        if (T[q].k == K_SEP) { ++i; continue; }
+        int e = q, in = 0; // the box: the argument, or inside it when it is an empty [ ] (a list)
+        if (T[q].k == K_GROUP && S[T[q].c] == '[' && T[T[q].kid].k == K_EMPTY) e = T[q].kid, in = 1;
+        if (T[e].k != K_EMPTY || (!in && (T[e].f & F_NOBOX)) || nlb >= MAXLB) continue;
+        const char * s;
+        int n = mi_arg_label(S + T[nm].c, T[nm].b - T[nm].c, i, &s);
+        if (in) { // inside the list's brackets: the name without its own ([x,y,..]: x,y,..)
+          if (n < 2 || s[0] != '[' || s[n - 1] != ']') continue;
+          ++s; n -= 2;
+        }
+        if (n > 0 && n < 40) {
+          lbn[nlb] = (short)e; lbs[nlb] = s; lbl[nlb++] = (unsigned char)n;
+          T[e].f = (unsigned char)((T[e].f | F_LABEL) & ~F_NOBOX);
+          ++nops;
         }
       }
     }

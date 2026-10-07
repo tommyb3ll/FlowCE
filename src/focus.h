@@ -64,9 +64,10 @@ int focus_popover(int key, const char ** text, int * back);
 // empty. Returns 1 and fills out (0-terminated, at most outsize bytes) with the text to insert,
 // or 0 when cancelled. On return the console redraws everything (Console_Disp(1)).
 int focus_catalog(const char * query, char * out, int outsize);
-// a call's template from its catalog signature: "irem(" -> "irem(,)", a box per required argument.
-// Returns its length (the caret goes back to just after its "("), 0 if the command has none.
-int focus_call_template(const char * s, char * out, int outsize);
+// a call's template from its catalog signature: "irem(" -> "irem(,)", a box per required argument,
+// lists with their brackets (linsolve([],[])). Returns its length, *caret (may be 0) the offset
+// of the first box; 0 if the command has none.
+int focus_call_template(const char * s, char * out, int outsize, int * caret);
 // the name of argument i of a call to name[0,n) (the edit line's empty boxes): its length, 0 if none
 int focus_arg_label(const char * name, int n, int i, const char ** label);
 // the catalog entry of the call the caret is in (2 or more arguments), -1 if none; its help line:

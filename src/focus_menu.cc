@@ -563,7 +563,7 @@ int focus_fmenu(int idx, const char * const * e, int n) {
       it[k].label = pv[k]; it[k].text = 0;
     } else if (!it[k].label && w) { it[k].label = s; it[k].text = 0; } // red, filled: the word alone
     else if (L > 1 && L < 23 && s[L - 1] == '(') { // irem( drawn as it goes in: irem(□,□)
-      if (!focus_call_template(s, pv[k], sizeof(pv[k]))) { memcpy(pv[k], s, L); pv[k][L] = ')'; pv[k][L + 1] = 0; }
+      if (!focus_call_template(s, pv[k], sizeof(pv[k]), 0)) { memcpy(pv[k], s, L); pv[k][L] = ')'; pv[k][L + 1] = 0; }
       it[k].pv = pv[k];
     }
   }

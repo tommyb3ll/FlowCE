@@ -120,6 +120,24 @@ static const tcase cases[] = {
   {"f(x^(2|),)", ",", "f(x^(2),|)", 1, 0},
   {"irem(17|,)", ",5)", "irem(17,5)|", 1, 0},       // typed in full over the template
   {"f(a|,b)", ",", "f(a,|,b)", 0, 0},                // before a filled argument: a new one
+  {"linsolve([e]|,[])", ",", "linsolve([e],[|])", 1, 0}, // before an empty list: into it
+  {"linsolve([e]|,[1])", ",", "linsolve([e],|,[1])", 0, 0},
+  {"linsolve([|],[])", "x,y],z", "linsolve([x,y],[z|])", 0, 0}, // a list template filled in
+
+  // ---- [ ] { }: [ and { close themselves, ] and } step over theirs
+  {"|", "[", "[|]", 1, 0},
+  {"|", "{", "{|}", 1, 0},
+  {"x+|", "[", "x+[|]", 1, 0},
+  {"f(|x,y)", "[", "f([|x],y)", 1, 0},               // the rest of the slot, as (
+  {"[1,2|]", "]", "[1,2]|", 1, 0},
+  {"{1|}", "}", "{1}|", 1, 0},
+  {"[x^(2|)]", "]", "[x^(2)]|", 1, 0},               // out of the exponent first
+  {"[(1)/(2|)]", "]", "[(1)/(2)]|", 1, 0},
+  {"f(1|)", "]", "f(1]|)", 0, 0},                    // not its kind: typed as is
+  {"[1|]", "}", "[1}|]", 0, 0},
+  {"|", "[[1,2],[3,4]]", "[[1,2],[3,4]]|", 1, 0},    // a matrix typed as is
+  {"det(|)", "[[1,2],[3,4]]", "det([[1,2],[3,4]]|)", 1, 0},
+  {"\"a|\"", "[", "\"a[|\"", 0, 0},                  // in a string: typed as is
   {"(\"a,b\"|)", ",", "(\"a,b\",|)", 0, 0},
   {"\"(a)/(b|)\"", ",", "\"(a)/(b,|)\"", 0, 0},       // in a string
   {"x|", "+", "x+|", 0, 0},                           // keys that are not handled
@@ -396,7 +414,8 @@ static void fuzz_fail(const char * what, const std::string & before, int caret, 
 }
 
 static void fuzz(unsigned long long seed, long steps) {
-  static const int keys[] = {'/', '(', ')', ',', '=', '<', '>', ME_SQUARE, ME_RECIP, -1, -1, -1, 'x', '+', '1'};
+  static const int keys[] = {'/', '(', ')', ',', '=', '<', '>', ME_SQUARE, ME_RECIP, -1, -1, -1, 'x', '+', '1',
+                             '[', ']', '{', '}'};
   rng r = {seed * 2654435761ULL + 88172645463325252ULL};
   while (g_fuzz_steps < steps) {
     std::string init = gen(r, 3);

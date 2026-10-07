@@ -27,14 +27,17 @@
 //       their dots, groups, calls), each with ^ exponents (^(..), ^2, ^n) and postfix ! '.
 //       x| -> (x)/(|)   2sin(x)| -> (2sin(x))/(|)   a+b| -> a+(b)/(|)   -x| -> -(x)/(|)
 //       A term that is one ( group is reused: (a+b)| -> (a+b)/(|). No term: a+| -> a+(|)/().
-//  , = < >  with the caret in a denominator or an exponent: the caret moves after that
-//       group, again while it is still in one; then a , or = equal to the key right there is
+//  , = < > ] }  with the caret in a denominator or an exponent: the caret moves after that
+//       group, again while it is still in one; then a , = ] } equal to the key right there is
 //       stepped over (1), else the caller inserts the key at the new caret (0):
 //       (a)/(b|) , -> (a)/(b),|    integrate((x)/(1+x|),x) , -> integrate((x)/(1+x),|x)
+//       [x^(2|)] ] -> [x^(2)]|     [1,2|] ] -> [1,2]|
+//       A , right before an empty argument (a template's next box) is stepped over, into an
+//       empty list: irem(17|,) -> irem(17,|)   linsolve([e]|,[]) -> linsolve([e],[|]).
 //       Elsewhere 0 (the caret does not move).
-//  (    right after an empty ^( ): nothing (1), the exponent box is the group: e^(-x) typed
-//       is e^(-x). Else ( at the caret and ) at the end of the current slot:
-//       |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2)). In an empty denominator the group
+//  ( [ {  right after an empty ^( ): ( does nothing (1), the exponent box is the group: e^(-x)
+//       typed is e^(-x). Else the opener at the caret and its closer at the end of the current
+//       slot: |x+1 -> (|x+1)   x+| -> x+(|)   x^(|2) -> x^((|2))   | [ -> [|]. In an empty denominator the group
 //       is the user's, inside the box: 1/(x+1) typed is (1)/((x+1)|), and what follows stays in
 //       the denominator: 1/(x+1)x is (1)/((x+1)x) (the box ended at the ), a later x landed
 //       outside the fraction, before dx).
@@ -193,11 +196,20 @@ int me_key(char * s, int cap, int * caret, int key) {
   if ((unsigned)p > (unsigned)n || instr(s, p)) return 0; // also p < 0
   o = grp(s, p, &a);
   i = j = p;
-  if (key == ',' || key == '=' || key == '<' || key == '>') {
+  if (key == ',' || key == '=' || key == '<' || key == '>' || key == ']' || key == '}') {
     for (t = 0; o > 0 && s[o] == '(' && (s[o - 1] == '/' || s[o - 1] == '^') && (e = mt(s, o)) >= p; t = 1)
       o = grp(s, p = e + 1, &a); // leave the denominator / exponent (p only grows)
-    // a comma before an empty argument (a template's next box: irem(17|,)) is stepped over
-    if (key == ',' && C(p) == ',' && (C(p + 1) == ',' || cls(C(p + 1)))) { *caret = p + 1; return 1; }
+    if (key == ']' || key == '}') { // a closer of that kind right there is stepped over
+      t = C(p) == key;
+      *caret = p + t;
+      return t;
+    }
+    // a comma before an empty argument (a template's next box: irem(17|,)) is stepped over;
+    // before an empty list (linsolve([..]|,[])), into it
+    if (key == ',' && C(p) == ',') {
+      int q = C(p + 1) == '[' && C(p + 2) == ']' ? p + 3 : p + 1;
+      if (C(q) == ',' || cls(C(q))) { *caret = q == p + 3 ? p + 2 : p + 1; return 1; }
+    }
     if (!t) return 0;
     t = (key == ',' || key == '=') && C(p) == key; // step over it, else the caller inserts it
     *caret = p + t;
@@ -208,9 +220,11 @@ int me_key(char * s, int cap, int * caret, int key) {
     if (t < 0) x = "()/()", d = 1;
     else if (C(t) == '(' && mt(s, t) == p - 1) x = "/()", d = 2; // one group: reused
     else x = ")/()", y = "(", j = t, d = 4;
-  } else if (key == '(') {
-    if (p > 1 && s[p - 1] == '(' && s[p - 2] == '^' && s[p] == ')') return 1; // empty ^(): reused
-    i = slend(s, p), x = ")", y = "(", d = 1;
+  } else if (key == '(' || key == '[' || key == '{') {
+    if (key == '(' && p > 1 && s[p - 1] == '(' && s[p - 2] == '^' && s[p] == ')') return 1; // empty ^(): reused
+    i = slend(s, p), d = 1;
+    x = key == '(' ? ")" : key == '[' ? "]" : "}";
+    y = key == '(' ? "(" : key == '[' ? "[" : "{";
   } else if (key == ')') {
     if (cls(C(p))) { // stepped over; past the ) of a denominator or an exponent (no bracket on
       for (;;) {     // screen) the next closer is too: ) closes what the user opened

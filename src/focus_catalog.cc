@@ -114,17 +114,26 @@ static int name_at(const char * s) { // the length of the command name s starts 
 
 // a call's template: the command s names ("irem(" or "irem"), "(", one empty argument per
 // required argument of its signature in the catalog, ")": "irem(a,b)" gives irem(,), which the
-// editor draws with a box per argument. Returns its length, 0 if the command has no signature.
-int focus_call_template(const char * s, char * out, int outsize) {
+// editor draws with a box per argument; a list comes with its brackets: "linsolve([eq1,..],
+// [x,..])" gives linsolve([],[]). Returns its length (*caret: where the caret goes, in the first
+// box), 0 if the command has no signature.
+int focus_call_template(const char * s, char * out, int outsize, int * caret) {
   int n = name_at(s);
   call_sig g;
-  if (!n || (s[n] && s[n] != '(') || n + 3 > outsize || call_sig_of(s, n, g) < 0) return 0;
+  if (!n || (s[n] && s[n] != '(') || call_sig_of(s, n, g) < 0 || n + 3 * g.req + 3 > outsize) return 0;
   memcpy(out, s, n);
-  int k = n;
+  int k = n, c = 0;
   out[k++] = '(';
-  for (int j = 1; j < g.req && k < outsize - 2; ++j) out[k++] = ',';
+  for (int j = 0; j < g.req; ++j) {
+    if (j) out[k++] = ',';
+    if (g.a[j][0] == '[') out[k++] = '[';
+    if (!j) c = k;
+    if (g.a[j][0] == '[') out[k++] = ']';
+  }
+  if (!g.req) c = k;
   out[k++] = ')';
   out[k] = 0;
+  if (caret) *caret = c;
   return k;
 }
 
