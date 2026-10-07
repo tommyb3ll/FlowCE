@@ -33,11 +33,12 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
   `C1·cos(x) + C2·sin(x)`, polynomials in descending powers, `log` meaning base 10, `+ C` on
   antiderivatives. Press **F4** for other forms: simplified, one fraction, factored, expanded,
   decimal.
-- **Calculus 1 and 2, covered.** Derivatives, integrals (trig integrals, trig substitution,
+- **Calculus 1, 2 and 3, covered.** Derivatives, integrals (trig integrals, trig substitution,
   partial fractions, arc length and surface area), improper integrals that say *diverges* when
   they do, limits that say *does not exist* (with the left and right values), series and power
-  series sums, Taylor series, Riemann sums, differential equations with initial values,
-  parametric and polar areas, complex numbers, vectors.
+  series sums (a decimal value when there is no closed form), Taylor series, Riemann sums,
+  differential equations with initial values, parametric and polar areas, gradients and
+  directional derivatives, multiple integrals, complex numbers, vectors.
 - **Keys that work like a TI's.** `(-)` is a minus sign and `2nd (-)` is **Ans**. Starting a line
   with `×`, `÷`, `+`, `−` or `^` works on the last answer (`× 2 enter` doubles it). `2nd enter`
   brings back your last input (ENTRY), and `sto→` stores (`5 → b`).
@@ -46,8 +47,10 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 - **History and search.** **▲** walks through your past calculations; enter reuses an input or an
   answer. **▼** searches every command, with descriptions and examples (▲ closes it again).
 - **Paper and Night themes**, switched instantly from the *more* menu.
-- **Stable.** 175 Calc 1 and Calc 2 problems in a row run without a crash. A calculation that runs
-  out of memory stops with a message instead of closing the app, and **ON** stops a long one.
+- **Tested on the calculator itself.** Before a release, about 900 Calc 1–3 problems from textbooks
+  and course sites run on an emulated TI-84 Plus CE, and their answers are checked against a
+  computer's. A long calculation shows *Calculating*, and **ON** stops it; one that runs out of
+  memory stops with a message instead of closing the app.
 
 ## Screenshots
 
