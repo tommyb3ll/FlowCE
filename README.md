@@ -26,7 +26,9 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 
 - **Type math as it looks.** Fractions, powers, roots, integrals, sums, limits and derivatives are
   drawn in 2D while you type. `/` makes a fraction of what is before it, `^` opens an exponent,
-  and the arrows move through the boxes in the order you read them.
+  and the arrows move through the boxes in the order you read them. Commands from the menus and
+  the search come with a box for each argument, labeled with what goes in it
+  (`powmod(a, n, p)`), and a line under the input says what the command does, with an example.
 - **Answers like your textbook.** `arctan((x+1)/2)`, `x − x³/6 + x⁵/120 + O(x⁶)`,
   `C1·cos(x) + C2·sin(x)`, polynomials in descending powers, `log` meaning base 10, `+ C` on
   antiderivatives. Press **F4** for other forms: simplified, one fraction, factored, expanded,
@@ -115,7 +117,7 @@ What it looks like on the calculator:
 
 | Key | What it does |
 |---|---|
-| F1 to F5 | menus: algebra, calculus, trig, symbols, more (with `2nd` or `alpha`: more menus) |
+| F1 to F5 | menus: algebra, calculus, trig, symbols, more (with `2nd` or `alpha`: more menus; the arrows wrap around) |
 | `math` | templates: fraction, root, integrals, derivative, limit, sum |
 | ▲ / ▼ | history / search every command |
 | `enter` on a history line | reuses that input or answer |
@@ -126,6 +128,7 @@ What it looks like on the calculator:
 | `sto→` | stores a value: `5 → b` |
 | `clear` | erases the line; on an empty line, the answer |
 | `/` `^` | a fraction of what is before, an exponent; ▶ leaves it |
+| `[` `{` | brackets that close themselves; `]` `}` step out |
 | ON or `clear` while computing | stops the calculation |
 | *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table |
 | `mode` | settings, shortcuts, about |
