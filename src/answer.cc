@@ -1578,8 +1578,8 @@ static giac::gen usub(const giac::gen & F,const giac::gen & x){
       e=i?-p._VECTptr->back():p._VECTptr->back();
       b=p._VECTptr->front();
     }
-    if (b==x || *it==F || is_constant_wrt(b,x,contextptr) || !is_constant_wrt(e,x,contextptr))
-      continue; // (F=b^e alone: b linear, giac's at once; arc lengths' sqrt(...) took seconds to differentiate)
+    if (b==x || is_constant_wrt(b,x,contextptr) || !is_constant_wrt(e,x,contextptr))
+      continue;
     // F/(b^e*b') constant: in decimals at two points first (ratnormal of each power of a rational
     // function, to no avail, took seconds on the calculator)
     const gen r=F/(*it*derive(b,x,contextptr));
@@ -3099,7 +3099,7 @@ std::string answer_print(const giac::gen & g,const giac::gen & graw,const answer
     strip_equation_parens(printed);              // x=(-sqrt(2)),x=(sqrt(2))
     chain_inequalities(printed);
   }
-  if (printed.size()>70 && graw.type==_SYMB){ // (a long polynomial)/182: term by term
+  if (printed.size()>70 && graw.type==_SYMB && !contains(graw,at_order_size)){ // (a long polynomial)/182: term by term (not a series: its O() spread)
     const gen d=_denom(graw,contextptr);       // (x^14/14+...), which wraps
     if ((d.type==_INT_ || d.type==_ZINT) && !is_one(d) && _numer(graw,contextptr).is_symb_of_sommet(at_plus)){
       gen x=expand(graw,contextptr);
