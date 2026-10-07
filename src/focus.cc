@@ -26,6 +26,7 @@ int console_caret();                // console.cc: caret index in the edit line,
 extern const char * console_form_name; // main.cc: the form F4 last gave console_form_line()
 const char * console_form_line();
 extern const char * console_approx_for; // main.cc: the decimal value of that printed result
+bool answer_simplify();             // answer.cc: Simplify answers (mode) is on
 const char * console_approx();
 
 // what a result line shows: giac prints the lists of solve as list[a,b], shown [a,b]
@@ -501,7 +502,9 @@ static void status_draw(int force) {
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
   // a view types letters directly (the command search locks alpha): no 2nd/alpha chip there
   int fl = stat_view ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
-  int dl = force || strcmp(buf, stat_l), dm = force || strcmp(smsg, stat_m), dr = force || r != stat_r;
+  // the middle: a message, else the modes go on as on a TI ("SIMPLIFY OFF", mode's setting)
+  const char * mid = smsg[0] || stat_view || answer_simplify() ? smsg : "\1SIMPLIFY OFF";
+  int dl = force || strcmp(buf, stat_l), dm = force || strcmp(mid, stat_m), dr = force || r != stat_r;
   if (!dl && !dm && !dr) { focus_phase = ph; return; }
   focus_phase = 13;
   if (dl) {
@@ -511,10 +514,11 @@ static void status_draw(int force) {
     spaced_text(&ui_tb9, buf, 8, 12, ramp(UC_SUB, UC_BG), 1);
   }
   if (dm) {
-    strcpy(stat_m, smsg);
+    strcpy(stat_m, mid);
     ui_clip(SZ_L, 0, SZ_R, SB);
     ui_fill(SZ_L, 0, SZ_R - SZ_L, SB, col(UC_BG));
-    if (smsg[0]) ui_text(&ui_tb9, smsg, (SZ_L + SZ_R) / 2, 12, UC_ACC, UC_BG, 1);
+    if (mid[0] == 1) spaced_text(&ui_tb9, mid + 1, SZ_L + 4, 12, ramp(UC_SUB, UC_BG), 1);
+    else if (mid[0]) ui_text(&ui_tb9, mid, (SZ_L + SZ_R) / 2, 12, UC_ACC, UC_BG, 1);
   }
   if (dr) {
     stat_r = r;
