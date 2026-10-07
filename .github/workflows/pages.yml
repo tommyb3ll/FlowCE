@@ -2,6 +2,8 @@ name: Web page
 
 # Publishes the FlowCE page (site/) on GitHub Pages, with the latest release's FlowCE.b84 for its
 # web installer. Runs when the page or its media change, and when a release is published.
+# A release's run cannot deploy itself: it runs on the tag, and the github-pages environment only
+# takes main. So it starts this workflow on main instead (workflow_dispatch), which deploys.
 on:
   push:
     branches: [main]
@@ -14,13 +16,24 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
+  redeploy:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the page's deployment on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
+
   build:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
