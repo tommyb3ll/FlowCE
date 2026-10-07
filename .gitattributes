@@ -5,3 +5,4 @@ tools/**/*.cmds text eol=lf
 tools/**/*.tsv  text eol=lf
 tests/**/*.sh   text eol=lf
 site/*.sh       text eol=lf
+tools/hostgiac/hk text eol=lf
