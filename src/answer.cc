@@ -981,7 +981,7 @@ static bool trig_factor(const giac::gen & h,int e,const giac::gen & x,giac::gen 
 }
 static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=0){
   using namespace giac;
-  gen f=!depth && f0.is_symb_of_sommet(at_division)?eval(f0,1,contextptr):f0; // ((cos(x)^3+sin(x))/cos(x)^2: a product)
+  gen f=f0;
   if (f.is_symb_of_sommet(at_prod) && depth==0 && f._SYMBptr->feuille.type==_VECT)
     for (const_iterateur it=f._SYMBptr->feuille._VECTptr->begin();it!=f._SYMBptr->feuille._VECTptr->end();++it)
       if (it->is_symb_of_sommet(at_plus) || it->is_symb_of_sommet(at_binary_minus)){
@@ -1024,14 +1024,24 @@ static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=
   return contains(G,at_integrate) || is_undef(G)?gen(0):quotesubst(G,x,symbolic(r==0?at_tan:r==1?at_cot:r==2?at_sin:at_cos,v),contextptr);
 }
 
-// the table, then trig_powers: integrate(h,x) at once, 0 if neither (tan(u): -ln|cos(u)|/a)
+static giac::gen usub(const giac::gen & F,const giac::gen & x); // (below)
+// f at x=v in decimals; false if not a real number (a pole: NaN)
+static __attribute__((noinline)) bool at(const giac::gen & f,const giac::gen & x,double v,double & y){
+  const giac::gen e=giac::evalf(giac::subst(f,x,giac::gen(v),false,contextptr),1,contextptr);
+  y=e._DOUBLE_val;
+  return e.type==giac::_DOUBLE_ && y==y;
+}
+// the table, then trig_powers, then usub: integrate(h,x) at once, 0 if none (tan(u): -ln|cos(u)|/a)
 static giac::gen table_integral(const giac::gen & g){
   using namespace giac;
-  const gen r=table0(g);
+  gen r=table0(g);
   if (!is_zero(r) || !g.is_symb_of_sommet(at_integrate) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=2
       || g._SYMBptr->feuille._VECTptr->back().type!=_IDNT)
     return r;
-  return trig_powers(g._SYMBptr->feuille._VECTptr->front(),g._SYMBptr->feuille._VECTptr->back());
+  // evaluated ((cos(x)^3+sin(x))/cos(x)^2 is a product)
+  const gen f=eval(g._SYMBptr->feuille._VECTptr->front(),1,contextptr),& x=g._SYMBptr->feuille._VECTptr->back();
+  r=trig_powers(f,x);
+  return is_zero(r)?usub(f,x):r;
 }
 
 // integrate(f,x,a,b) over constant bounds with an antiderivative F of the above (sec(x)^3 from 0 to
@@ -1046,9 +1056,9 @@ static __attribute__((noinline)) giac::gen table_definite(const giac::gen & g){
   const vecteur & v=*g._SYMBptr->feuille._VECTptr;
   const gen & f=v[0],& x=v[1],A=evalf(v[2],1,contextptr),B=evalf(v[3],1,contextptr);
   // (not the numeric integrals of numeric_hard_integrals, decimal bounds: evaluating their
-  // integrands for the table took 30 s on the calculator; nor radicals, not in the table)
-  if (x.type!=_IDNT || A.type!=_DOUBLE_ || B.type!=_DOUBLE_ || v[2].type==_DOUBLE_ || v[3].type==_DOUBLE_ || xcas::has_radical(f))
-    return 0;
+  // integrands for the table took 30 s on the calculator)
+  if (x.type!=_IDNT || A.type!=_DOUBLE_ || B.type!=_DOUBLE_ || v[2].type==_DOUBLE_ || v[3].type==_DOUBLE_ || contains(f,at_integrate))
+    return 0; // (nor a double integral: its inner integral was computed twice)
   const gen F=table_integral(symbolic(at_integrate,makesequence(f,x)));
   if (is_zero(F))
     return 0;
@@ -1063,11 +1073,12 @@ static __attribute__((noinline)) giac::gen table_definite(const giac::gen & g){
   double s=0,m=0;
   for (int k=0;k<12;++k){
     const double h=(cut[k/4+1]-cut[k/4])*w;
-    const gen y=evalf(subst(f,x,gen(a+cut[k/4]*w+gx[k%4]*h),false,contextptr),1,contextptr);
-    if (y.type!=_DOUBLE_ || !(y._DOUBLE_val==y._DOUBLE_val))
+    double y;
+    if (!at(f,x,a+cut[k/4]*w+gx[k%4]*h,y))
       return 0;
-    s+=gw[k%4]*h*y._DOUBLE_val;
-    m+=std::abs(gw[k%4]*h*y._DOUBLE_val);
+    const double t=gw[k%4]*h*y;
+    s+=t;
+    m+=std::abs(t);
   }
   return std::abs(s-re._DOUBLE_val)<=1e-3*m?safe_normal(r):gen(0); // (sec(pi/4) is 2/sqrt(2))
 }
@@ -1342,14 +1353,11 @@ static bool n_power(const giac::gen & f,const giac::gen & n){
 // vanish ((n!)^2/(2n)!: 40! is past the calculator's floats)
 static bool term(const giac::gen & f,const giac::gen & n,int m,double & y){
   using namespace giac;
-  for (int k=0;k<2;++k){
-    const gen e=evalf(subst(f,n,k?gen(m):gen(double(m)),false,contextptr),1,contextptr);
-    if (e.type==_DOUBLE_ && e._DOUBLE_val==e._DOUBLE_val && (k || (e._DOUBLE_val!=0 && e._DOUBLE_val<1e30 && e._DOUBLE_val>-1e30))){
-      y=e._DOUBLE_val;
-      return true;
-    }
-  }
-  return false;
+  if (at(f,n,m,y) && y!=0 && y<1e30 && y>-1e30)
+    return true;
+  const gen e=evalf(subst(f,n,m,false,contextptr),1,contextptr);
+  y=e._DOUBLE_val;
+  return e.type==_DOUBLE_ && y==y;
 }
 // f(n) for n=a..a+200 added from the smallest term (floats lose less); alt: an alternating
 // series' value, the partial sums to N-2, N-1, N averaged (1/4, 1/2, 1/4: S-(3t_N+t_N-1)/4, an
@@ -1553,20 +1561,41 @@ static giac::gen power_sum(const giac::gen & g){
     symbolic(at_sum,makesequence(f,n,a,plus_inf)):gen(0);
 }
 
-// the integrand F is c*b'(x)*b(x)^e for one of its radicals b^e: a u-substitution, elementary
-// (surface areas: 2*pi*x^3*sqrt(1+9x^4) went numeric)
-static bool usub(const giac::gen & F,const giac::gen & x){
+// the integrand F (evaluated) is c*b'(x)*b(x)^e for one of its powers b^e (1/b: e=-1), a
+// u-substitution: c*b^(e+1)/(e+1), c*ln|b|; 0 if none. giac found none for
+// 10(1-2x^2)(7-3x+2x^3)^(1/4) and took 25-40 s on the calculator for the others (and wrote
+// cos(3x)(2+sin(3x))^4's expanded, (2+sin(3x))^5/15); surface areas: 2*pi*x^3*sqrt(1+9x^4) went numeric
+static giac::gen usub(const giac::gen & F,const giac::gen & x){
   using namespace giac;
-  const vecteur v=lop(F,at_pow);
+  const vecteur v=mergevecteur(lop(F,at_pow),lop(F,at_inv));
   for (const_iterateur it=v.begin();it!=v.end();++it){
-    const gen & a=it->_SYMBptr->feuille;
-    if (a.type!=_VECT || a._VECTptr->size()!=2 || a._VECTptr->back().type!=_FRAC || is_constant_wrt(a._VECTptr->front(),x,contextptr))
+    const bool i=it->is_symb_of_sommet(at_inv);
+    gen b=it->_SYMBptr->feuille,e=-1;
+    if (!i || b.is_symb_of_sommet(at_pow)){ // b^e, 1/b^n (giac's (2x+3)/(x^2+3x+1)^2)
+      const gen p=i?b._SYMBptr->feuille:b;
+      if (p.type!=_VECT || p._VECTptr->size()!=2)
+        continue;
+      e=i?-p._VECTptr->back():p._VECTptr->back();
+      b=p._VECTptr->front();
+    }
+    if (b==x || *it==F || is_constant_wrt(b,x,contextptr) || !is_constant_wrt(e,x,contextptr))
+      continue; // (F=b^e alone: b linear, giac's at once; arc lengths' sqrt(...) took seconds to differentiate)
+    // F/(b^e*b') constant: in decimals at two points first (ratnormal of each power of a rational
+    // function, to no avail, took seconds on the calculator)
+    const gen r=F/(*it*derive(b,x,contextptr));
+    double r1,r2;
+    if (at(r,x,0.3271,r1) && at(r,x,0.7193,r2) && std::abs(r1-r2)>1e-4*std::abs(r1))
       continue;
-    const gen q=ratnormal(F/(*it*derive(a._VECTptr->front(),x,contextptr)),contextptr);
-    if (!is_undef(q) && !is_inf(q) && is_constant_wrt(q,x,contextptr))
-      return true;
+    const gen q=ratnormal(r,contextptr);
+    if (is_undef(q) || !is_constant_wrt(q,x,contextptr))
+      continue;
+    if (is_minus_one(e)) // (ln|x^2+1| is ln(x^2+1))
+      return q*ln(abs(b,contextptr),contextptr);
+    // b^k/k as written ((x^2+9)^(3/2), not giac's (x^2+9)*sqrt(x^2+9)); -1/(x^2+3x+1)
+    const gen k=e+1;
+    return q*(is_minus_one(k)?symb_inv(b):symbolic(at_pow,makesequence(b,k)))/k;
   }
-  return false;
+  return 0;
 }
 
 // d/dx of an integral with bounds in x, by the fundamental theorem: f(b(x))*b'(x)-f(a(x))*a'(x).
@@ -1609,7 +1638,7 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
     const vecteur & v=*a._VECTptr;
     // constant bounds: numbers, pi, e (an infinite bound is left to giac)
     if (v[1].type==_IDNT && evalf(v[2],1,contextptr).type==_DOUBLE_ && evalf(v[3],1,contextptr).type==_DOUBLE_ && hard_radicand(v[0],v[1])
-        && !usub(eval(v[0],1,contextptr),v[1])){
+        && is_zero(usub(eval(v[0],1,contextptr),v[1]))){
       // numerically, after x = a+(b-a)*sin(pi*t/2)^2: its dx vanishes at both ends and cancels an
       // endpoint singularity (ellipse perimeters: 13.3616 for 13.3649 before)
       const gen a=evalf(v[2],1,contextptr),b=evalf(v[3],1,contextptr),t=gen("t__n",contextptr);
