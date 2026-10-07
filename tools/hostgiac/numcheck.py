@@ -149,22 +149,23 @@ def add(i, c, what, tol):
 
 
 ANSWER_TEXT = {}
+L10 = lambda t: re.sub(r'log\(', 'log10(', t)  # FlowCE's log is base 10, plain giac's natural
 for i, (p, inp) in enumerate(zip(probs, inputs)):
-    k, a = p[0], p[1:]
+    k, a = p[0], [L10(t) for t in p[1:]]
     r, ms = ans.get(inp, ('', -1))
     ANSWER_TEXT[i] = r
     if ms < 0 or not r or r.startswith('does not exist') or r.startswith('diverges') or r.startswith('no ') \
             or r in ('Done', 'Interrupted', 'Out of memory', 'Graphic object'):
         continue
-    rv = r.split('  ~ ')[0]
+    rv = L10(r.split('  ~ ')[0])
     if k == 'int':
         for x0 in PTS:
-            add(i, f'evalf(subst(diff({rv},x)-({a[0]}),x={x0}))', 'd/dx at ' + x0, 1e-6)
+            add(i, f'evalf(subst((diff({rv},x)-({a[0]}))/(1+abs({a[0]})),x={x0}))', 'd/dx at ' + x0, 1e-6)  # (relative: tan(6x)^12 near a pole)
     elif k == 'defint':
-        add(i, f'evalf(({rv})-gaussquad({a[0]},x,{a[1]},{a[2]}))', 'gaussquad', 1e-4)
+        add(i, f'evalf((({rv})-gaussquad({a[0]},x,{a[1]},{a[2]}))/(1+abs(gaussquad({a[0]},x,{a[1]},{a[2]}))))', 'gaussquad', 1e-4)
     elif k == 'diff':
         for x0 in PTS[:3]:
-            add(i, f'evalf(subst({rv},x={x0})-(subst({a[0]},x={x0}+1e-6)-subst({a[0]},x={x0}-1e-6))/2e-6)', 'central diff at ' + x0, 1e-3)
+            add(i, f'evalf((subst({rv},x={x0})-(subst({a[0]},x={x0}+1e-6)-subst({a[0]},x={x0}-1e-6))/2e-6)/(1+abs(subst({rv},x={x0}))))', 'central diff at ' + x0, 1e-3)
     elif k in ('lim', 'limr', 'liml'):
         if a[1] in ('inf', '+inf', 'infinity', '+infinity'):
             pts = ['1e6', '1e8']

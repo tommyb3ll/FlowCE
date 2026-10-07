@@ -444,11 +444,11 @@ giac::gen positive_first(const giac::gen & g){
     }
     if (k<w.size() && w.size()<=64) // not a polynomial: terms c*x^k*(functions) by the degree of
       for (k=0;k<w.size();++k){         // their power of x, the others 0, then trig terms by the
-        deg[k]=x_power(w[k]);           // power of their trig function: sin^5/5-2sin^3/3+sin
-        tp[k]=fn_power(w[k]);
+        deg[k]=x_power(w[k]);           // power of their trig function, ascending as textbooks:
+        tp[k]=fn_power(w[k]);           // sin-2sin^3/3+sin^5/5
       }
     for (unsigned i=1;i<w.size() && w.size()<=64;++i)
-      for (unsigned j=i;j>0 && (deg[j]>deg[j-1] || (deg[j]==deg[j-1] && tp[j-1] && tp[j]>tp[j-1]));--j){
+      for (unsigned j=i;j>0 && (deg[j]>deg[j-1] || (deg[j]==deg[j-1] && tp[j] && tp[j]<tp[j-1]));--j){
         swapgen(w[j],w[j-1]);
         int t=deg[j]; deg[j]=deg[j-1]; deg[j-1]=t;
         t=tp[j]; tp[j]=tp[j-1]; tp[j-1]=t;
@@ -505,9 +505,12 @@ giac::gen positive_first(const giac::gen & g){
   }
   if (g._SYMBptr->sommet==at_prod && f.type==_VECT && f._VECTptr->size()>=2){
     vecteur & w=*f._VECTptr;
-    // a product in the product, one product: 1/2*(2*ln|x|) (normal_args) is ln|x|, not 2ln|x|/2
+    // a product in the product, one product: 1/2*(2*ln|x|) (normal_args) is ln|x|, not 2ln|x|/2;
+    // 1/d built below it is inv(d) again: sin(x)/(2(sin(x)^2-1)), not sin(x)*1/(2(...))
     for (unsigned i=0;i<w.size();++i)
-      if (w[i].is_symb_of_sommet(at_prod) && w[i]._SYMBptr->feuille.type==_VECT && !w[i]._SYMBptr->feuille._VECTptr->empty()){
+      if (w[i].is_symb_of_sommet(at_division) && w[i]._SYMBptr->feuille.type==_VECT && is_one(w[i]._SYMBptr->feuille._VECTptr->front()))
+        w[i]=symb_inv(w[i]._SYMBptr->feuille._VECTptr->back());
+      else if (w[i].is_symb_of_sommet(at_prod) && w[i]._SYMBptr->feuille.type==_VECT && !w[i]._SYMBptr->feuille._VECTptr->empty()){
         const vecteur in=*w[i]._SYMBptr->feuille._VECTptr;
         w.erase(w.begin()+i);
         w.insert(w.begin()+i,in.begin(),in.end());
@@ -945,7 +948,7 @@ static giac::gen table_integral(const giac::gen & g){
     else
       break;
   }
-  if (n>-1 || n<-8)
+  if (n!=-1 && n!=-2 && n!=-3)
     return 0;
   n=-n;
   const bool c=d.is_symb_of_sommet(at_cos);
@@ -960,12 +963,6 @@ static giac::gen table_integral(const giac::gen & g){
   // (-csc(u)*cot(u)+ln|csc(u)-cot(u)|)/2; divided by a: sec(3x) /3, sec(x/2) 2*...
   // squares: tan(u), -cot(u) (giac: -2/(2*tan(x)) for csc(x)^2)
   gen r=n==2?(c?t:symbolic(at_neg,t)):n==3?symbolic(at_plus,makesequence(c?symbolic(at_prod,makesequence(s,t)):symbolic(at_neg,symbolic(at_prod,makesequence(s,t))),l)):l;
-  if (n>=4){ // even powers by t=tan(u) (cot(u)): the polynomial (1+t^2)^(n/2-1) integrated,
-    if (n%2) // put back unevaluated: sec(x)^6 is tan+2tan^3/3+tan^5/5 at once (giac: 41 s on the
-      return 0; // calculator); odd ones are giac's
-    // (in x, then t for x: no new variable)
-    return quotesubst(_integrate(makesequence(pow(x*x+1,n/2-1,contextptr)*(c?1:-1)/a,x),contextptr),x,t,contextptr);
-  }
   gen q=n==3?gen(2):gen(1);
   if (a.type==_INT_)
     q=q*a;
@@ -974,6 +971,94 @@ static giac::gen table_integral(const giac::gen & g){
   if (!is_one(q))
     r=symbolic(at_division,makesequence(r,q));
   return r;
+}
+
+// sin^m(v)cos^n(v), tan, sec, csc and cot written as those (tan^3*sec^10 is sin^3*cos^-13), v=a*x+b,
+// by the textbook substitutions: tan(v) for a power of sec (cot(v) for csc), sin(v) for an odd
+// power of cos, cos(v) for an odd power of sin: a polynomial or rational function of t integrated,
+// t put back unevaluated (sin(3x)^8cos(3x)^5: sin^9/27-2sin^11/33+sin^13/39). giac went through
+// tan(x/2): tan(6x)^3*sec(6x)^10 over 90 s on the calculator, sin(3x)^8*cos(3x)^5 39 s. A sum (or a
+// product with one): term by term. 0 if not such a product.
+// h^e into c*sin(v)^m*cos(v)^n (products, powers, 1/... and - in any nesting: giac's expand gave
+// (1/sin(x/2))^4/sin(x/2)^2); false if h has another function of x, or two arguments
+static bool trig_factor(const giac::gen & h,int e,const giac::gen & x,giac::gen & c,giac::gen & v,int & m,int & n){
+  using namespace giac;
+  static const unary_function_ptr * const fs[]={at_sin,at_cos,at_tan,at_sec,at_csc,at_cot};
+  if (is_constant_wrt(h,x,contextptr)){
+    c=c*pow(h,e,contextptr);
+    return true;
+  }
+  if (h.type!=_SYMB)
+    return false;
+  const gen & a=h._SYMBptr->feuille;
+  if (h._SYMBptr->sommet==at_neg){
+    if (e%2)
+      c=-c;
+    return trig_factor(a,e,x,c,v,m,n);
+  }
+  if (h._SYMBptr->sommet==at_inv)
+    return trig_factor(a,-e,x,c,v,m,n);
+  if (h._SYMBptr->sommet==at_prod && a.type==_VECT){
+    for (const_iterateur it=a._VECTptr->begin();it!=a._VECTptr->end();++it)
+      if (!trig_factor(*it,e,x,c,v,m,n))
+        return false;
+    return true;
+  }
+  if (h._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2 && a._VECTptr->back().type==_INT_)
+    return trig_factor(a._VECTptr->front(),e*a._VECTptr->back().val,x,c,v,m,n);
+  int k=0;
+  while (k<6 && h._SYMBptr->sommet!=fs[k])
+    ++k;
+  if (k==6 || (!is_zero(v) && !(a==v)))
+    return false;
+  v=a;
+  m+=k==0 || k==2?e:k==4 || k==5?-e:0; // sin^m cos^n
+  n+=k==1 || k==5?e:k==2 || k==3?-e:0;
+  return true;
+}
+static giac::gen trig_powers(const giac::gen & f0,const giac::gen & x,int depth=0){
+  using namespace giac;
+  gen f=f0;
+  if (f.is_symb_of_sommet(at_prod) && depth==0 && f._SYMBptr->feuille.type==_VECT)
+    for (const_iterateur it=f._SYMBptr->feuille._VECTptr->begin();it!=f._SYMBptr->feuille._VECTptr->end();++it)
+      if (it->is_symb_of_sommet(at_plus) || it->is_symb_of_sommet(at_binary_minus)){
+        f=expand(f,contextptr); // csc(x/2)cot(x/2)(csc(x/2)^6+3csc(x/2)^4-8csc(x/2))
+        break;
+      }
+  if (f.is_symb_of_sommet(at_plus) && f._SYMBptr->feuille.type==_VECT && depth<2){
+    gen r=0;
+    for (const_iterateur it=f._SYMBptr->feuille._VECTptr->begin();it!=f._SYMBptr->feuille._VECTptr->end();++it){
+      const gen t=trig_powers(*it,x,2);
+      if (is_zero(t))
+        return 0;
+      r=r+t;
+    }
+    return r;
+  }
+  gen c=1,v=0;
+  int m=0,n=0;
+  if (!trig_factor(f,1,x,c,v,m,n))
+    return 0;
+  const gen a=derive(eval(v,1,contextptr),x,contextptr); // (evaluated: the parsed x/3 gave none)
+  if (is_zero(v) || is_zero(a) || !is_constant_wrt(a,x,contextptr))
+    return 0;
+  // the substitution t: tan(v) for tan^m sec^k (m>=0, k=-(m+n)>=2 even), cot(v) for cot^n csc^k,
+  // sin(v) for an odd power of cos, cos(v) for an odd power of sin: first the one that leaves a
+  // polynomial, the smaller (sin(x)cos(x)^3: -cos^4/4; tan^3: sec^2/2+ln|cos|) (x stands for t)
+  const int k=-(m+n),r=k>=2 && k%2==0 && (m>=0 || n>=0)?(m>=0?0:1):n%2 && n>=1 && (!(m%2 && m>=1) || n<=m)?2:m%2 && m>=1?3:n%2?2:m%2?3:4;
+  if (r==4)
+    return 0;
+  const gen p=r==0?pow(x,m,contextptr)*pow(x*x+1,k/2-1,contextptr):r==1?-pow(x,n,contextptr)*pow(x*x+1,k/2-1,contextptr):
+    r==2?pow(x,m,contextptr)*pow(1-x*x,(n-1)/2,contextptr):-pow(x,n,contextptr)*pow(1-x*x,(m-1)/2,contextptr);
+  // a sum of powers of t term by term: sin^9/27-2sin^11/33+sin^13/39, not giac's one fraction
+  const gen q=expand(c*p/a,contextptr);
+  gen F=0;
+  const vecteur ts=q.is_symb_of_sommet(at_plus) && q._SYMBptr->feuille.type==_VECT?*q._SYMBptr->feuille._VECTptr:vecteur(1,q);
+  for (const_iterateur it=ts.begin();it!=ts.end() && !is_undef(F);++it)
+    F=F+_integrate(makesequence(*it,x),contextptr);
+  if (contains(F,at_integrate) || is_undef(F))
+    return 0;
+  return quotesubst(F,x,symbolic(r==0?at_tan:r==1?at_cot:r==2?at_sin:at_cos,v),contextptr);
 }
 
 // g with fn applied to each of its nodes from the leaves up: fn gets a node, its argument already
@@ -2199,6 +2284,12 @@ static void function_nodes(const giac::gen & g,giac::vecteur & from,bool trig){
 // answer written with sec keep it (sec(x)tan(x)/2+ln|sec(x)+tan(x)|/2)
 static giac::gen sec_back(const giac::gen & g,const giac::gen & f,const giac::gen &){
   using namespace giac;
+  if (g._SYMBptr->sommet==at_inv && f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT){
+    vecteur w(*f._SYMBptr->feuille._VECTptr); // giac's 1/(5cos(x)^5): sec(x)^5/5
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=sec_back(symbolic(at_inv,*it),*it,0);
+    return symbolic(at_prod,gen(w,_SEQ__VECT));
+  }
   if (g._SYMBptr->sommet==at_inv){
     gen b=f,n=1;
     if (f.is_symb_of_sommet(at_pow) && f._SYMBptr->feuille.type==_VECT && f._SYMBptr->feuille._VECTptr->size()==2){
@@ -2822,6 +2913,9 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   g=ftc(g);
   g=numeric_hard_integrals(g);
   gen tab=table_integral(g); // sec, csc: the textbook form, at once
+  if (is_zero(tab) && g.is_symb_of_sommet(at_integrate) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2
+      && g._SYMBptr->feuille._VECTptr->back().type==_IDNT)
+    tab=trig_powers(g._SYMBptr->feuille._VECTptr->front(),g._SYMBptr->feuille._VECTptr->back());
   if (is_zero(tab))
     tab=power_sum(g); // sum(1/sqrt(n),n,1,inf)
   const gen parts=is_zero(tab)?parts_table(g):gen(0); // x*sec(x)^2 by parts
