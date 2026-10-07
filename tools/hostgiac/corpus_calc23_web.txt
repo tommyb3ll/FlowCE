@@ -1,0 +1,345 @@
+# Calc 2 / Calc 3 / AP Calc BC problems from web sources, typed in calculator syntax (fields split by " ; ").
+# kinds: int ; f | defint ; f ; a ; b | diff ; f | lim ; f ; a | sum ; f ; n0 | eval ; expr ; expected
+# Application problems (arc length, surface area, volume, polar area) are typed as the set-up integral.
+# "textbook-style" groups: standard problems of the same kind, not copied from the page they cite.
+# eval expected values were checked numerically (plain-Python quadrature) before writing.
+
+# ==== Integration by parts
+# source: https://openstax.org/books/calculus-volume-2/pages/3-1-integration-by-parts
+int ; x^3*e^(2x)
+int ; x^3*ln(x)
+int ; x^2*atan(x)
+int ; e^(3x)*sin(2x)
+int ; sin(ln(2x))
+int ; acos(2x)
+int ; x^3*sin(x)
+int ; cos(x)*ln(sin(x))
+int ; 2x*2^(x-3)
+defint ; ln(x) ; 1/e ; 1
+defint ; ln(x^2+1) ; 0 ; 3
+defint ; x*5^x ; 0 ; 1
+defint ; x*cos(x) ; 11pi/2 ; 13pi/2
+defint ; pi*ln(x)^2 ; 1 ; e^2
+defint ; 2pi*x*e^(x) ; 0 ; ln(7)
+
+# ==== Trigonometric integrals
+# source: https://openstax.org/books/calculus-volume-2/pages/3-2-trigonometric-integrals
+int ; tan(2x)^5*sec(2x)^2
+int ; sin(x)^5*cos(x)^2
+int ; tan(x)^2*sec(x)
+int ; tan(x)^3*sec(x)
+int ; sin(x)^2*cos(2x)^2
+int ; sin(pi*x)^4
+defint ; sin(x)^3*sin(5x) ; 0 ; pi
+defint ; cos(99x)*sin(101x) ; 0 ; pi
+defint ; sin(x)*sin(2x)*sin(3x) ; 0 ; 2pi
+defint ; sqrt(1-cos(2x)) ; 0 ; pi/2
+# source: textbook-style messier powers, same techniques as https://openstax.org/books/calculus-volume-2/pages/3-2-trigonometric-integrals
+int ; sin(2x/3)^3*cos(2x/3)^4
+int ; sin(3x)^8*cos(3x)^5
+int ; sec(3x)^6*tan(3x)^2
+int ; tan(6x)^3*sec(6x)^10
+defint ; tan(x)^7*sec(x)^3 ; 0 ; pi/4
+int ; cot(10x)*csc(10x)^4
+
+# ==== Trigonometric substitution, square roots of quadratics
+# source: https://openstax.org/books/calculus-volume-2/pages/3-3-trigonometric-substitution
+int ; 1/(x^2*sqrt(1-x^2))
+int ; sqrt(x^2-25)/x
+int ; x^3/sqrt(9-x^2)
+int ; 1/(x*sqrt(6-x^2))
+int ; sqrt(x^6-x^8)
+int ; 1/(x^2-9)^(3/2)
+int ; x^2/sqrt(x^2+4)
+int ; (1-x^2)^(3/2)
+int ; 1/sqrt(-x^2+2x+8)
+int ; 1/sqrt(x^2+4x-12)
+defint ; sqrt(1+x^2/(16-x^2)) ; 0 ; 2
+eval ; desolve([(x^2+36)*y'=1,y(6)=0],x,y) ; atan(x/6)/6-pi/24
+# source: textbook-style, same techniques as https://openstax.org/books/calculus-volume-2/pages/3-3-trigonometric-substitution
+int ; sqrt(25x^2-4)/x
+int ; 1/(x^4*sqrt(9-x^2))
+defint ; 2/(x^4*sqrt(x^2-25)) ; -7 ; -5
+int ; (x+3)/sqrt(4x-x^2)
+int ; 1/(x^2-4x+13)^(3/2)
+
+# ==== Partial fractions (distinct, repeated, irreducible quadratic; substitution first)
+# source: https://openstax.org/books/calculus-volume-2/pages/3-4-partial-fractions
+int ; 3x/(x^2+2x-8)
+int ; 1/(x*(x-1)*(x-2)*(x-3))
+int ; (2x^2+4x+22)/(x^2+2x+10)
+int ; 1/(x^3-2x^2-4x+8)
+int ; 1/(x^4-10x^2+9)
+int ; 2/((x-4)*(x^2+2x+6))
+int ; (x^3+6x^2+3x+6)/(x^3+2x^2)
+int ; x/((x-1)*(x^2+2x+2)^2)
+int ; (3x+4)/(x^3-2x-4)
+int ; (3x^4+x^3+20x^2+3x+31)/((x+1)*(x^2+4)^2)
+defint ; e^(x)/(36-e^(2x)) ; 0 ; 1
+int ; sin(x)/(cos(x)^2+cos(x)-6)
+int ; 1/(e^(x)-e^(-x))^2
+int ; cos(x)/(sin(x)*(1-sin(x)))
+int ; e^(x)/(e^(2x)-4)^2
+int ; 1/(sqrt(x)+x^(1/3))
+defint ; 2pi*x/(x^3+7x^2+6x) ; 1 ; 7
+eval ; integrate(x/(x^2-9),x,4,5)/integrate(1/(x^2-9),x,4,5) ; 3*ln(16/7)/ln(7/4)
+
+# ==== Rational functions of sin and cos
+# source: textbook-style, the tan(x/2) substitution of exercises 240-241 on https://openstax.org/books/calculus-volume-2/pages/3-4-partial-fractions
+int ; 1/(2+cos(x))
+int ; 1/(3-5sin(x))
+int ; 1/(1+sin(x)+cos(x))
+int ; 1/(3sin(x)-4cos(x))
+defint ; 1/(2+cos(x)) ; 0 ; 2pi
+defint ; 1/(5+3cos(x)) ; 0 ; 2pi
+
+# ==== Improper integrals (convergent and divergent)
+# source: https://openstax.org/books/calculus-volume-2/pages/3-7-improper-integrals
+defint ; 1/(x-3)^2 ; 2 ; 4
+defint ; 1/(4+x^2) ; 0 ; inf
+defint ; 1/(x*ln(x)) ; 1 ; inf
+defint ; x/(x^2+1) ; -inf ; inf
+defint ; 1/(x^3+1) ; 1 ; inf
+defint ; e^(-x)*cos(x) ; 0 ; inf
+defint ; 1/(1+x)^2 ; -2 ; 2
+defint ; sin(x) ; 0 ; inf
+defint ; e^(x)/(1+e^(2x)) ; -inf ; inf
+defint ; 1/x^3 ; -1 ; 2
+defint ; 1/(x-1) ; 0 ; 3
+defint ; 1/x^e ; 1 ; inf
+defint ; 1/(x^2)^(1/3) ; -27 ; 1
+defint ; 1/(x*sqrt(x^2-36)) ; 6 ; 24
+defint ; x*ln(4x) ; 0 ; 4
+defint ; 1/(x^2-1)^(3/2) ; 2 ; inf
+# source: textbook-style improper integrals with no elementary antiderivative, cf. https://openstax.org/books/calculus-volume-2/pages/3-7-improper-integrals
+defint ; e^(-x^2) ; -inf ; inf
+defint ; sin(x)/x ; 0 ; inf
+defint ; 1/(x*ln(x)^2) ; 2 ; inf
+defint ; 1/((x+1)*sqrt(x)) ; 0 ; inf
+
+# ==== Arc length and surface area of revolution
+# source: https://openstax.org/books/calculus-volume-2/pages/2-4-arc-length-of-a-curve-and-surface-area
+defint ; sqrt(1+4/(9x^(2/3))) ; 1 ; 8
+defint ; sqrt(1+cos(x)^2) ; 0 ; pi
+defint ; sqrt(1+sec(x)^4) ; 0 ; 3/4
+eval ; integrate(sqrt(1+diff(x^3/3+1/(4x),x)^2),x,1,3) ; 53/6
+eval ; integrate(sqrt(1+diff(2x^(3/2)/3-x^(1/2)/2,x)^2),x,1,4) ; 31/6
+eval ; integrate(sqrt(1+diff((9x^2+6)^(3/2)/27,x)^2),x,0,2) ; 10
+eval ; integrate(2pi*sqrt(x)*sqrt(1+diff(sqrt(x),x)^2),x,2,6) ; 49*pi/3
+defint ; 2pi/x^2*sqrt(1+4/x^6) ; 1 ; 3
+defint ; 2pi*abs(tan(x))*sqrt(1+sec(x)^4) ; -pi/4 ; pi/4
+defint ; 2pi/x*sqrt(1+1/x^4) ; 1 ; inf
+
+# ==== Volumes of revolution (disk, washer, shell), typed as the set-up integral
+# source: https://openstax.org/books/calculus-volume-2/pages/2-3-volumes-of-revolution-cylindrical-shells
+defint ; 2pi*x/(1-x^2) ; 0 ; 1/2
+defint ; 2pi*(2-x)*sqrt(x) ; 0 ; 1
+defint ; 2pi*x*(sin(pi*x)-cos(pi*x)) ; 1/4 ; 5/4
+defint ; pi*((3x^3-2)^2-x^2) ; 1 ; 2
+defint ; 2pi*(4-x)*2sqrt(4-x^2) ; -2 ; 2
+# source: https://openstax.org/books/calculus-volume-2/pages/3-3-trigonometric-substitution
+defint ; pi*(16/sqrt(64+x^2))^2 ; 0 ; 2
+# source: https://openstax.org/books/calculus-volume-2/pages/3-4-partial-fractions
+defint ; pi/(x*(3-x))^2 ; 1 ; 2
+
+# ==== Parametric curves: slope, concavity, area, arc length, surface area
+# source: https://openstax.org/books/calculus-volume-2/pages/7-2-calculus-of-parametric-curves
+eval ; subst(diff(1-ln(t^2),t)/diff(e^(t),t),t=1) ; -2*e^(-1)
+eval ; subst(diff(1+2tan(t),t)/diff(2+sec(t),t),t=pi/6) ; 4
+eval ; subst(diff(diff(1+2tan(t),t)/diff(2+sec(t),t),t)/diff(2+sec(t),t),t=pi/6) ; -6*sqrt(3)
+eval ; diff(diff(t-t^2,t)/diff(t^4-1,t),t)/diff(t^4-1,t) ; (4t-3)/(16t^7)
+eval ; diff(diff(t*e^(2t),t)/diff(e^(-t),t),t)/diff(e^(-t),t) ; (5+6t)*e^(4t)
+eval ; integrate((1-cos(t))*diff(t-sin(t),t),t,0,2pi) ; 3*pi
+eval ; integrate(sqrt(diff(e^(t)*cos(t),t)^2+diff(e^(t)*sin(t),t)^2),t,0,pi/2) ; sqrt(2)*(e^(pi/2)-1)
+eval ; integrate(sqrt(diff(sin(t)^2,t)^2+diff(cos(t)^2,t)^2),t,0,3pi) ; 6*sqrt(2)
+eval ; integrate(sqrt(diff(e^(t)-t,t)^2+diff(4*e^(t/2),t)^2),t,-8,3) ; e^3-e^(-8)+11
+eval ; integrate(2pi*t^2*sqrt(diff(t^3,t)^2+diff(t^2,t)^2),t,0,1) ; pi*(494*sqrt(13)+128)/1215
+eval ; integrate(2pi*sin(t)^3*sqrt(diff(cos(t)^3,t)^2+diff(sin(t)^3,t)^2),t,0,pi/2) ; 6*pi/5
+
+# ==== Polar curves: area, arc length, slope
+# source: https://openstax.org/books/calculus-volume-2/pages/7-4-area-and-arc-length-in-polar-coordinates
+eval ; 1/2*integrate((2+sin(t))^2,t,0,pi) ; 9*pi/4+4
+eval ; 1/2*integrate((4cos(3t))^2,t,-pi/6,pi/6) ; 4*pi/3
+eval ; 1/2*integrate((3+6cos(t))^2,t,2pi/3,4pi/3) ; 9*pi-27*sqrt(3)/2
+eval ; integrate((6sin(t))^2,t,0,pi/6)+1/2*integrate(9,t,pi/6,5pi/6) ; 6*pi-9*sqrt(3)/2
+eval ; 1/2*integrate((1+cos(t))^2,t,0,2pi)-1/2*integrate(cos(t)^2,t,-pi/2,pi/2) ; 5*pi/4
+eval ; integrate(sqrt((e^(3t))^2+diff(e^(3t),t)^2),t,0,2) ; sqrt(10)*(e^6-1)/3
+eval ; integrate(sqrt((1-sin(t))^2+diff(1-sin(t),t)^2),t,0,2pi) ; 8
+eval ; integrate(sqrt(sin(t/2)^4+diff(sin(t/2)^2,t)^2),t,0,pi) ; 2
+eval ; integrate(sqrt((2t^2)^2+diff(2t^2,t)^2),t,0,pi) ; 2/3*((pi^2+4)^(3/2)-8)
+defint ; sqrt(sin(3cos(x))^2+(3sin(x)*cos(3cos(x)))^2) ; 0 ; pi
+eval ; subst(diff(ln(t)*sin(t),t)/diff(ln(t)*cos(t),t),t=e) ; (sin(e)+e*cos(e))/(cos(e)-e*sin(e))
+eval ; subst(diff((2+4cos(t))*sin(t),t)/diff((2+4cos(t))*cos(t),t),t=pi/6) ; -(4+3*sqrt(3))/11
+
+# ==== Limits of sequences, L'Hopital-type limits
+# source: https://openstax.org/books/calculus-volume-2/pages/5-1-sequences
+eval ; limit(n!/n^n,n,inf) ; 0
+eval ; limit(sin(n)*sin(1/n),n,inf) ; 0
+eval ; limit((2n)^(1/n)-n^(1/n),n,inf) ; 0
+eval ; limit((1-2/n)^n,n,inf) ; e^(-2)
+eval ; limit((n!)^2/(2n)!,n,inf) ; 0
+eval ; limit(ln(n+2/(n^2-3)),n,inf) ; inf
+lim ; ln(x^2)/ln(2x) ; inf
+# source: https://openstax.org/books/calculus-volume-2/pages/5-3-the-divergence-and-integral-tests
+lim ; (1-cos(1/x)^2)/sin(2/x)^2 ; inf
+# source: https://openstax.org/books/calculus-volume-2/pages/5-5-alternating-series
+lim ; x^2*(1-cos(1/x)) ; inf
+# source: https://openstax.org/books/calculus-volume-2/pages/5-6-ratio-and-root-tests
+lim ; (x/(x+ln(x)))^x ; inf
+lim ; ((x-1)/(x+1))^x ; inf
+
+# ==== Series: geometric, telescoping, p-series, divergence test
+# source: https://openstax.org/books/calculus-volume-2/pages/5-2-infinite-series
+sum ; (pi/e^2)^n ; 0
+sum ; (-pi/3)^n ; 0
+sum ; 2^(1/n)-2^(1/(n+1)) ; 1
+sum ; sqrt(n)-sqrt(n+1) ; 1
+sum ; (2n+1)/(n^2+n)^2 ; 1
+sum ; ln(1+1/n)/(ln(n)*ln(n+1)) ; 2
+sum ; (n+2)/(n*(n+1)*2^(n+1)) ; 1
+sum ; 1/(n*(n+1)*(n+2)) ; 1
+sum ; n*2^n*(n!)^2/(2n)! ; 1
+# source: https://openstax.org/books/calculus-volume-2/pages/5-3-the-divergence-and-integral-tests
+sum ; (2^n+3^n)/10^(n/2) ; 1
+sum ; 1/(n+5)^3 ; 1
+sum ; 1/(n*ln(n)) ; 2
+sum ; e^(n)/(1+e^(2n)) ; 1
+sum ; 3^(-ln(n)) ; 1
+sum ; n/e^(n) ; 1
+# ==== Series: alternating
+# source: https://openstax.org/books/calculus-volume-2/pages/5-5-alternating-series
+sum ; (-1)^(n+1)*3^n/n! ; 1
+sum ; (-1)^(n+1)*((n-1)/n)^n ; 1
+sum ; (-1)^(n+1)*ln(1+1/n) ; 1
+sum ; (-1)^n*(1-n^(1/n)) ; 1
+sum ; (-1)^(n+1)*(sqrt(n+1)-sqrt(n)) ; 1
+sum ; sin(n*pi/2)/n ; 1
+# ==== Series: ratio and root test terms
+# source: https://openstax.org/books/calculus-volume-2/pages/5-6-ratio-and-root-tests
+sum ; 10^n/n! ; 1
+sum ; 2^(3n)*(n!)^3/(3n)! ; 1
+sum ; n!/(n/e)^n ; 1
+sum ; (1-1/n)^(n^2) ; 1
+sum ; (n+1)/(n^3+n^2+n+1) ; 1
+sum ; (-1)^(n+1)*(n+1)/(n^3+3n^2+3n+1) ; 1
+sum ; (n!)^2/(2n)! ; 1
+sum ; (n/(n+ln(n)))^n ; 1
+
+# ==== Power series: sums in closed form
+# source: https://openstax.org/books/calculus-volume-2/pages/6-2-properties-of-power-series
+eval ; sum((x^n+(-x)^n)/(2*n!),n,0,inf) ; (e^(x)+e^(-x))/2
+eval ; sum((-1)^n*x^(4n+2)/(2n+1),n,0,inf) ; atan(x^2)
+eval ; sum(x^(3n)/6^n,n,1,inf) ; x^3/(6-x^3)
+eval ; sum((1+x^2)^(-n),n,1,inf) ; 1/x^2
+eval ; 2*sum((1/3)^(2n+1)/(2n+1),n,0,inf) ; ln(2)
+sum ; n*(n-1)/2^n ; 2
+# source: https://openstax.org/books/calculus-volume-2/pages/6-3-taylor-and-maclaurin-series
+sum ; (-1)^n*(2pi)^(2n+1)/(2n+1)! ; 0
+
+# ==== Taylor and Maclaurin polynomials
+# source: https://openstax.org/books/calculus-volume-2/pages/6-3-taylor-and-maclaurin-series
+eval ; series(cos(2x),x,pi,2) ; 1-2*(x-pi)^2
+eval ; series(sqrt(x),x,4,2) ; 2+(x-4)/4-(x-4)^2/64
+eval ; series(sin(x),x,pi,5) ; -(x-pi)+(x-pi)^3/6-(x-pi)^5/120
+eval ; series(1/(x-1)^3,x,0,3) ; -1-3x-6x^2-10x^3
+eval ; series(x/(4x-2x^2-1),x,1,4) ; 1+(x-1)+2*(x-1)^2+2*(x-1)^3+4*(x-1)^4
+eval ; series(e^(2x),x,1,3) ; e^2*(1+2*(x-1)+2*(x-1)^2+4*(x-1)^3/3)
+defint ; sin(pi*x)/(pi*x) ; 0 ; 1
+# source: textbook-style Maclaurin polynomials, cf. https://openstax.org/books/calculus-volume-2/pages/6-3-taylor-and-maclaurin-series
+eval ; series(tan(x),x,0,5) ; x+x^3/3+2x^5/15
+eval ; series(e^(x)*sin(x),x,0,4) ; x+x^2+x^3/3
+eval ; series(ln(1+x)/(1-x),x,0,3) ; x+x^2/2+5x^3/6
+eval ; series(1/sqrt(1-x^2),x,0,6) ; 1+x^2/2+3x^4/8+5x^6/16
+
+# ==== AP Calculus BC 2024 free response (Q1c, Q2b-c, Q3c, Q5d, Q6a-b)
+# source: https://apcentral.collegeboard.org/media/pdf/ap24-frq-calculus-bc.pdf
+defint ; -24.55*e^(0.01x)/x ; 12 ; 20
+defint ; sqrt((8x-x^2)^2+(-x+sqrt(x^1.2+20))^2) ; 0 ; 2
+defint ; -x+sqrt(x^1.2+20) ; 0 ; 2
+eval ; desolve([y'=1/2*(y-1)*cos(x/2),y(0)=4],x,y) ; 1+3*e^(sin(x/2))
+int ; (x+5)*cos(x/4)
+sum ; (n+1)/n^2*(-1/2)^n ; 1
+sum ; (n+1)/n^2 ; 1
+# source: textbook-style FTC and inverse-trig derivatives (AP BC), cf. Q5(a) of https://apcentral.collegeboard.org/media/pdf/ap24-frq-calculus-bc.pdf
+diff ; integrate(sqrt(1+t^4),t,0,x^2)
+diff ; integrate(e^(-t^2),t,x,x^3)
+diff ; atan((1+x)/(1-x))
+diff ; ln(sec(x)+tan(x))
+diff ; x*asin(x)+sqrt(1-x^2)
+
+# ==== Calc 3: partial derivatives
+# source: https://openstax.org/books/calculus-volume-3/pages/4-3-partial-derivatives
+eval ; diff(sin(3x)*cos(3y),y) ; -3sin(3x)*sin(3y)
+eval ; diff(ln(x^6+y^4),y) ; 4y^3/(x^6+y^4)
+eval ; diff(e^(x*y)*cos(x)*sin(y),y) ; x*e^(x*y)*cos(x)*sin(y)+e^(x*y)*cos(x)*cos(y)
+eval ; subst(diff(atan(y/x),x),[x,y],[2,-2]) ; 1/4
+eval ; diff(z*sin(x*y^2+2z),z) ; sin(x*y^2+2z)+2z*cos(x*y^2+2z)
+eval ; diff(4x^2*y+y^2/(2x),x,x) ; 8y+y^2/x^3
+eval ; diff(x^2*y^3*z-3x*y^2*z^3+5x^2*z-y^3*z,x,y,z) ; 6x*y^2-18y*z^2
+eval ; diff(ln(x^2+y^2),x,x)+diff(ln(x^2+y^2),y,y) ; 0
+eval ; subst(diff(x^2+y^2-2x*y*cos(t),x),[x,y,t],[2,3,pi/6]) ; 4-3*sqrt(3)
+eval ; subst(diff(200x^0.7*y^0.3,x),[x,y],[500,1000]) ; 140*2^0.3
+
+# ==== Calc 3: gradients, directional derivatives, maximum rate of change
+# source: https://openstax.org/books/calculus-volume-3/pages/4-6-directional-derivatives-and-the-gradient
+eval ; subst(dot(grad(y^2*sin(2x),[x,y]),[5,12]/13),[x,y],[pi/4,2]) ; 48/13
+eval ; subst(dot(grad(x*y*z,[x,y,z]),[2,1,-1]/sqrt(6)),[x,y,z],[2,1,1]) ; sqrt(6)/3
+eval ; subst(grad(sqrt(14-x^2-y^2)/3,[x,y]),[x,y],[1,2]) ; [-1/9,-2/9]
+eval ; subst(dot(grad(ln(x^2+2y^2+3z^2),[x,y,z]),[-3,-4,-12]/13),[x,y,z],[2,1,4]) ; -158/351
+eval ; subst(dot(grad(4x^5*y^2*z^3,[x,y,z]),[1/3,2/3,-2/3]),[x,y,z],[2,-1,1]) ; -320
+eval ; subst(dot(grad(y/(x+z),[x,y,z]),[-3,1,1]/sqrt(11)),[x,y,z],[2,1,-1]) ; 3/sqrt(11)
+eval ; subst(grad(x*e^(y)-ln(x),[x,y]),[x,y],[3,0]) ; [2/3,3]
+eval ; norm(subst(grad(e^(x*y),[x,y]),[x,y],[6,7])) ; sqrt(85)*e^42
+eval ; norm(subst(grad(cos(3x+2y),[x,y]),[x,y],[pi/6,-pi/8])) ; sqrt(26)/2
+eval ; subst(dot(grad(5x^2-3x*y+x*y*z,[x,y,z]),[1,1,-1]/sqrt(3)),[x,y,z],[3,4,5]) ; 32*sqrt(3)/3
+
+# ==== Calc 3: double integrals over general regions
+# source: https://openstax.org/books/calculus-volume-3/pages/5-2-double-integrals-over-general-regions
+eval ; integrate(integrate(2x+5y,y,x^3,x^3+1),x,0,1) ; 19/4
+eval ; integrate(integrate(2,x,y-1,acos(y)),y,0,1) ; 3
+eval ; integrate(integrate(x*y+1,x,y^2-1,1-y^2),y,-1,1) ; 8/3
+eval ; integrate(integrate(sin(y),y,0,3-x),x,0,3) ; 3-sin(3)
+eval ; integrate(integrate(v+ln(u),v,ln(u),2),u,e,e^2) ; e^2-e/2
+eval ; integrate(integrate(8u*v,v,-u^2-1,-u),u,1,2) ; -63
+eval ; integrate(integrate(4,x,-sqrt(1-4y^2),sqrt(1-4y^2)),y,0,1/2) ; pi
+eval ; integrate(integrate(x^2+y,y,x^2-4,4-x^2),x,-2,2) ; 256/15
+# source: textbook-style, written in the hard order (cf. the change-of-order exercises on the same page)
+eval ; integrate(integrate(e^(y^2),y,x,1),x,0,1) ; (e-1)/2
+eval ; integrate(integrate(sqrt(x^3+1),x,sqrt(y),1),y,0,1) ; 2*(2*sqrt(2)-1)/9
+
+# ==== Calc 3: double integrals in polar coordinates
+# source: https://openstax.org/books/calculus-volume-3/pages/5-3-double-integrals-in-polar-coordinates
+eval ; integrate(integrate(((r*cos(t))^4+(r*sin(t))^4)*r,r,1,2),t,3pi/2,2pi) ; 63*pi/16
+eval ; integrate(integrate(t*r,r,2,3),t,pi/4,pi/3) ; 35*pi^2/576
+eval ; integrate(integrate(x^2+y^2,x,0,sqrt(9-y^2)),y,0,3) ; 81*pi/8
+eval ; integrate(integrate((x^2+y^2)^2,x,-sqrt(4-y^2),sqrt(4-y^2)),y,0,2) ; 32*pi/3
+eval ; integrate(integrate(sin(r^2)*r,r,0,4),t,-pi/2,pi/2) ; pi*(1-cos(16))/2
+eval ; integrate(integrate(1,y,-sqrt(4-x^2),sqrt(4-x^2)),x,1,2) ; 4*pi/3-sqrt(3)
+eval ; integrate(integrate(2sqrt(16-r^2)*r,r,2,4),t,0,2pi) ; 32*sqrt(3)*pi
+eval ; integrate(integrate(r^3,r,0,cos(t)),t,-pi/2,pi/2) ; 3*pi/32
+eval ; integrate(integrate(e^(-r^2)*r,r,0,inf),t,0,2pi) ; pi
+
+# ==== Calc 3: triple integrals
+# source: https://openstax.org/books/calculus-volume-3/pages/5-4-triple-integrals
+eval ; integrate(integrate(integrate(z*sin(x)+y^2,z,-1,2),y,0,1),x,0,pi) ; 3+pi
+eval ; integrate(integrate(integrate(2x+5y+7z,z,1,2),y,0,1-x),x,0,1) ; 77/12
+eval ; integrate(integrate(integrate(y*ln(x)+z,z,0,1),y,0,ln(x)),x,1,e) ; 7/2-e
+eval ; integrate(integrate(integrate(x+2y*z,z,0,5-x-y),y,0,x),x,0,1) ; 439/120
+eval ; integrate(integrate(integrate(y,z,0,sqrt(1-x^2-y^2)),y,-sqrt(1-x^2),sqrt(1-x^2)),x,-1,1) ; 0
+eval ; integrate(integrate(integrate(x^2,x,1-y^2,y^2-1),y,-1,1),z,1,2) ; -64/105
+eval ; integrate(integrate(integrate(z,z,0,1-x^4-y^4),x,-y,y),y,0,1) ; 113/450
+eval ; integrate(integrate(integrate(1,z,0,sqrt(x^2+y^2)),y,x,0),x,-2,0) ; 4/3*(sqrt(2)+ln(1+sqrt(2)))
+eval ; integrate(integrate(integrate(x*z+5z+10,z,0,5-x-y),y,0,5-x),x,0,5)/(125/6) ; 35/2
+# source: textbook-style spherical coordinates (ball of radius 2)
+eval ; integrate(integrate(integrate(rho^2*sin(phi),rho,0,2),phi,0,pi),theta,0,2pi) ; 32*pi/3
+
+# ==== Calc 3: vectors, dot and cross products
+# source: https://openstax.org/books/calculus-volume-3/pages/2-4-the-cross-product
+eval ; cross([3,2,-1],[1,1,0]) ; [1,-1,1]
+eval ; cross([3,-1,2],[-2,0,1])/norm(cross([3,-1,2],[-2,0,1])) ; [-1,-7,-2]/(3*sqrt(6))
+eval ; solve(dot(cross([3,1,-5],[4,-2,a]),[1,0,0])=0,a) ; [10]
+eval ; asin(norm(cross([1,2,0],[1,0,1]))/(norm([1,2,0])*norm([1,0,1]))) ; atan(3)
+eval ; norm(cross([2,1,5]-[3,-1,2],[1,-2,-2]-[3,-1,2]))/2 ; 5*sqrt(6)/2
+eval ; dot([-3,5,-1],cross([0,2,-2],[3,1,1])) ; -36
+eval ; dot([9,5,-10],cross([2,5,-3],[4,2,-1])) ; 119
+eval ; dot(900*[1,1,1]/3,cross([0,18,0],[-8,0,8])) ; 86400

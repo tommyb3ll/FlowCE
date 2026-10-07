@@ -6,6 +6,7 @@
 # Derived items use the functions of the cited exercise set: critical points = solve f'(x)=0,
 # inflection points = solve f''(x)=0, increasing/decreasing = f'(x)>0 / <0, tangent/normal lines,
 # extreme values, average values. Higher derivatives are written as diff of diff.
+# Paul's Online Math Notes (Paul Dawkins) assignment problems; OpenStax Calculus Volume 1
 # (Strang, Herman), CC BY-NC-SA 4.0.
 
 # ============================== LIMITS ==============================
@@ -75,6 +76,19 @@ limr ; x^(1/x) ; 0
 limr ; (e^(x)+x)^(1/x) ; 0
 lim ; (e^(-2x)+3x)^(1/x) ; inf
 
+# source: https://openstax.org/books/calculus-volume-1/pages/4-8-lhopitals-rule
+lim ; (sin(x)-tan(x))/x^3 ; 0
+lim ; (sqrt(1+x)-sqrt(1-x))/x ; 0
+lim ; (x+1)^(1/x) ; 0
+lim ; (sqrt(x)-x^(1/3))/(x-1) ; 1
+limr ; x^(2x) ; 0
+lim ; x-e^(x) ; inf
+lim ; (3^x-2^x)/x ; 0
+liml ; (1-1/x)^x ; 0
+lim ; (1-1/x)^x ; inf
+limr ; (x-1)/(1-cos(pi*x)) ; 1
+lim ; csc(x)-1/x ; 0
+limr ; tan(x^x) ; 0
 
 # ============================== DERIVATIVES ==============================
 # source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/DiffFormulas.aspx
@@ -131,6 +145,16 @@ diff ; (e^(sin(x))-sin(e^(x)))^8
 diff ; cos(1+cos(x)^2)^2
 
 # exponentials/logs in any base, logarithmic differentiation
+# source: https://openstax.org/books/calculus-volume-1/pages/3-9-derivatives-of-exponential-and-logarithmic-functions
+diff ; 3^(sin(3x))
+diff ; x^pi*pi^x
+diff ; log(sec(x))
+diff ; ln((6x^4+3)^5)/ln(7)
+diff ; 2^x*ln(7^(x^2-4))/ln(3)
+diff ; x^(sqrt(x))
+diff ; sin(2x)^(4x)
+diff ; x^(cot(x))
+diff ; x^(-1/2)*(x^2+3)^(2/3)*(3x-4)^4
 
 # higher derivatives (4th, 2nd, 3rd) as diff of diff: the diff kind differentiates once more
 # source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/HigherOrderDerivatives.aspx
@@ -172,6 +196,11 @@ solve ; diff(x^3*(9-x)^4,x)>0
 solve ; 2+9x-x^2>0
 
 # tangent line, normal line, implicit tangent slope at (2,1), horizontal tangent of x^(1/x)
+# source: https://openstax.org/books/calculus-volume-1/pages/3-9-derivatives-of-exponential-and-logarithmic-functions
+eval ; subst(4x*e^(x^2-1),x=-1)+subst(diff(4x*e^(x^2-1),x),x=-1)*(x+1) ; 12x+8
+eval ; subst(x*5^x,x=1)-(x-1)/subst(diff(x*5^x,x),x=1) ; 5-(x-1)/(5+5ln(5))
+eval ; subst(implicitdiff(x^3-x*ln(y)+y^3=2x+5,x,y),[x,y],[2,1]) ; -10
+solve ; diff(x^(1/x),x)=0
 
 # implicit derivatives dy/dx written explicitly
 # source: https://tutorial.math.lamar.edu/ProblemsNS/CalcI/HigherOrderDerivatives.aspx
