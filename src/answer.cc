@@ -2927,7 +2927,8 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   focus_phase=84;
   if (a.typed_sec) // sec(x)tan(x), not sin(x)/cos(x)^2, for the derivative of sec(x)
     g=sec_only(g);
-  if (g.type==_SYMB && evalf(g,1,contextptr).type==_DOUBLE_){ // a number, its terms collected:
+  if (g.type==_SYMB && !contains(g,at_sum) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
+    // left: evalf would sum it), its terms collected:
     const gen m=map_nodes(g,ln_power,0),e=radicals(m)==1?normal(m,contextptr):ratnormal(m,contextptr); // 12ln(2)-6ln(4)+3: 3; subst's
     if (!is_undef(e) && e.type!=_STRNG && plus_terms(e)<plus_terms(g) && taille(e,400)<=taille(g,400))
       g=e; // (2523-4*29*sqrt(29)-5046+348*sqrt(29)+2339)/16 is (29sqrt(29)-23)/2
