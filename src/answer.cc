@@ -1232,6 +1232,16 @@ static giac::gen series_identify(const giac::gen & f,const giac::gen & n,int a,c
   }
   return 0;
 }
+// n in a power's base and exponent: ((n-1)/n)^n, n^n/n!
+static bool n_power(const giac::gen & f,const giac::gen & n){
+  using namespace giac;
+  const vecteur pw=lop(f,at_pow);
+  for (const_iterateur it=pw.begin();it!=pw.end();++it)
+    if (it->_SYMBptr->feuille.type==_VECT && it->_SYMBptr->feuille._VECTptr->size()==2
+        && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->front(),n,contextptr) && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->back(),n,contextptr))
+      return true;
+  return false;
+}
 // the term f at n=m in decimals: in floats first ((1-1/n)^(n^2) at 42 is exactly a fraction of
 // 2900 digits, past giac's limit; minutes on the calculator), exactly if they overflow or
 // vanish ((n!)^2/(2n)!: 40! is past the calculator's floats)
@@ -1283,7 +1293,7 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
     return is_zero(ps)?g:ps;
   }
   const gen R=subst(f,symbolic(at_pow,makesequence(gen(-1),n)),1,false,contextptr); // f=(-1)^n*R
-  const bool isalt=alternating(f,n);
+  const bool isalt=alternating(f,n),hard=n_power(f,n);
   // decimal tests first: giac's limit took minutes on the calculator (1/(2n)!, ((n-1)/n)^n).
   // The ratio of terms at n=a+5 and a+10: growing terms diverge; shrinking like r^n (r<0.95,
   // not rising toward 1 like 1/n^2's) they converge, no limit needed
@@ -1304,7 +1314,8 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
       z[k]=e._DOUBLE_val<0?-e._DOUBLE_val:e._DOUBLE_val;
     }
     away=k==3 && z[0]>1e-3 && z[1]-z[0]<0.2*z[0] && z[0]-z[1]<0.2*z[0] && z[2]-z[1]<0.2*z[1] && z[1]-z[2]<0.2*z[1];
-    if (!away){
+    if (!away && !(k==3 && z[2]<z[1] && z[1]<z[0])){ // (shrinking: they go to 0; giac's limit of
+      // (n/(n+ln(n)))^n never ended on the calculator)
       const gen L=_limit(makesequence(isalt?R:f,n,plus_inf),contextptr),Le=evalf(L,1,contextptr);
       away=L.is_symb_of_sommet(at_bounded_function) || L==plus_inf || L==minus_inf || L==unsigned_inf || (Le.type==_DOUBLE_ && Le._DOUBLE_val!=0);
     }
@@ -1381,7 +1392,7 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
     }
   }
   // the integral test (1/(n*ln(n)) diverges); convergent: 200 terms, then the tail's integral
-  if (!isalt && a.val>=1 && !contains(f,at_factorial)){
+  if (!isalt && a.val>=1 && !contains(f,at_factorial) && !hard){
     const gen I=_integrate(makesequence(f,n,a,plus_inf),contextptr);
     if (I==plus_inf || I==minus_inf)
       return I;
@@ -1417,11 +1428,8 @@ static giac::gen power_sum(const giac::gen & g){
   const gen f=eval(v[0],1,contextptr);
   // n in a power's base and exponent (((n-1)/n)^n, n^n/n!): giac's sum simplifies them at
   // length (minutes on the calculator) for nothing; known_sum (answer_after) gets them as is
-  const vecteur pw=lop(f,at_pow);
-  for (const_iterateur it=pw.begin();it!=pw.end();++it)
-    if (it->_SYMBptr->feuille.type==_VECT && it->_SYMBptr->feuille._VECTptr->size()==2
-        && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->front(),n,contextptr) && !is_constant_wrt(it->_SYMBptr->feuille._VECTptr->back(),n,contextptr))
-      return symbolic(at_sum,makesequence(f,n,a,plus_inf));
+  if (n_power(f,n))
+    return symbolic(at_sum,makesequence(f,n,a,plus_inf));
   const vecteur ids=lidnt(f);
   if (ids.size()!=1 || !(ids.front()==n))
     return 0;
