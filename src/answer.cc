@@ -799,21 +799,30 @@ static giac::gen table_integral(const giac::gen & g){
   return r;
 }
 
+// g with fn applied to each of its nodes from the leaves up: fn gets a node, its argument already
+// mapped and x (fn's parameter), and returns the new node; lists are mapped element by element,
+// programs stay
+typedef giac::gen (*node_fn)(const giac::gen & g,const giac::gen & f,const giac::gen & x);
+static giac::gen map_nodes(const giac::gen & g,node_fn fn,const giac::gen & x){
+  using namespace giac;
+  if (g.type==_VECT){
+    vecteur w(*g._VECTptr);
+    for (iterateur it=w.begin();it!=w.end();++it)
+      *it=map_nodes(*it,fn,x);
+    return gen(w,g.subtype);
+  }
+  if (g.type!=_SYMB || g._SYMBptr->sommet==at_program)
+    return g;
+  return fn(g,map_nodes(g._SYMBptr->feuille,fn,x),x);
+}
+
 // Odd roots of negative numbers are real, as on TI calculators and in textbooks (giac takes the
 // complex root: (-8)^(1/3) was 1+i*sqrt(3)): (-8)^(1/3) is -(8^(1/3)), (-1)^(2/3) is 1^(2/3).
 // plot: every x^(p/q) with q odd becomes surd(x,q)^p, real for x<0 (the graph of x^(1/3) had
 // only its right half)
-static giac::gen real_roots(const giac::gen & e,bool plot=false){
+static giac::gen real_root_node(const giac::gen & e,const giac::gen & a,const giac::gen & plotg){
   using namespace giac;
-  if (e.type==_VECT){
-    vecteur w(*e._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=real_roots(*it,plot);
-    return gen(w,e.subtype);
-  }
-  if (e.type!=_SYMB || e._SYMBptr->sommet==at_program)
-    return e;
-  const gen a=real_roots(e._SYMBptr->feuille,plot);
+  const bool plot=!is_zero(plotg);
   if (e._SYMBptr->sommet==at_pow && a.type==_VECT && a._VECTptr->size()==2){
     const gen & b=a._VECTptr->front();
     gen p=a._VECTptr->back();
@@ -832,6 +841,9 @@ static giac::gen real_roots(const giac::gen & e,bool plot=false){
     }
   }
   return symbolic(e._SYMBptr->sommet,a);
+}
+static giac::gen real_roots(const giac::gen & e,bool plot=false){
+  return map_nodes(e,real_root_node,plot?1:0);
 }
 // a definite integral of a real integrand that giac made complex (x^(-1/3) from -1 to 8): the
 // antiderivative at the bounds with real roots (giac's value was finite: the integral converges)
@@ -1775,17 +1787,8 @@ static bool irrational_constant(const giac::gen & g){
   return irrational_constant(g._SYMBptr->feuille);
 }
 // x^0.5 is sqrt(x) in a decimal form (evalf writes 2.0*x^0.5)
-static giac::gen half_sqrt(const giac::gen & g){
+static giac::gen half_sqrt(const giac::gen & g,const giac::gen & f,const giac::gen &){
   using namespace giac;
-  if (g.type==_VECT){
-    vecteur w(*g._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=half_sqrt(*it);
-    return gen(w,g.subtype);
-  }
-  if (g.type!=_SYMB)
-    return g;
-  const gen f=half_sqrt(g._SYMBptr->feuille);
   if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_DOUBLE_){
     const double e=f._VECTptr->back()._DOUBLE_val;
     if (e==0.5)
@@ -1943,17 +1946,8 @@ static void function_nodes(const giac::gen & g,giac::vecteur & from,bool trig){
 }
 // 1/cos(u) as sec(u), 1/sin(u) as csc(u) (giac's eval writes them so): the algebra forms of an
 // answer written with sec keep it (sec(x)tan(x)/2+ln|sec(x)+tan(x)|/2)
-static giac::gen sec_back(const giac::gen & g){
+static giac::gen sec_back(const giac::gen & g,const giac::gen & f,const giac::gen &){
   using namespace giac;
-  if (g.type==_VECT){
-    vecteur w(*g._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=sec_back(*it);
-    return gen(w,g.subtype);
-  }
-  if (g.type!=_SYMB)
-    return g;
-  const gen f=sec_back(g._SYMBptr->feuille);
   if (g._SYMBptr->sommet==at_inv){
     gen b=f,n=1;
     if (f.is_symb_of_sommet(at_pow) && f._SYMBptr->feuille.type==_VECT && f._SYMBptr->feuille._VECTptr->size()==2){
@@ -1995,7 +1989,7 @@ static bool trig_out_of_ln(const giac::gen & g); // (below)
 // sec_back of g if it leaves no sin or cos ((2-cos(x)^2)*sec(x)^3 mixes them: g as it was)
 static giac::gen sec_only(const giac::gen & g){
   using namespace giac;
-  const gen r=sec_back(g);
+  const gen r=map_nodes(g,sec_back,0);
   return contains(r,at_sin) || contains(r,at_cos)?g:r;
 }
 static giac::gen form_op(int f,const giac::gen & g){
@@ -2136,7 +2130,7 @@ static void form_compute(answer_forms & F,int k){
     return;
   // in textbook form, as the answer was: arctan((x+2)/2), C1, 4-x^2; compared as shown
   if (f==FORM_DEC)
-    r=half_sqrt(r);
+    r=map_nodes(r,half_sqrt,0);
   if (r.type==_SYMB && taille(r,200)<200 && !contains(r,at_order_size))
     r=positive_first(r);
   trace_time("positive_first");
@@ -2203,18 +2197,10 @@ int answer_forms_next(answer_forms & F,int k,const std::string & cur,void (*busy
 // A result as a textbook writes it, inside its functions too: atan((2x-1)/sqrt(3)), not giac's
 // atan((x-1/2)/(1/2*sqrt(3))) (ratnormal of the whole leaves a function's argument as it is);
 // 2^x*(x*ln(2)-1)/ln(2)^2, not exp(x*ln(2))*(...)
-static giac::gen normal_args(const giac::gen & g){
+static giac::gen normal_node(const giac::gen & g,const giac::gen & f0,const giac::gen &){
   using namespace giac;
-  if (g.type==_VECT){
-    vecteur w(*g._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=normal_args(*it);
-    return gen(w,g.subtype);
-  }
-  if (g.type!=_SYMB || g._SYMBptr->sommet==at_program)
-    return g;
   const unary_function_ptr & u=g._SYMBptr->sommet;
-  gen f=normal_args(g._SYMBptr->feuille);
+  gen f=f0;
   if (u==at_ln && f.is_symb_of_sommet(at_pow) && f._SYMBptr->feuille.type==_VECT && f._SYMBptr->feuille._VECTptr->size()==2){
     const gen & b=f._SYMBptr->feuille._VECTptr->front(),& e=f._SYMBptr->feuille._VECTptr->back();
     const vecteur vb=lidnt(b); // ln(x^2), ln((x-1)^2): 2*ln|x-1| (b linear in one variable)
@@ -2232,6 +2218,9 @@ static giac::gen normal_args(const giac::gen & g){
       f=r;
   }
   return symbolic(u,f);
+}
+static giac::gen normal_args(const giac::gen & g){
+  return map_nodes(g,normal_node,0);
 }
 static giac::gen textbook_powers(const giac::gen & g){
   using namespace giac;
@@ -2254,17 +2243,8 @@ static bool sqrt_of(const giac::gen & s,giac::gen & p){
   p=s._SYMBptr->feuille._VECTptr->front();
   return true;
 }
-static giac::gen ln_conjugate(const giac::gen & g,const giac::gen & x){
+static giac::gen ln_conjugate(const giac::gen & g,const giac::gen & f,const giac::gen & x){
   using namespace giac;
-  if (g.type==_VECT){
-    vecteur w(*g._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=ln_conjugate(*it,x);
-    return gen(w,g.subtype);
-  }
-  if (g.type!=_SYMB || g._SYMBptr->sommet==at_program)
-    return g;
-  const gen f=ln_conjugate(g._SYMBptr->feuille,x);
   if (g._SYMBptr->sommet==at_ln){
     const gen A=f.is_symb_of_sommet(at_abs)?f._SYMBptr->feuille:f;
     if (A.is_symb_of_sommet(at_plus) && A._SYMBptr->feuille.type==_VECT){
@@ -2441,17 +2421,8 @@ void answer_prepass(char * buf,int cap,bool focus){
 }
 
 // nPr(n,k), perm(n,k) (TI's MATH PRB nPr; this giac has none): comb(n,k)*k!
-static giac::gen perms(const giac::gen & g){
+static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &){
   using namespace giac;
-  if (g.type==_VECT){
-    vecteur w(*g._VECTptr);
-    for (iterateur it=w.begin();it!=w.end();++it)
-      *it=perms(*it);
-    return gen(w,g.subtype);
-  }
-  if (g.type!=_SYMB)
-    return g;
-  const gen f=perms(g._SYMBptr->feuille);
   if (g._SYMBptr->sommet==at_of && f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->front().type==_IDNT){
     const char * n=f._VECTptr->front()._IDNTptr->id_name;
     const gen & b=f._VECTptr->back();
@@ -2463,7 +2434,7 @@ static giac::gen perms(const giac::gen & g){
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
   if (strstr(buf,"perm(") || strstr(buf,"nPr("))
-    g=perms(g);
+    g=map_nodes(g,perms,0);
   a.typed_sum=strstr(buf,"sum(");
   a.typed_sec=strstr(buf,"sec(") || strstr(buf,"csc(") || strstr(buf,"cot(");
   a.typed_limit=strstr(buf,"limit(");
@@ -2586,7 +2557,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     trace_step("normal_args",g);
   }
   if (a.ivar.type==_IDNT && !a.tabled){
-    g=drop_constants(ln_conjugate(g,a.ivar),a.ivar);
+    g=drop_constants(map_nodes(g,ln_conjugate,a.ivar),a.ivar);
     if (contains(g,at_exp) && top_sum(_numer(g,contextptr))){ // e^x(sin(x)+cos(x))/2, not
       const gen fg=form_op(FORM_FACT,g);                       // (e^x*cos(x)+e^x*sin(x))/2
       if (!is_undef(fg) && fg.type!=_STRNG && taille(fg,400)<taille(g,400) && !xcas::has_radical(fg))
