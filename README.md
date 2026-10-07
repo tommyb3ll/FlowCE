@@ -148,7 +148,9 @@ program, and `FlowCE.b84` for TI Connect CE. `tools/dev/build.sh` builds in WSL 
 tree, `tools/emu/` drives the CEmu emulator for regression tests, screenshots and the GIFs
 above, and `tests/host/` holds host tests of the editor and the 2D layout.
 
-The app must fit in 43 AppIns (at most 2,804,973 bytes); the build prints the room left.
+The app must fit in 43 flash pages (at most 2,818,045 bytes); the build prints the room left.
+Past 2,804,973 bytes it takes a 44th AppIns, which INST installs when it holds at least 1 KB
+(the build checks both; the install texts then say 46 files and a countdown from 43).
 
 ## Credits and license
 

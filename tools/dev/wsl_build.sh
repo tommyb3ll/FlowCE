@@ -41,8 +41,13 @@ cp bin/AppIns*.8xv bin/_DEMO.bin bin/DEMO.map "$OUT"/
 echo "$SUPER $GIAC" > "$OUT/SNAPSHOT"
 size=$(stat -c %s bin/_DEMO.bin)
 echo "[build] OK in $((t1-t0))s: _DEMO.bin=$size B ($(( (size+65535)/65536 )) flash pages), $(ls "$OUT"/AppIns*.8xv | wc -l) AppIns, warnings=$(grep -c 'warning:' "$LOG/build_$VARIANT.log") -> $OUT"
-# INST installs at most 43 AppIns (65,232 B each, the binary + a 3-byte trailer): a 44th made it
-# stop with "AppIns43: AppVar is missing" (2026-10-06)
-max=$((43 * 65232 - 3))
-if [ "$size" -gt "$max" ]; then echo "[build] TOO BIG: $size B > $max B (43 AppIns): INST will fail"; exit 3; fi
+# The app must fit in 43 flash pages: INST puts it right below 0x3AFFFD, so at most 0x2AFFFD B
+# (B. Parisse: another AppIns is fine within the pages). A 44th AppIns (65,232 B each: the binary
+# + a 3-byte trailer) installs byte for byte when it holds 1 KB or more (emulator, 2026-10-07:
+# 1,024 B, 7,305 B, 13,027 B). A few bytes stop INST ("AppIns43: AppVar is missing or was
+# transfered unordered", 30 B): it seems to share the previous AppIns's flash sector.
+max=$((0x2AFFFD))
+segs=$(( (size + 3 + 65231) / 65232 )); last=$(( size + 3 - (segs - 1) * 65232 ))
+if [ "$size" -gt "$max" ]; then echo "[build] TOO BIG: $size B > $max B (43 flash pages): INST will fail"; exit 3; fi
+if [ "$segs" -gt 43 ] && [ "$last" -lt 1024 ]; then echo "[build] the last AppIns would hold $last B (< 1 KB): INST stops on it; grow or shrink the app by 1 KB"; exit 3; fi
 echo "[build] room left: $((max - size)) B"
