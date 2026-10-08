@@ -190,6 +190,15 @@ class Emu:
     def save(self, path):
         self.cmd(f'save-state {path}')
 
+    def stats(self):
+        """The CPU's counters since power-on (patch_cemu.py 5): cycles, halt (halted cycles), dma
+        (cycles lost to the LCD's DMA), flash (reads), misses (flash cache misses), delay."""
+        return {k: int(v) for k, v in (x.split('=') for x in self.cmd('stats').split()[2:])}
+
+    def lineprof(self, what, path=''):
+        """Flash line profile (patch_cemu.py 6): 'on' (zeroed), 'dump' <path>, 'off'."""
+        self.cmd(f'lineprof {what} {path}'.strip())
+
     def peek(self, addr, n=1):
         return bytes.fromhex(self.cmd(f'peek {addr:X} {n}').split()[-1])
 
