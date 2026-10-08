@@ -80,6 +80,10 @@ extern const mi_metrics mi_default_metrics; // big {8,14,4}, small {6,9,3}, opga
 // *label pointing at it (static text), 0 if it has none. Set by the application (0: no names).
 extern int (*mi_arg_label)(const char * name, int nlen, int i, const char ** label);
 
+// Whether a call to name[0,nlen) with na arguments is drawn as a template (the integral sign,
+// d/dx, lim, sigma, taylor, a root...) rather than as its name and arguments.
+int mi_drawn_as_template(const char * name, int nlen, int na);
+
 // What Backspace should do: delete [from,to) (from==to: delete nothing) and return the new
 // caret. m is only used when Backspace acts like LEFT (hidden structure char).
 int mi_backspace(const char * s, int len, int caret, int & from, int & to,

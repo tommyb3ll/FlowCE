@@ -153,8 +153,21 @@ int focus_arg_label(const char * name, int n, int i, const char ** label) {
   return l;
 }
 
+// the arguments of the call whose ( is s[i] (up to its ) or the end of s)
+static int call_args(const char * s, int i) {
+  int d = 0, n = 1;
+  for (const char * p = s + i + 1; *p; ++p) {
+    if (*p == '(' || *p == '[' || *p == '{') ++d;
+    else if (*p == ')' || *p == ']' || *p == '}') { if (!d--) break; }
+    else if (*p == ',' && !d) ++n;
+  }
+  return n;
+}
+
 // the command the caret is in: the innermost call around it (lists and groups inside it skipped)
-// whose signature has 2 or more arguments; -1 if none. For the help line under the edit line.
+// whose signature has 2 or more arguments; -1 if none, or if that call is drawn as a template
+// (the integral sign, lim, sigma...: what it does is plain to see, the user's choice 2026-10-08).
+// For the help line under the edit line.
 int focus_call_entry(const char * s, int caret) {
   int d = 0;
   for (int i = caret - 1; i >= 0; --i) {
@@ -168,7 +181,7 @@ int focus_call_entry(const char * s, int caret) {
       while (b < i && !letter(s[b])) ++b; // 2irem(: the name starts at its first letter
       call_sig g;
       int e = b < i ? call_sig_of(s + b, i - b, g) : -1;
-      if (e >= 0 && g.req >= 2) return e;
+      if (e >= 0 && g.req >= 2) return mi_drawn_as_template(s + b, i - b, call_args(s, i)) ? -1 : e;
     }
   }
   return -1;

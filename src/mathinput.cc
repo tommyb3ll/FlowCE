@@ -276,6 +276,16 @@ static const struct { const char * nm; unsigned char na, k; } spec[] = {
   {"integrate", 4, K_DEFINT}, {"int", 2, K_INT}, {"int", 4, K_DEFINT}, {"diff", 2, K_DIFF},
   {"sum", 4, K_SUM}, {"limit", 3, K_LIM}, {"exp", 1, K_EXP}, {"series", 4, K_SER}};
 
+int mi_drawn_as_template(const char * name, int nlen, int na) {
+  for (unsigned i = 0; i < sizeof(spec) / sizeof(spec[0]); ++i) {
+    const char * w = spec[i].nm;
+    int k = 0;
+    while (k < nlen && w[k] == name[k]) ++k;
+    if (spec[i].na == na && k == nlen && !w[k]) return 1;
+  }
+  return 0;
+}
+
 static int pcall(int nm) { // name( args ): normal or special call
   int cl = newnode(K_CALL, T[nm].a, 0, 4), t = nm, na = 0, a, k = 0;
   lex(tb); ++nopen[0];
