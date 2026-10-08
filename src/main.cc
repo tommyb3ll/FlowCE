@@ -653,6 +653,9 @@ int check_parse(const std::vector<textElement> & v,int python){
   std::string s=merge_area(v);
   if (!FLOWCE_PYTHON)
     python=0; // a build with units has no Python syntax (python2xcas is not built)
+  // the program is read with its syntax, the console stays in math syntax (with Python syntax left
+  // on, its edit line was no longer 2D math, and the session saved that)
+  const int pc=giac::python_compat(contextptr);
   giac::python_compat(python,contextptr);
   if (python) s="@@"+s; // force Python translation
   giac::gen g(s,contextptr);
@@ -715,6 +718,7 @@ int check_parse(const std::vector<textElement> & v,int python){
       do_eval(g);
 #endif
   }
+  giac::python_compat(pc,contextptr);
   return lineerr;
 #endif
 }
@@ -1377,6 +1381,7 @@ void load_khicas_vars(const char * BUF){
   else
     g=giac::eval(g,1,contextptr);
   giac::angle_radian(giac::angle_radian(contextptr),giac::context0);
+  giac::python_compat(0,contextptr); // the console is math (sessions saved by v1.8 with Python syntax on)
 #endif
 }  
 
