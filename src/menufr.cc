@@ -736,7 +736,7 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"%", "%", "a % b means a modulo b", nullptr, nullptr, CAT_CATEGORY_ARIT | (CAT_CATEGORY_PROGCMD << 8)},
   {"&", "&", "Logical and or +", "#1&2", nullptr, CAT_CATEGORY_PROGCMD},
 #ifdef WITH_UNITS
-  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#x^4-1=>*", CAT_CATEGORY_PROGCMD },
+  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#15_ft=>_cm", CAT_CATEGORY_PROGCMD | (CAT_CATEGORY_PHYS <<8) | (CAT_CATEGORY_UNIT << 16) },
   {" mksa(x)", nullptr, "Convert to MKSA units", nullptr, nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
   {" ufactor(a,b)", nullptr, "Factorizes unit b in a", "100_J,1_kW", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
   {" usimplify(a)", nullptr, "Simplifies unit in a", "100_l/10_cm^2", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
@@ -814,7 +814,7 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
     {"_tr", nullptr, "tour (angle unit)", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
     {"_yd", nullptr, "yards", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
 #else
-  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#15_ft=>_cm", CAT_CATEGORY_PROGCMD | (CAT_CATEGORY_PHYS <<8) | (CAT_CATEGORY_UNIT << 16) },
+  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#x^4-1=>*", CAT_CATEGORY_PROGCMD },
 #endif
   {"a and b", " and ", "Logical and", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
   {"a or b", " or ", "Logical or", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
