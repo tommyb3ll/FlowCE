@@ -1241,8 +1241,12 @@ void do_run(const char * s){
     }
     giac::control_c_hook=0;
     focus_busy(0);
-    if (actx.definite && msg.empty() && giac::is_undef(g)) // through an asymptote: int(2x/(x^2-4),x,0,4)
-      msg="diverges (the integrand is unbounded on the interval)";
+    if (actx.definite && msg.empty() && giac::is_undef(g)){ // through an asymptote: int(2x/(x^2-4),x,0,4)
+      // to infinity, a bounded integrand diverges too: int(x/(x^2+1),x,-inf,inf)
+      const giac::vecteur & v=*actx.gin._SYMBptr->feuille._VECTptr; // f, x, a, b
+      msg=giac::is_inf(giac::eval(v[2],1,contextptr)) || giac::is_inf(giac::eval(v[3],1,contextptr))?
+        "diverges (the improper integral does not converge)":"diverges (the integrand is unbounded on the interval)";
+    }
     if (oom_hit && msg.empty()){ // memory ran out while simplifying
       msg="Out of memory";
       g=0;
