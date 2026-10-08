@@ -2937,6 +2937,53 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
   }
   return sym1(&g._SYMBptr->sommet,f);
 }
+// k/(a+b*sin(v)+c*cos(v)) (v=p*x+q) the textbook way: t=tan(v/2), sin(v)=2t/(1+t^2),
+// cos(v)=(1-t^2)/(1+t^2), dx=2dt/(p(1+t^2)): k/(quadratic in t) integrated, t put back
+// (1/(3-5sin(x)): (ln|tan(x/2)-3|-ln|3tan(x/2)-1|)/4; giac took 25 s on the calculator, 3 s so).
+// Not with a numerator in t: sin(x)/(1+cos(x)) is -ln|cos(x)+1| (giac's u-substitution)
+static __attribute__((noinline)) giac::gen weierstrass(const giac::gen & f0,const giac::gen & x){
+  using namespace giac;
+  if (!contains(f0,at_sin) && !contains(f0,at_cos))
+    return 0; // (before eval: 1 s on the calculator for sec(x)^2/(tan(x)^2+5tan(x)+6))
+  const gen f=eval(f0,1,contextptr);
+  // k/(...) only, checked on the tree first: the substitution left sin(x)^2*cos(x)^2 to giac after
+  // 1.5 s on the calculator (its numerator in t)
+  int ninv=f.is_symb_of_sommet(at_inv);
+  if (!ninv && f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT){
+    const vecteur & u=*f._SYMBptr->feuille._VECTptr;
+    for (const_iterateur it=u.begin();it!=u.end();++it){
+      if (it->is_symb_of_sommet(at_inv))
+        ++ninv;
+      else if (!free_of(*it,x))
+        return 0;
+    }
+  }
+  if (ninv!=1)
+    return 0;
+  const vecteur l=lvarx(f,x);
+  gen v=0;
+  for (const_iterateur it=l.begin();it!=l.end();++it){
+    if ((!it->is_symb_of_sommet(at_sin) && !it->is_symb_of_sommet(at_cos)) || (!is_zero(v) && !(it->_SYMBptr->feuille==v)))
+      return 0;
+    v=it->_SYMBptr->feuille;
+  }
+  const gen a=derive(v,x,contextptr);
+  if (is_zero(a) || !free_of(a,x))
+    return 0;
+  // f(t)*dx/dt, parsed (as trees it took KBs): t__w for t, f__w, v__w, a__w for f, v, a
+  const gen P=gen("[f__w,v__w,a__w,t__w]",contextptr),& t=P._VECTptr->back(),
+    g=eval(subst(gen("ratnormal(subst(f__w,[sin(v__w),cos(v__w)],[2*t__w/(1+t__w^2),(1-t__w^2)/(1+t__w^2)])*2/(a__w*(1+t__w^2)))",contextptr),
+                 vecteur(P._VECTptr->begin(),P._VECTptr->begin()+3),makevecteur(f,v,a),true,contextptr),1,contextptr);
+  if (!free_of(g,x) || !free_of(_numer(g,contextptr),t))
+    return 0;
+  const gen G=_integrate(makesequence(g,t),contextptr);
+  if (contains(G,at_integrate) || is_undef(G))
+    return 0;
+  // normalized in t, where the sign of |t-3| is found at once (giac's own answer, normalized in
+  // tan(x/2), spent most of its time on the signs of |tan(x/2)-3|); 2sqrt(3), not 6/sqrt(3)
+  return quotesubst(normal_args(xcas::has_radical(G)?safe_normal(G):ratnormal(G,contextptr)),t,symbolic(at_tan,v/2),contextptr);
+}
+
 bool answer_simplify_on=true;
 bool answer_simplify(){ // as add_autosimplify, without parsing the setting (~30 ms on the calculator)
   const std::string s=giac::autosimplify(contextptr);
@@ -2988,6 +3035,8 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   gen tab=table_integral(g); // sec, csc, sin(x)^3*cos(x)^2: the textbook form, at once
   if (is_zero(tab))
     tab=power_sum(g); // sum(1/sqrt(n),n,1,inf)
+  if (is_zero(tab) && a.ivar.type==_IDNT)
+    tab=weierstrass(g._SYMBptr->feuille._VECTptr->front(),a.ivar); // 1/(3-5sin(x)) by tan(x/2)
   gen parts=is_zero(tab)?parts_table(g):gen(0); // x*sec(x)^2 by parts
   if (is_zero(tab) && is_zero(parts) && a.definite)
     parts=table_definite(g); // sec(x)^3 from 0 to pi/4 (normalized as giac's: sqrt(2), not 2/sqrt(2))
