@@ -1185,7 +1185,7 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
 	text.clipline=-1;
 	text.title = (char*)(lang?"Aide sur la commande":"Help on command");
 	text.allowF1=true;
-	text.python=false;
+	text.python=FLOWCE_PYTHON;
 	std::vector<textElement> & elem=text.elements;
 	elem = std::vector<textElement> (example2?4:3);
 	elem[0].s = index<allcmds?completeCat[index].name:menuitems[menu.selection-1].text;

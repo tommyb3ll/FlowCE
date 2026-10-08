@@ -7,7 +7,7 @@ REPO := $(abspath $(HG)/../..)
 # the calculator's defines (makefile: CXXFLAGS, FEATURE_DEFS for APPLANG=en VARIANT=normal),
 # plus HOSTGIAC for the 64-bit host changes of host.patch
 DEFS := -DHOSTGIAC -DTICE -DHAVE_CONFIG_H -DXLIGHT -DCOMPILE_FOR_STABILITY -DMP_16BIT \
-        -DWITH_UNITS -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
+        -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
 SAN ?= -fsanitize=address -fno-omit-frame-pointer
 OPT ?= -O1
 # CEdev: -fno-exceptions -fno-threadsafe-statics, its own small C++ headers (here: include/).

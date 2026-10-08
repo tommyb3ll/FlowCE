@@ -651,8 +651,10 @@ int check_parse(const std::vector<textElement> & v,int python){
   for (int i=0;i<sizeof(status);++i)
     status[i]=0;
   std::string s=merge_area(v);
-  python=0; // FlowCE: no Python syntax (python2xcas is not built)
+  if (!FLOWCE_PYTHON)
+    python=0; // a build with units has no Python syntax (python2xcas is not built)
   giac::python_compat(python,contextptr);
+  if (python) s="@@"+s; // force Python translation
   giac::gen g(s,contextptr);
   int lineerr=giac::first_error_line(contextptr);
   if (lineerr){
@@ -826,7 +828,7 @@ void edit_script(const char * fname){
         s=extract_name(filename);
         if (s=="session")
           s="f";
-        s=s+"(x):={\n  \n  return x;\n}"; // (giac syntax: FlowCE has no Python)
+        s=FLOWCE_PYTHON?"def "+s+"(x):\n  \n  return x":s+"(x):={\n  \n  return x;\n}";
       }
     }
     // split s at newlines
@@ -839,7 +841,7 @@ void edit_script(const char * fname){
     //cout << "script " << edptr->filename << endl;
     edptr->editable=true;
     edptr->changed=false;
-    edptr->python=false;
+    edptr->python=FLOWCE_PYTHON;
     edptr->longlinescut=false;
     edptr->elements.clear();
     edptr->y=0;

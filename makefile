@@ -14,7 +14,10 @@ VARIANT ?= normal
 # This fork drops the spreadsheet (WITH_SHEET) and the periodic table (WITH_PERIODIC): about
 # 160 KB of flash for the input/display work (user's choice, 2026-10-05), and the variation tables
 # (WITH_TABVAR: tabvar, domain; ~87 KB) for the Focus interface's fonts (2026-10-05, notes/ui).
-FEATURE_DEFS = -DWITH_UNITS -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
+# Physical units (WITH_UNITS, 34.6 KB) are traded for giac's Python syntax (its translator,
+# 28.4 KB; B. Parisse's suggestion, 2026-10-08): both do not fit. Adding -DWITH_UNITS builds units
+# and no Python syntax, as up to v1.7.
+FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
 
 ifeq ($(APPLANG),fr)
     LANG_DEF = -DFRANCAIS

@@ -14,6 +14,12 @@
 #define std ustl
 #endif
 typedef char Char;
+// Python syntax (giac's python2xcas): in every build without units (the makefile's FEATURE_DEFS)
+#ifdef WITH_UNITS
+#define FLOWCE_PYTHON 0
+#else
+#define FLOWCE_PYTHON 1
+#endif
 
 #define LARGEDOUBLE 3e38
 

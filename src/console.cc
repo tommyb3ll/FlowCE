@@ -1645,7 +1645,7 @@ void reload_edptr(const char * filename,textArea *r_edptr){
     // cout << "script " << r_edptr->filename << endl;
     r_edptr->editable=true;
     r_edptr->changed=false;
-    r_edptr->python=false;
+    r_edptr->python=FLOWCE_PYTHON;
     r_edptr->elements.clear();
     r_edptr->y=0;
     add(r_edptr,s);
