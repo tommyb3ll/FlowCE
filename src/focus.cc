@@ -741,24 +741,26 @@ static int screen_is_ours() { // a grid of 6 x 6 points: a message box over the 
 // seconds, no sign of work (the user, 2026-10-07). While giac works, its control_c checks call
 // focus_busy_tick (main.cc sets giac::control_c_hook): after 0.4 s the prompt becomes
 // "Calculating" over three dots lit in turn, 4 a second. A quick answer shows nothing.
-static long busy_t0 = -1; // clock() (32768 Hz) when the calculation started; -1: none
+// The time of the next frame, not the frame of the elapsed time: (t >> 13) % 3 in 32 bits was a
+// remainder loop in the OS at every 8th check (0.3% of a calculation).
+static long busy_next = -1; // clock() (32768 Hz) when the dots change next; -1: no calculation
 static signed char busy_fr;
 void focus_busy(int on) {
 #ifdef TICE
-  busy_t0 = on ? (long)(clock)() : -1; // ((clock): giac's first.h makes clock() 0)
+  busy_next = on ? (long)(clock)() + 13107 : -1; // 0.4 s ((clock): giac's first.h makes clock() 0)
   busy_fr = -1;
 #endif
 }
 bool focus_busy_tick() {
 #ifdef TICE
   static unsigned char calls;
-  if (busy_t0 < 0 || (++calls & 7)) return false; // the clock every 8 checks (it cost 3% of a sum)
-  long t = (long)(clock)() - busy_t0;
-  if (t < 13107) return false; // 0.4 s
-  int fr = (int)((t >> 13) % 3);
-  if (fr == busy_fr) return false;
+  if (busy_next < 0 || (++calls & 7)) return false; // the clock every 8 checks (it cost 3% of a sum)
+  long t = (long)(clock)();
+  if (t < busy_next) return false;
+  busy_next = t + 8192; // 4 frames a second
+  int fr = busy_fr < 0 || busy_fr == 2 ? 0 : busy_fr + 1;
   int m = hy0 + hh / 2 - 2, b = m + 20; // where hero_paint wrote the prompt
-  if (!screen_is_ours() || (busy_fr < 0 && (hm != HM_HINT || M.hist))) { busy_t0 = -1; return false; } // (a program draws)
+  if (!screen_is_ours() || (busy_fr < 0 && (hm != HM_HINT || M.hist))) { busy_next = -1; return false; } // (a program draws)
   if (busy_fr < 0) {
     ui_noclip();
     ui_fill(0, m - 18, UI_W, b + 10 - (m - 18), col(UC_BG)); // the prompt and its key hints

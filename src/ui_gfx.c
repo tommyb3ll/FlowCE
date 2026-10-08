@@ -126,9 +126,10 @@ void ui_fill(int x, int y, int w, int h, unsigned char idx) {
   for (; y0 < y1; ++y0) memset(ui_fb + y0 * UI_W + x0, idx, x1 - x0);
 }
 
-static void put(int x, int y, int lv, const unsigned char * r) { // keeps the darker shade
-  if (lv <= 0 || x < ui_cx0 || x >= ui_cx1 || y < ui_cy0 || y >= ui_cy1) return;
-  unsigned char * p = ui_fb + y * UI_W + x, o = *p;
+// pixel x of the framebuffer row row (inside the clip rows), shade lv: keeps the darker shade
+static void put(unsigned char * row, int x, int lv, const unsigned char * r) {
+  if (lv <= 0 || x < ui_cx0 || x >= ui_cx1) return;
+  unsigned char * p = row + x, o = *p;
   int ol = o == r[3] ? 3 : o == r[2] ? 2 : o == r[1] ? 1 : 0;
   if (lv > ol) *p = r[lv];
 }
@@ -143,25 +144,36 @@ static int isqrt(long v) { // floor(sqrt(v)), v < 2^31
 // shade of a pixel at squared distance q (1/64 px^2) from the center of a disc of radius R (1/8
 // px), the prototype's quantization of the coverage 0.5 - d of a pixel at distance d (1/8 px)
 // outside the edge: 3 if d <= -2, 2 if d <= 1, 1 if d <= 3; d = floor(sqrt(q)) - R is compared
-// without the square root: d <= t <=> q < (R + t + 1)^2
-static int disc_level(int q, int R) {
+// without the square root: d <= t <=> q < (R + t + 1)^2. The squares, per disc (disc_limits):
+// a multiplication is a helper call on the eZ80, and three per pixel made the busy dots cost 1%
+// of a calculation.
+static void disc_limits(int R, int lim[3]) {
   int a = R - 1, b = R + 2, c = R + 4;
-  return a > 0 && q < a * a ? 3 : b > 0 && q < b * b ? 2 : c > 0 && q < c * c ? 1 : 0;
+  lim[0] = a > 0 ? a * a : 0; lim[1] = b > 0 ? b * b : 0; lim[2] = c > 0 ? c * c : 0;
+}
+static int disc_level(int q, const int lim[3]) {
+  return q < lim[0] ? 3 : q < lim[1] ? 2 : q < lim[2] ? 1 : 0;
 }
 // corners of a rounded rectangle: pixels of the r x r corner boxes by distance to the arc
 // (24-bit integers only: r <= 60)
 static void corners(int x, int y, int w, int h, int r, const unsigned char * ramp, int ring) {
-  int R = r * 8;
+  int R = r * 8, lim[3], lim1[3];
+  disc_limits(R, lim);
+  disc_limits(R - 8, lim1);
   for (int q = 0; q < 4; ++q) {
     int bx = (q & 1) ? x + w - r : x, by = (q & 2) ? y + h - r : y;
     int cx8 = ((q & 1) ? x + w - r : x + r) * 8, cy8 = ((q & 2) ? y + h - r : y + r) * 8;
     for (int py = by; py < by + r; ++py) {
-      int ey = py * 8 + 4 - cy8, ex = bx * 8 + 4 - cx8, d2 = ex * ex + ey * ey;
+      if (py < ui_cy0 || py >= ui_cy1) continue;
+      // per row the framebuffer row and d2, then additions only: a multiplication or a 24-bit shift
+      // is a helper call on the eZ80 (two per pixel made the busy dots 1% of a calculation)
+      unsigned char * row = ui_fb + py * UI_W;
+      int ey = py * 8 + 4 - cy8, ex = bx * 8 + 4 - cx8, d2 = ex * ex + ey * ey, step = 16 * ex + 64;
       for (int px = bx; px < bx + r; ++px) {
         // a 1 px ring is the disc of radius r minus the disc of radius r - 1
-        int lv = ring ? disc_level(d2, R) - disc_level(d2, R - 8) : disc_level(d2, R);
-        put(px, py, lv, ramp);
-        d2 += 16 * ex + 64; ex += 8;
+        int lv = ring ? disc_level(d2, lim) - disc_level(d2, lim1) : disc_level(d2, lim);
+        put(row, px, lv, ramp);
+        d2 += step; step += 128; // d2 = ex^2 + ey^2, ex += 8 per pixel
       }
     }
   }
