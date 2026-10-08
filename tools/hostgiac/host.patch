@@ -37,19 +37,19 @@ diff -ruN pristine/giac/gen.h work/giac/gen.h
  #endif
        return (unary_function_eval *) (((size_t) _ptr) & ~(uintptr_t)3);
  #ifdef x86_64
-@@ -549,7 +556,7 @@
-     bool quoted() const ;
-     inline bool operator ==(const unary_function_ptr & u) const { 
-       // if (&u==this) return true; 
+@@ -556,7 +563,7 @@
+       // helper call (and) instead of two (xor, and): on the eZ80 they are ~1% of a calculation
+       return (((size_t)_ptr-(size_t)u._ptr)<<1)==0;
+ #endif
 -      return ((ulonglong)(_ptr) & 0x7fffff )  == ((ulonglong)( u._ptr) & 0x7fffff );
 +      return ((ulonglong)(_ptr) & GIAC_FUNC_MASK )  == ((ulonglong)( u._ptr) & GIAC_FUNC_MASK );
  #ifdef x86_64
        //return ((ulonglong)(_ptr) & 0xfffffffffffffffc)  == ((ulonglong)( u._ptr) & 0xfffffffffffffffc ); 
  #else
-@@ -559,7 +566,7 @@
-     inline bool operator !=(const unary_function_ptr & u) const { return !(*this==u); }
-     inline bool operator ==(const unary_function_ptr * u) const { 
-       // if (&u==this) return true; 
+@@ -568,7 +575,7 @@
+ #if defined(TICE) && !defined(HOSTGIAC)
+       return u && *this==*u;
+ #endif
 -      return u && ( ((ulonglong)(_ptr) & 0x7fffff ) == ((ulonglong)(u->_ptr) & 0x7fffff) ); 
 +      return u && ( ((ulonglong)(_ptr) & GIAC_FUNC_MASK ) == ((ulonglong)(u->_ptr) & GIAC_FUNC_MASK) ); 
  #ifdef x86_64
@@ -176,7 +176,7 @@ diff -ruN pristine/giac/index.cc work/giac/index.cc
 diff -ruN pristine/giac/kgen.cc work/giac/kgen.cc
 --- pristine/giac/kgen.cc	2026-10-06 02:22:50.283887787 -0400
 +++ work/giac/kgen.cc	2026-10-06 02:24:18.004520461 -0400
-@@ -863,6 +863,9 @@
+@@ -792,8 +792,11 @@
  #endif
        type =_ZINT;
        subtype=0;
@@ -186,6 +186,8 @@ diff -ruN pristine/giac/kgen.cc work/giac/kgen.cc
        // convert longlong to mpz_t
        bool signe=(i<0);
        if (signe)
+ 	i=-i;
+       unsigned int i1=sizeof(long)==4?0:i>>24;
 @@ -1065,10 +1068,14 @@
    ref_vecteur * new_ref_vecteur(const vecteur & v){
      ref_vecteur * ptr=(ref_vecteur *) allocfast(sizeof(ref_vecteur));
