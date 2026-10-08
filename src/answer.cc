@@ -2937,6 +2937,26 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
   }
   return sym1(&g._SYMBptr->sommet,f);
 }
+// atan(2*tan(x)/sqrt(2)) is atan(sqrt(2)*tan(x)): giac's atan(t/(sqrt(2)/2)), whose ratnormal
+// keeps the root below. The constant factors normalized only (a normal of the whole argument
+// cost 0.4 s on the calculator, and so does this, for t=tan(v) only), and only when shorter
+static giac::gen atan_root(const giac::gen & g,const giac::gen & f,const giac::gen &){
+  using namespace giac;
+  if (g._SYMBptr->sommet==at_atan && f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT && xcas::has_radical(f)){
+    gen c=1,r=1;
+    const vecteur & u=*f._SYMBptr->feuille._VECTptr;
+    for (const_iterateur it=u.begin();it!=u.end();++it){
+      if (lidnt(*it).empty())
+        c=c* *it;
+      else
+        r=r* *it;
+    }
+    const gen nc=normal(c,contextptr),n=nc*r; // (1/(2sqrt(2)) stays: sqrt(2)/4 has a denominator)
+    if (!is_undef(nc) && is_one(_denom(nc,contextptr)) && taille(n,100)<taille(f,100))
+      return sym1(at_atan,n);
+  }
+  return sym1(&g._SYMBptr->sommet,f);
+}
 // k/(a+b*sin(v)+c*cos(v)) (v=p*x+q) the textbook way: t=tan(v/2), sin(v)=2t/(1+t^2),
 // cos(v)=(1-t^2)/(1+t^2), dx=2dt/(p(1+t^2)): k/(quadratic in t) integrated, t put back
 // (1/(3-5sin(x)): (ln|tan(x/2)-3|-ln|3tan(x/2)-1|)/4; giac took 25 s on the calculator, 3 s so).
@@ -2958,7 +2978,7 @@ static __attribute__((noinline)) giac::gen weierstrass(const giac::gen & f0,cons
         return 0;
     }
   }
-  if (ninv!=1)
+  if (!ninv) // (1/(sin(x)cos(x)) has two)
     return 0;
   const vecteur l=lvarx(f,x);
   gen v=0;
@@ -2970,18 +2990,33 @@ static __attribute__((noinline)) giac::gen weierstrass(const giac::gen & f0,cons
   const gen a=derive(v,x,contextptr);
   if (is_zero(a) || !free_of(a,x))
     return 0;
-  // f(t)*dx/dt, parsed (as trees it took KBs): t__w for t, f__w, v__w, a__w for f, v, a
-  const gen P=gen("[f__w,v__w,a__w,t__w]",contextptr),& t=P._VECTptr->back(),
-    g=eval(subst(gen("ratnormal(subst(f__w,[sin(v__w),cos(v__w)],[2*t__w/(1+t__w^2),(1-t__w^2)/(1+t__w^2)])*2/(a__w*(1+t__w^2)))",contextptr),
-                 vecteur(P._VECTptr->begin(),P._VECTptr->begin()+3),makevecteur(f,v,a),true,contextptr),1,contextptr);
-  if (!free_of(g,x) || !free_of(_numer(g,contextptr),t))
-    return 0;
-  const gen G=_integrate(makesequence(g,t),contextptr);
-  if (contains(G,at_integrate) || is_undef(G))
-    return 0;
-  // normalized in t, where the sign of |t-3| is found at once (giac's own answer, normalized in
-  // tan(x/2), spent most of its time on the signs of |tan(x/2)-3|); 2sqrt(3), not 6/sqrt(3)
-  return quotesubst(normal_args(xcas::has_radical(G)?safe_normal(G):ratnormal(G,contextptr)),t,symbolic(at_tan,v/2),contextptr);
+  // f(t)*dx/dt, parsed (as trees it took KBs): t__w for t, f__w, v__w, a__w for f, v, a. First
+  // t=tan(v/2); then t=tan(v) (Bioche: f unchanged with sin, cos -> -sin, -cos; sin=t/sqrt(1+t^2),
+  // cos=1/sqrt(1+t^2), and no root is left): 1/(sin(x)^2+4cos(x)^2) is atan(tan(x)/2)/2 (giac:
+  // (x-atan(sin(2x)/(cos(2x)+3)))/2), 1/(sin(x)cos(x)) ln|tan(x)|
+  const gen P=gen("[f__w,v__w,a__w,t__w]",contextptr),& t=P._VECTptr->back();
+  const vecteur fva(P._VECTptr->begin(),P._VECTptr->begin()+3),vals(makevecteur(f,v,a));
+  // Bioche's test first: f even in (sin,cos) takes t=tan(v) at once, else only tan(v/2) (tan(v)
+  // would leave a root): the failed tan(v/2) cost 1.5 s on the calculator. (As trees, eval keeps
+  // (-sin(x))^2: the difference is normalized)
+  const int even=is_zero(eval(subst(gen("ratnormal(subst(f__w,[sin(v__w),cos(v__w)],[-sin(v__w),-cos(v__w)])-f__w)",contextptr),
+                                    fva,vals,true,contextptr),1,contextptr));
+  for (int i=0;i<=even;++i){
+    const int k=even-i; // even: tan(v), then tan(v/2); else tan(v/2) only
+    const gen g=eval(subst(gen(k?"ratnormal(subst(f__w,[sin(v__w),cos(v__w)],[t__w/sqrt(1+t__w^2),1/sqrt(1+t__w^2)])/(a__w*(1+t__w^2)))":
+                               "ratnormal(subst(f__w,[sin(v__w),cos(v__w)],[2*t__w/(1+t__w^2),(1-t__w^2)/(1+t__w^2)])*2/(a__w*(1+t__w^2)))",contextptr),
+                           fva,vals,true,contextptr),1,contextptr);
+    if (!free_of(g,x) || !free_of(_numer(g,contextptr),t) || (k && xcas::has_radical(g)))
+      continue;
+    const gen G=_integrate(makesequence(g,t),contextptr);
+    if (contains(G,at_integrate) || is_undef(G))
+      return 0;
+    // normalized in t, where the sign of |t-3| is found at once (giac's own answer, normalized in
+    // tan(x/2), spent most of its time on the signs of |tan(x/2)-3|); 2sqrt(3), not 6/sqrt(3)
+    const gen r=quotesubst(normal_args(xcas::has_radical(G)?safe_normal(G):ratnormal(G,contextptr)),t,symbolic(at_tan,k?v:v/2),contextptr);
+    return k?map_nodes(r,atan_root,0):r; // (tan(v/2)'s forms are clean: 0.4 s saved there)
+  }
+  return 0;
 }
 
 bool answer_simplify_on=true;
