@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build a commit for the user's real calculator in a separate tree (does not disturb the main one),
 # then bundle it: Projects/khicas/builds/flowce-<NAME>/FlowCE-<NAME>.b84 (+ files/), outside the repo.
-# usage (WSL): user_bundle.sh <super-commit> <giac-commit> <NAME>
+# usage (WSL): user_bundle.sh <super-commit> <giac-commit> <NAME> [en|en-units]
 set -e
 KB2=/home/bell/khicas-build-user
 MAIN=/home/bell/khicas-review-build
@@ -11,14 +11,15 @@ cp -a "$MAIN/src" "$KB2/src"
 ln -sfn "$MAIN/CEdev" "$KB2/CEdev"
 echo "copied tree"
 export KB="$KB2"
-bash /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2/tools/dev/wsl_build.sh /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2 en "$1" "$2"
+V=${4:-en}
+bash /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2/tools/dev/wsl_build.sh /mnt/c/Users/tjb43/Downloads/Projects/khicas/KhiCAS-v2 "$V" "$1" "$2"
 set -- "$3"
 NAME=${1:-FOCUS1}
 OUT=/mnt/c/Users/tjb43/Downloads/Projects/khicas/builds/flowce-$NAME
 NEW2=/mnt/c/Users/tjb43/Downloads/Projects/khicas/builds/khicas84-NEW2/files
 rm -rf "$OUT"
 mkdir -p "$OUT/files"
-cp "$KB2"/out/en/AppIns*.8xv "$OUT/files/"
+cp "$KB2"/out/"$V"/AppIns*.8xv "$OUT/files/"
 cp "$NEW2/artific2.8xp" "$OUT/files/"
 cp "$KB2/src/app_tools/INST.8xp" "$OUT/files/"
 cmp "$OUT/files/INST.8xp" "$NEW2/INST.8xp" && echo "INST identical to NEW2's"

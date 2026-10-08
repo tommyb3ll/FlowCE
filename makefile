@@ -7,17 +7,23 @@
 #
 # VARIANT=normal (default)
 # VARIANT=l2 (L2 variant with quad support instead of the periodic table)
+#
+# UNITS=1 (physical units instead of Python syntax, see below)
 
 APPLANG ?= en
 VARIANT ?= normal
+UNITS ?= 0
 
 # This fork drops the spreadsheet (WITH_SHEET) and the periodic table (WITH_PERIODIC): about
 # 160 KB of flash for the input/display work (user's choice, 2026-10-05), and the variation tables
 # (WITH_TABVAR: tabvar, domain; ~87 KB) for the Focus interface's fonts (2026-10-05, notes/ui).
 # Physical units (WITH_UNITS, 34.6 KB) are traded for giac's Python syntax (its translator,
-# 28.4 KB; B. Parisse's suggestion, 2026-10-08): both do not fit. Adding -DWITH_UNITS builds units
-# and no Python syntax, as up to v1.7.
+# 28.4 KB; B. Parisse's suggestion, 2026-10-08): both do not fit. UNITS=1 builds units and no
+# Python syntax, as up to v1.7 (released as FlowCE-units.b84 since v1.8).
 FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
+ifeq ($(UNITS),1)
+    FEATURE_DEFS += -DWITH_UNITS
+endif
 
 ifeq ($(APPLANG),fr)
     LANG_DEF = -DFRANCAIS

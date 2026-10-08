@@ -1,5 +1,5 @@
 #!/bin/bash
-# WSL side of tools/dev/build.sh. Args: <windows-repo-path-in-wsl> <en|fr|l2> <repo-commit> <giac-commit>
+# WSL side of tools/dev/build.sh. Args: <windows-repo-path-in-wsl> <en|en-units|fr|l2> <repo-commit> <giac-commit>
 # Build tree, toolchain and outputs live outside the repo, in $KB (default /home/bell/khicas-review-build).
 set -uo pipefail
 WIN="$1"; VARIANT="$2"; SUPER="$3"; GIAC="$4"
@@ -19,6 +19,7 @@ G -C "$SRC/src/giac" checkout -qf "$GIAC" || exit 1
 cd "$SRC"
 case "$VARIANT" in
   en) ln -sf app.src1 app_tools/app.src; ARGS="APPLANG=en" ;;
+  en-units) ln -sf app.src1 app_tools/app.src; ARGS="APPLANG=en UNITS=1" ;;
   fr) ln -sf app.src2 app_tools/app.src; ARGS="APPLANG=fr" ;;
   l2) ln -sf app.src2 app_tools/app.src; ARGS="APPLANG=fr VARIANT=l2" ;;
   *) echo "unknown variant $VARIANT"; exit 2 ;;

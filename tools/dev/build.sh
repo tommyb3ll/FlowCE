@@ -6,7 +6,7 @@
 # LF-normalized by git, real index/worktree untouched) stored at refs/devbuild/snapshot.
 # WSL fetches exactly that snapshot and builds it (see wsl_build.sh).
 #
-# Usage (Windows Git Bash):  tools/dev/build.sh [en|fr|l2]
+# Usage (Windows Git Bash):  tools/dev/build.sh [en|en-units|fr|l2]
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VARIANT="${1:-en}"
