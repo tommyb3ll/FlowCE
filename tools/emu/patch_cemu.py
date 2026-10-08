@@ -82,14 +82,16 @@ patch(root + '/tests/autotester/headless_cli.cpp', KD_MARK,
     }
 ''')
 
-# 4) headless runner: `regs` prints PC and SP (where a hung calculator is stuck).
+# 4) headless runner: `regs` prints PC, SP, IX and IY (where a hung calculator is stuck; IX walks
+#    the frames: the caller's IX at (IX), the return address at (IX+3)).
 RG_MARK = '/* khicas-review: regs */'
 patch(root + '/tests/autotester/headless_cli.cpp', RG_MARK,
       '    respond("ERR unknown command " + command);',
       '''    if (command == "regs") { ''' + RG_MARK + '''
         char b[96];
-        std::snprintf(b, sizeof b, "OK regs pc=%06X sp=%06X halted=%d", (unsigned)cemucore::cpu.registers.PC,
-                      (unsigned)cemucore::cpu.registers.SPL, (int)cemucore::cpu.halted);
+        std::snprintf(b, sizeof b, "OK regs pc=%06X sp=%06X halted=%d ix=%06X iy=%06X", (unsigned)cemucore::cpu.registers.PC,
+                      (unsigned)cemucore::cpu.registers.SPL, (int)cemucore::cpu.halted,
+                      (unsigned)cemucore::cpu.registers.IX, (unsigned)cemucore::cpu.registers.IY);
         respond(b);
         return true;
     }
@@ -206,4 +208,16 @@ patch(root + '/tests/autotester/headless_cli.cpp', '/* khicas-review: linetrace 
       '''        extern FILE *khicas_linetrace; /* khicas-review: linetrace extern */
         extern uint32_t khicas_linebuf[65536];
         extern unsigned khicas_linepos;
+''')
+
+# 9) KHICAS_FLASH_CYCLES=<n> in the environment: every flash read costs n cycles, as on a CE made
+#    before hardware revision M (2019): parallel flash and no cache, the OS sets 9 wait states, so
+#    n=10. Unset: the revision-M serial flash and its 8 KB cache, as before. Same ROM and states:
+#    only the timing changes. For speed claims about the older calculators.
+FC_MARK = '/* khicas-review: flash cycles */'
+patch(root + '/core/mem.c', FC_MARK,
+      '    cpu.cycles += flash_touch_cache(addr);\n    return mem.flash.block[addr & flash.mask];',
+      '''    { static int fixed = -1; ''' + FC_MARK + '''
+      if (unlikely(fixed < 0)) { const char *e = getenv("KHICAS_FLASH_CYCLES"); fixed = e ? atoi(e) : 0; }
+      if (fixed) { cpu.cycles += (uint32_t)fixed; return mem.flash.block[addr & flash.mask]; } }
 ''')
