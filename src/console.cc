@@ -3285,7 +3285,7 @@ const char * Console_Draw_FMenu(int key, struct FMenu* menu,Char * cfg,int activ
 
   char ** entries = menu->str;
   nb_entries = menu->count;
-  if (focus_on && active_app==0 && focus_screen()){ // the console: a Focus card of the entries
+  if (focus_on && ((active_app==0 && focus_screen()) || (active_app==2 && focus_view))){ // the console or the program editor: a Focus card of the entries
     const int r=focus_fmenu(key-KEY_CTRL_F1,(const char * const *)entries,nb_entries);
     if (r>=0)
       return entries[r];

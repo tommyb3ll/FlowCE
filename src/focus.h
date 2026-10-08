@@ -30,7 +30,8 @@ int focus_hist_line(int dir);           // history by calculations: the line for
 int focus_choose(const char * title, const char * const * labels, int n);
 // a list card under a title (0: none) for KhiCAS's own menus (doMenu); a long list scrolls.
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
-int focus_list(const char * title, const char * const * labels, int n, int sel, const char * const * hints = 0);
+// syms: a column of symbols before the labels (==, %: the program editor's menus), drawn large
+int focus_list(const char * title, const char * const * labels, int n, int sel, const char * const * hints = 0, const char * const * syms = 0);
 void focus_note(const char * title, const char * text); // a message card; the caller reads the key
 void focus_text(const char * title, const char * text); // About, Shortcuts: a text to read
 void focus_splash(int first);           // the start screen (first: tips, "press any key")
@@ -50,6 +51,9 @@ void focus_invalidate();                // the next focus_disp repaints everythi
 void focus_splash_clear();              // the start screen erased, before the first console paint
 extern bool focus_hold;                 // no console painting (the start screen while the session loads)
 void focus_status_label(const char * s); // a view's label in the status bar ("COMMANDS"); 0: the console's
+void focus_status_view(const char * s, int chip); // the same; chip: the 2nd/alpha chip stays (the program editor)
+void focus_bar_editor(const char * const * labels, int keyflag); // the program editor's bar: its words, or 2nd/alpha
+void focus_tab_open(int i, const char * label); // tab i drawn open (bright) while its menu's card is shown
 void focus_tab(int i, int on, int bank); // the standard layer's tab of F-key i (on: its menu is open)
 void focus_bar_tabs(const char * const * labels, int on); // the F-key bar as 5 text tabs, tab on selected
 enum { IC_X2, IC_INT, IC_WAVE, IC_PI, IC_FORMS, IC_MORE, IC_SEARCH };

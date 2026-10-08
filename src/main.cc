@@ -639,17 +639,15 @@ static int simple_definition(const char * s){
   return (n>0 && s[n-1]==')' && strchr(s,'(') && strchr(s,'(')<p)?n:0;
 }
 
-// called from editor, return
-int check_parse(const std::vector<textElement> & v,int python){
+// a program (the editor's lines v; Python syntax when python): parsed with its syntax and, when it
+// parses, evaluated (its functions are defined). Returns 0, or the line of the first error with a
+// message in msg. The console keeps its math syntax.
+int check_program(const std::vector<textElement> & v,int python,std::string & msg){
 #ifdef FAKE_GIAC
   return 0;
 #else
-  //dbg_printf("check_parse\n");
   if (v.empty())
     return 0;
-  char status[256];
-  for (int i=0;i<sizeof(status);++i)
-    status[i]=0;
   std::string s=merge_area(v);
   if (!FLOWCE_PYTHON)
     python=0; // a build with units has no Python syntax (python2xcas is not built)
@@ -694,34 +692,24 @@ int check_parse(const std::vector<textElement> & v,int python){
     }
     else {
       lineerr=v.size();
-      tok=lang?"la fin":"end";
+      tok="end";
       pos=0;
     }
-    string S((lang?"Erreur ligne ":"Error line ")+giac::print_INT_(lineerr));
-    if (pos>=0)
-      do_confirm((S+(lang?" a ":" at ")+tok).c_str());
-    else {
-      if (pos==-2)
-        S += lang?". ; manquant ?":", : missing?";
-      do_confirm(S.c_str());
-    }
+    msg="Line "+giac::print_INT_(lineerr);
+    if (pos==-2)
+      msg += ": is a : missing?";
+    else if (pos>=0 && !tok.empty())
+      msg += ": error at "+tok;
+    else
+      msg += ": syntax error";
   }
-  else {
-#if 1
+  else
     do_eval(g);
-    statuslinemsg(lang?"Syntaxe OK.":"Parse OK.",COLOR_CYAN);
-    os_wait_1ms(700);
-#else
-    print_msg12(lang?"Syntaxe OK.":"Parse OK.",lang?"Taper une touche pour evaluer.":"Type any key to eval.");
-    int key=getkey(1);
-    if (key!=KEY_CTRL_EXIT)
-      do_eval(g);
-#endif
-  }
   giac::python_compat(pc,contextptr);
   return lineerr;
 #endif
 }
+
 
 int find_color(const char * s){
   if (!s) return 0;
@@ -759,21 +747,6 @@ int find_color(const char * s){
 #endif
 }
 
-std::string get_searchitem(std::string & replace){
-  replace="";
-  std::string search;
-  lock_alpha();
-  int res=inputline(lang?"EXIT ou chaine vide: annulation":"EXIT or empty string: cancel",lang?"Chercher:":"Search:",search,false);
-  if (search.empty() || res==KEY_CTRL_EXIT)
-    return "";
-  replace="";
-  std::string tmp=(lang?"EXIT: recherche seule de ":"EXIT: search only ")+search;
-  lock_alpha();
-  res=inputline(tmp.c_str(),lang?"Remplacer par:":"Replace by:",replace,false);
-  if (res==KEY_CTRL_EXIT)
-    replace="";
-  return search;
-}
 
 
 int select_script_and_run() {
@@ -822,6 +795,7 @@ void edit_script(const char * fname){
   if (res) {
     string s;
     load_script(filename,s);
+    const bool fresh=s.empty();
     if (s.empty()){
       constexpr const int k=KEY_CTRL_F5; // confirm("Program","F1: Tortue, F5: Python",true);
       if (k==-1)
@@ -852,8 +826,11 @@ void edit_script(const char * fname){
     add(edptr,s);
     s.clear();
     edptr->line=0;
-    //edptr->line=edptr->elements.size()-1;
     edptr->pos=0;
+    if (fresh && edptr->elements.size()>1){ // a new program: the caret in its body
+      edptr->line=1;
+      edptr->pos=edptr->elements[1].s.size();
+    }
     //dbg_printf("dotextarea\n");
     int result = doTextArea(edptr);
   }

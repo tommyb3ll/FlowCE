@@ -86,12 +86,11 @@ typedef struct textArea
 #define TEXTAREA_RETURN_EXE 1
 #define TEXTAREA_RETURN_F1 2
 int doTextArea(textArea* text); //returns 0 when user EXITs, 1 when allowEXE is true and user presses EXE, 2 when allowF1 is true and user presses F1.
+int focus_edit(textArea * text); // focus_edit.cc: doTextArea for editable texts, in the Focus look
 std::string merge_area(const std::vector<textElement> & v);
 bool save_script(const char * filename,const std::string & s);
 void add(textArea *edptr,const std::string & s);
 
 extern textArea * edptr;
-std::string get_searchitem(std::string & replace);
 int check_leave(textArea * text);
-void warn_python(int mode,bool autochange);
 #endif 

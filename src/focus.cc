@@ -471,6 +471,7 @@ enum { SZ_L = 112, SZ_R = 232 };
 static char stat_l[24], stat_m[sizeof(smsg)];
 static int stat_r = -1;
 static const char * stat_view; // a full-screen view's label (focus_status_label), 0: the console's
+static int stat_chip;          // the view shows the 2nd/alpha chip (the program editor types with them)
 
 // text with extra letter spacing (the status label)
 static void spaced_text(const ui_face * f, const char * s, int x, int base, const unsigned char * rp, int sp) {
@@ -501,7 +502,7 @@ static void status_draw(int force) {
     buf[k++] = '0' + t % 10; buf[k] = 0;
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
   // a view types letters directly (the command search locks alpha): no 2nd/alpha chip there
-  int fl = stat_view ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
+  int fl = stat_view && !stat_chip ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
   // the middle: a message, else the modes go on as on a TI ("SIMPLIFY OFF", mode's setting)
   const char * mid = smsg[0] || stat_view || answer_simplify_on ? smsg : "\1SIMPLIFY OFF";
   int dl = force || strcmp(buf, stat_l), dm = force || strcmp(mid, stat_m), dr = force || r != stat_r;
@@ -544,7 +545,8 @@ static void status_draw(int force) {
   focus_phase = ph;
 }
 extern "C" void focus_status(void) { status_draw(0); }
-void focus_status_label(const char * s) { stat_view = s; status_draw(0); }
+void focus_status_label(const char * s) { stat_view = s; stat_chip = 0; status_draw(0); }
+void focus_status_view(const char * s, int chip) { stat_view = s; stat_chip = chip; status_draw(0); }
 
 extern "C" void focus_status_msg(const char * msg) {
   char m[sizeof(smsg)];
@@ -677,6 +679,13 @@ void focus_bar_tabs(const char * const * labels, int on) {
   if (band) ui_band_end();
   ui_band_close();
   bar_sig[0] = 0; // the console's own bar is drawn again by the next bar_draw
+}
+
+// the program editor's bar (focus_edit.cc): its own words in the plain layer; 2nd and alpha show
+// KhiCAS's menus, as on the console
+void focus_bar_editor(const char * const * labels, int keyflag) {
+  if (keyflag == 1 || (keyflag & 0xc)) bar_draw(keyflag, 0);
+  else focus_bar_tabs(labels, -1);
 }
 
 // ------------------------------------------------------------------ the stage

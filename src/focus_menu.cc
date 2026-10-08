@@ -105,7 +105,7 @@ static void prepare(const fm_menu & m) {
     const fm_item & it = m.items[k];
     const char * t = it.pv ? it.pv : it.text;
     PLV[k] = -1;
-    if (!t) continue;
+    if (!t || (!m.grid && !it.text)) continue; // (a list's symbol column is text)
     if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, 36, MI_F_CALLBOX, PL[k]);
     else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, CH - 4, MI_F_CALLBOX, PL[k]);
     else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, MI_F_CALLBOX, PL[k]);
@@ -117,6 +117,21 @@ static void preview(int k, const char * t, int x, int ymid, int w, int ink, int 
   const mi_layout & L = PL[k];
   int xx = center ? x + (w - L.width) / 2 : x, base = ymid - (L.asc + L.desc) / 2 + L.asc;
   ui_math_draw(L, t, PLV[k], xx, base, 1, ink, bg, ink == UC_ONACC ? UC_ONACC : UC_ACC);
+}
+
+// a list's symbol (==, %, and): large and crisp in the math face when it has the glyphs (words and
+// # %: bold UI text), its ink centered at (cx, cy)
+static void sym_text(const char * s, int cx, int cy, int fg, int bg) {
+  const ui_face * f = &ui_mu17;
+  for (const char * p = s; *p; ++p)
+    if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p != ' ' && !ui_glyph_of(f, (unsigned char)*p))) { f = &ui_tb12; break; }
+  int t = 99, b = -99;
+  for (const char * p = s; *p; ++p) {
+    const ui_glyph * g = ui_glyph_of(f, (unsigned char)*p);
+    if (g && g->h) { if (g->oy < t) t = g->oy; if (g->oy + g->h > b) b = g->oy + g->h; }
+  }
+  if (t > b) return;
+  ui_draw_text(f, s, -1, cx - ui_text_width(f, s, -1) / 2, cy - (t + b) / 2, ui_ramp(1, fg, bg), 0);
 }
 
 static void paint_item(const fm_menu & m, int k, int sel) {
@@ -148,6 +163,10 @@ static void paint_item(const fm_menu & m, int k, int sel) {
       preview(k, it.pv ? it.pv : it.text, x + 22, y + h / 2, 100, fg, bg, 0);
       ui_clip(x, y, x + w, y + h);
       lx = x + 128;
+    }
+    else if (it.pv) { // the symbol column
+      sym_text(it.pv, x + 46, y + h / 2, fg, bg);
+      lx = x + 76;
     }
     ui_draw_text(on ? &ui_tb12 : &ui_tr12, it.label, -1, lx, y + h / 2 + 5, ui_ramp(1, fg, bg), 0);
     if (it.hint) {
@@ -277,11 +296,11 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
 
 // a list card, centered, under a title (or none): KhiCAS's own menus (doMenu: config, variables,
 // file...) and confirmations. A long list scrolls. Returns the item chosen, -1 if cancelled.
-int focus_list(const char * t, const char * const * labels, int n, int sel, const char * const * hints) {
+int focus_list(const char * t, const char * const * labels, int n, int sel, const char * const * hints, const char * const * syms) {
   if (n < 1) return -1;
   if (n > 60) n = 60;
   fm_item * it = new fm_item[n];
-  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0; }
+  for (int k = 0; k < n; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = syms ? syms[k] : 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0; }
   fm_menu m = {0, 1, (char)n, it};
   title = t; hdr = t ? 26 : 0;
   rh = n > 5 ? 24 : RH;
@@ -537,6 +556,7 @@ static void tab_text(int i, const char * w, int fg) {
   ui_draw_text(&ui_tb10, b, -1, cx - tw / 2, SBOT + 15, ui_ramp(1, fg, UC_ACCSOFT), 0);
   ui_noclip();
 }
+void focus_tab_open(int i, const char * label) { tab_text(i, label, UC_ACC); }
 // idx: the menu, numbered as console_menu does (key - F1: 0-4 plain, 5-9 2nd, 10-14 alpha, 15+
 // others). Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
 int focus_fmenu(int idx, const char * const * e, int n) {

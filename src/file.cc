@@ -116,7 +116,7 @@ bool load_console_state_smem(const char * filename){
       //cout << "script " << edptr->filename << endl;
       edptr->editable=true;
       edptr->changed=false;
-      edptr->python=1;
+      edptr->python=FLOWCE_PYTHON; // the build's program syntax (a build with units has no Python)
       edptr->elements.clear();
       edptr->y=0;
       add(edptr,bufscript);
