@@ -11,11 +11,9 @@ export const TI_CE = { vendorId: 0x0451, productId: 0xe008 };
 
 const RAW = { BUF_REQ: 1, BUF_ALLOC: 2, DATA: 3, DATA_LAST: 4, ACK: 5 };
 const VIRT = {
-  PING: 0x0001, PARM_REQ: 0x0007, PARM_DATA: 0x0008, DIR_REQ: 0x0009, VAR_HDR: 0x000a, RTS: 0x000b,
-  VAR_CNTS: 0x000d, MODIF_VAR: 0x0010, EXECUTE: 0x0011, MODE_SET: 0x0012, DATA_ACK: 0xaa00,
-  DELAY_ACK: 0xbb00, EOT: 0xdd00, ERROR: 0xee00,
+  PING: 0x0001, PARM_REQ: 0x0007, PARM_DATA: 0x0008, RTS: 0x000b, VAR_CNTS: 0x000d,
+  EXECUTE: 0x0011, MODE_SET: 0x0012, DATA_ACK: 0xaa00, DELAY_ACK: 0xbb00, EOT: 0xdd00, ERROR: 0xee00,
 };
-export const TYPE_APP = 0x24; // a flash app in a directory listing
 const MODE_NORMAL = [0, 3, 0, 1, 0, 0, 0, 0, 0x07, 0xd0];
 export const PID = { PRODUCT_NAME: 0x0002, OS_VERSION: 0x000b, FREE_RAM: 0x000e, FREE_FLASH: 0x0011, OS_BUILD: 0x0048 };
 // TI-OS key codes (tilibs keys83p.h)
@@ -227,50 +225,6 @@ export class Calculator {
   async pressKey(code, timeout = 30000) {
     await this.send(VIRT.EXECUTE, [0, 0, 3, 0, code], null, Math.min(timeout, 10000));
     await this.expect(VIRT.DATA_ACK, timeout);
-  }
-
-  // What is on the calculator (tilibs calc_84p get_dirlist): [{ name (bytes, as the calculator
-  // has it), text, type, size, archived }], apps (type TYPE_APP) included
-  async dirList() {
-    await this.send(VIRT.DIR_REQ, [...be(3, 4), ...be(1, 2), ...be(2, 2), ...be(3, 2), 0, 1, 0, 1, 0, 1, 1]);
-    const out = [];
-    for (;;) {
-      const r = await this.recv();
-      if (r.type === VIRT.EOT) return out;
-      if (r.type !== VIRT.VAR_HDR) throw new LinkError('protocol', 'expected a variable header, got ' + r.type.toString(16));
-      const d = r.data;
-      let j = 0;
-      const fl = d[j++];
-      if (fl) j += fl + 1; // a folder (not on a CE)
-      const nl = d[j++];
-      const name = d.slice(j, j + nl);
-      if (nl) j += nl + 1;
-      const v = { name, text: String.fromCharCode(...name), type: -1, size: 0, archived: false };
-      const n = num(d.slice(j, j + 2));
-      j += 2;
-      for (let i = 0; i < n; i++) { // each: id (2), 0 if present (1), then size (2) and the value
-        const id = num(d.slice(j, j + 2)), ok = d[j + 2] === 0;
-        j += 3;
-        if (!ok) continue;
-        const s = num(d.slice(j, j + 2)), a = d.slice(j + 2, j + 2 + s);
-        j += 2 + s;
-        if (id === 1) v.size = num(a);
-        else if (id === 2) v.type = a[3];
-        else if (id === 3) v.archived = a[0] !== 0;
-      }
-      out.push(v);
-    }
-  }
-
-  // Deletes a variable or an app as TI Connect does (tilibs calc_84p del_var: a modify-variable
-  // packet with no destination, the data type attribute F0 0B 00 type, protection ignored)
-  async deleteVar(v, timeout = 60000) {
-    await this.send(VIRT.MODIF_VAR, [
-      0, v.name.length, ...v.name, 0, // no folder; the name
-      ...be(1, 2), ...be(0x11, 2), ...be(4, 2), 0xf0, 0x0b, 0x00, v.type, // its data type
-      1, 0, 0, ...be(0, 2), // ignore protection; no new folder, name or attributes
-    ], null, timeout);
-    await this.expect(VIRT.DATA_ACK, timeout); // archived: the calculator rewrites flash first
   }
 }
 
