@@ -431,10 +431,12 @@ void focus_splash(int first) {
   static bool animated;
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
-  const char * cr = "free software - GNU GPL v3";
-  ui_draw_text(&ui_tr10, cr, -1, (UI_W - ui_text_width(&ui_tr10, cr, -1)) / 2, UI_H - 8, ui_ramp(0, UC_SUB, UC_BG), 0);
+  static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
+                                    "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
+  for (int k = 0; k < 2; ++k)
+    ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
   const char * name = "FlowCE"; // (the upright math faces have no capitals)
-  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 70 : 104;
+  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 88 : 100;
   static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
   const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
   int skip = animated, drawn = 0;
@@ -451,12 +453,9 @@ void focus_splash(int first) {
   }
   const char * tag = "calculus on your TI-84 Plus CE";
   ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
-  if (first) {
-    static const char * const tips[] = {"F1-F5: menus of templates and commands", "up: your past calculations", "down: search every command"};
-    for (int k = 0; k < 3; ++k)
-      ui_draw_text(&ui_tr12, tips[k], -1, (UI_W - ui_text_width(&ui_tr12, tips[k], -1)) / 2, y + 66 + 20 * k, ui_ramp(0, UC_INK, UC_BG), 0);
+  if (first) { // (the console shows its keys once past this screen)
     const char * go = "press any key";
-    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 140, ui_ramp(0, UC_ACC, UC_BG), 0);
+    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
   else if (!skip) { // held a moment (it flashed by: the session loads fast)
     for (int t = 0; t < 10 && !key_waiting(); ++t)
