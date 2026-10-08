@@ -14,17 +14,6 @@
 // minimal size (avoid blocks that are too small)
 #define MALLOC_MINSIZE 6
 
-static unsigned int freeslotpos(unsigned int n) {
-    if (n == 0) {
-        /**
-         * this is what the original code returns, although this is probably
-         * not the ideal value to return when n == 0
-         */
-        return 31;
-    }
-    return __builtin_ctz(n);
-}
-
 typedef struct char2_ {
     char c1, c2, c3, c4;
 } char2_t;
@@ -50,21 +39,54 @@ extern uint8_t __heaptop[];
 static uintptr_t heap2_ptr = (uintptr_t)__heapbot;
 static uintptr_t heap2_ptrend = (uintptr_t)__heaptop;
 
-#define ALLOC2 (12 * INT24_WIDTH)
-static unsigned int freeslot2[ALLOC2 / INT24_WIDTH] = {
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-};
-#define ALLOC3 (12 * INT24_WIDTH)
-static unsigned int freeslot3[ALLOC3 / INT24_WIDTH] = {
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-};
-#define ALLOC6 (12 * INT24_WIDTH)
-static unsigned int freeslot6[ALLOC6 / INT24_WIDTH] = {
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-    0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
-};
+#define ALLOC2 256
+#define ALLOC3 256
+#define ALLOC6 256
+
+// The used slots of each small-block pool, one bit per slot (0: free), 256 slots so that a slot
+// number is a byte; no free slot in the bytes below hint. The eZ80 has no divide instruction, and
+// 24-bit shifts, ands and multiplications are helper calls: the original 24-bit words cost two
+// divisions (pos/24, pos%24), one more for tab3 (/10) and a variable shift per free, ~8% of a long
+// calculation. Bytes need 8-bit operations, and tab3's slot number is an exact division by 10:
+// (o/2) times the inverse of 5 modulo 2^8 (5*0xCD = 1 modulo 256), one 8-bit multiplication.
+typedef struct {
+    unsigned char used[32];
+    unsigned char hint;
+} pool_t;
+static pool_t pool2, pool3, pool6;
+static const unsigned char pool_bit[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+_Static_assert(sizeof(char2_t) == 4 && sizeof(char3_t) == 10 && sizeof(char6_t) == 16, "slots of 4, 10, 16 bytes");
+
+// a free slot of the pool, taken (its number), or -1
+static int pool_take(pool_t* p)
+{
+    for (unsigned char i = p->hint; i < sizeof(p->used); ++i)
+    {
+        const unsigned char u = p->used[i];
+        if (u != 0xFF)
+        {
+            unsigned char f = ~u, k = 0;
+            while (!(f & 1))
+            {
+                f >>= 1;
+                ++k;
+            }
+            p->used[i] = u | pool_bit[k];
+            p->hint = i;
+            return (unsigned char)(i << 3) | k;
+        }
+    }
+    p->hint = sizeof(p->used);
+    return -1;
+}
+
+static void pool_give(pool_t* p, unsigned char pos)
+{
+    const unsigned char i = pos >> 3;
+    p->used[i] &= ~pool_bit[pos & 7];
+    if (i < p->hint)
+        p->hint = i;
+}
 
 #define LCD_SIZE_8BPP (LCD_WIDTH * LCD_HEIGHT)
 #define ALLOC_START ((unsigned char*)lcd_Ram + LCD_SIZE_8BPP)
@@ -114,48 +136,13 @@ void* _custom_malloc(size_t alloc_size)
 
     if (alloc_size <= sizeof(char6_t))
     {
-        if (tab2 && alloc_size <= sizeof(char2_t))
-        {
-            for (unsigned int i = 0; i < ALLOC2 / INT24_WIDTH; ++i)
-            {
-                if (freeslot2[i] == 0)
-                {
-                    continue;
-                }
-                const unsigned int pos = freeslotpos(freeslot2[i]);
-                freeslot2[i] &= ~(1 << pos);
-                // dbg_printf("allocfast2 %p %p\n", tab2, tab2 + i * INT24_WIDTH + pos);
-                return (void*)(tab2 + i * INT24_WIDTH + pos);
-            }
-        }
-        if (tab3 && alloc_size <= sizeof(char3_t))
-        {
-            for (unsigned int i = 0; i < ALLOC3 / INT24_WIDTH; ++i)
-            {
-                if (freeslot3[i] == 0)
-                {
-                    continue;
-                }
-                const unsigned int pos = freeslotpos(freeslot3[i]);
-                freeslot3[i] &= ~(1 << pos);
-                // dbg_printf("allocfast3 %p %p\n", tab3, tab3 + i * INT24_WIDTH + pos);
-                return (void*)(tab3 + i * INT24_WIDTH + pos);
-            }
-        }
-        if (tab6 && alloc_size <= sizeof(char6_t))
-        {
-            for (unsigned int i = 0; i < ALLOC6 / INT24_WIDTH; ++i)
-            {
-                if (freeslot6[i] == 0)
-                {
-                    continue;
-                }
-                const unsigned int pos = freeslotpos(freeslot6[i]);
-                freeslot6[i] &= ~(1 << pos);
-                // dbg_printf("allocfast6 %p %p\n", tab6, tab6 + i * INT24_WIDTH + pos);
-                return (void*)(tab6 + i * INT24_WIDTH + pos);
-            }
-        }
+        int pos;
+        if (alloc_size <= sizeof(char2_t) && (pos = pool_take(&pool2)) >= 0)
+            return (void*)(tab2 + pos);
+        if (alloc_size <= sizeof(char3_t) && (pos = pool_take(&pool3)) >= 0)
+            return (void*)(tab3 + pos);
+        if ((pos = pool_take(&pool6)) >= 0)
+            return (void*)(tab6 + pos);
     }
 
     block_t* q;
@@ -257,31 +244,23 @@ void _custom_free(void* ptr)
         return;
     }
 
-    if (
-        ((size_t)ptr >= (size_t)&tab2[0]) &&
-        ((size_t)ptr < (size_t)&tab2[ALLOC2])
-    ) {
-        const unsigned int pos = ((size_t)ptr - ((size_t)&tab2[0])) / sizeof(char2_t);
-        // dbg_printf("deletefast2 %p pos=%i\n", ptr, pos);
-        freeslot2[pos / INT24_WIDTH] |= (1 << (pos % INT24_WIDTH));
+    // ptr-tab, unsigned: below tab it is too large
+    size_t o = (size_t)ptr - (size_t)tab2;
+    if (o < ALLOC2 * sizeof(char2_t))
+    {
+        pool_give(&pool2, (unsigned char)(o >> 2));
         return;
     }
-    if (
-        ((size_t)ptr >= (size_t)&tab3[0]) &&
-        ((size_t)ptr < (size_t)&tab3[ALLOC3])
-    ) {
-        const unsigned int pos = ((size_t)ptr - ((size_t)&tab3[0])) / sizeof(char3_t);
-        // dbg_printf("deletefast3 %p pos=%i\n", ptr, pos);
-        freeslot3[pos / INT24_WIDTH] |= (1 << (pos % INT24_WIDTH));
+    o = (size_t)ptr - (size_t)tab3;
+    if (o < ALLOC3 * sizeof(char3_t))
+    {
+        pool_give(&pool3, (unsigned char)((unsigned char)(o >> 1) * 0xCD));
         return;
     }
-    if (
-        ((size_t)ptr >= (size_t)&tab6[0]) &&
-        ((size_t)ptr < (size_t)&tab6[ALLOC6])
-    ) {
-        const unsigned int pos = ((size_t)ptr - ((size_t)&tab6[0])) / sizeof(char6_t);
-        // dbg_printf("deletefast6 %p pos=%i\n", ptr, pos);
-        freeslot6[pos / INT24_WIDTH] |= (1 << (pos % INT24_WIDTH));
+    o = (size_t)ptr - (size_t)tab6;
+    if (o < ALLOC6 * sizeof(char6_t))
+    {
+        pool_give(&pool6, (unsigned char)(o >> 4));
         return;
     }
 
