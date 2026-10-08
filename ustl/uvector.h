@@ -123,6 +123,7 @@ protected:
 private:
     inline iterator		insert_hole (const_iterator ip, size_type n);
     inline iterator		append_hole (size_type n);
+    inline iterator		append_one (void);
 private:
     memblock			m_Data;	///< Raw element data, consecutively stored.
 };
@@ -132,6 +133,15 @@ template <typename T>
 inline void vector<T>::reserve (size_type n, bool bExact)
 {
     m_Data.reserve (n * sizeof(T), bExact);
+}
+
+/// append_hole (1) for push_back: on the CE's eZ80, n*sizeof(T) is a helper call (3 per push).
+template <typename T>
+inline typename vector<T>::iterator vector<T>::append_one (void)
+{
+    m_Data.reserve (m_Data.size() + sizeof(T));
+    m_Data.memlink::resize (m_Data.size() + sizeof(T));
+    return (end()-1);
 }
 
 template <typename T>
@@ -190,7 +200,10 @@ template <typename T>
 vector<T>::vector (const vector<T>& v)
 : m_Data ()
 {
-    uninitialized_copy_n (v.begin(), v.size(), append_hole(v.size()));
+    // by bytes: v.size() divides by sizeof(T), a ~1000-cycle helper call on the CE's eZ80
+    m_Data.reserve (v.m_Data.size());
+    m_Data.memlink::resize (v.m_Data.size());
+    uninitialized_copy (v.begin(), v.end(), begin());
 }
 
 /// Copies range [\p i1, \p i2]
@@ -300,7 +313,7 @@ inline typename vector<T>::iterator vector<T>::erase (const_iterator ep1, const_
 template <typename T>
 inline void vector<T>::push_back (const T& v)
 {
-    construct (append_hole(1), v);
+    construct (append_one(), v);
 }
 
 #if HAVE_CPP11
@@ -318,7 +331,7 @@ template <typename T>
 template <typename... Args>
 inline void vector<T>::emplace_back (Args&&... args)
 {
-    new (append_hole(1)) T (forward<Args>(args)...);
+    new (append_one()) T (forward<Args>(args)...);
 }
 
 #endif

@@ -90,10 +90,15 @@ void memblock::reserve (size_type newSize, bool bExact)
     if ((newSize += minimumFreeCapacity()) <= m_Capacity)
       return;
     pointer oldBlock (is_linked() ? NULL : data());
-    // NextPow2 implementation is wrong on the TI83, commenting alignement
-    const size_t alignedSize (NextPow2 (newSize));
-    if (0) // (!bExact) 
-      newSize = alignedSize;
+    // NextPow2 implementation is wrong on the TI83, commenting alignement (the unused
+    // NextPow2 (newSize) was still computed: 32-bit helpers, ~2% of FlowCE's time on the CE)
+    // A block that grows (an append: bExact false, a non-empty block) gets a quarter more, at most
+    // 128 bytes: at the exact size, every push_back on a full vector reallocated it (malloc, copy,
+    // free). Blocks allocated once stay exact.
+    if (!bExact && oldBlock && size()) {
+      const size_type slack = newSize >> 2;
+      newSize += slack < 128 ? slack : 128;
+    }
     // dbg_printf("reserve block size %d\n",newSize);
     pointer newBlock = (pointer) nrealloc (oldBlock, newSize);
     if (!newBlock) USTL_THROW( bad_alloc (newSize));
