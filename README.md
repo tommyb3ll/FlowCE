@@ -144,7 +144,9 @@ What it looks like on the calculator:
 FlowCE builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) (CEdev
 v14.2) plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac`
 submodule). `./mkappen` builds the English app: AppIns appvars (`.8xv`) installed by the INST
-program, and `FlowCE.b84` for TI Connect CE. `tools/dev/build.sh` builds in WSL from the working
+program, and `FlowCE.b84` for TI Connect CE. `UNITS=1 ./mkappen` (after `make clean`) builds it
+with physical units instead of Python syntax, as released in `FlowCE-units.b84` (the two don't
+both fit). `tools/dev/build.sh` builds in WSL from the working
 tree, `tools/emu/` drives the CEmu emulator for regression tests, screenshots and the GIFs
 above, and `tests/host/` holds host tests of the editor and the 2D layout.
 
