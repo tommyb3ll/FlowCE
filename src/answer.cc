@@ -661,6 +661,60 @@ static bool trig_power(const giac::gen & g){
   return trig_power(a);
 }
 
+// a polynomial factor: an identifier or a sum of identifiers' monomials (x, x-1, x^2+y), or a
+// positive integer power of one ((x^2+1)^2); sum: it is (or is a power of) a sum
+static bool poly_factor(const giac::gen & f,bool & sum){
+  using namespace giac;
+  gen b=f;
+  if (f.is_symb_of_sommet(at_pow)){
+    const gen & e=f._SYMBptr->feuille;
+    if (e.type!=_VECT || e._VECTptr->size()!=2 || e._VECTptr->back().type!=_INT_ || e._VECTptr->back().val<1)
+      return false;
+    b=e._VECTptr->front();
+  }
+  if (b.type!=_IDNT && !b.is_symb_of_sommet(at_plus))
+    return false;
+  const vecteur lv=lvar(b);
+  for (const_iterateur it=lv.begin();it!=lv.end();++it)
+    if (it->type!=_IDNT || *it==cst_pi)
+      return false;
+  if (b.is_symb_of_sommet(at_plus))
+    sum=true;
+  return !lv.empty();
+}
+// An answer already factored stays factored (B. Parisse: autosimplify(1) keeps the structure of a
+// factored expression; ratnormal expanded a stored (x-1)*(x+1) to x^2-1): numbers times at least
+// two polynomial factors, one of them a sum. Its numbers are multiplied (3*2*x*(x^2+1)^2 is
+// 6*x*(x^2+1)^2) and each factor's base normalized; undef if g is not such a product.
+static giac::gen keep_factored(const giac::gen & g){
+  using namespace giac;
+  const bool neg=g.is_symb_of_sommet(at_neg);
+  const gen & h=neg?g._SYMBptr->feuille:g;
+  if (!h.is_symb_of_sommet(at_prod) || h._SYMBptr->feuille.type!=_VECT)
+    return undef;
+  gen c=neg?-1:1;
+  vecteur f;
+  bool sum=false;
+  const vecteur & v=*h._SYMBptr->feuille._VECTptr;
+  for (const_iterateur it=v.begin();it!=v.end();++it){
+    if (it->type==_INT_ || it->type==_ZINT || it->type==_FRAC)
+      c=c*(*it);
+    else if (it->is_symb_of_sommet(at_inv) && is_integer(it->_SYMBptr->feuille))
+      c=c/it->_SYMBptr->feuille;
+    else if (poly_factor(*it,sum))
+      f.push_back(it->is_symb_of_sommet(at_pow)?symb_pow(ratnormal(it->_SYMBptr->feuille._VECTptr->front(),contextptr),it->_SYMBptr->feuille._VECTptr->back()):ratnormal(*it,contextptr));
+    else
+      return undef;
+  }
+  if (f.size()<2 || !sum || is_zero(c))
+    return undef;
+  if (is_minus_one(c))
+    return symb_neg(symbolic(at_prod,gen(f,_SEQ__VECT)));
+  if (!is_one(c))
+    f.insert(f.begin(),c);
+  return symbolic(at_prod,gen(f,_SEQ__VECT));
+}
+
 // Automatic normalization of results. giac's default autosimplify ("regroup") leaves
 // (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2, (x^2-1)/(x-1) or 2*x/(2*sqrt(x^2+1)) as is.
 // ratnormal fixes those (4*sqrt(2)*pi, x+1, x/sqrt(x^2+1)) quickly: radicals, pi, sin(x)...
@@ -736,6 +790,9 @@ static giac::gen auto_simplify(const giac::gen & g){
 #endif
   if (!simplify_candidate(g))
     return g;
+  const gen kf=keep_factored(g);
+  if (!is_undef(kf))
+    return kf;
   // giac's simplify took 5.8 s of the 6.4 s of d/dx sin(x)/x (on any small trig answer): trig
   // answers now get ratnormal and the cheap sin^2+cos^2=1 rewrite below
   const bool trig=false;
