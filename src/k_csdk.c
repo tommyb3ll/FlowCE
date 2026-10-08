@@ -148,6 +148,7 @@ void dbgprint(int i){
 
 // getkey polls (test harness: tools/emu waits for this counter to move = ready for the next key)
 volatile unsigned getkey_polls;
+static char lcd_off; // turned off by getkey (2nd ON, or idle): the next ON turns the screen on
 // A key read by key_waiting() while drawing, returned by the next getkey: drawing that checks
 // between steps loses no key (os_GetCSC only sees a key still down when it is called).
 static unsigned char key_csc;
@@ -174,11 +175,15 @@ int getkey(int allow_suspend){
 #endif
         if (shift || j==joff){
           boot_TurnOff();
+          lcd_off=1;
           shift=false;
         }
         else if (kb_On){
-          boot_TurnOn();
-          lcd_Control = 0b100100100111; // 8bpp like graphx
+          if (lcd_off){ // the ON that wakes it (boot_TurnOn on a calculator already on reset the
+            boot_TurnOn(); // LCD to 16 bpp: the 8 bpp screen flashed garbled, the user saw white)
+            lcd_Control = 0b100100100111; // 8bpp like graphx
+            lcd_off=0;
+          }
           j=0;
           display_time();
         }
