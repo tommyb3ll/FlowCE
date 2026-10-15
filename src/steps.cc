@@ -1350,6 +1350,11 @@ static NOINL gen sqout(const gen & f){
   return f;
 }
 static gen one(const gen & op);
+// the pieces' total is giac's integral (else a zero of g was missed: no steps rather than wrong ones)
+static NOINL bool absame(const gen & tot,const gen & op){
+  const gen d=evalf(tot-ev(op),1,CTX),r=evalf(tot,1,CTX);
+  return d.type==_DOUBLE_ && r.type==_DOUBLE_ && fabs(d._DOUBLE_val)<=TOL*(1+fabs(r._DOUBLE_val));
+}
 // integrate(f,x,a,b) with |g| in f: one integral per interval where g keeps its sign. |g| alone
 // (area between curves): g simplified, one antiderivative, each interval evaluated with it.
 static NOINL gen absplit(const gen & op,const gen & g0,const gen & a,const gen & b){
@@ -1358,10 +1363,19 @@ static NOINL gen absplit(const gen & op,const gen & g0,const gen & a,const gen &
   bool alone=f==symb_abs(g0);
   gen z=_solve(makesequence(symb_equal(g,0),X),CTX);
   vecteur pts(1,a);
+  // giac's zeros, and for a periodic g the same ones a multiple of pi away where g vanishes too
+  // (giac's solve gives cos(t)=0 at pi/2 only; on [0,3pi] the integral took one piece for five)
+  const bool per=!is_inf(a) && !is_inf(b) && (has_op(g,*at_sin) || has_op(g,*at_cos) || has_op(g,*at_tan));
   if (z.type==_VECT)
     EACH(it,*z._VECTptr){
-      gen zi=ev(*it),d=evalf(zi,1,CTX);
-      if (d.type==_DOUBLE_ && is_strictly_greater(zi,a,CTX) && is_strictly_greater(b,zi,CTX)) pts.push_back(zi);
+      const gen zi=ev(*it);
+      if (evalf(zi,1,CTX).type!=_DOUBLE_) continue;
+      const int k0=per?(int)floor(evalf_double((a-zi)/cst_pi,1,CTX)._DOUBLE_val):0;
+      for (int k=k0;k<=k0+(per?60:0);++k){
+        const gen c=per?rn(zi+k*cst_pi):zi; // (3pi/2, not pi/2+pi; -pi/2+pi is pi/2 again)
+        if (!is_strictly_greater(b,c,CTX)) break;
+        if (is_strictly_greater(c,a,CTX) && !equalposcomp(pts,c) && (!per || is_zero(c-zi) || fabs(evalf_double(sub(g,X,c),1,CTX)._DOUBLE_val)<1e-6)) pts.push_back(c);
+      }
     }
   pts.push_back(b);
   gen ps=_sort(pts,CTX);
@@ -1374,7 +1388,7 @@ static NOINL gen absplit(const gen & op,const gen & g0,const gen & a,const gen &
     gen I=symbolic(at_integrate,makesequence(alone?g:sub(f,symb_abs(g0),pos?g0:-g0),X,pts[i],pts[i+1]));
     pieces.push_back(alone && !pos?symb_neg(I):I);
   }
-  S(R_ABS,op,symb_plus(pieces));
+  S(pieces.size()>1?R_ABS:R_ABSI,op,symb_plus(pieces)); // (one piece: the sign on the interval)
   gen tot=0;
   if (alone){
     gen I=symbolic(at_integrate,makesequence(g,X));
@@ -1390,7 +1404,7 @@ static NOINL gen absplit(const gen & op,const gen & g0,const gen & a,const gen &
     S(R_FTC,op,symb_plus(t));
     tot=_simplify(ev(tot),CTX);
     S(R_EQV,op,tot);
-    return tot;
+    return absame(tot,op)?tot:gen(undef);
   }
   EACH(it,pieces){
     S(R_PART,*it,0);
@@ -1398,7 +1412,8 @@ static NOINL gen absplit(const gen & op,const gen & g0,const gen & a,const gen &
     if (is_undef(vi)) return vi;
     tot=tot+vi;
   }
-  return ev(tot);
+  tot=ev(tot);
+  return absame(tot,op)?tot:gen(undef);
 }
 // the first |g| of f (0: none)
 static gen absarg(const gen & f){
