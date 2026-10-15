@@ -1,0 +1,33 @@
+name: Report a problem
+description: A crash, a freeze, a wrong answer, a wrong step or an install problem
+labels: [bug]
+body:
+  - type: dropdown
+    id: build
+    attributes:
+      label: Version
+      description: The version is in the status bar, top right (v1.9, v2.0b1...).
+      options:
+        - FlowCE 1.9
+        - FlowCE Steps 2.0 beta 1
+        - Other (say which below)
+    validations:
+      required: true
+  - type: textarea
+    id: typed
+    attributes:
+      label: What you typed
+      description: Exactly as on the screen, for example integrate(x*sin(x),x). A photo or screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: input
+    id: calc
+    attributes:
+      label: Calculator and OS (for install problems)
+      description: For example TI-84 Plus CE, OS 5.8.2 (2nd + then 1 shows it in TI-OS)

@@ -52,8 +52,8 @@ integrating by parts, gets its own steps. `▲` and `▼` move from step to step
 | a derivative, the product rule | a Taylor polynomial | `enter` after an answer |
 
 Not every problem has steps yet: when no textbook method explains the answer, it says so. It's a
-beta: if a step looks wrong, please say what you typed on the
-[Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
+beta: if a step looks wrong, please [open an issue](https://github.com/tommyb3ll/FlowCE/issues/new/choose)
+with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
 
 ## Highlights
 
