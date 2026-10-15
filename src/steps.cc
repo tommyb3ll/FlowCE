@@ -363,6 +363,28 @@ static NOINL bool same_num(const gen & a0,const gen & f0,const gen & x,const gen
   vecteur ids=lidnt(makevecteur(d,f));
   double c=0.71;
   EACH(it,ids){ if (*it!=x && evalf(*it,1,CTX).type!=_DOUBLE_){ d=sub(d,*it,c); f=sub(f,*it,c); } c+=0.17; } // (pi keeps its value)
+  // a power over 40 of a sum: in the calculator's 32-bit floats its values overflow, or cancel
+  // (8x(2x+1)^2026's antiderivative differentiated is 4(2x+1)^2027-4(2x+1)^2026, 2% of each term at
+  // x=0.011: the steps said "No steps"); its exact values at integer points instead ((2x+1)^2027 at
+  // 1 is 3^2027, a 3213-bit integer)
+  if (bigp(d)){
+    // (the calculator's giac refuses powers over 1000, FACTORIAL_SIZE_LIMIT: "calculation size limit
+    // exceeded" at each point; up to 4096 here, put back at once)
+    const int lim=FACTORIAL_SIZE_LIMIT;
+    if (lim<4096) FACTORIAL_SIZE_LIMIT=4096;
+    // integer points (-1 first: tiny values); two that give exactly 0 are enough (at 2/3, the
+    // fractions of 5000-bit numbers took minutes to reduce on the calculator)
+    static const signed char ip[]={-1,1,2,3};
+    int n=0;
+    for (int i=0;i<4 && n>=0 && n<2;++i){
+      const gen z=ev(sub(d,x,gen(ip[i])));
+      if (z.type!=_INT_ && z.type!=_ZINT && z.type!=_FRAC) continue; // (not a number exactly)
+      n=is_zero(z)?n+1:-1;
+    }
+    FACTORIAL_SIZE_LIMIT=lim;
+    if (n<0) return false;
+    if (n>=2) return true;
+  }
   // (the last ones, next to 0, while fewer than 3 points gave a number: (2x+1)^2026 stays finite there
   // in the calculator's 32-bit floats)
   static const double pts[]={0.13,0.37,0.61,0.89,0.37,-0.61,1.29,-2.4,2.13,3.7,5.3,-7.9,11.3,0.011,-0.013,0.007};
