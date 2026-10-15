@@ -37,7 +37,23 @@ static const fm_item m_calc[] = {
   {"limit(,x,)", 4, 0, "Limit", 0, 0},
   {"sum(,k,,)", 5, 0, "Sum", 0, 0},
   {"series(,x,0,5)", 7, 0, "Taylor series", 0, 0},
+#ifdef FLOWCE_STEPS // (the steps build: three columns)
+  {"desolve(diff(y,x)=,x,y)", 5, "diff(y,x)=f", "Diff. equation", 0, 0},
+  {0, 0, "integrate(f-g,x,a,b)", "Applications", 0, FA_APPS},
+#endif
 };
+#ifdef FLOWCE_STEPS
+// the calculus card's applications (steps.cc): each card shows its integral; a, b left empty: where
+// the curves meet
+static const fm_item m_apps[] = {
+  {"area(,,,)", 4, "integrate(f-g,x,a,b)", "Area between curves", 0, 0},
+  {"volume(,,,,y=0)", 8, "pi*integrate(R^2-r^2,x,a,b)", "Disks / washers", 0, 0},
+  {"volume(,,,,x=0)", 8, "2*pi*integrate(r*h,x,a,b)", "Shells", 0, 0},
+  {"arclength(,,)", 3, "integrate(sqrt(1+(dy/dx)^2),x,a,b)", "Arc length", 0, 0},
+  {"surfacearea(,,,y=0)", 7, "integrate(2*pi*r,s)", "Surface area", 0, 0},
+  {"average(,,)", 3, "1/(b-a)*integrate(f,x,a,b)", "Average value", 0, 0},
+};
+#endif
 static const fm_item m_trig[] = {
   {"sin()", 1, 0, 0, 0, 0}, {"cos()", 1, 0, 0, 0, 0}, {"tan()", 1, 0, 0, 0, 0},
   {"asin()", 1, 0, 0, 0, 0}, {"acos()", 1, 0, 0, 0, 0}, {"atan()", 1, 0, 0, 0, 0},
@@ -64,8 +80,14 @@ static const fm_item m_math[] = {
   {"limit(,x,)", 4, 0, 0, 0, 0}, {"sum(,k,,)", 5, 0, 0, 0, 0}, {"^()", 1, 0, 0, 0, 0},
 };
 #define N(a) (char)(sizeof(a) / sizeof(a[0]))
+#ifdef FLOWCE_STEPS
+#define CALC_COLS 3
+static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
+#else
+#define CALC_COLS 2
+#endif
 static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
-  {0, 1, N(m_alg), m_alg}, {2, 2, N(m_calc), m_calc}, {1, 3, N(m_trig), m_trig},
+  {0, 1, N(m_alg), m_alg}, {2, CALC_COLS, N(m_calc), m_calc}, {1, 3, N(m_trig), m_trig},
   {1, 4, N(m_sym), m_sym}, {0, 1, N(m_more), m_more}, {1, 3, N(m_math), m_math},
 };
 #undef N
@@ -600,8 +622,9 @@ int focus_fmenu(int idx, const char * const * e, int n) {
 int focus_popover(int key, const char ** text, int * back) {
   int id = key == KEY_CTRL_SYMB ? 5 : key - KEY_CTRL_F1;
   if (id < 0 || id > 5) return FA_NONE;
+  const fm_menu * sub = 0; // the card opened from a card (the calculus card's applications)
   for (;;) {
-    const fm_menu & m = MENUS[id];
+    const fm_menu & m = sub ? *sub : MENUS[id];
     geometry(id, m);
     prepare(m);
     open_card(m, id, 0, 0);
@@ -612,10 +635,18 @@ int focus_popover(int key, const char ** text, int * back) {
       if (it.act) res = it.act;
       else { *text = it.text; *back = it.back; res = FA_INSERT; }
     }
+#ifdef FLOWCE_STEPS
+    if (res == FA_APPS) { // the applications' card in its place
+      close_card(0, 1);
+      sub = &M_APPS;
+      continue;
+    }
+#endif
     // the card's rows are repainted from the stage (not under the command search, which covers
     // the screen at once)
     close_card(0, res != FA_CATALOG);
     if (r > -2) return res;
     id = -2 - r;
+    sub = 0;
   }
 }

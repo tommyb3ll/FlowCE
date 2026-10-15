@@ -53,6 +53,16 @@ SCENES = {
     'steps_sum':      [('p', 'sum(1/(n*(n+1)),n,1,inf)'), ('k', '{enter}'), ('w', 12000)],
     'steps_taylor':   [('p', 'taylor(e^x*sin(x),x=0,3)'), ('k', '{enter}'), ('w', 12000)],
     'steps_hint':     [('p', 'integrate(x*e^x,x)')],
+    # the steps build's applications: the calculus card (item 8), area typed in its labeled boxes
+    'menu_calc3':     [('k', '{window}')],
+    'menu_apps':      [('k', '{window}8'), ('w', 800)],
+    'apps_area_tpl':  [('k', '{window}81x{sq}{right}x+2'), ('w', 800)],
+    'apps_area':      [('k', '{window}81x{sq}{right}x+2{enter}'), ('w', 3000)],
+    'apps_area_steps': [('k', '{window}81x{sq}{right}x+2{enter}'), ('w', 3000), ('k', '{enter}'), ('w', 8000)],
+    'apps_washer_steps': [('p', 'volume(x,x^2,0,1,y=-1)'), ('k', '{enter}'), ('w', 8000)],
+    'apps_shell_steps': [('p', 'volume(x-x^2,0,1,x=2)'), ('k', '{enter}'), ('w', 8000)],
+    'apps_arc_steps': [('p', 'arclength(x^3/6+1/(2x),1,2)'), ('k', '{enter}'), ('w', 10000)],
+    'wsB_steps':      [('p', 'integrate(8x*(2x+1)^2026,x)'), ('k', '{enter}'), ('w', 3000)],
     'steps_parts_end': [('p', 'integrate(x*sin(x),x)'), ('k', '{enter}'), ('w', 8000), ('k', '{down}{down}{down}'), ('w', 1500)],
     'steps_subst':    [('p', 'integrate(2x*cos(x^2),x)'), ('k', '{enter}'), ('w', 8000)],
 }

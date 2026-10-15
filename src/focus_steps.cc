@@ -29,9 +29,10 @@ void oom_rearm(); // main.cc: the memory reserve, taken again
 static bool starts(const char * s, const char * p) { return !strncmp(s, p, strlen(p)); }
 // a calculation the steps screen can show: a derivative, an integral, a limit, a sum, a Taylor
 // polynomial, also inside another command (subst(diff(f,x,3),x=0), solve(diff(f,x)=0,x): the
-// steps take the calculus part first, then the rest)
+// steps take the calculus part first, then the rest); an application (area, volume...)
 int focus_steps_able(const char * s) {
-  static const char * const ops[] = {"diff(", "integrate(", "int(", "derive(", "limit(", "series(", "taylor(", "sum("};
+  static const char * const ops[] = {"diff(", "integrate(", "int(", "derive(", "limit(", "series(", "taylor(", "sum(",
+                                     "area(", "volume(", "arclength(", "surfacearea(", "average("};
   for (const char * p = s; *p; ++p)
     if (p == s || !isalnum((unsigned char)p[-1]))
       for (unsigned k = 0; k < sizeof(ops) / sizeof(ops[0]); ++k)

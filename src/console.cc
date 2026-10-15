@@ -2211,6 +2211,26 @@ static __attribute__((noinline)) void console_autoclose(Char * s){
 // An empty slot left in the line (a template's box: integrate(,x), sqrt(), ()/(), limit(f,x,),
 // or an operator at the end: 2+): its position, or -1. ENTER then moves there instead of
 // evaluating, like an online calculator that points at the missing box.
+#ifdef FLOWCE_STEPS
+// the call around position i is an application (area(...)): its empty boxes may stay empty (the
+// bounds left out: where the curves meet; answer.cc drops them)
+static __attribute__((noinline)) bool app_call_at(const char * s,int i){
+  int d=0;
+  for (int k=i-1;k>=0;--k){
+    if (s[k]==')' || s[k]==']' || s[k]=='}') ++d;
+    else if (s[k]=='(' || s[k]=='[' || s[k]=='{'){
+      if (d){ --d; continue; }
+      int b=k;
+      while (b>0 && s[b-1]>='a' && s[b-1]<='z') --b;
+      static const char * const names[]={"area","volume","arclength","surfacearea","average"};
+      for (unsigned j=0;j<sizeof(names)/sizeof(*names);++j)
+        if ((int)strlen(names[j])==k-b && !strncmp(s+b,names[j],k-b)) return true;
+      return false;
+    }
+  }
+  return false;
+}
+#endif
 static __attribute__((noinline)) int console_empty_slot(const char * s){
   const int n=strlen(s);
   bool str=false;
@@ -2221,6 +2241,9 @@ static __attribute__((noinline)) int console_empty_slot(const char * s){
     if (str)
       continue;
     if ((c=='(' || c==',') && i+1<n && (s[i+1]==',' || (c==',' && s[i+1]==')')))
+#ifdef FLOWCE_STEPS
+      if (!app_call_at(s,i+1))
+#endif
       return i+1;
     if (c=='(' && i+1<n && s[i+1]==')'){
       int b=i;

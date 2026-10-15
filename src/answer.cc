@@ -3106,9 +3106,35 @@ static __attribute__((noinline)) giac::gen drop_constants(const giac::gen & g,co
 }
 
 // ---- do_run's steps ----
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// the menu's applications leave their empty boxes as empty arguments (area(x^2,x+2,,): no
+// bounds): dropped
+static __attribute__((noinline)) void app_empties(char * buf){
+  static const char * const names[]={"area(","volume(","arclength(","surfacearea(","average("};
+  for (unsigned k=0;k<sizeof(names)/sizeof(*names);++k)
+    for (char * p=strstr(buf,names[k]);p;p=strstr(p+1,names[k])){
+      if (p>buf && word_char(p[-1])) continue;
+      char * r=p+strlen(names[k]),* o=r; // read, write
+      int d=0;
+      for (;*r;++r){
+        const char ch=*r;
+        if (!d && ch==')'){ if (o[-1]==',') --o; *o++=')'; ++r; break; }
+        if (!d && (ch==',' || ch==' ') && (o[-1]==',' || o[-1]=='(')) continue;
+        if (ch=='(' || ch=='[' || ch=='{') ++d;
+        else if (ch==')' || ch==']' || ch=='}') --d;
+        *o++=ch;
+      }
+      memmove(o,r,strlen(r)+1);
+    }
+}
+#endif
+
 void answer_prepass(char * buf,int cap,bool focus){
   // paper notation and TI implicit multiplication (2sinx -> 2*sin(x), f(x)=... -> f(x):=...)
   // here and not in the console, so that the history keeps what the user typed
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  app_empties(buf);
+#endif
   khicas_implicit_mult(buf,cap);
   if (focus){ // TI and textbooks: log is base 10 (giac's log is ln): log(100) is 2
     ti_log10(buf,cap);
@@ -3231,8 +3257,16 @@ __attribute__((noinline)) giac::gen limit_simp(const giac::gen & g){ // (one cop
   v[0]=ab?sym1(at_abs,s):s;
   return symbolic(at_limit,gen(v,_SEQ__VECT));
 }
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+giac::gen steps_app(const giac::gen & g,const char ** msg,const giac::context * contextptr); // steps.cc
+#endif
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  const gen app=steps_app(g,&a.appmsg,contextptr); // area(...) and the other applications: their integral
+  if (!is_zero(app)) g=app;
+  if (a.appmsg) g=0; // (a call it cannot read: its message instead of an answer)
+#endif
   if (strstr(buf,"perm(") || strstr(buf,"nPr("))
     g=map_nodes(g,perms,0);
   a.typed_sum=strstr(buf,"sum(");
@@ -3278,6 +3312,15 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   if ((g.is_symb_of_sommet(at_integrate) || g.is_symb_of_sommet(at_int)) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==2 && g._SYMBptr->feuille._VECTptr->back().type==_IDNT)
     a.ivar=g._SYMBptr->feuille._VECTptr->back();
   a.gin=g;
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  if (!is_zero(app)){ // pi*integrate(...): undef or infinity, it diverges (not an area in pieces)
+    const gen in=app.is_symb_of_sommet(at_prod)?app._SYMBptr->feuille[1]:app;
+    if (in.is_symb_of_sommet(at_integrate) && in._SYMBptr->feuille.type==_VECT && in._SYMBptr->feuille._VECTptr->size()==4){
+      a.definite=true;
+      a.gin=in;
+    }
+  }
+#endif
   g=ftc(g);
   g=numeric_hard_integrals(g);
   gen tab=table_integral(g); // sec, csc, sin(x)^3*cos(x)^2: the textbook form, at once
@@ -3331,6 +3374,12 @@ giac::gen steps_derivative(const giac::gen & f,const giac::gen & x,const giac::c
 #endif
 void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen & graw){
   using namespace giac;
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  if (a.appmsg){ // area(x^2): how to call it
+    msg=a.appmsg;
+    return;
+  }
+#endif
   answer_simplify(); // autosimplify(0) typed: the status bar shows it with this answer
   if (a.definite && a.real_in && has_i(g) && !has_inf_or_undef(g))
     g=real_ftc(a.gin,g); // x^(-1/3) from -1 to 8: 9/2

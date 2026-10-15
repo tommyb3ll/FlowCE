@@ -2025,13 +2025,198 @@ gen steps_derivative(const gen & f,const gen & x,GIAC_CONTEXT){
   return !is_undef(r) && !interrupted && same_num(ev(r),D(f,x),x)?mergek(unexp(r)):gen(undef);
 }
 // the problem as typed (mergek without its rewrites: one denominator, 1/(n(n+2)), not 1/n/(n+2))
-gen steps_problem(const gen & input,GIAC_CONTEXT){ ctx_=contextptr; raw_=true; gen r=mergek(nest(norm(serfix(input)))); raw_=false; return r; }
+// ---------------------------------------------------------------- applications
+// The calculus menu's applications: area(f,g[,a,b]), volume(f,g[,a,b][,axis]), arclength(f,a,b),
+// surfacearea(f,a,b[,axis]) and average(f,a,b), as the definite integral each comes to:
+// answer_before (answer.cc) evaluates it, steps_of shows how it is set up, then its own steps.
+// One curve and a, b: with the x-axis (area(x^2,0,2)). Curves in x, as y=f(x), or in y (x=g(y),
+// or y alone): then dy. The axis: y=c or x=c (default the x-axis); washers when it runs along the
+// variable's axis, shells across it. No a, b: where the curves meet.
+static const char * const APPS[]={"area","volume","arclength","surfacearea","average"};
+static NOINL bool named(const gen & g,const char * s){ return g.type==_IDNT && !strcmp(g._IDNTptr->id_name,s); }
+// u-v as v-u, else -h: the positive way to write a distance. Differences as u+(-v), as norm writes
+// them (giac prints a binary minus x-(x^2))
+static NOINL gen flip(const gen & h){
+  if (!h.is_plus() || arg(h).type!=_VECT || arg(h)._VECTptr->size()!=2) return symb_neg(h);
+  const gen & w=arg(h,1);
+  return symb_plus(w.is_neg()?arg(w):ev(-w),symb_neg(arg(h,0)));
+}
+static NOINL gen subt(const gen & u,const gen & v){ return is_zero(v)?u:symb_plus(u,isnum(v)?ev(-v):symb_neg(v)); }
+// the sign of h on (a,b), read at 8 points: 1 or -1, 0 if it changes
+static NOINL int sgn_on(const gen & h,const gen & a,const gen & b){
+  int s=0;
+  for (int i=1;i<9;++i){
+    const gen t=is_inf(b)?(is_inf(a)?gen(i-5):a+i):is_inf(a)?b-i:a+(b-a)*i/9,d=evalf(sub(h,X,t),1,CTX);
+    const int k=is_strictly_positive(d,CTX)?1:is_strictly_positive(-d,CTX)?-1:0;
+    if (k && s && k!=s) return 0;
+    if (k) s=k;
+  }
+  return s;
+}
+// h written positive on (a,b): as it is, flipped, or |h| when it changes sign
+static NOINL gen pos(const gen & h,const gen & a,const gen & b){ const int s=sgn_on(h,a,b); return !s?symb_abs(h):s>0?h:flip(h); }
+// g as k times powers b[i]^n[i]
+static NOINL void powers(const gen & g,int e,gen & k,vecteur & b,std::vector<int> & n){
+  if (g.is_prod() && arg(g).type==_VECT){ EACH(it,*arg(g)._VECTptr) powers(*it,e,k,b,n); return; }
+  if (g.is_inv()){ powers(arg(g),-e,k,b,n); return; }
+  if (!dep(g)){ k=e>0?k*g:k/g; return; }
+  const bool p=g.is_pow() && arg(g,1).type==_INT_;
+  b.push_back(p?arg(g,0):g); n.push_back(p?e*arg(g,1).val:e);
+}
+// sqrt(w) without its root when w is a square, positive on (a,b) (the textbook arc lengths: 1+f'^2
+// = (x^4+1)^2/(4x^4), so sqrt(1+f'^2) = (x^4+1)/(2x^2)); 0 if w is no square. normal puts back
+// what giac's factor splits over sqrt(2) (x^4+1); not sqrfree: of 8cos(t)^2sin(t)^2 it gave
+// 8cos(t)^2
+static NOINL gen root(const gen & w,const gen & a,const gen & b){
+  gen k=1; vecteur bs; std::vector<int> n;
+  powers(_factor(w,CTX),1,k,bs,n);
+  gen r=sqrt(k,CTX);
+  for (unsigned i=0;i<bs.size();++i){ if (n[i]%2) return 0; r=r*pow(bs[i],n[i]/2,CTX); }
+  return pos(normal(ev(r),CTX),a,b);
+}
+// the real points where f and g meet, in order
+static NOINL vecteur meet(const gen & f,const gen & g){
+  const gen z=_solve(makesequence(symb_equal(f,g),X),CTX);
+  vecteur r;
+  if (z.type==_VECT) EACH(it,*z._VECTptr){ const gen d=evalf(*it,1,CTX); if (d.type==_DOUBLE_) r.push_back(*it); }
+  for (unsigned i=1;i<r.size();++i)
+    for (unsigned j=i;j && is_strictly_greater(r[j-1],r[j],CTX);--j){ gen s=r[j]; r[j]=r[j-1]; r[j-1]=s; }
+  return r;
+}
+// the integral of |h| over (a,b) as integrals of h or -h, split where h vanishes (giac's |h| took 94 s
+// on the calculator for x^3 against x^2+x, over 2 minutes for acos against asin); integrate(|h|) if a
+// piece still changes sign. cut: the points inside
+static NOINL gen pieces(const gen & h,const gen & a,const gen & b,vecteur & cut){
+  const vecteur z=meet(h,0);
+  vecteur pts(1,a),J;
+  EACH(it,z) if (is_strictly_greater(*it,a,CTX) && is_strictly_greater(b,*it,CTX)) pts.push_back(*it);
+  pts.push_back(b);
+  for (unsigned i=0;i+1<pts.size();++i){
+    const int s=sgn_on(h,pts[i],pts[i+1]);
+    if (!s) return symbolic(at_integrate,makesequence(symb_abs(h),X,a,b));
+    J.push_back(symbolic(at_integrate,makesequence(s>0?h:flip(h),X,pts[i],pts[i+1])));
+  }
+  cut=vecteur(pts.begin()+1,pts.end()-1);
+  return J.size()==1?J.front():symb_plus(J);
+}
+// the call's integral (0: not an application; a user's own area(...) runs as written; 0 and
+// appmsg_ for a call it cannot read); show: its setup as steps; lhs: what it computes (A, V, L, S,
+// average)
+static const char * appmsg_;
+static NOINL gen app_(const gen & call,bool show,gen & lhs){
+  appmsg_=0;
+  if (!is(call,at_of) || arg(call).type!=_VECT || arg(call)._VECTptr->size()!=2) return 0;
+  const gen & fn=arg(call,0);
+  int k=4;
+  while (k>=0 && !named(fn,APPS[k])) --k;
+  if (k<0 || ev(fn)!=fn) return 0;
+  const gen & as=arg(call,1);
+  vecteur w=as.type==_VECT && as.subtype==_SEQ__VECT?*as._VECTptr:vecteur(1,as),m;
+  const gen x(identificateur("x")),y(identificateur("y"));
+  gen v=x,c=0,f,g=0,a,b,p=0,q=0,dv=0,w2=0,sq=0;
+  var_=&v;
+  bool horiz=true;
+  if ((k&1) && !w.empty() && is(w.back(),at_equal) && arg(w.back()).type==_VECT){ // volume, surfacearea: the axis
+    const gen & s=arg(w.back(),0),& t=arg(w.back(),1);
+    if ((named(s,"x") || named(s,"y")) && !dep(t,x) && !dep(t,y)){ horiz=named(s,"y"); c=t; w.pop_back(); }
+  }
+  const int n=w.size(),nc=n==3?1:k<2 && (n==2 || n==4)?2:-1;
+  for (int i=0;i<nc;++i){ // y=f(x): f; x=g(y): g, in y
+    gen e=w[i];
+    if (is(e,at_equal) && arg(e).type==_VECT && (named(arg(e,0),"x") || named(arg(e,0),"y"))){
+      if (named(arg(e,0),"x")) v=y;
+      e=arg(e,1);
+    }
+    (i?g:f)=norm(e);
+  }
+  const bool param=k==2 && f.type==_VECT && f._VECTptr->size()==2;
+  if (param){ // [x(t),y(t)]: in t, or in its one variable
+    const gen t(identificateur("t"));
+    const vecteur ids=lidnt(f);
+    v=dep(f,t) || ids.empty()?t:ids.front();
+  }
+  else if (v==x && !dep(makevecteur(f,g),x) && dep(makevecteur(f,g),y)) v=y;
+  if (nc==n){ // no bounds: where the curves meet
+    m=meet(f,g);
+    if (m.size()<2){ appmsg_="The curves meet fewer than twice: give a and b"; return 0; }
+    a=m.front(); b=m.back();
+  }
+  else if (nc>0){ a=w[n-2]; b=w[n-1]; }
+  static const char * const USE[]={"Use area(f,g), area(f,g,a,b) or area(f,a,b)","Use volume(f,g,a,b,axis), volume(f,a,b,axis) or volume(f,g,axis)","Use arclength(f,a,b)","Use surfacearea(f,a,b,axis)","Use average(f,a,b)"};
+  const gen ab=makevecteur(a,b);
+  if (nc<0 || dep(ab,x) || dep(ab,y) || dep(ab,v)){ appmsg_=USE[k]; return 0; } // (volume(x,x^2,0): b left out)
+  const bool along=horiz==(v==x); // the axis along the variable's: washers; a surface's radius f-c
+  if (k==2 || k==3){ // ds = sqrt(1+f'^2) dx, or sqrt(x'^2+y'^2) dt
+    dv=param?gen(makevecteur(rn1(D(f[0],v)),rn1(D(f[1],v)))):rn1(D(f,v));
+    w2=rn(param?dv[0]*dv[0]+dv[1]*dv[1]:1+dv*dv);
+    sq=root(w2,a,b);
+  }
+  if (k&1) p=pos(along?subt(f,c):subt(v,c),a,b); // washers: f's radius; shells, surfaces: the radius
+  if (k==1){
+    if (along){ // R: the far curve, r: the near one (none: disks)
+      q=subt(g,c);
+      q=is_zero(ev(q))?gen(0):pos(q,a,b);
+      if (sgn_on(subt(p,q),a,b)<0){ gen s=p; p=q; q=s; }
+    }
+    else q=pos(subt(f,g),a,b); // the height
+  }
+  // R^2 with the square of a root taken (sqrt(4-x^2)^2 is 4-x^2: no steps for it). ds over one
+  // denominator: sqrt(1+x^2/(4-x^2)) times sqrt(4-x^2) came out 4, not 8pi, in giac's integral
+  vecteur cut;
+  const gen ds=!is_zero(sq)?sq:SYM(at_sqrt,w2),
+    I=!k?pieces(subt(f,g),a,b,cut):k==1?(!along?symb_prod(p,q):is_zero(q)?ev(symb_pow(p,2)):subt(ev(symb_pow(p,2)),ev(symb_pow(q,2)))):k==2?ds:k==3?symb_prod(p,ds):f,
+    K=k==1?(along?cst_pi:2*cst_pi):k==3?2*cst_pi:k==4?ev(symb_inv(subt(b,a))):gen(1),
+    J=!k?I:symbolic(at_integrate,makesequence(I,v,a,b)),r=is_one(K)?J:symb_prod(K,J); // (an area: its pieces' integrals)
+  static const char * const LHS[]={"A","V","L","S","average"};
+  lhs=identificateur(LHS[k]);
+  if (show){
+    if (m.empty()) m=cut; // (where they cross between a and b)
+    if (!m.empty()){
+      vecteur s;
+      EACH(it,m) s.push_back(symb_equal(v,*it));
+      S(R_MEET,f,g); S(R_LINE,gen(s,_SEQ__VECT),0);
+    }
+    if (!k) S(R_AREA,lhs,r);
+    else if (k==4) S(R_AVG,lhs,r);
+    else S(k==1?(along?(is_zero(q)?R_DISK:R_WASH):R_SHELL):k==3?R_SURF:param?R_ARCP:R_ARC,
+           param?dv[0]:k==2?dv:p,param?dv[1]:k==3?dv:q);
+    if (!is_zero(sq)) S(R_SQ,param?w2:symb_plus(1,symb_pow(dv,2)),sq);
+    if (k && k!=4) S(R_EQV,lhs,r);
+  }
+  return r;
+}
+gen steps_app(const gen & g,const char ** msg,GIAC_CONTEXT){
+  *msg=0;
+  if (!is(g,at_of)) return 0;
+  gen x(identificateur("x")),lhs,* old=var_;
+  ctx_=contextptr; var_=&x;
+  gen r=app_(g,false,lhs);
+  var_=old;
+  *msg=appmsg_;
+  return r;
+}
+
+gen steps_problem(const gen & input,GIAC_CONTEXT){
+  ctx_=contextptr; raw_=true;
+  gen in=input;
+  if (is(in,at_of) && arg(in).type==_VECT && arg(in)._VECTptr->size()==2 && arg(in,1).type==_VECT){ // area(x-x^2,...): the arguments too
+    vecteur w=*arg(in,1)._VECTptr;
+    EACHW(it,w) *it=norm(*it);
+    in=symbolic(at_of,makesequence(arg(in,0),gen(w,arg(in,1).subtype)));
+  }
+  gen r=mergek(nest(norm(serfix(in))));
+  raw_=false;
+  return r;
+}
 bool steps_of(const gen & input,std::vector<step_t> & out,GIAC_CONTEXT){
   static gen * in0; // the input as the steps take it (in_ points to it; no static constructor in the app)
   if (!in0) in0=new gen;
   gen x(identificateur("x"));
   ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=in0;
-  *in0=serfix(input);
+  gen lhs=0,ap=app_(input,true,lhs); // an application: its setup, then its integral's steps
+  var_=&x;
+  if (appmsg_) return false;
+  *in0=is_zero(ap)?serfix(input):ap;
   gen ls=limit_simp(*in0);
   if (ls!=*in0){ S(R_SIMP,*in0,ls); *in0=ls; }
   const gen & input0=*in0;
@@ -2050,7 +2235,7 @@ bool steps_of(const gen & input,std::vector<step_t> & out,GIAC_CONTEXT){
   }
   if (out.empty()) return false;
   e=ev(e);
-  S(R_EQV,input0,bigp(e)?e:normal(e,CTX));
+  S(R_EQV,is_zero(lhs)?input0:lhs,bigp(e)?e:normal(e,CTX));
   return true;
 }
 #endif

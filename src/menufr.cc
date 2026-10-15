@@ -826,11 +826,18 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"acos(x)", nullptr, "Inverse cosine arccos(x), between 0 and pi.", "1/2", nullptr, CAT_CATEGORY_TRIG},
   {"append", nullptr, "Adds an element at the end of a list","#l.append(x)", nullptr, CAT_CATEGORY_LIST},
   {"approx(x)", nullptr, "Approx. value x. Shortcut S-D", "pi", nullptr, CAT_CATEGORY_REAL},
+#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
+  {"arclength(f,a,b)", nullptr, "Length of the curve y=f(x) from x=a to x=b; also x=g(y), a and b in y, or [x(t),y(t)] for t from a to b. Steps: enter after the answer.", "x^(3/2),0,4", "[cos(t),sin(t)],0,pi", CAT_CATEGORY_CALCULUS},
+  {"area(f,g,a,b)", nullptr, "Area between the curves y=f(x) and y=g(x) from x=a to x=b; a and b left empty: between the points where they meet. area(f,a,b): with the x-axis.", "x^2,x+2", "sin(x),cos(x),0,pi", CAT_CATEGORY_CALCULUS},
+#endif
   {"arg(z)", nullptr, "Angle of complex z.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
   {"asc(string)", nullptr, "List of ASCII codes os a string", "\"Hello\"", nullptr, CAT_CATEGORY_ARIT},
   {"asin(x)", nullptr, "Inverse sine arcsin(x), between -pi/2 and pi/2.", "1/2", nullptr, CAT_CATEGORY_TRIG},
   {"assume(hyp)", nullptr, "Assumption on variable.", "x>1", "x>-1 and x<1", CAT_CATEGORY_PROGCMD},
   {"atan(x)", nullptr, "Inverse tangent arctan(x), between -pi/2 and pi/2.", "1", nullptr, CAT_CATEGORY_TRIG},
+#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
+  {"average(f,a,b)", nullptr, "Average value of f on [a,b]: its integral divided by b-a.", "x^2,0,3", "sin(x),0,pi", CAT_CATEGORY_CALCULUS},
+#endif
   {"axes", "axes", "Axes visible or not axes=1 or 0", "#axes=0", nullptr, CAT_CATEGORY_PROGCMD << 8},
   //{"binomial(n,p,k)", 0, "binomial(n,p,k) probability to get k success with n trials where p is the probability of success of 1 trial. binomial_cdf(n,p,k) is the probability to get at most k successes. binomial_icdf(n,p,t) returns the smallest k such that binomial_cdf(n,p,k)>=t", "10,.5,4", 0, CAT_CATEGORY_PROBA},
   {"barplot(list)", nullptr, "Bar plot of 1-d statistic series data in list.", "[3/2,2,1,1/2,3,2,3/2]", nullptr, CAT_CATEGORY_PLOT},
@@ -978,6 +985,9 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"sqrt(x)", nullptr, "Square root.", "8", nullptr, CAT_CATEGORY_REAL},
   {"subst(a,b=c)", nullptr, "Substitutes b for c in a. Shortcut a(b=c).", "x^2,x=3", nullptr, CAT_CATEGORY_ALGEBRA},
   {"sum(f,k,m,M)", nullptr, "Summation of expression f for k from m to M. Exemple sum(k^2,k,1,n)=>*. Shortcut ALPHA F3", "k,k,1,n", nullptr, CAT_CATEGORY_CALCULUS},
+#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
+  {"surfacearea(f,a,b,axis)", nullptr, "Area of the surface made by turning y=f(x), a<=x<=b, around the axis y=c or x=c (y=0: the x-axis).", "sqrt(x),1,4,y=0", "x^2,0,1,x=0", CAT_CATEGORY_CALCULUS},
+#endif
 #if defined WITH_SHEET
   {"tablefunc(f(x),x[,xmin,xstep])", nullptr, "Table of values of expression f", "sqrt(x^2+x+1),x,-1,0.1",  nullptr, CAT_CATEGORY_CALCULUS},
   {"tableseq(f(x),x,u0)", nullptr, "Table of values of recurrent sequence u_{n+1}=f(u_n)", "cos(x),x,0.0",  nullptr, CAT_CATEGORY_CALCULUS},
@@ -1000,6 +1010,9 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"trigsin(expr)", nullptr, "Convert cos^2 and tan^2 to sin^2.","cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
   {"trigtan(expr)", nullptr, "Convert cos^2 and sin^2 to tan^2.","cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
   {"tstep",nullptr, "Parametric graph step", "tstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
+#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
+  {"volume(f,g,a,b,axis)", nullptr, "Volume of the solid made by turning the region between the curves around the axis y=c or x=c (washers or shells, by the axis). a and b left empty: where the curves meet. One curve: volume(f,a,b,axis).", "x,x^2,y=0", "sqrt(x),0,4,y=0", CAT_CATEGORY_CALCULUS},
+#endif
   {"xstep",nullptr, "Funciton graph step", "xstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
   //{"version", "version()", "Khicas 1.5.0, (c) B. Parisse et al. www-fourier.ujf-grenoble.fr/~parisse\nLicense GPL version 2. Interface adapted from Eigenmath for Casio, G. Maia, http://gbl08ma.com. Do not use if CAS calculators are forbidden.", 0, 0, CAT_CATEGORY_PROGCMD},
   {"yellow", "yellow", "Display option", "#display=yellow", nullptr, CAT_CATEGORY_OPTIONS},

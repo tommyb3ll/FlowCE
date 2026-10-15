@@ -19,6 +19,9 @@ struct answer_ctx {
   bool simp;         // Simplify answers is on (answer_simplify)
   bool typed_sum, typed_limit; // the text has sum( or limit( (an oscillating result's message)
   bool typed_sec;    // the text has sec(, csc( or cot(: the answer is written with them too
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  const char * appmsg; // an application called wrongly (area(x^2)): how to call it, shown instead
+#endif
 };
 
 // Simplify answers (the mode key's menu, kept with the session): giac's autosimplify, off as
