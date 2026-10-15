@@ -2213,6 +2213,7 @@ bool steps_of(const gen & input,std::vector<step_t> & out,GIAC_CONTEXT){
   if (!in0) in0=new gen;
   gen x(identificateur("x"));
   ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=in0;
+  if (has_op(input,*at_desolve)) return false; // (diff(y,x) in it is the equation: "d/dx y = 0" was shown)
   gen lhs=0,ap=app_(input,true,lhs); // an application: its setup, then its integral's steps
   var_=&x;
   if (appmsg_) return false;

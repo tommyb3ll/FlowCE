@@ -31,6 +31,7 @@ static bool starts(const char * s, const char * p) { return !strncmp(s, p, strle
 // polynomial, also inside another command (subst(diff(f,x,3),x=0), solve(diff(f,x)=0,x): the
 // steps take the calculus part first, then the rest); an application (area, volume...)
 int focus_steps_able(const char * s) {
+  if (strstr(s, "desolve(")) return 0; // (its diff(y,x) is the equation, not a derivative to work out)
   static const char * const ops[] = {"diff(", "integrate(", "int(", "derive(", "limit(", "series(", "taylor(", "sum(",
                                      "area(", "volume(", "arclength(", "surfacearea(", "average("};
   for (const char * p = s; *p; ++p)
