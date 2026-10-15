@@ -1,6 +1,7 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// release bundle (files/FlowCE.b84) over WebUSB and opens its installer, which then needs one key
-// press on the calculator. Steps and texts: index.html.
+// version picked (files/FlowCE.b84, or files/FlowCE-steps.b84 for the steps build) over WebUSB
+// and opens its installer, which then needs one key press on the calculator. Steps and texts:
+// index.html.
 import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile } from './dusb.js';
 
 const $ = id => document.getElementById(id);
@@ -12,8 +13,17 @@ const OS_MAX = [5, 8, 4], OS_MIN = [5, 3, 0];
 // Windows binds the calculator to TI's driver: the old one (tiehdusb) can't be used by browsers
 const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent);
 
+// The versions the page installs, with their version texts (site/build.sh puts them in files/)
+const BUILDS = {
+  normal: { file: 'FlowCE.b84', ver: 'version.txt', name: 'FlowCE' },
+  steps: { file: 'FlowCE-steps.b84', ver: 'version-steps.txt', name: 'FlowCE Steps' },
+};
+const versions = {};      // their version texts once read ('' if the site doesn't have it)
+let build = 'normal';     // the version picked
+
 let calc = null;          // the connected calculator
 let vars = null;          // the bundle's variables, in sending order
+let varsOf = null;        // the version they are from
 let autoInst = false;     // INST is patched (below): one key starts it, and it restarts the calculator
 let state = null;         // the last check: { blocked, needErase }
 let busy = false;         // installing
@@ -113,15 +123,16 @@ function problem(e) {
 }
 
 async function loadBundle() {
-  if (vars) return vars;
-  const res = await fetch('files/FlowCE.b84');
-  if (!res.ok) throw new Error('could not download FlowCE (' + res.status + ')');
+  const b = build;
+  if (vars && varsOf === b) return vars;
+  const res = await fetch('files/' + BUILDS[b].file);
+  if (!res.ok) throw new Error(`could not download ${BUILDS[b].name} (${res.status})`);
   const files = await readBundle(await res.arrayBuffer());
   const list = [];
   for (const f of files) {
     if (/\.8x[pv]$/i.test(f.name)) list.push(...readTIFile(f.bytes));
   }
-  // the programs (arTIfiCE "A", INST) first, then AppIns00..42 in order
+  // the programs (arTIfiCE "A", INST) first, then AppIns00, AppIns01... in order
   list.sort((a, b) => (a.name.startsWith('AppIns') - b.name.startsWith('AppIns')) || a.name.localeCompare(b.name));
   const inst = list.find(v => v.name === 'INST');
   if (list.filter(v => v.name.startsWith('AppIns')).length < 2 || !inst)
@@ -130,12 +141,48 @@ async function loadBundle() {
   if (patched) inst.data = patched;
   autoInst = !!patched;
   vars = list;
+  varsOf = b;
   return vars;
+}
+
+// INST counts down from the last AppIns' number (42 for 43 of them) to 0
+const countdown = () => (vars ? vars.filter(v => v.name.startsWith('AppIns')).length - 1 : 42);
+
+// The version picked, in the texts that name it: the install button, "Sends ...", the download
+function showBuild() {
+  const b = BUILDS[build];
+  $('btn-install').textContent = 'Install ' + b.name;
+  $('version').textContent = (b.name + ' ' + (versions[build] || '')).trim();
+  const dl = $('dl');
+  dl.href = 'files/' + b.file;
+  dl.textContent = b.file;
+  dl.setAttribute('download', b.file);
+  document.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('input').checked));
+}
+
+// Another version picked: if a calculator is connected, check it again (the memory it needs)
+async function choose(b) {
+  if (b === build) return;
+  if (busy || waitingReset) { // not during an install: the radios are disabled then anyway
+    document.querySelector(`input[name="build"][value="${build}"]`).checked = true;
+    return;
+  }
+  build = b;
+  showBuild();
+  if (!calc) return;
+  try {
+    say('st-connect', 'Checking the calculator…');
+    await loadBundle();
+    await check(calc);
+  } catch (e) {
+    say('st-connect', problem(e));
+  }
 }
 
 // (nothing to click while INST runs: whatever reaches the calculator then could cancel its reset)
 function updateInstall() {
   $('btn-install').disabled = busy || waitingReset || !calc || !state || state.blocked || (state.needErase && !$('erase-ok').checked);
+  document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = busy || waitingReset || r.dataset.off === '1'; });
 }
 
 // The calculator's OS and free memory: what the install has to do
@@ -281,8 +328,8 @@ async function proceed(c) {
   // could replace the reset INST leaves for the OS. So nothing more is sent.
   say('st-finish', autoInst
     ? '<strong>Press <kbd>enter</kbd> on the calculator</strong> (the arTIfiCE shell shows INST). That\'s the only key: ' +
-      'it installs FlowCE, counting down from 42 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
-    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 42 to 0. ' +
+      `it installs FlowCE, counting down from ${countdown()} to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.`
+    : `On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from ${countdown()} to 0. ` +
       'At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
 }
 
@@ -378,7 +425,33 @@ function finished() {
 function init() {
   document.querySelectorAll('.step').forEach((li, i) => { li.dataset.n = String(i + 1); });
   mark('connect', 'active');
-  fetch('files/version.txt').then(r => (r.ok ? r.text() : '')).then(t => { $('version').textContent = t.trim(); }).catch(() => {});
+
+  // the version: picked here, or by a link (?build=steps); one this site doesn't have is off
+  const radios = document.querySelectorAll('input[name="build"]');
+  const want = new URLSearchParams(location.search).get('build');
+  if (Object.prototype.hasOwnProperty.call(BUILDS, want)) build = want;
+  radios.forEach(r => {
+    r.checked = r.value === build;
+    r.addEventListener('change', () => { if (r.checked) choose(r.value); });
+  });
+  for (const k of Object.keys(BUILDS)) {
+    fetch('files/' + BUILDS[k].ver).then(r => (r.ok ? r.text() : '')).catch(() => '').then(t => {
+      versions[k] = t.trim();
+      document.querySelectorAll(`[data-ver="${k}"]`).forEach(e => { e.textContent = versions[k]; });
+      if (!versions[k] && k !== 'normal') {
+        const r = document.querySelector(`input[name="build"][value="${k}"]`);
+        r.dataset.off = '1';
+        r.closest('.opt').classList.add('off');
+        if (build === k) {
+          build = 'normal';
+          document.querySelector('input[name="build"][value="normal"]').checked = true;
+        }
+      }
+      updateInstall();
+      showBuild();
+    });
+  }
+  showBuild();
 
   if (!('usb' in navigator)) {
     $('no-usb').hidden = false;

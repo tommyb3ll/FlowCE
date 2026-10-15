@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FlowCE: calculus on your TI-84 Plus CE</title>
-<meta name="description" content="A free computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2: exact answers in textbook form, math drawn as you type it, graphs, light and dark themes. Install it from this page.">
+<meta name="description" content="A free computer algebra system for the TI-84 Plus CE: exact answers in textbook form, math drawn as you type it, graphs, and step-by-step solutions (beta). Install it from this page.">
 <meta property="og:title" content="FlowCE: calculus on your TI-84 Plus CE">
-<meta property="og:description" content="Exact answers in textbook form, math drawn as you type it, graphs. Free and open source.">
-<meta property="og:image" content="media/screenshots/sec.png">
+<meta property="og:description" content="Exact answers in textbook form, math drawn as you type it, graphs, and now the steps. Free and open source.">
+<meta property="og:image" content="media/screenshots/steps_parts.png">
 <link rel="icon" href="media/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,9 +20,8 @@
   <div class="wrap top-in">
     <a class="wordmark" href="#">Flow<span>CE</span></a>
     <nav>
-      <a href="#features">Features</a>
       <a href="#install">Install</a>
-      <a href="#keys">Keys</a>
+      <a href="#screens">Screens</a>
       <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
     </nav>
   </div>
@@ -33,12 +32,12 @@
   <div class="hero-text">
     <h1><span class="wordmark big">Flow<span>CE</span></span></h1>
     <p class="lead">Calculus on your TI-84 Plus CE.</p>
-    <p>Type math the way it looks. Get answers the way your textbook writes them: <span class="m">π²/6</span>, not 1.64493, with the decimal right under the exact one.</p>
+    <p>Type math the way it looks. Get exact answers the way your textbook writes them, and now the steps too.</p>
     <div class="cta">
-      <a class="btn primary" href="#install">Install on my calculator</a>
-      <a class="btn" href="https://github.com/tommyb3ll/FlowCE">Source code</a>
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="#screens">Screens</a>
     </div>
-    <p class="fine">Free and open source (GNU GPL). For the TI-84 Plus CE and TI-83 Premium CE.</p>
+    <p class="fine">Free and open source. For the TI-84 Plus CE and TI-83 Premium CE.</p>
   </div>
   <figure class="screen hero-screen">
     <picture>
@@ -48,102 +47,60 @@
   </figure>
 </section>
 
-<section id="features" class="wrap">
-  <h2>What it does</h2>
-  <div class="cards">
-    <article class="card">
-      <div class="glyph">x²</div>
-      <h3>Type math as it looks</h3>
-      <p>Fractions, powers, roots, integrals, sums, limits and derivatives are drawn in 2D while you type. <kbd>/</kbd> makes a fraction of what is before it, and the arrows move through the boxes in the order you read them. Commands come with a labeled box for each argument and a hint with an example.</p>
-    </article>
-    <article class="card">
-      <div class="glyph">∫</div>
-      <h3>Answers like your textbook</h3>
-      <p><span class="m">arctan((x+1)/2)</span>, <span class="m">x − x³/6 + x⁵/120</span>, <span class="m">+ C</span> on antiderivatives, <span class="m">log</span> meaning base 10, polynomials in descending powers. <kbd>F4</kbd> shows other forms: factored, expanded, one fraction, decimal.</p>
-    </article>
-    <article class="card">
-      <div class="glyph">Σ</div>
-      <h3>Calculus 1 and 2</h3>
-      <p>Derivatives; integrals with trig substitution, partial fractions and arc length; improper integrals that say when they diverge; limits that say when they don't exist; series, power series, Taylor series, Riemann sums and differential equations.</p>
-    </article>
-    <article class="card">
-      <div class="glyph">⏎</div>
-      <h3>Keys that work like a TI's</h3>
-      <p><kbd>(−)</kbd> is a minus sign and <kbd>2nd</kbd> <kbd>(−)</kbd> is Ans. Starting a line with <kbd>×</kbd> <kbd>2</kbd> doubles the last answer, <kbd>2nd</kbd> <kbd>enter</kbd> brings back your last entry, and <kbd>sto→</kbd> stores.</p>
-    </article>
-    <article class="card">
-      <div class="glyph">∿</div>
-      <h3>Graphs</h3>
-      <p>Graph the line you typed, or the last answer, in one step. Trace along the curve, zoom, find roots and extrema, and see a table of values.</p>
-    </article>
-    <article class="card">
-      <div class="glyph">◐</div>
-      <h3>Light and dark</h3>
-      <p>A clean Paper theme and a Night theme, switched from the <em>more</em> menu. Your session is kept when you quit.</p>
-    </article>
-  </div>
-</section>
-
-<section class="wrap">
-  <h2>On the calculator</h2>
-  <div class="gallery">
-    <figure><img src="media/screenshots/sec.png" loading="lazy" width="640" height="480" alt="The integral of sec cubed, with + C"><figcaption>∫ sec³x dx</figcaption></figure>
-    <figure><img src="media/screenshots/typing_integral.png" loading="lazy" width="640" height="480" alt="A definite integral being typed in 2D"><figcaption>typing a definite integral</figcaption></figure>
-    <figure><img src="media/screenshots/basel.png" loading="lazy" width="640" height="480" alt="The sum of 1 over n squared equals pi squared over 6"><figcaption>Σ 1/n² = π²/6</figcaption></figure>
-    <figure><img src="media/screenshots/power_series.png" loading="lazy" width="640" height="480" alt="A power series summed to minus ln of 1 minus x"><figcaption>a power series</figcaption></figure>
-    <figure><img src="media/screenshots/dne.png" loading="lazy" width="640" height="480" alt="A limit that does not exist, with the left and right values"><figcaption>a limit that doesn't exist</figcaption></figure>
-    <figure><img src="media/screenshots/riemann.png" loading="lazy" width="640" height="480" alt="A Riemann sum with index i"><figcaption>a Riemann sum</figcaption></figure>
-    <figure><img src="media/screenshots/forms.png" loading="lazy" width="640" height="480" alt="The forms menu showing other forms of an answer"><figcaption>F4: other forms</figcaption></figure>
-    <figure><img src="media/screenshots/graph_sin_trace.png" loading="lazy" width="640" height="480" alt="A graph with the trace cursor"><figcaption>trace along a graph</figcaption></figure>
-    <figure><img src="media/screenshots/night_graph.png" loading="lazy" width="640" height="480" alt="A graph in the Night theme"><figcaption>Night theme</figcaption></figure>
-  </div>
-</section>
-
 <section id="install" class="wrap">
   <h2>Install</h2>
-  <p class="intro">You need a <strong>TI-84 Plus CE</strong> (or TI-83 Premium CE) on <strong>OS 5.3 to 5.8.4</strong> and its USB cable. Install it from this page in Chrome, Edge, Opera or Brave on a computer (on Windows, with TI Connect CE 6.1 or newer installed), or with TI Connect CE. FlowCE fills most of the calculator's memory (2.8 MB), so installing it starts by <strong>clearing the archive</strong> (all apps and archived files): back up anything you want to keep first. FlowCE is a computer algebra system: follow your class and test rules on calculators.</p>
+
+  <div class="pick" role="radiogroup" aria-label="Version to install">
+    <label class="opt">
+      <input type="radio" name="build" value="normal" checked>
+      <span class="opt-head"><strong>FlowCE</strong> <span class="ver" data-ver="normal"></span></span>
+      <span class="opt-text">The stable version. Exact answers, graphs, and programs in Python syntax.</span>
+    </label>
+    <label class="opt">
+      <input type="radio" name="build" value="steps">
+      <span class="opt-head"><strong>FlowCE Steps</strong> <span class="badge">beta</span> <span class="ver" data-ver="steps"></span></span>
+      <span class="opt-text">Shows the steps for derivatives, integrals, limits, sums and Taylor series. No Python syntax.</span>
+    </label>
+  </div>
+
+  <p class="need">You need a TI-84 Plus CE on OS 5.3 to 5.8.4, its USB cable, and Chrome or Edge on a computer. <strong>Installing erases the calculator's apps and archived files.</strong></p>
 
   <div class="installer" id="installer">
     <div class="notice" id="no-usb" hidden>
-      <strong>This browser can't talk to a calculator.</strong> Open this page in Chrome, Edge, Opera or Brave on a computer, or use <a href="#manual">TI Connect CE</a> instead.
+      <strong>This browser can't reach a calculator.</strong> Use Chrome or Edge on a computer, or <a href="#manual">TI Connect CE</a>.
     </div>
     <div class="notice" id="win-note" hidden>
-      <strong>On Windows, this page needs TI Connect CE 6.1 or newer.</strong> It comes with TI's new USB driver, which browsers can use (older versions have a driver browsers can't open). <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">Download TI Connect CE</a> (free), install it, then come back and connect. You don't need to open it.
+      <strong>On Windows:</strong> install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer first. The page uses its USB driver; you don't need to open it.
     </div>
 
     <ol class="steps">
       <li class="step" data-step="connect">
-        <div class="step-head"><span class="num">1</span><h3>Connect it</h3></div>
+        <div class="step-head"><span class="num">1</span><h3>Connect</h3></div>
         <div class="step-body">
-          <p>Plug the calculator into this computer and turn it on. Close TI Connect CE if it's open. Connecting only checks the calculator: it changes nothing.</p>
+          <p>Plug in the calculator and turn it on. Close TI Connect CE if it's open.</p>
           <button class="btn primary" id="btn-connect">Connect calculator</button>
           <div class="status" id="st-connect" aria-live="polite"></div>
         </div>
       </li>
 
       <li class="step" data-step="install">
-        <div class="step-head"><span class="num">2</span><h3>Install FlowCE</h3></div>
+        <div class="step-head"><span class="num">2</span><h3>Install</h3></div>
         <div class="step-body">
           <div id="erase-part">
-            <p id="erase-what">FlowCE needs almost all of the calculator's memory, so its <strong>archive is erased first</strong>: all apps and archived programs and variables go (the OS and what's in RAM stay). Back up anything you want to keep.</p>
-            <label class="confirm"><input type="checkbox" id="erase-ok"> <span id="erase-label">I understand: erase all apps and archived files on my calculator</span></label>
+            <label class="confirm"><input type="checkbox" id="erase-ok"> <span>Erase all apps and archived files on my calculator</span></label>
           </div>
           <button class="btn primary" id="btn-install" disabled>Install FlowCE</button>
           <button class="btn primary" id="btn-reconnect" hidden>Reconnect calculator</button>
           <div class="progress" id="progress" hidden><div class="bar"><span id="bar"></span></div></div>
           <div class="status" id="st-install" aria-live="polite"></div>
-          <p class="fine">This page erases the calculator, sends FlowCE <span id="version"></span> (45 files) and opens its installer. To erase it yourself instead: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> Reset… → right arrow to <strong>ARCHIVE</strong> → <kbd>3</kbd> Both… → <kbd>2</kbd> Reset, then connect again.</p>
+          <p class="fine">Sends <span id="version">FlowCE</span>.</p>
         </div>
       </li>
 
       <li class="step" data-step="finish">
         <div class="step-head"><span class="num">3</span><h3>Press enter on the calculator</h3></div>
         <div class="step-body">
-          <ol class="sub">
-            <li>The calculator shows the arTIfiCE shell with <strong>INST</strong>: press <kbd>enter</kbd>. That's the only key to press.</li>
-            <li>INST installs FlowCE, counting down from 42 to 0, then the calculator restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.</li>
-            <li>Press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
-          </ol>
+          <p>When it shows <strong>INST</strong>, press <kbd>enter</kbd> once. It installs and restarts by itself (<em>"RAM Cleared"</em>). Then <kbd>apps</kbd> → <strong>FlowCE</strong>.</p>
           <div class="status" id="st-finish" aria-live="polite"></div>
           <img class="gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and FlowCE">
         </div>
@@ -154,59 +111,53 @@
   <details class="manual" id="manual">
     <summary>Install with TI Connect CE instead</summary>
     <ol>
-      <li><strong>Clear the archive:</strong> <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> Reset… → right arrow to <strong>ARCHIVE</strong> → <kbd>3</kbd> Both… → <kbd>2</kbd> Reset.</li>
-      <li>Download <a href="https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84"><code>FlowCE.b84</code></a>, drag it onto the calculator in <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> and send it (45 files: AppIns00 to AppIns42, A and INST).</li>
-      <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens the arTIfiCE shell; <kbd>enter</kbd> starts INST and <kbd>enter</kbd> again installs. It counts down from 42 to 0.</li>
-      <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>.</li>
-      <li><kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li>Clear the archive: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
+      <li>Download <a id="dl" href="files/FlowCE.b84" download>FlowCE.b84</a> and send it with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>.</li>
+      <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens arTIfiCE. <kbd>enter</kbd> starts INST, <kbd>enter</kbd> again installs.</li>
+      <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>. Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
     </ol>
   </details>
 
   <details class="manual">
-    <summary>If something goes wrong</summary>
+    <summary>Trouble?</summary>
     <ul>
-      <li><strong>"Connect" can't open the calculator on Windows:</strong> update TI Connect CE to version 6.1 or newer (its new USB driver works with browsers), unplug the calculator and plug it back in.</li>
-      <li><strong>"Connect" can't open the calculator on a Mac or Chromebook:</strong> close TI Connect CE (it may be holding the calculator), unplug the calculator, plug it back in and try again.</li>
-      <li><strong>Linux:</strong> let the browser use the calculator with a udev rule, for example <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then plug the calculator in again.</li>
-      <li><strong>Still not enough free memory after the erase:</strong> some calculators keep apps through the erase, often TI's language apps (Español, Français…). Delete them in TI Connect CE, or on the calculator: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>2</kbd> Mem Mgmt/Del… → Apps…, then <kbd>del</kbd> on each. Then connect again.</li>
-      <li><strong>The calculator shows "RAM Cleared" but this page still waits:</strong> FlowCE is installed; press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
-      <li><strong>The screen freezes at "Success! Will now reset"</strong> (when installing with TI Connect CE): press the reset button on the back of the calculator (a pen tip or a paperclip). FlowCE stays installed.</li>
-      <li><strong>The calculator acts strangely</strong> (menus glitch, TI Connect CE stays on "refreshing"): clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> Reset… → <kbd>1</kbd> All RAM… → <kbd>2</kbd> Reset. This does not remove FlowCE.</li>
-      <li><strong>OS 5.8.5 or later:</strong> the installer uses arTIfiCE v2.1, which works up to OS 5.8.4. Newer OS versions need arTIfiCE v3, which FlowCE doesn't support yet.</li>
+      <li><strong>Connect fails on Windows:</strong> update TI Connect CE to 6.1 or newer, then unplug and replug the calculator.</li>
+      <li><strong>Connect fails on a Mac or Chromebook:</strong> close TI Connect CE, then unplug and replug.</li>
+      <li><strong>Linux:</strong> add a udev rule such as <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then replug.</li>
+      <li><strong>Still not enough memory after the erase:</strong> some apps survive it (often TI's language apps). Delete them: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → Apps, <kbd>del</kbd> on each.</li>
+      <li><strong>"RAM Cleared" but this page still waits:</strong> FlowCE is installed. Press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li><strong>Frozen at "Success! Will now reset":</strong> press the reset button on the back (a pen tip). FlowCE stays installed.</li>
+      <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed.</li>
+      <li><strong>OS 5.8.5 or newer:</strong> not supported yet (the installer's arTIfiCE v2.1 works up to 5.8.4).</li>
     </ul>
+    <p class="fine">Something else, or a wrong answer? Tell us on the <a href="https://www.cemetech.net/forum/viewtopic.php?t=21437">Cemetech thread</a>.</p>
   </details>
 </section>
 
-<section id="keys" class="wrap">
-  <h2>Keys</h2>
-  <table class="keys">
-    <tbody>
-      <tr><td><kbd>F1</kbd> to <kbd>F5</kbd></td><td>menus: algebra, calculus, trig, symbols, more (with <kbd>2nd</kbd> or <kbd>alpha</kbd>: more menus; the arrows wrap around)</td></tr>
-      <tr><td><kbd>math</kbd></td><td>templates: fraction, root, integrals, derivative, limit, sum</td></tr>
-      <tr><td><kbd>▲</kbd> / <kbd>▼</kbd></td><td>history / search every command</td></tr>
-      <tr><td><kbd>enter</kbd> on a history line</td><td>reuses that input or answer</td></tr>
-      <tr><td><kbd>F4</kbd> on an answer</td><td>its other forms</td></tr>
-      <tr><td><kbd>(−)</kbd></td><td>a minus sign; <kbd>2nd</kbd> <kbd>(−)</kbd> is the last answer (Ans)</td></tr>
-      <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>×</kbd> <kbd>÷</kbd> <kbd>^</kbd> first</td><td>works on the last answer, as on a TI (<kbd>×</kbd> <kbd>2</kbd> is Ans·2)</td></tr>
-      <tr><td><kbd>2nd</kbd> <kbd>enter</kbd></td><td>the last input again (ENTRY); press again for the one before</td></tr>
-      <tr><td><kbd>sto→</kbd></td><td>stores a value: 5 → b</td></tr>
-      <tr><td><kbd>[</kbd> <kbd>{</kbd></td><td>brackets that close themselves; <kbd>]</kbd> <kbd>}</kbd> step out</td></tr>
-      <tr><td><kbd>clear</kbd></td><td>erases the line; on an empty line, the answer</td></tr>
-      <tr><td><kbd>on</kbd> or <kbd>clear</kbd> while computing</td><td>stops the calculation</td></tr>
-      <tr><td><em>more</em> → Graph</td><td>graphs the line or the answer; in the graph: <kbd>F2</kbd> window and curve study, <kbd>2nd</kbd> <kbd>graph</kbd> table</td></tr>
-      <tr><td><kbd>2nd</kbd> <kbd>quit</kbd></td><td>quit (your session is kept)</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section class="wrap credits">
-  <h2>Credits</h2>
-  <p>FlowCE is a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. The math engine is Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). The console interface was adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz. The installer is <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page talks to the calculator with code adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible (Braille Institute) and STIX Two.</p>
+<section id="screens" class="wrap">
+  <h2>Screens</h2>
+  <div class="gallery">
+    <figure><img src="media/screenshots/steps_parts.png" loading="lazy" width="640" height="480" alt="Steps for the integral of x sin x: integration by parts"><figcaption>steps: integration by parts <span class="badge">beta</span></figcaption></figure>
+    <figure><img src="media/screenshots/steps_limit.png" loading="lazy" width="640" height="480" alt="Steps for a limit with L'Hôpital's rule"><figcaption>steps: a limit <span class="badge">beta</span></figcaption></figure>
+    <figure><img src="media/screenshots/typing_integral.png" loading="lazy" width="640" height="480" alt="A definite integral being typed in 2D"><figcaption>type it as it looks</figcaption></figure>
+    <figure><img src="media/screenshots/basel.png" loading="lazy" width="640" height="480" alt="The sum of 1 over n squared equals pi squared over 6"><figcaption>exact answers: π²/6</figcaption></figure>
+    <figure><img src="media/screenshots/forms.png" loading="lazy" width="640" height="480" alt="The forms menu showing other forms of an answer"><figcaption><kbd>F4</kbd>: other forms</figcaption></figure>
+    <figure><img src="media/screenshots/graph_sin_trace.png" loading="lazy" width="640" height="480" alt="A graph with the trace cursor"><figcaption>graphs with trace</figcaption></figure>
+  </div>
+  <ul class="tips">
+    <li><kbd>F1</kbd>–<kbd>F5</kbd> menus</li>
+    <li><kbd>▲</kbd> history</li>
+    <li><kbd>▼</kbd> search commands</li>
+    <li><kbd>F4</kbd> other forms</li>
+    <li><kbd>enter</kbd> after an answer: its steps (Steps)</li>
+    <li><kbd>on</kbd> stops a calculation</li>
+  </ul>
 </section>
 </main>
 
 <footer class="wrap foot">
-  <p>FlowCE is free software under the <a href="https://github.com/tommyb3ll/FlowCE/blob/main/LICENSE">GNU General Public License</a>, version 3 or later, with no warranty. Not affiliated with Texas Instruments; TI-84 Plus CE is a trademark of Texas Instruments.</p>
+  <p>FlowCE is a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. Math engine: Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). Console adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 community, especially Jacob Young, commandblockguy and Matt Waltz. Installer: <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page's USB code is adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible and STIX Two.</p>
+  <p>Free software under the <a href="https://github.com/tommyb3ll/FlowCE/blob/main/LICENSE">GNU GPL</a> v3 or later, with no warranty. FlowCE is a computer algebra system: follow your class and test rules. Not affiliated with Texas Instruments; TI-84 Plus CE is a trademark of Texas Instruments.</p>
 </footer>
 
 <script type="module" src="installer.js"></script>
