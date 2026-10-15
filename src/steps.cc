@@ -22,7 +22,8 @@ enum {
   R_TSUBR, R_TSUBEQ, R_TRI, R_SPLIT, R_CONJ, R_WEIER, R_ABS, R_IMPROPER, R_NOELEM,
   R_FTC, R_EQV, R_PART, R_ABSI, R_FTC1, R_LSUB, R_LLAW, R_LALG, R_LCONJ, R_LHOP, R_LDIV, R_LQUOT,
   R_LEXP, R_LINFV, R_LDNE, R_LSQZ, R_LCOMP, R_LFRAC, R_LDOM, R_TDER, R_TVAL, R_TAYLOR,
-  R_SDIV, R_SRAT, R_SGEOM, R_PSUM, R_PSUMT, R_SLIM, R_PSER, R_LCMP, R_LFORM, R_AST, R_RATIO, R_ROOT, R_LNQ, R_ITEST, R_COSPI, R_LOSC, R_LDIVQ, R_NRULES
+  R_SDIV, R_SRAT, R_SGEOM, R_PSUM, R_PSUMT, R_SLIM, R_PSER, R_LCMP, R_LFORM, R_AST, R_RATIO, R_ROOT, R_LNQ, R_ITEST, R_COSPI, R_LOSC, R_LDIVQ,
+  R_AREA, R_DISK, R_WASH, R_SHELL, R_ARC, R_ARCP, R_SURF, R_AVG, R_MEET, R_SQ, R_LINE, R_SGEOMD, R_SCONV, R_LSIDE, R_NRULES
 };
 static const char * const RULES[]={
   "",0,"diff(A,V)=B",
@@ -107,6 +108,20 @@ static const char * const RULES[]={
   "cos(n pi) is (-1)^n",0,"A=B",
   "Oscillates between -1 and 1: no limit",0,"A=B",
   "Long division",0,"A=B",
+  "Area between curves","A=integrate(abs(f(x)-g(x)),x,a,b)","A=B",
+  "Disk method","V=pi*integrate(R(x)^2,x,a,b)","R(V)=A",
+  "Washer method","V=pi*integrate(R(x)^2-r(x)^2,x,a,b)","R(V)=A,r(V)=B",
+  "Shell method","V=2*pi*integrate(r(x)*h(x),x,a,b)","r(V)=A,h(V)=B",
+  "Arc length","L=integrate(sqrt(1+diff(f(x),x)^2),x,a,b)","diff(f(V),V)=A",
+  "Arc length of a parametric curve","L=integrate(sqrt(diff(x,t)^2+diff(y,t)^2),t,a,b)","diff(x,V)=A,diff(y,V)=B",
+  "Surface area","S=2*pi*integrate(r(x)*sqrt(1+diff(f(x),x)^2),x,a,b)","r(V)=A,diff(f(V),V)=B",
+  "Average value","integrate(f(x),x,a,b)/(b-a)","A=B",
+  "Where the curves meet",0,"A=B",
+  "A perfect square",0,"sqrt(A)=B",
+  "",0,"A",
+  "Geometric series with |r| >= 1: diverges",0,"abs(A)>=1",
+  "Converges when |r| < 1",0,"A",
+  "Sign on that side",0,"A=B",
 };
 
 const char * steps_title(const step_t & s){ return RULES[3*s.rule]; }
@@ -1541,6 +1556,14 @@ static gen lsteps(const gen & f0,int lev){
   gen f=norm(f0),a=*la_,v,L;
   if (!dep(f)) return Ls(R_LSUB,f,f);
   if (!is_inf(a) && !has_op(f,*at_floor) && !has_op(f,*at_sign) && finv(v=ev(sub(f,X,a)))) return Ls(R_LSUB,f,v); // continuous there
+  if (ldir_ && !is_inf(a)){ // one side: |g| with g -> 0 there is g or -g (on the right of 0, |x| = x)
+    const gen g=absarg(f);
+    if (!is_zero(g) && is_zero(ev(sub(g,X,a)))){
+      const gen s=is_strictly_positive(evalf(sub(g,X,a+gen(ldir_)/1000),1,CTX),CTX)?g:symb_neg(g);
+      S(R_LSIDE,SYM(at_abs,g),s);
+      return lsteps(sub(f,SYM(at_abs,g),s),lev+1);
+    }
+  }
   vecteur c,w,de; factors(f,c,w);
   vecteur nu(c);
   EACH(it,w){ gen b=*it,e=bexp(b); if (is_strictly_positive(-e,CTX)) de.push_back(is_minus_one(e)?b:symb_pow(b,ev(-e))); else nu.push_back(*it); }
@@ -1663,10 +1686,15 @@ static NOINL gen lim_(const gen & g,const gen & a){
   const double y1=fabs(at_(g,a+5)),y2=fabs(at_(g,a+10)),y3=fabs(at_(g,a+20));
   return y1>0 && y2<y1 && y3<y2 && y3<1e-3*y1?gen(0):ev(Linf(g,X));
 }
-// every factor of g a constant to a power of n (or e^(...)): maybe geometric (no simplify of the
-// ratio of (n/(2n+1))^n: seconds on the calculator)
+// every factor of g a constant to a power of n (or e^(...)), or a constant power of one (giac
+// writes x^(2n) as (x^n)^2): maybe geometric (no simplify of the ratio of (n/(2n+1))^n: seconds on
+// the calculator)
+static NOINL bool geof(const gen & f0){
+  const gen & f=f0.is_inv()?arg(f0):f0;
+  return is(f,at_exp) || (f.is_pow() && (!dep(arg(f,0)) || (!dep(arg(f,1)) && geof(arg(f,0)))));
+}
 static NOINL bool geo(const vecteur & w){
-  EACH(it,w){ const gen & f=it->is_inv()?arg(*it):*it; if (!is(f,at_exp) && !(f.is_pow() && !dep(arg(f,0)))) return false; }
+  EACH(it,w) if (!geof(*it)) return false;
   return !w.empty();
 }
 // 1 if the index is in a power's base and exponent ((n/(2n+1))^n, n^n), else 0
@@ -1698,13 +1726,21 @@ static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x){
   gen r=0;
   if (geo(w)){ // geometric
     r=_simplify(ev(sub(t,x,x+1)/t),CTX); // (2^n/2^(n+1): ratnormal left it)
-    if (!dep(r) && is_strictly_greater(1,evalf(abs(r,CTX),1,CTX),CTX)){
+    const gen ar=evalf(abs(r,CTX),1,CTX);
+    const bool in_x=ar.type!=_DOUBLE_; // r = x/3 (a power series): it converges for |x/3| < 1
+    if (!dep(r) && (in_x || is_strictly_greater(1,ar,CTX))){
       gen t0=ev(sub(t,x,a));
       val=ev(t0/(1-r));
       S(R_SRAT,ratio_of(v[0],t,x),r);
+      if (in_x) S(R_SCONV,SYM2(at_inferieur_strict,SYM(at_abs,r),1),0);
       S(R_SGEOM,op,symb_prod(t0,symb_inv(symb_plus(1,symb_neg(r)))));
-      S(R_EQV,op,val);
-      return same(val,G)?val:gen(undef);
+      S(R_EQV,op,in_x?rn1(val):val); // (-3/(x-3), as the console writes it)
+      return same(val,G) || (in_x && undone(G))?val:gen(undef); // (giac sums x^n/3^n only with |x| < 3 assumed: the console's is answer.cc's)
+    }
+    if (!dep(r) && ar.type==_DOUBLE_){ // (-pi/3)^n: |r| >= 1, the terms do not go to 0
+      S(R_SRAT,ratio_of(v[0],t,x),r);
+      S(R_SGEOMD,r,0);
+      return undone(G)?word("diverges"):gen(undef);
     }
   }
   // b^n, b depending on n: the root test, lim (a_n)^(1/n) = lim b below 1 ((n/(2n+1))^n, 1/ln(n)^n)
