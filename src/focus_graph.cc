@@ -230,9 +230,9 @@ static NOINL float step_of(float range, int pixels, int minpx) {
 }
 // v with dec decimals (at most 5); from a million: 1.23e7
 static void fmtd(char * b, float v, int dec);
-static NOINL void trim(char * b) { // 2.500: 2.5, 3.000: 3
+static NOINL void trim(char * b) { // 2.500: 2.5, 3.000: 3 (not 1.5e10)
   char * d = strchr(b, '.');
-  if (!d) return;
+  if (!d || strchr(d, 'e')) return;
   char * e = b + strlen(b) - 1;
   while (e > d && *e == '0') *e-- = 0;
   if (e == d) *e = 0;
@@ -292,7 +292,8 @@ static NOINL void fmtg(char * b, float v, int sig = 6) {
 
 // The frame: what is drawn, worked out once (floats, slow on the eZ80: the OS's routines), then
 // drawn band by band in integers
-enum { NONE = -0x7fff00, TOPC = (GT - 64 * GH) * 16, BOTC = (GB + 64 * GH) * 16, NG = 16, ND = 40, NKP = 40 };
+enum { NONE = -0x7fff00, TOPC = (GT - 64 * GH) * 16, BOTC = (GB + 64 * GH) * 16, NG = 16, ND = 40, NKP = 40,
+       NL = 6 }; // NL: the numbers' size on the graph (ui_math's levels: 12 px), digits as in the answers
 struct gl { float v; int p; unsigned char w; char t[14]; }; // a grid line: its value, where, its number
 struct dt { int x, y; unsigned char f, w; char t[30]; };  // a dot on a curve: where, its coordinates
 struct frame {
@@ -636,7 +637,7 @@ static NOINL void kpt_add(int kind, int f, const gen & x, const gen & y, float t
     strcpy(k.lt, "("); fmtg(u, k.x, 3); strcat(k.lt, u); strcat(k.lt, ", ");
     if (fin(k.y)) fmtg(u, k.y, 3); else strcpy(u, "?");
     strcat(k.lt, u); strcat(k.lt, ")");
-    k.lw = (unsigned char)ui_text_width(&ui_tr9, k.lt, -1);
+    k.lw = (unsigned char)ui_math_text(k.lt, NL, 0, 0, 0);
   }
   std::string s = "(";
   s += x.print(contextptr); s += ","; s += y.print(contextptr); s += ")";
@@ -726,23 +727,30 @@ static NOINL void kpt_find() {
 // ---------------------------------------------------------------- drawing
 static NOINL void hline(int y, int c) { if (y >= GT && y < GB) ui_fill(0, y, UI_W, 1, ui_col(0, c)); }
 static NOINL void vline(int x, int c) { if (x >= 0 && x < UI_W) ui_fill(x, GT, 1, GH, ui_col(0, c)); }
-// the dots (radius 2, 4) and the key points' rings (3, the background inside) as ui_rrect and
-// ui_rframe draw them, their pixels worked out once (tools: the same formula): 0 untouched, 1-3 the
-// color's shade, 4 the background; the corners' arithmetic took 15% of a frame with 40 key points
+// the dots (radius 2 to 5) as ui_rrect draws them, their pixels worked out once (tools: the same
+// formula): 0 untouched, 1-3 the color's shade; the corners' arithmetic took 15% of a frame with 40
+// key points
 static const unsigned char DOT2[25] = {2,3,3,3,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,3,3,3,2};
-static const unsigned char RING3[49] = {0,2,3,3,3,2,0,2,1,4,4,4,1,2,3,4,4,4,4,4,3,3,4,4,4,4,4,3,3,4,4,4,4,4,3,2,1,4,4,4,1,2,0,2,3,3,3,2,0};
+static const unsigned char DOT3[49] = {0,2,3,3,3,2,0,2,3,3,3,3,3,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,2,0,2,3,3,3,2,0};
 static const unsigned char DOT4[81] = {0,1,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,3,3,3,3,1,0,1,3,3,3,3,3,1,0};
-static NOINL void disc(int X, int Y, int r, int c, bool fill) {
-  if (X < -r || X >= UI_W + r || Y < ui_cy0 - r || Y >= ui_cy1 + r) return;
-  const unsigned char * m = r == 2 ? DOT2 : r == 3 ? RING3 : DOT4, * ramp = ui_ramp(0, c, UC_BG), bg = ui_col(0, UC_BG);
-  (void)fill;
+static const unsigned char DOT5[121] = {0,0,1,2,3,3,3,2,1,0,0,0,1,3,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,3,1,2,3,3,3,3,3,3,3,3,3,2,
+  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,3,3,3,3,2,1,3,3,3,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,1,0,0,0,1,2,3,3,3,2,1,0,0};
+// a dot of radius r in color c (ramp 0: the background, all of it: a halo)
+static NOINL void dot(int X, int Y, int r, const unsigned char * ramp) {
+  const unsigned char * m = r == 2 ? DOT2 : r == 3 ? DOT3 : r == 4 ? DOT4 : DOT5, bg = ui_col(0, UC_BG);
   const int n = 2 * r + 1;
   unsigned char * row = ui_fb + (Y - r) * UI_W;
   for (int j = 0, y = Y - r; j < n; ++j, ++y, row += UI_W) {
     if (y < ui_cy0 || y >= ui_cy1) { m += n; continue; }
     for (int i = 0, x = X - r; i < n; ++i, ++x, ++m)
-      if (*m && x >= ui_cx0 && x < ui_cx1) row[x] = *m == 4 ? bg : ramp[*m];
+      if (*m && x >= ui_cx0 && x < ui_cx1) row[x] = ramp ? ramp[*m] : bg;
   }
+}
+// a point: a dot, with a ring of the background around it (halo) to stand off its curve
+static NOINL void disc(int X, int Y, int r, int c, bool halo) {
+  if (X < -r - 1 || X >= UI_W + r + 1 || Y < ui_cy0 - r - 1 || Y >= ui_cy1 + r + 1) return;
+  if (halo) dot(X, Y, r + 1, 0);
+  dot(X, Y, r, ui_ramp(0, c, UC_BG));
 }
 // a segment (1/16 px) cut to the rows lo..hi (1/16 px): a curve going off the screen, its visible part
 static NOINL void seg16(int x0, int y0, int x1, int y1, int lo, int hi, int th, const unsigned char * r) {
@@ -803,10 +811,16 @@ static NOINL void runs(int x0, int y0, int x1, int y1, int lo, int hi, unsigned 
 }
 // a number on the grid: on the background (not crossed by its line), if in the band b..e
 static NOINL int text_at(const char * s, int w, int x, int base, int c, int b, int e) {
-  if (base + 3 < b || base - 8 >= e) return w;
-  ui_fill(x - 1, base - 8, w + 2, 11, ui_col(0, UC_BG));
-  ui_draw_text(&ui_tr9, s, -1, x, base, ui_ramp(0, c, UC_BG), 0);
+  if (base + 3 < b || base - 9 >= e) return w;
+  ui_fill(x - 2, base - 9, w + 4, 12, ui_col(0, UC_BG));
+  ui_math_text(s, NL, x, base, ui_ramp(0, c, UC_BG));
   return w;
+}
+// a key point's coordinates: on a tile by the point
+static NOINL void chip_at(const char * s, int w, int x, int base, int b, int e) {
+  if (base + 3 < b || base - 11 >= e) return;
+  ui_rrect(0, x - 4, base - 11, w + 8, 15, 5, UC_TILE, UC_BG);
+  ui_math_text(s, NL, x, base, ui_ramp(0, UC_INK, UC_TILE));
 }
 static bool tang_on() { return tang && mode && (KIND_ || tf < NF); } // (DeltaCE: not on data points)
 static bool shown_note() { return tang_on() || (note[0] && (note_x < 0 || (KIND_ ? note_t == tx : note_x == px_of(tx)))); }
@@ -814,31 +828,44 @@ static char * tang_note();
 static float slope(int i, float x);
 static float tslope();
 static NOINL void tangent_text(char * t, float m, float b);
-// the readout card: x and y of the trace point (the middle: pan), the note (a key point's exact
-// values, the tangent, the area) under them
+// the readout: a tile at the bottom left as wide as what it says: x and y of the trace point (pan:
+// none, the axes' numbers say where the view is), the note under them (a key point's exact values,
+// the tangent, the area)
 static void readout(int b, int e) {
   const bool n = shown_note();
-  const int w = 200, x0 = 4;
-  // the note's line: its words, then its math (a fraction: the card taller)
+  if ((!mode && !n) || e <= GB - 72) return; // (the tile: 66 rows high at most)
+  enum { X0 = 6, LV = 5 }; // (LV: 14 px)
+  // the note's line: its words, then its math (a fraction: the tile taller)
   const char * nt = n ? (tang_on() ? tang_note() : note) : 0, * m = n ? strchr(nt, '\x01') : 0;
   const int tw = n ? ui_text_width(&ui_tb10, nt, m ? (int)(m - nt) : -1) : 0;
   mi_layout L;
-  int lv = 0, asc = 10, desc = 2;
+  int lv = 0, asc = 10, desc = 3, nw = tw;
   if (m) {
-    lv = ui_math_fit(m + 1, strlen(m + 1), -1, 6, w - tw - 22, 40, 0, L);
+    lv = ui_math_fit(m + 1, strlen(m + 1), -1, LV, UI_W - 2 * X0 - 26 - tw, 40, 0, L);
     if (L.asc > asc) asc = L.asc;
     if (L.desc > desc) desc = L.desc;
+    nw += 6 + L.width;
   }
-  const int h = n ? 20 + asc + desc + 3 : 20, yy = GB - h - 4, base = yy + 18 + asc;
-  if (yy + h <= b || yy >= e) return;
-  ui_rrect(0, x0, yy, w, h, 6, UC_CARD, UC_BG);
-  ui_rframe(0, x0, yy, w, h, 6, UC_LINE, UC_CARD);
-  if (mode) ui_rrect(0, x0 + 6, yy + 7, 6, 6, 3, ccol(tf), UC_CARD);
-  ui_draw_text(&ui_tb10, FR->ln, -1, x0 + (mode ? 16 : 8), yy + 14, ui_ramp(0, UC_INK, UC_CARD), 0);
-  if (n) {
-    ui_draw_text(&ui_tb10, nt, m ? (int)(m - nt) : -1, x0 + 8, base, ui_ramp(0, UC_ACC, UC_CARD), 0);
-    if (m) ui_math_draw(L, m + 1, lv, x0 + 12 + tw, base, 0, UC_ACC, UC_CARD, UC_ACC);
+  // the trace point's line: its curve's dot, then x and y (after \x02, in words: undefined)
+  char * u = strchr(FR->ln, '\x02');
+  if (u) *u = 0;
+  const int lw = mode ? 12 + ui_math_text(FR->ln, LV, 0, 0, 0) + (u ? ui_text_width(&ui_tr10, "undefined", -1) : 0) : 0;
+  const int w = (lw > nw ? lw : nw) + 20, h = 12 + (mode ? 14 : 0) + (mode && n ? 6 : 0) + (n ? asc + desc : 0), yy = GB - h - 6;
+  if (yy + h > b && yy < e) {
+    ui_rrect(0, X0, yy, w, h, 8, UC_ACCSOFT, UC_BG);
+    int y = yy + 6;
+    if (mode) {
+      ui_rrect(0, X0 + 10, y + 4, 6, 6, 3, ccol(tf), UC_ACCSOFT);
+      const int x = X0 + 22 + ui_math_text(FR->ln, LV, X0 + 22, y + 11, ui_ramp(0, UC_INK, UC_ACCSOFT));
+      if (u) ui_draw_text(&ui_tr10, "undefined", -1, x, y + 11, ui_ramp(0, UC_SUB, UC_ACCSOFT), 0);
+      y += 20;
+    }
+    if (n) {
+      ui_draw_text(&ui_tb10, nt, m ? (int)(m - nt) : -1, X0 + 10, y + asc, ui_ramp(0, UC_ACC, UC_ACCSOFT), 0);
+      if (m) ui_math_draw(L, m + 1, lv, X0 + 16 + tw, y + asc, 0, UC_INK, UC_ACCSOFT, UC_ACC);
+    }
   }
+  if (u) *u = '\x02';
 }
 // The equations F(x, y) = 0 not solved for y, in the band b..e: F at the corners of G x G pixel
 // cells, the curve across each cell between the edges where its sign changes (marching squares)
@@ -886,11 +913,31 @@ static NOINL int lines_of(gl * g, float lo, float hi, float st, bool x) {
     g[n].v = v;
     g[n].p = x ? px_of(v) : py_of(v);
     g[n].t[0] = 0;
-    if (k) fmt(g[n].t, v, st);
-    g[n].w = (unsigned char)ui_text_width(&ui_tr9, g[n].t, -1);
+    if (k) { fmt(g[n].t, v, st); trim(g[n].t); } // (0.5, 1, 1.5: not 1.0)
+    g[n].w = (unsigned char)ui_math_text(g[n].t, NL, 0, 0, 0);
     ++n;
   }
   return n;
+}
+// key point k's tile with its text at x, baseline y: on the plot, over no tile placed before it (2
+// px apart) and no key point; strict: over no curve (y = f(x): the columns sampled while a key is
+// held, the same tiles then)
+static NOINL bool tile_ok(const frame & F, int k, int x, int y, bool strict) {
+  const int x0 = x - 4, x1 = x + K_[k].lw + 4, y0 = y - 11, y1 = y + 3;
+  if (x0 < 2 || x1 > UI_W - 2 || y0 < GT + 2 || y1 > GB - 2) return false;
+  for (int j = 0; j < NK && j < NKP; ++j) {
+    if (j < k && F.lx[j] >= 0 && x0 < F.lx[j] + K_[j].lw + 6 && F.lx[j] - 6 < x1 && y0 < F.ly[j] + 5 && F.ly[j] - 13 < y1) return false;
+    if (F.ky[j] != NONE && F.kx[j] + 5 > x0 && F.kx[j] - 5 < x1 && F.ky[j] + 5 > y0 && F.ky[j] - 5 < y1) return false;
+  }
+  if (strict && !KIND_)
+    for (int i = 0; i < NF; ++i)
+      for (int c = x0 / 3 * 3; c < x1; c += 3) { // (each step of the curve over the tile's columns)
+        const int a = F.y[i * UI_W + c], z = c + 3 < UI_W ? F.y[i * UI_W + c + 3] : NONE;
+        if (a == NONE) continue;
+        const int lo = z == NONE || z > a ? a : z, hi = z == NONE || z < a ? a : z;
+        if (hi >= (y0 - 1) * 16 && lo <= (y1 + 1) * 16) return false;
+      }
+  return true;
 }
 extern "C" { volatile unsigned graph_frames; } // frames drawn (for tools/emu: frames a second)
 static NOINL void paint(bool fast) {
@@ -921,7 +968,7 @@ static NOINL void paint(bool fast) {
           char u[16];
           strcpy(d.t, "("); fmt(u, xg, sx); trim(u); strcat(d.t, u); strcat(d.t, ", ");
           fmtg(u, y, 4); strcat(d.t, u); strcat(d.t, ")");
-          d.w = (unsigned char)ui_text_width(&ui_tr9, d.t, -1);
+          d.w = (unsigned char)ui_math_text(d.t, NL, 0, 0, 0);
           le = d.x + 4 + d.w;
         }
         ++F.nd;
@@ -931,17 +978,21 @@ static NOINL void paint(bool fast) {
     if (shx != -1000 && lnk == NK) { F.kx[k] -= shx; if (F.ky[k] != NONE) F.ky[k] += shy; }
     else { F.kx[k] = px_of(K_[k].x); F.ky[k] = fin(K_[k].y) ? py_of(K_[k].y) : NONE; }
   lnk = NK;
-  for (int k = 0; k < NK && k < NKP; ++k) { // the coordinates: off the curve (a maximum's above it, a
-    // minimum's below, the others up and right), not over one already placed
+  for (int k = 0; k < NK && k < NKP; ++k) { // the coordinates' tiles: by the point (a maximum's above
+    // it, a minimum's below, the others at a corner first), the first place over no tile, point or
+    // curve; else over a curve; else none
     F.lx[k] = -1;
-    const int X = F.kx[k], Y = F.ky[k], m = K_[k].kinds, w = K_[k].lw, y = m & 4 ? Y - 7 : m & 8 ? Y + 14 : Y - 5;
-    int x = m & 12 ? X - w / 2 : X + 5;
-    if (x + w > UI_W - 2) x = X - 5 - w; // (at the right edge: left of it)
-    if (!klabels || Y == NONE || x < 2 || x + w > UI_W - 2 || y < GT + 10 || y > GB - 4) continue;
-    bool free_ = true;
-    for (int j = 0; j < k && free_; ++j)
-      if (F.lx[j] >= 0 && x < F.lx[j] + K_[j].lw + 3 && F.lx[j] < x + w + 3 && y > F.ly[j] - 11 && y < F.ly[j] + 11) free_ = false;
-    if (free_) { F.lx[k] = (short)x; F.ly[k] = (short)y; }
+    const int X = F.kx[k], Y = F.ky[k], m = K_[k].kinds, w = K_[k].lw, u = m & 8 ? -1 : 1; // (u: a minimum's upside down)
+    if (!klabels || Y == NONE) continue;
+    const short px[6] = {(short)(X - w / 2), (short)(X + 7), (short)(X - 7 - w), (short)(X + 7), (short)(X - 7 - w), (short)(X - w / 2)};
+    const short py[6] = {(short)(u > 0 ? Y - 10 : Y + 18), (short)(u > 0 ? Y - 7 : Y + 15), (short)(u > 0 ? Y - 7 : Y + 15),
+                         (short)(u > 0 ? Y + 15 : Y - 7), (short)(u > 0 ? Y + 15 : Y - 7), (short)(u > 0 ? Y + 18 : Y - 10)};
+    static const unsigned char ord[2][6] = {{0, 1, 2, 3, 4, 5}, {1, 2, 3, 4, 0, 5}};
+    for (int s = 1; s >= 0 && F.lx[k] < 0; --s)
+      for (int c = 0; c < 6; ++c) {
+        const int q = ord[!(m & 12)][c];
+        if (tile_ok(F, k, px[q], py[q], s)) { F.lx[k] = px[q]; F.ly[k] = py[q]; break; }
+      }
   }
   int tl[4]; // the tangent, cut to the plot (1/16 px)
   float tpxf, tpyf;
@@ -951,7 +1002,7 @@ static NOINL void paint(bool fast) {
     const float x = tpxf, y = tpyf, m = tslope();
     if (!fin(m)) { // (vertical: x = c)
       char u[16];
-      strcpy(tnote, "Tangent  x = "); fmtg(u, x); strcat(tnote, u);
+      strcpy(tnote, "Tangent\x01x="); fmtg(u, x); strcat(tnote, u);
       const int X = px_of(x) * 16 + 8;
       tl[0] = tl[2] = X; tl[1] = (GT - 2) * 16; tl[3] = (GB + 2) * 16;
     } else
@@ -974,19 +1025,19 @@ static NOINL void paint(bool fast) {
     if (KIND_ && KIND_ != 3 && mode) {
       fmtg(b1, tx, 4);
       strcpy(F.ln, KIND_ == 2 ? "\xce\xb8 = " : "t = "); strcat(F.ln, b1); strcat(F.ln, "   ");
-      if (KIND_ == 2) { fmtg(b2, run_prog(P_[tf], F_[tf], tx), 4); strcat(F.ln, "r = "); strcat(F.ln, tok ? b2 : "none"); }
+      if (KIND_ == 2) { fmtg(b2, run_prog(P_[tf], F_[tf], tx), 4); strcat(F.ln, "r = "); strcat(F.ln, tok ? b2 : "\x02"); }
     }
     if (KIND_ != 2 || !mode) {
       if (KIND_ == 1 && mode) { fmtg(b1, x, 4); fmtg(b2, y, 4); } // (a curve's point: as t)
-      else { fmt(b1, x, sx / 100); fmt(b2, y, sy / 100); }
+      else { fmt(b1, x, sx / 100); fmt(b2, y, sy / 100); trim(b1); trim(b2); }
       if (!KIND_ || !mode || tok) { strcat(F.ln, "x = "); strcat(F.ln, b1); strcat(F.ln, "   y = "); }
-      strcat(F.ln, fin(y) && (!KIND_ || !mode || tok) ? b2 : "none");
+      strcat(F.ln, fin(y) && (!KIND_ || !mode || tok) ? b2 : "\x02"); // (\x02: undefined, in words)
     }
   }
   const int pa = area_a < area_b ? (px_of(area_a) < 0 ? 0 : px_of(area_a)) : 1, pb = area_a < area_b ? (px_of(area_b) >= UI_W ? UI_W - 1 : px_of(area_b)) : 0;
   const int nfan = fan_of(FAN_); // (static: a big array in paint's frame put its other locals beyond
   // the eZ80's 8-bit IX offsets, 9 KB more code)
-  const int lb = ay + 11 < GB - 2 ? (ay < GT ? GT + 10 : ay + 11) : GB - 3; // the x numbers' baseline
+  const int lb = ay + 13 < GB - 4 ? (ay < GT ? GT + 12 : ay + 13) : GB - 4; // the x numbers' baseline
   const int rows = ui_band_open(64), r0 = rows ? (GH % rows ? GH % rows : rows) : GH; // (the bands end at the bottom: the card in one)
   for (int b = GT, e = GT + r0; b < GB; b = e, e += rows) {
     if (NI && !fast && b > GT && key_waiting()) break; // (a slow frame, a key: stopped, the key read next)
@@ -1013,13 +1064,13 @@ static NOINL void paint(bool fast) {
     for (int k = 0; k < F.ngx; ++k) { // the numbers: under the x-axis (or at the bottom), left of the y-axis
       const gl & g = F.gx[k];
       const int x = g.p - g.w / 2;
-      if (g.t[0] && x > 1 && x + g.w < UI_W - 1) text_at(g.t, g.w, x, lb, UC_SUB, b, e);
+      if (g.t[0] && x > 2 && x + g.w < UI_W - 2) text_at(g.t, g.w, x, lb, UC_SUB, b, e);
     }
     for (int k = 0; k < F.ngy; ++k) {
       const gl & g = F.gy[k];
       // left of the y-axis (right of it near the left edge); the axis off the screen: at that edge
-      const int x = ax < 0 ? 3 : ax >= UI_W ? UI_W - 3 - g.w : ax - 4 - g.w >= 2 ? ax - 4 - g.w : ax + 4;
-      if (g.t[0] && g.p + 4 > GT + 9 && g.p + 4 < GB - 2) text_at(g.t, g.w, x, g.p + 4, UC_SUB, b, e);
+      const int x = ax < 0 ? 4 : ax >= UI_W ? UI_W - 4 - g.w : ax - 6 - g.w >= 3 ? ax - 6 - g.w : ax + 6;
+      if (g.t[0] && g.p + 4 > GT + 10 && g.p + 4 < GB - 3) text_at(g.t, g.w, x, g.p + 4, UC_SUB, b, e);
     }
     for (int k = 0; k < nfs_ && KIND_ == 3; ++k) { // a slope field's segments
       const int * q = FS_ + 4 * k;
@@ -1054,25 +1105,21 @@ static NOINL void paint(bool fast) {
     if (NI) implicit(b, e, fast ? 14 : 6);
     for (int k = 0; k < F.nd; ++k) { // the dots, their coordinates
       const dt & d = F.d[k];
-      if (d.y + 3 >= b && d.y - 3 < e) disc(d.x, d.y, 2, col(d.f), true);
-      if (d.t[0] && d.y - 5 > GT + 9 && d.y - 5 < GB - 4) text_at(d.t, d.w, d.x + 4, d.y - 5, col(d.f), b, e);
+      if (d.y + 3 >= b && d.y - 3 < e) disc(d.x, d.y, 2, col(d.f), false);
+      if (d.t[0] && d.y - 6 > GT + 10 && d.y - 6 < GB - 4) text_at(d.t, d.w, d.x + 5, d.y - 6, col(d.f), b, e);
     }
-    for (int k = 0; k < DATN_; ++k) { // (DeltaCE) the data points, rings
+    for (int k = 0; k < DATN_; ++k) { // (DeltaCE) the data points
       const int X = px_of(DAT_[k]), Y = py_of(DAT_[DATN_ + k]);
-      if (Y + 4 >= b && Y - 4 < e) disc(X, Y, 3, UC_INK, false);
+      if (Y + 5 >= b && Y - 5 < e) disc(X, Y, 3, UC_INK, true);
     }
-    for (int k = 0; k < NK && k < NKP; ++k) { // the key points, their coordinates
-      if (F.ky[k] == NONE) continue;
-      if (F.ky[k] + 4 >= b && F.ky[k] - 4 < e) disc(F.kx[k], F.ky[k], 3, ccol(K_[k].f), false);
-      if (F.lx[k] >= 0) text_at(K_[k].lt, K_[k].lw, F.lx[k], F.ly[k], ccol(K_[k].f), b, e);
-    }
+    for (int k = 0; k < NK && k < NKP; ++k) // the key points, then their coordinates over any of them
+      if (F.ky[k] != NONE && F.ky[k] + 5 >= b && F.ky[k] - 5 < e) disc(F.kx[k], F.ky[k], 3, ccol(K_[k].f), true);
+    for (int k = 0; k < NK && k < NKP; ++k)
+      if (F.ky[k] != NONE && F.lx[k] >= 0) chip_at(K_[k].lt, K_[k].lw, F.lx[k], F.ly[k], b, e);
     if (tg) seg16(tl[0], tl[1], tl[2], tl[3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the tangent
-    if (mode) { // the trace point: a filled dot, faint lines through it
-      vline(tpx, UC_ACCSOFT);
-      if (tpy != NONE) { hline(tpy, UC_ACCSOFT); disc(tpx, tpy, 4, ccol(tf), true); }
-    } else { // pan: a small cross in the middle
-      const int cx = UI_W / 2, cy = GT + GH / 2;
-      ui_fill(cx - 5, cy, 11, 1, ui_col(0, UC_INK)); ui_fill(cx, cy - 5, 1, 11, ui_col(0, UC_INK));
+    if (mode) { // the trace point: a dot (no y there: a faint line at its x)
+      if (tpy != NONE) disc(tpx, tpy, 4, ccol(tf), true);
+      else vline(tpx, UC_ACCSOFT);
     }
     readout(b, e);
     ui_noclip();
@@ -1448,10 +1495,10 @@ static NOINL float tslope() {
   }
   return fabsf(dx) <= 1e-6f * (1 + fabsf(dy)) ? NAN : dy / dx;
 }
-// the tangent's equation: y = m x + b, its terms when not 0
+// the tangent's equation: y = m x + b, its terms when not 0 (after \x01: math)
 static NOINL void tangent_text(char * t, float m, float b) {
   char u[20];
-  strcpy(t, "Tangent  y = ");
+  strcpy(t, "Tangent\x01y=");
   const bool mz = fabsf(m) < 1e-5f, bz = fabsf(b) < 1e-5f * (1 + fabsf(m));
   if (!mz) {
     if (fabsf(m - 1) < 1e-6f) strcat(t, "x");
@@ -1460,7 +1507,7 @@ static NOINL void tangent_text(char * t, float m, float b) {
   }
   if (!bz || mz) {
     fmtg(u, mz ? b : fabsf(b));
-    if (!mz) strcat(t, b < 0 ? " - " : " + ");
+    if (!mz) strcat(t, b < 0 ? "-" : "+");
     strcat(t, u);
   }
 }
@@ -1479,7 +1526,7 @@ static NOINL void int_note(const char * what, const gen & f, const gen & a, cons
   else if (fin(v)) {
     char t[20];
     fmtg(t, v);
-    strcat(note, " = "); strcat(note, t);
+    strcat(note, " = \x01"); strcat(note, t);
   }
   else strcat(note, ": not found");
   note_x = -1;

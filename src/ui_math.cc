@@ -172,6 +172,23 @@ static void draw_text(const mi_op & o, const char * s, int lv, int x, int y, con
   }
 }
 
+// s as plain math text, no layout: digits upright as in the answers, letters italic (an e after a
+// digit upright: 1.2e-5), - the minus sign, a space a quarter of the size; drawn when r is not 0
+int ui_math_text(const char * s, int lv, int x, int y, const unsigned char * r) {
+  const ui_face * f;
+  const ui_glyph * g;
+  const int n = (int)strlen(s), x0 = x;
+  unsigned p = 0;
+  for (int i = 0; i < n;) {
+    const unsigned cp = next_cp(s, n, i);
+    if (cp == ' ') x += rnd(ui_math_sizes[lv], 25);
+    else if ((g = glyph(lv, ((cp | 32) >= 'a' && (cp | 32) <= 'z' && !(cp == 'e' && p >= '0' && p <= '9')) || cp == 0x3b8, cp, &f)))
+      x += r ? ui_draw_glyph(f, cp, x, y, r, 0) : g->adv;
+    p = cp;
+  }
+  return x - x0;
+}
+
 // a cubic Bezier as a polyline in 1/16 px
 static void bezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, int th, const unsigned char * r) {
   enum { N = 8 };

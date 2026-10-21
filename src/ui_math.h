@@ -19,6 +19,9 @@ int ui_math_refit(const char * s, int n, int caret, int maxlv, int lv0, int w, i
 // draws L (built at level lv) with its baseline at y and left edge at x; ink over bg in bank;
 // placeholders in acc
 void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int bank, int ink, int bg, int acc);
+// s (a number, x = 1.5, (-1, 2)) at level lv without a layout: digits as in the answers, letters
+// italic, - the minus sign; drawn with ramp r at x, baseline y (r 0: only measured). Its width
+int ui_math_text(const char * s, int lv, int x, int y, const unsigned char * r);
 // the caret of L (a 2 px bar in acc)
 void ui_math_caret(const mi_layout & L, int x, int y, int bank, int acc);
 

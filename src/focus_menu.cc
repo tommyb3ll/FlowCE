@@ -465,8 +465,30 @@ void focus_note(const char * t, const char * s) {
 
 // the graph's table of values in the Focus look: a header row (head[ncol]), nrow rows of cells
 // (row by row), alternate rows shaded, the keys on the last line. Drawn in bands (no flicker).
+// a column's name: its letter in italics (17 px), its number as an index (y1); its width
+static int head_name(const char * h, int x, int y, const unsigned char * r) {
+  char a[8];
+  int n = 0;
+  while (h[n] && !(h[n] >= '0' && h[n] <= '9') && n < 7) { a[n] = h[n]; ++n; }
+  a[n] = 0;
+  const int w = ui_math_text(a, 4, x, y, r);
+  return h[n] ? w + 1 + ui_math_text(h + n, 6, x + w + 1, y + 4, r) : w;
+}
+// a value: a number in the answers' digits, a word (undefined) in the text face
+static int cell(const char * t, int lv, int x, int y, const unsigned char * r) {
+  if (t[0] >= 'a' && t[0] <= 'z') return r ? ui_draw_text(&ui_tr10, t, -1, x, y, r, 0) : ui_text_width(&ui_tr10, t, -1);
+  return ui_math_text(t, lv, x, y, r);
+}
+// the graph's table: the names on a soft band, each column's values right-aligned, the widest in
+// the column's middle, rows striped (no rules)
 void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint) {
-  const int y0 = 18, hh = 24, rh2 = 18, cwid = UI_W / ncol;
+  const int y0 = ST, hh = 26, rh2 = 18, cwid = UI_W / ncol, lv = ncol > 3 ? 6 : 5; // (14 px, 12 with 4 columns)
+  short R[5];
+  for (int c = 0; c < ncol && c < 5; ++c) {
+    int w = 0;
+    for (int r = 0; r < nrow; ++r) { const int v = cell(cells[r * ncol + c], lv, 0, 0, 0); if (v > w) w = v; }
+    R[c] = (short)(c * cwid + (cwid + w) / 2);
+  }
   int rows = ui_band_open(48);
   for (int b = y0; b < UI_H; b += rows ? rows : UI_H - y0) {
     int e = rows && b + rows < UI_H ? b + rows : UI_H;
@@ -475,17 +497,15 @@ void focus_table(const char * const * head, int ncol, const char * const * cells
     ui_fill(0, y0, UI_W, UI_H - y0, ui_col(0, UC_BG));
     ui_fill(0, y0, UI_W, hh, ui_col(0, UC_ACCSOFT));
     for (int c = 0; c < ncol; ++c)
-      ui_draw_text(&ui_tb12, head[c], fit(&ui_tb12, head[c], cwid - 12), c * cwid + 10, y0 + 17, ui_ramp(0, UC_ACC, UC_ACCSOFT), 0);
+      head_name(head[c], c * cwid + (cwid - head_name(head[c], 0, 0, 0)) / 2, y0 + 18, ui_ramp(0, UC_ACC, UC_ACCSOFT));
     for (int r = 0; r < nrow; ++r) {
       int y = y0 + hh + r * rh2, bg = r & 1 ? UC_CARD : UC_BG;
       if (r & 1) ui_fill(0, y, UI_W, rh2, ui_col(0, UC_CARD));
       for (int c = 0; c < ncol; ++c) {
         const char * t = cells[r * ncol + c];
-        ui_draw_text(&ui_tr12, t, fit(&ui_tr12, t, cwid - 12), c * cwid + 10, y + 14, ui_ramp(0, c ? UC_INK : UC_SUB, bg), 0);
+        cell(t, lv, R[c] - cell(t, lv, 0, 0, 0), y + 13, ui_ramp(0, c ? UC_INK : UC_SUB, bg));
       }
     }
-    for (int c = 1; c < ncol; ++c)
-      ui_fill(c * cwid, y0, 1, hh + nrow * rh2, ui_col(0, UC_LINE));
     ui_draw_text(&ui_tr10, hint, -1, 10, UI_H - 5, ui_ramp(0, UC_SUB, UC_BG), 0);
     if (rows) ui_band_end();
   }

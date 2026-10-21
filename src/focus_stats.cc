@@ -42,6 +42,28 @@ static int text(const ui_face * f, const char * s, int x, int base, int fg, int 
   ui_draw_text(f, s, -1, align == 2 ? x - w : align == 1 ? x - w / 2 : x, base, ramp(fg, bg), 0);
   return w;
 }
+// a number in the answers' digits (no slashed zero; the minus sign) at level lv (5: 14 px): its width
+static NOINL int num(const char * s, int x, int base, int lv, int fg, int bg, int align = 0) {
+  const int w = ui_math_text(s, lv, 0, 0, 0);
+  ui_math_text(s, lv, align == 2 ? x - w : align == 1 ? x - w / 2 : x, base, ramp(fg, bg));
+  return w;
+}
+static inline bool dig(char c) { return c >= '0' && c <= '9'; }
+static inline bool numat(const char * s) { return dig(*s) || ((*s == '.' || *s == '-') && dig(s[1])); }
+// words with numbers in them (8 values, df = 24): the words in face f, the numbers as num's (12 px)
+static NOINL int mixed(const ui_face * f, const char * s, int x, int base, int fg, int bg) {
+  const int x0 = x;
+  char t[32];
+  while (*s) {
+    const bool d = numat(s);
+    int n = 1;
+    while (s[n] && n < 31 && (d ? dig(s[n]) || (s[n] == '.' && dig(s[n + 1])) : !numat(s + n))) ++n;
+    memcpy(t, s, n); t[n] = 0;
+    x += d ? ui_math_text(t, 6, x, base, ramp(fg, bg)) : ui_draw_text(f, t, -1, x, base, ramp(fg, bg), 0);
+    s += n;
+  }
+  return x - x0;
+}
 // s in giac's syntax drawn as math at most w wide (smaller levels if needed): its width
 static NOINL int math(const char * s, int x, int base, int maxlv, int w, int fg, int bg, int align = 0) {
   mi_layout L;
@@ -115,24 +137,22 @@ static NOINL void paint_data() {
       const int i = top + r, y = Y0 + HH + r * RH, bg = r & 1 ? UC_CARD : UC_BG;
       if (r & 1) ui_fill(0, y, UI_W, RH, col(UC_CARD));
       if (i > nr) continue;
-      char num[8];
-      if (i < nr) { itos(i + 1, num); text(&ui_tr10, num, CW0 - 8, y + 13, UC_SUB, bg, 2); }
+      char rn[8];
+      if (i < nr) { itos(i + 1, rn); num(rn, CW0 - 8, y + 13, 6, UC_SUB, bg, 2); }
       for (int k = 0; k < 2; ++k) {
         const bool on = i == sr && k == sc, has = i < (k ? n1 : n0);
         const int x0 = CX[k] + 4, w = CX[k + 1] - CX[k] - 8;
         int cbg = bg;
-        if (on) { ui_rrect(0, x0, y + 1, w, RH - 2, 5, UC_ACCSOFT, bg); ui_rframe(0, x0, y + 1, w, RH - 2, 5, UC_ACC, bg); cbg = UC_ACCSOFT; }
+        if (on) { cbg = editing ? UC_ACCSOFT : UC_ACC; ui_rrect(0, x0, y + 1, w, RH - 2, 5, cbg, bg); } // (as a menu's item: filled; soft while typed into)
         if (on && editing) { // the value as typed, the caret after it
-          text(&ui_tr12, edb, CX[k + 1] - 14, y + 14, UC_INK, cbg, 2);
+          num(edb, CX[k + 1] - 14, y + 14, 5, UC_INK, cbg, 2);
           ui_fill(CX[k + 1] - 13, y + 4, 2, RH - 8, col(UC_ACC));
         } else if (has) {
           char c[24]; shown(D_[k][i], c, sizeof c);
-          text(&ui_tr12, c, CX[k + 1] - 14, y + 14, on ? UC_ACC : UC_INK, cbg, 2);
-        } else if (i == nr) text(&ui_tr12, "+", CX[k + 1] - 14, y + 14, UC_LINE, cbg, 2); // (the row to add)
+          num(c, CX[k + 1] - 14, y + 14, 5, on ? UC_ONACC : UC_INK, cbg, 2);
+        } else if (i == nr) num("+", CX[k + 1] - 14, y + 14, 5, on ? UC_ONACC : UC_LINE, cbg, 2); // (the row to add)
       }
     }
-    for (int k = 1; k < 3; ++k) if (CX[k - 1] < UI_W) ui_fill(CX[k - 1], Y0, 1, HH + NV * RH, col(UC_LINE));
-    ui_fill(0, FY, UI_W, 1, col(UC_LINE));
     char f[24]; // the footer: how many points, the keys
     const int np = npts();
     if (emsg) text(&ui_tb10, emsg, 10, FY + 21, UC_RED, UC_BG);
@@ -141,7 +161,7 @@ static NOINL void paint_data() {
     else {
       itos(np, f);
       strcat(f, np == 1 ? " point" : " points");
-      const int w = text(&ui_tb10, f, 10, FY + 21, UC_INK, UC_BG);
+      const int w = mixed(&ui_tb10, f, 10, FY + 21, UC_INK, UC_BG);
       text(&ui_tr10, "type to change a value    del: delete", 24 + w, FY + 21, UC_SUB, UC_BG);
     }
     if (rows) ui_band_end();
@@ -182,9 +202,9 @@ static NOINL bool stats1(const vecteur & v, onevar & o) {
 
 static NOINL void cellv(const char * label, const gen & g, int x, int y, int w) {
   char b[24];
-  if (is_undef(g)) strcpy(b, "-"); else shown(g, b, sizeof b);
   text(&ui_tr10, label, x, y, UC_SUB, UC_BG);
-  text(&ui_tb12, b, x + w, y, UC_INK, UC_BG, 2);
+  if (is_undef(g)) text(&ui_tr10, "none", x + w, y, UC_SUB, UC_BG, 2);
+  else { shown(g, b, sizeof b); num(b, x + w, y + 1, 5, UC_INK, UC_BG, 2); }
 }
 static NOINL void paint_one(int k, const onevar & o) {
   const int rows = ui_band_open(48);
@@ -203,13 +223,13 @@ static NOINL void paint_one(int k, const onevar & o) {
     char t[24];
     itos(o.n, t);
     strcat(t, o.n == 1 ? " value" : " values");
-    text(&ui_tr10, t, x, Y0 + 21, UC_SUB, UC_BG);
-    // the box plot: whiskers from the min to Q1 and Q3 to the max, the box Q1 to Q3, the median
+    mixed(&ui_tr10, t, x, Y0 + 21, UC_SUB, UC_BG);
+    // the box plot: whiskers from the min to Q1 and Q3 to the max, the box Q1 to Q3 (a soft tile),
+    // the median
     const int A = px(a), B = px(q1), M = px(md), C = px(q3), Z = px(z);
     ui_fill(A, by, B - A, 2, col(UC_INK)); ui_fill(C, by, Z - C + 1, 2, col(UC_INK));
     ui_fill(A, by - 7, 2, 16, col(UC_INK)); ui_fill(Z - 1, by - 7, 2, 16, col(UC_INK));
-    ui_rrect(0, B, by - 15, C - B + 1, 32, 4, UC_ACCSOFT, UC_BG);
-    ui_rframe(0, B, by - 15, C - B + 1, 32, 4, UC_ACC, UC_BG);
+    ui_rrect(0, B, by - 15, C - B + 1, 32, 5, UC_ACCSOFT, UC_BG);
     ui_fill(M - 1, by - 15, 3, 32, col(UC_ACC));
     // the five numbers under it (each centered on its place, kept apart)
     const gen * fives[5] = {&o.mn, &o.q1, &o.med, &o.q3, &o.mx};
@@ -217,16 +237,15 @@ static NOINL void paint_one(int k, const onevar & o) {
     int last = -100;
     for (int i = 0; i < 5; ++i) {
       char v[24]; shown(*fives[i], v, sizeof v);
-      const int w = ui_text_width(&ui_tr10, v, -1);
+      const int w = ui_math_text(v, 5, 0, 0, 0);
       int xx = px5[i] - w / 2;
       if (xx < 4) xx = 4;
       if (xx + w > UI_W - 4) xx = UI_W - 4 - w;
       if (xx < last + 6) continue; // (Q1 at the min: once)
-      text(&ui_tr10, v, xx, by + 32, i == 2 ? UC_ACC : UC_SUB, UC_BG);
+      num(v, xx, by + 33, 5, i == 2 ? UC_ACC : UC_SUB, UC_BG);
       last = xx + w;
     }
-    // the numbers: two columns
-    ui_fill(12, 124, UI_W - 24, 1, col(UC_LINE));
+    // the numbers: two columns (no rules: the space between them)
     const int c1 = 14, c2 = 172, w = 132, y1 = 141, dy = 15;
     cellv("n", gen(o.n), c1, y1, w);
     cellv("mean", o.mean, c1, y1 + dy, w);
@@ -238,7 +257,6 @@ static NOINL void paint_one(int k, const onevar & o) {
     cellv("median", o.med, c2, y1 + 2 * dy, w);
     cellv("Q3", o.q3, c2, y1 + 3 * dy, w);
     cellv("max", o.mx, c2, y1 + 4 * dy, w);
-    ui_fill(UI_W / 2, 131, 1, 76, col(UC_LINE));
     if (rows) ui_band_end();
   }
   ui_band_close();
@@ -378,16 +396,16 @@ static NOINL void paint_fit(const fitr & o) {
     char np[16];
     itos(n, np);
     strcat(np, " points");
-    text(&ui_tr10, np, 16, y - 6, UC_SUB, UC_BG);
-    // the mini plot
-    ui_rframe(0, PL - 4, PT - 4, PR - PL + 8, PB - PT + 8, 6, UC_LINE, UC_BG);
+    mixed(&ui_tr10, np, 16, y - 6, UC_SUB, UC_BG);
+    // the mini plot, on a soft tile: the curve, the points as dots
+    ui_rrect(0, PL - 6, PT - 6, PR - PL + 12, PB - PT + 12, 8, UC_TILE, UC_BG);
     ui_clip(PL - 2, b > PT - 2 ? b : PT - 2, PR + 2, e < PB + 2 ? e : PB + 2);
     for (int j = 0; j < 32; ++j)
       if (cy[j] > -9999 && cy[j + 1] > -9999)
-        ui_seg16((PL + (PR - PL) * j / 32) * 16, cy[j] * 16, (PL + (PR - PL) * (j + 1) / 32) * 16, cy[j + 1] * 16, 26, ramp(UC_ACC, UC_BG));
+        ui_seg16((PL + (PR - PL) * j / 32) * 16, cy[j] * 16, (PL + (PR - PL) * (j + 1) / 32) * 16, cy[j + 1] * 16, 26, ramp(UC_ACC, UC_TILE));
     for (int i = 0; i < n; ++i) {
       const int X = PL + (int)((fv(D_[0][i]) - x0) * (PR - PL) / (x1 - x0)), Y = PB - (int)((fv(D_[1][i]) - y0) * (PB - PT) / (y1 - y0));
-      ui_rframe(0, X - 3, Y - 3, 7, 7, 3, UC_INK, UC_BG);
+      ui_rrect(0, X - 2, Y - 2, 5, 5, 2, UC_INK, UC_TILE);
     }
     ui_clip(0, b, UI_W, e);
     if (rows) ui_band_end();
@@ -683,7 +701,7 @@ static NOINL void paint_plot(int b, int e) {
     const int h = disc ? 4 : ph_at(mx[i]) >> 4;
     ui_fill(mx[i], PB_ - h, 1, h + 4, col(UC_ACC));
     char v[16]; sig4(v, MK[i]);
-    text(&ui_tb10, v, mx[i], PB_ + 14, UC_ACC, UC_BG, 1);
+    num(v, mx[i], PB_ + 15, 5, UC_ACC, UC_BG, 1);
   }
   const float st = pstep(px1 - px0); // the labels between them
   for (float t = ceilf(px0 / st) * st; t <= px1 + st * 1e-3f; t += st) {
@@ -693,21 +711,21 @@ static NOINL void paint_plot(int b, int e) {
     ui_fill(x, PB_ + 1, 1, 3, col(UC_SUB));
     if (near) continue;
     char v[16]; sig4(v, fabsf(t) < st * 1e-3f ? 0 : t);
-    text(&ui_tr10, v, x, PB_ + 14, UC_SUB, UC_BG, 1);
+    num(v, x, PB_ + 15, 6, UC_SUB, UC_BG, 1);
   }
   (void)b; (void)e;
 }
 static NOINL int pchip(int i, int x, int y) { // field i, its box's top at y: its width
   const bool on = i == psel;
   const char * l = PF[i].lab;
-  int w = text(&ui_tr10, l + (*l == 1), x, y + 13, UC_SUB, UC_BG);
+  int w = mixed(&ui_tr10, l + (*l == 1), x, y + 13, UC_SUB, UC_BG);
   if (*l == 1) ui_fill(x, y + 2, w, 1, col(UC_SUB)); // (x with a bar)
   w += 4;
   char v[24];
   if (on && editing) strcpy(v, edb); else sig4(v, *PF[i].v);
-  const int tw = ui_text_width(&ui_tb12, v, -1), bw = tw + 14 > 30 ? tw + 14 : 30;
+  const int tw = ui_math_text(v, 5, 0, 0, 0), bw = tw + 14 > 30 ? tw + 14 : 30;
   ui_rrect(0, x + w, y, bw, 19, 5, on ? UC_ACCSOFT : UC_TILE, UC_BG); // (a soft tile, as the forms' fields)
-  text(&ui_tb12, v, x + w + bw / 2, y + 14, on ? UC_ACC : UC_INK, on ? UC_ACCSOFT : UC_TILE, 1);
+  num(v, x + w + bw / 2, y + 14, 5, on ? UC_ACC : UC_INK, on ? UC_ACCSOFT : UC_TILE, 1);
   if (on && editing) ui_fill(x + w + bw / 2 + tw / 2 + 1, y + 4, 2, 11, col(UC_ACC));
   return w + bw + 10;
 }
@@ -723,11 +741,10 @@ static NOINL void paint_prob() {
     const int np = ptest >= 0 || pd == PD_NORM || pd == PD_BIN ? 2 : 1; // (the parameters on top, the region below)
     for (; i < (ptest >= 0 ? pn : np); ++i) x += pchip(i, x, Y0 + 4);
     paint_plot(b, e);
-    ui_fill(12, Y0 + 148, UI_W - 24, 1, col(UC_LINE));
     x = 12;
     for (; i < pn; ++i) x += pchip(i, x, Y0 + 154);
     if (*pnote) { // (\x01x, \x02p: x-bar, p-hat)
-      const int nx = ptest >= 0 ? 12 : x + 4, m = *pnote < 3, w = text(&ui_tr10, pnote + m, nx, Y0 + 167, UC_SUB, UC_BG);
+      const int nx = ptest >= 0 ? 12 : x + 4, m = *pnote < 3, w = mixed(&ui_tr10, pnote + m, nx, Y0 + 167, UC_SUB, UC_BG);
       if (m) { const int lw = ui_text_width(&ui_tr10, pnote + 1, 1); ui_fill(nx + (*pnote == 2 ? lw / 2 - 1 : 0), Y0 + 156 - (*pnote == 2), *pnote == 2 ? 3 : lw, 1, col(UC_SUB)); if (*pnote == 2) { ui_fill(nx + lw / 2 - 2, Y0 + 156, 1, 1, col(UC_SUB)); ui_fill(nx + lw / 2 + 2, Y0 + 156, 1, 1, col(UC_SUB)); } }
       (void)w;
     }
