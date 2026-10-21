@@ -865,6 +865,7 @@ static signed char AFV[5], af_k, af_sel; // (af_k, af_sel: the form shown, its f
 static void af_layout(const char * sp, int i, int caret) {
   const char * s = af_val[af_field_of(sp[i]).role];
   AFV[i] = (signed char)ui_math_fit(s, strlen(s), caret, 4, 2 * (pw - 122), AF_RH - 8, MI_F_CALLBOX, AFL[i]);
+  key_latch(); // (the form opens in half a second: a key typed meanwhile is kept)
 }
 // the form's rows [b, e) in the band being drawn (all: with the card)
 static void af_band(int b, int e, int all) {
@@ -931,6 +932,7 @@ static void af_paint(int y0, int y1, int all) {
     af_band(b, e, all);
     if (rows) ui_band_end();
     ui_noclip();
+    key_latch();
   }
 }
 
