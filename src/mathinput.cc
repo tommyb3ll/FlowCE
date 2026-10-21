@@ -503,6 +503,12 @@ static int style(int n, int k) { // style of the text of leaf n of kind k: names
   }
   return k == K_TEXT && (T[n].f & F_NAME) && (!(T[n].f & F_FN) || T[n].b - T[n].c == 1) ? (int)MI_IT : (int)MI_UP;
 }
+// a prime (leaf n, at c) after a letter: a gap for the italic letter's lean, an eighth of the font
+// (f' was drawn as f: the f's hook covered the prime; TeX's italic correction); f'' keeps its
+// primes together
+static int pgap(int n, int c, int adv) {
+  return T[n].k == K_OPU && ch(c) == '\'' && c > 0 && namec(ch(c - 1)) && !digit(ch(c - 1)) ? adv / 4 : 0;
+}
 static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication:
   if (!(M->flags & MI_F_IMPLDOT)) return 0; // its gap, 1 px; a thin space before a differential
   int j = T[n].b;                           // (2x dx) or a name of letters (x sin(x))
@@ -730,6 +736,7 @@ static void measure(int n, int sm) {
       int uc, ue, ug;
       unitspan(n, c, d.b, sm, uc, ue, ug);
       w += dn ? dw(dn, sm) : ug + tw(uc, ue - uc, sm, style(n, k));
+      w += pgap(n, c, f.adv);
       if (k == K_OP) w += 2 * M->opgap;
       if (k == K_SEP) w += h;
     }
@@ -845,7 +852,7 @@ static void place(int n, int x, int y, int dp, int sm) {
   if (k < K_EMPTY) { // leaf
     for (p = d.a + 1; p <= c; ++p) { xx += h; P(p, xx, y, sm, dp); } // leading blanks
     if (c < d.b) {
-      int gx = xx + (k == K_OP ? M->opgap : 0);
+      int gx = xx + (k == K_OP ? M->opgap : 0) + pgap(n, c, f.adv);
       // (the product's dot on the math axis, as high as the middle of +: lower, it read as a decimal point)
       if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.ax - 1, h + 2, 3, c, 1, 0); }
       else {
