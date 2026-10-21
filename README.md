@@ -23,18 +23,19 @@ sits right under the exact one. The interface is new from top to bottom: a clean
 look, math drawn as you type it, and keys that work the way a TI user expects.
 
 **[Install it from the FlowCE page](https://tommyb3ll.github.io/FlowCE/)**: plug in the calculator,
-pick a version, click Install, then press `enter` once on the calculator.
+pick a version, click Install, and follow the short calculator prompts.
 
 ## Two versions
 
 | | **FlowCE** | **FlowCE Steps** (beta) |
 |---|---|---|
-| Version | 1.9, stable | 2.0 beta 1 |
+| Version | 1.9, stable | 2.0 beta 2 |
 | Step-by-step solutions | | derivatives, integrals, limits, sums, Taylor series |
-| Programs in Python syntax | yes | no (no room left for it) |
-| Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta1/FlowCE-steps.b84) |
+| Applications menu | | area, volumes, arc length, surface area, average value |
+| Programs in Python syntax | yes | no |
+| Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta2/FlowCE-steps.b84) |
 
-Both have everything else below. They don't fit on the calculator together: install one.
+Both have the shared features below. Install one version at a time.
 
 ## Steps (beta)
 
@@ -43,6 +44,15 @@ shows how to get the answer, the way a worked example in a textbook does. Each s
 does and the rule it uses (integration by parts, the chain rule, L'Hôpital's rule, partial
 fractions, the ratio test...); a part worked out on the side, like the integral left after
 integrating by parts, gets its own steps. `▲` and `▼` move from step to step.
+
+**New in beta 2:** open **Calculus → Applications** for area between curves, volumes by
+washers or shells, arc length, surface area and average value, with labeled input boxes and
+worked steps. Beta 2 also improves large-power integrals, absolute-value problems and geometric
+series. [Release notes](https://github.com/tommyb3ll/FlowCE/releases/tag/v2.0-beta2).
+
+| ![Applications of calculus menu](docs/screenshots/menu_apps.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) |
+|:-:|:-:|
+| Calculus → Applications | find crossings, then compute the area |
 
 | | | |
 |:-:|:-:|:-:|
@@ -125,7 +135,7 @@ rules (some tests, like the ACT, don't allow one).
 1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
    `1:All Memory...` → `2:Reset`.
 2. **Send the bundle:** download [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
-   or [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta1/FlowCE-steps.b84),
+   or [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta2/FlowCE-steps.b84),
    drag it onto the calculator in TI Connect CE and send it.
 3. **Run the installer:** `prgm` → `enter` → `enter` opens the arTIfiCE shell; `enter` starts
    INST and `enter` again installs. It counts down to 0; don't touch the calculator.
