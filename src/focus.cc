@@ -597,7 +597,7 @@ static void hero_peek_paint(int y) { // history mode: the edit line, small, at t
 // up to three times); full redraws pass force.
 static int hist_sel = -1; // entry selected in the history, -1 in edit mode
 // the status bar in 3 zones redrawn separately: mode label | message | 2nd/alpha chip, battery
-enum { SZ_L = 112, SZ_R = 232 };
+enum { SZ_L = 112, SZ_R = 226 };
 static char stat_l[24], stat_m[sizeof(smsg)];
 static int stat_r = -1;
 static const char * stat_view; // a full-screen view's label (focus_status_label), 0: the console's
