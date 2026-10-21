@@ -1180,7 +1180,7 @@ static NOINL void fit_y() { // the y range of the curves over the view
     }
   if (lo > hi) { lo = -10; hi = 10; }
   if (hi - lo < 1e-6f) { lo -= 1; hi += 1; }
-  const float m = (hi - lo) / 10;
+  const float m = (hi - lo) / 4; // (the lows clear the readout's box; the center stays the curves')
   vy0 = lo - m; vy1 = hi + m;
 }
 static NOINL bool ask(const char * t, const char * sub, float & v, gen * exact = 0) {
