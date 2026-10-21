@@ -56,6 +56,7 @@ SCENES = {
     # the steps build's applications: the calculus card (item 10: the 0 key), area typed in its labeled boxes
     'menu_calc3':     [('k', '{window}')],
     'menu_apps':      [('k', '{window}0'), ('w', 800)],
+    'apps_form':      [('k', '{window}0'), ('w', 1500), ('k', '1'), ('w', 900), ('k', 'x+2{enter}x{sq}{enter}'), ('w', 600)],
     'apps_area_tpl':  [('k', '{window}01x{sq}{right}x+2'), ('w', 800)],
     'apps_area':      [('k', '{window}01x{sq}{right}x+2{enter}'), ('w', 3000)],
     'apps_area_steps': [('k', '{window}01x{sq}{right}x+2{enter}'), ('w', 3000), ('k', '{enter}'), ('w', 8000)],

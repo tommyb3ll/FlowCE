@@ -57,13 +57,13 @@ quadratic formula, elimination...); a part worked out on the side gets its own s
 | a system, by elimination | a sum, partial fractions | an inequality |
 
 **Calculus → Applications** (the `0` key on the calculus menu): area between curves, volumes by
-washers or shells, arc length, surface area and average value, with labeled input boxes and worked
-steps. Under each answer, `▶` offers what to do next: factor, solve = 0, graph, the derivative...
+washers or shells, arc length, surface area and average value, each in a form that asks for its
+curves and bounds in words, with worked steps. Under each answer, `▶` offers what to do next: factor, solve = 0, graph, the derivative...
 
 | | | |
 |:-:|:-:|:-:|
-| ![Applications of calculus menu](docs/screenshots/menu_apps.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) | ![The row of actions under an answer](docs/screenshots/action_row.png) |
-| Calculus → Applications | find crossings, then the area | `▶`: what to do next |
+| ![The form of Area between curves: between y = x + 2 and y = x², from and to where they meet](docs/screenshots/apps_form.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) | ![The row of actions under an answer](docs/screenshots/action_row.png) |
+| Calculus → Applications: a form | find crossings, then the area | `▶`: what to do next |
 | ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) |
 | the graph screen, key points | `analyze(f)` | statistics: a fitted line |
 
