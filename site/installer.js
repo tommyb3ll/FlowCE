@@ -171,7 +171,7 @@ function problem(e) {
 async function loadBundle() {
   const b = build;
   if (vars && varsOf === b) return vars;
-  const res = await fetch('files/' + BUILDS[b].file);
+  const res = await fetch('files/' + BUILDS[b].file, { cache: 'no-store' });
   if (!res.ok) throw new Error(`could not download ${BUILDS[b].name} (${res.status})`);
   const files = await readBundle(await res.arrayBuffer());
   const list = [];

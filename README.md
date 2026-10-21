@@ -80,7 +80,7 @@ answers are the same as 2.0's.
 | Statistics and probability | data, box plots, regressions, distributions, tests | |
 | Themes | nine | Paper and Night |
 | Programs (Python syntax, the program editor) | | yes |
-| Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-python.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE-python.b84) |
+| Download | [`FlowCE.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE.b84) | [`FlowCE-python.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE-python.b84) |
 
 FlowCE is the one for class; FlowCE Python is for writing programs. Both have everything under
 [Highlights](#highlights). Install one at a time.
@@ -196,8 +196,8 @@ rules (some tests, like the ACT, don't allow one).
 
 1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
    `1:All Memory...` → `2:Reset`.
-2. **Send the bundle:** download [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
-   or [`FlowCE-python.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE-python.b84),
+2. **Send the bundle:** download [`FlowCE.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE.b84)
+   or [`FlowCE-python.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE-python.b84),
    drag it onto the calculator in TI Connect CE and send it.
 3. **Run the installer:** `prgm` → `enter` → `enter` opens the arTIfiCE shell; `enter` starts
    INST and `enter` again installs. It counts down to 0; don't touch the calculator.
