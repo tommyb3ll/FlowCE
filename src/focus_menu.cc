@@ -168,10 +168,16 @@ static void drop_pl() { // PL let go (kept ones stay)
   delete[] PL;
   PL = 0;
 }
+#ifdef FLOWCE_STEPS
+int steps_release(); // steps.cc: the steps' templates kept parsed
+#endif
 extern "C" int focus_menu_release(void) { // (allocator_custom.c) the kept previews not in use
   int r = 0;
   for (int c = 0; c < NKEPT; ++c)
     if (KP[c] && KP[c]->L != PL) { delete[] KP[c]->L; delete KP[c]; KP[c] = 0; r = 1; }
+#ifdef FLOWCE_STEPS
+  r |= steps_release();
+#endif
   return r;
 }
 static void prepare(const fm_menu & m);

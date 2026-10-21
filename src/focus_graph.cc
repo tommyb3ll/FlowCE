@@ -337,7 +337,10 @@ static NOINL void sample(int every) {
   // The view moved by whole pixels (pan): the rows reused, shifted; only the columns that came
   // into view evaluated (left, right), or none (up, down: those beyond a screen only)
   int nx = 0, ny = 0;
-  bool re = lev && (lev == 1 || lev == every) && fabsf(w - lw) <= w * 1e-5f && fabsf(h - lh) <= h * 1e-5f;
+  // (a frame every 3 columns keeps the other rows it had, and marks the columns it did not sample
+  // (j bit 2): the next full frame evaluates those only. A tap of an arrow evaluated the whole
+  // curve again: 0.7 s)
+  bool re = lev && fabsf(w - lw) <= w * 1e-5f && fabsf(h - lh) <= h * 1e-5f;
   if (re) {
     const float fx = (vx0 - lx0) / pw, fy = (vy0 - ly0) * (GH - 1) / h;
     nx = clampi(fx); ny = clampi(fy);
@@ -354,16 +357,21 @@ static NOINL void sample(int every) {
   for (int i = 0; i < NF; ++i) {
     int * y = FR->y + i * UI_W;
     unsigned char * j = FR->j + i * UI_W;
-    if (re && nx > 0) memmove(y, y + nx, (UI_W - nx) * sizeof(int));
-    if (re && nx < 0) memmove(y - nx, y, (UI_W + nx) * sizeof(int));
+    if (re && nx > 0) { memmove(y, y + nx, (UI_W - nx) * sizeof(int)); memmove(j, j + nx, UI_W - nx); }
+    if (re && nx < 0) { memmove(y - nx, y, (UI_W + nx) * sizeof(int)); memmove(j - nx, j, UI_W + nx); }
     int pc = -1;
     float x = vx0;
     for (int c = 0, n = 0; c < UI_W; ++c, --n) { // (n: columns to the next sample; % is a helper call)
+      const bool kept = re && c >= n0 && c < n1 && !(j[c] & 2) && !(c == UI_W - 1 && last);
       j[c] = 0;
-      if (n > 0 && c != UI_W - 1) { y[c] = NONE; continue; }
+      if (n > 0 && c != UI_W - 1) { // not sampled by this frame: the row it had, else none until a full frame
+        if (!kept) { y[c] = NONE; j[c] = 2; }
+        else if (ny && y[c] != NONE && y[c] != TOPC && y[c] != BOTC) y[c] += 16 * ny;
+        continue;
+      }
       n = every;
       int r = y[c];
-      bool ev = !re || c < n0 || c >= n1 || (c == UI_W - 1 && last);
+      const bool ev = !kept;
       if (!ev && ny && r != NONE && r != TOPC && r != BOTC) r += 16 * ny;
       if (ev) {
         const float v = val(i, c == UI_W - 1 ? vx1 : x);

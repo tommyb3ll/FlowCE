@@ -335,6 +335,30 @@ static gen dname(const gen & v){ return gen(identificateur(std::string("d")+v.pr
 static gen mergek(const gen & g);
 static NOINL gen radicand(const gen & g);
 static vecteur * phm_;
+// The steps' templates parsed (~30 ms each on the calculator; most steps share a few: diff(A,V)=B),
+// the last NTPL kept; given back when the heap runs out (focus_menu_release, allocator_custom.c)
+enum { NTPL = 12 };
+static const char * tpl_s[NTPL];
+static gen * tpl_g; // (heap: no static constructors in KhiCAS)
+static unsigned char tpl_n;
+static gen tpl_of(const char * s,GIAC_CONTEXT){
+  if (tpl_g)
+    for (int k=0;k<NTPL;++k)
+      if (tpl_s[k] && (tpl_s[k]==s || !strcmp(tpl_s[k],s))) return tpl_g[k];
+  const gen g(s,contextptr);
+  if (g.type!=_SYMB || interrupted || ctrl_c) return g; // (ON during the parse: not kept)
+  if (!tpl_g && !(tpl_g=new gen[NTPL])) return g;
+  const int k=tpl_n;
+  tpl_n=(unsigned char)(k+1==NTPL?0:k+1);
+  tpl_s[k]=s; tpl_g[k]=g;
+  return g;
+}
+int steps_release(){
+  if (!tpl_g) return 0;
+  delete[] tpl_g; tpl_g=0;
+  for (int k=0;k<NTPL;++k) tpl_s[k]=0;
+  return 1;
+}
 gen steps_math(const step_t & s,GIAC_CONTEXT){
   if (!phm_){ // (giac's results are read as vectors only after a check: ON leaves error values)
     gen l("[A,B,C,V,dV,dA,U,W,dU,dW]",contextptr);
@@ -347,7 +371,7 @@ gen steps_math(const step_t & s,GIAC_CONTEXT){
 #ifdef TICE
   focus_phase=135;
 #endif
-  const gen tpl(RULES[3*s.rule+2],contextptr);
+  const gen tpl=tpl_of(RULES[3*s.rule+2],contextptr);
 #ifdef TICE
   focus_phase=136;
 #endif

@@ -1239,8 +1239,10 @@ void do_run(const char * s){
     if (focus_on && !strstr(buf,"print"))
       dconsole_mode=0;
     giac::gen g(buf,contextptr);
+    focus_phase=90; // (parsed; 91: the graph's check done)
 #ifdef FLOWCE_STEPS
     int graphed=focus_on?focus_graph_input(buf):0;
+    focus_phase=91;
     if (graphed){ // plot(...): DeltaCE's graph screen (focus_graph.cc)
       dconsole_mode=1;
       if (defn)

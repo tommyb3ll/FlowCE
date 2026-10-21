@@ -192,12 +192,22 @@ int ui_math_text(const char * s, int lv, int x, int y, const unsigned char * r) 
 // a cubic Bezier as a polyline in 1/16 px
 static void bezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, int th, const unsigned char * r) {
   enum { N = 8 };
+  // the Bernstein weights over N^3 = 512: (N-i)^3, 3 (N-i)^2 i, 3 (N-i) i^2, i^3
+  static const short BW[N + 1][4] = {{512, 0, 0, 0}, {343, 147, 21, 1}, {216, 216, 72, 8}, {125, 225, 135, 27},
+    {64, 192, 192, 64}, {27, 135, 225, 125}, {8, 72, 216, 216}, {1, 21, 147, 343}, {0, 0, 0, 512}};
+  // points under 2^14 (1/16 px): the sums fit 24-bit integers (32-bit ones are slow helper calls)
+  const int lim = 16384, small = x0 > -lim && x0 < lim && x1 > -lim && x1 < lim && x2 > -lim && x2 < lim && x3 > -lim && x3 < lim
+    && y0 > -lim && y0 < lim && y1 > -lim && y1 < lim && y2 > -lim && y2 < lim && y3 > -lim && y3 < lim;
   int p[2 * (N + 1)];
   for (int i = 0; i <= N; ++i) {
-    long t = i, u = N - i; // Bernstein weights over N^3
-    long a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t, D = (long)N * N * N;
-    p[2 * i] = (int)((a * x0 + b * x1 + c * x2 + d * x3) / D);
-    p[2 * i + 1] = (int)((a * y0 + b * y1 + c * y2 + d * y3) / D);
+    const short * w = BW[i];
+    if (small) {
+      p[2 * i] = (w[0] * x0 + w[1] * x1 + w[2] * x2 + w[3] * x3) / 512;
+      p[2 * i + 1] = (w[0] * y0 + w[1] * y1 + w[2] * y2 + w[3] * y3) / 512;
+    } else {
+      p[2 * i] = (int)(((long)w[0] * x0 + (long)w[1] * x1 + (long)w[2] * x2 + (long)w[3] * x3) / 512);
+      p[2 * i + 1] = (int)(((long)w[0] * y0 + (long)w[1] * y1 + (long)w[2] * y2 + (long)w[3] * y3) / 512);
+    }
   }
   ui_poly16(p, N + 1, th, r);
 }

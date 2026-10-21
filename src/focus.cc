@@ -1130,7 +1130,10 @@ void focus_disp(int mode) {
     focus_phase = 0;
     return;
   }
-  status_draw(1);
+  // the status line drawn again where it changed, unless a page covered the screen (they
+  // invalidate it) or KhiCAS drew there (11 ms twice for each answer: the line before the
+  // calculation and after)
+  status_draw(PM.ll < 0 || !screen_is_ours());
   if (!M.hist) hero_prepare(M.hero_y, SBOT - M.hero_y);
   focus_phase = 7;
   stage_rows(ST, SBOT);

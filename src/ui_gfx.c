@@ -278,6 +278,12 @@ static int isqrt(long v) { // floor(sqrt(v)), v < 2^31
   while (b) { if (v >= r + b) { v -= r + b; r = (r >> 1) + b; } else r >>= 1; b >>= 2; }
   return (int)r;
 }
+static int isqrt24(unsigned v) { // the same for v < 2^23, in 24-bit integers (cheaper helpers)
+  unsigned r = 0, b = 1u << 22;
+  while (b > v) b >>= 2;
+  while (b) { if (v >= r + b) { v -= r + b; r = (r >> 1) + b; } else r >>= 1; b >>= 2; }
+  return (int)r;
+}
 
 // shade of a pixel at squared distance q (1/64 px^2) from the center of a disc of radius R (1/8
 // px), the prototype's quantization of the coverage 0.5 - d of a pixel at distance d (1/8 px)
@@ -447,11 +453,18 @@ void ui_fillet(int bank, int x, int y, int r, int q, int c, int bg) {
 // compares; the ends are cut along the lines, extended a quarter stroke so polylines join.
 void ui_seg16(int ax, int ay, int bx, int by, int th, const unsigned char * ramp) {
   int dx = bx - ax, dy = by - ay, adx = dx < 0 ? -dx : dx, ady = dy < 0 ? -dy : dy, steep = ady >= adx;
-  int au = steep ? ay : ax, av = steep ? ax : ay, du = steep ? dy : dx, dv = steep ? dx : dy;
-  if (du < 0) { au += du; av += dv; du = -du; dv = -dv; } // u increasing
-  long L = isqrt((long)dx * dx + (long)dy * dy);
+  // u increasing: from the other end. (Negating du and dv in turn, clang 19 kept the first's borrow
+  // in the second: -dv-2. tools/dev/v15_carrycheck.py refused that build.)
+  if (steep ? dy < 0 : dx < 0) { const int tx = ax, ty = ay; ax = bx; ay = by; dx = tx - ax; dy = ty - ay; }
+  const int au = steep ? ay : ax, av = steep ? ax : ay, dv = steep ? dx : dy;
+  int du = steep ? dy : dx;
+  // a short segment (the math signs', the bar's icons): its values in 24-bit integers, the same
+  // ones (32-bit multiplications, divisions and the square root were slow helper calls: ~19 ms an
+  // integral sign at the steps' size)
+  const int small = adx < 2048 && ady < 2048 && th < 64 && av > -16384 && av < 16384;
+  const int L = small ? isqrt24((unsigned)(dx * dx + dy * dy)) : isqrt((long)dx * dx + (long)dy * dy);
   if (!du) du = 1;
-  int hw = (int)((long)th * 8 * (L ? L : 1) / du); // (th/2) * L/du, 1/16 -> 1/256 px
+  int hw = small ? th * 8 * (L ? L : 1) / du : (int)((long)th * 8 * (L ? L : 1) / du); // (th/2) * L/du, 1/16 -> 1/256 px
   int ext = th / 4;
   // pixel lines i (centers at 16 i + 8) within [au - ext, au + du + ext]
   int i0 = (au - ext - 8 + 15 + 4096) / 16 - 256, i1 = (au + du + ext - 8 + 4096) / 16 - 256;
@@ -459,8 +472,9 @@ void ui_seg16(int ax, int ay, int bx, int by, int th, const unsigned char * ramp
   int vlo = steep ? ui_cx0 : ui_cy0, vhi = steep ? ui_cx1 : ui_cy1;  // and along v
   if (i0 < lo0) i0 = lo0;
   if (i1 >= hi0) i1 = hi0 - 1;
-  int step = (int)((long)dv * 256 / du);                            // v per line, 1/256 px
-  int vc = (int)((long)av * 16 + (long)(i0 * 16 + 8 - au) * dv * 16 / du);
+  int step = small ? dv * 256 / du : (int)((long)dv * 256 / du);   // v per line, 1/256 px
+  const int d0 = i0 * 16 + 8 - au; // (the first line drawn from the start: far when clipped)
+  int vc = small && d0 > -128 && d0 < 128 ? av * 16 + d0 * dv * 16 / du : (int)((long)av * 16 + (long)d0 * dv * 16 / du);
   for (int i = i0; i <= i1; ++i, vc += step) {
     int lo = vc - hw, hi = vc + hw, p0 = lo >> 8, p1 = (hi - 1) >> 8;
     if (p0 < vlo) p0 = vlo;

@@ -745,6 +745,8 @@ static bool poly_like(const giac::gen & g){
   const gen & f=g._SYMBptr->feuille;
   if (g._SYMBptr->sommet==at_neg)
     return poly_like(f);
+  if (g._SYMBptr->sommet==at_inv) // (a coefficient: x^3/3 is x^3*inv(3))
+    return (f.type==_INT_ || f.type==_ZINT) && !is_zero(f);
   if (g._SYMBptr->sommet==at_pow)
     return f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_INT_ && f._VECTptr->back().val>0 && poly_like(f._VECTptr->front());
   if (g._SYMBptr->sommet!=at_plus && g._SYMBptr->sommet!=at_prod)
@@ -753,6 +755,29 @@ static bool poly_like(const giac::gen & g){
     return poly_like(f);
   for (const_iterateur it=f._VECTptr->begin();it!=f._VECTptr->end();++it)
     if (!poly_like(*it))
+      return false;
+  return true;
+}
+// numbers and names under +, *, -, powers and the usual functions (none binds a name, as integrate
+// or sum do): with a free name, evalf gives no number (evalf of atan(x) took 0.26 s, for nothing)
+static bool fn_tree(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_INT_ || g.type==_ZINT || g.type==_FRAC || g.type==_DOUBLE_ || g.type==_IDNT)
+    return true;
+  if (g.type!=_SYMB)
+    return false;
+  static const unary_function_ptr * const ok[]={at_plus,at_prod,at_neg,at_inv,at_pow,at_exp,at_ln,at_sin,at_cos,at_tan,
+    at_asin,at_acos,at_atan,at_sqrt,at_abs,at_sinh,at_cosh,at_tanh};
+  unsigned k=0;
+  while (k<sizeof(ok)/sizeof(*ok) && !(g._SYMBptr->sommet==ok[k]))
+    ++k;
+  if (k==sizeof(ok)/sizeof(*ok))
+    return false;
+  const gen & f=g._SYMBptr->feuille;
+  if (f.type!=_VECT)
+    return fn_tree(f);
+  for (const_iterateur it=f._VECTptr->begin();it!=f._VECTptr->end();++it)
+    if (!fn_tree(*it))
       return false;
   return true;
 }
@@ -821,6 +846,10 @@ static __attribute__((noinline)) giac::gen collect_rational(const giac::gen & g)
   using namespace giac;
   const vecteur ids=lidnt(g);
   if (!g.is_symb_of_sommet(at_plus) || g._SYMBptr->feuille.type!=_VECT || ids.size()!=1)
+    return g;
+  // a polynomial: auto_simplify left it as ratnormal writes it, or as it was when that was shorter;
+  // ratnormal of its terms again is that same form, never shorter (29 ms on x^3-3x, for nothing)
+  if (poly_like(g))
     return g;
   gen r=0;
   vecteur rest;
@@ -2069,7 +2098,7 @@ void result_approx(const giac::gen & g){
     return;
   if (g.type==_CPLX && (g._CPLXptr->type==_INT_ || g._CPLXptr->type==_ZINT) && ((g._CPLXptr+1)->type==_INT_ || (g._CPLXptr+1)->type==_ZINT))
     return; // 5+5i: nothing to add
-  if (poly_like(g) && free_name(g)) // (no number: x^3-3x)
+  if (fn_tree(g) && free_name(g)) // (no number: x^3-3x, atan(x))
     return;
   const gen a=evalf(g,1,contextptr);
   if (a.type!=_DOUBLE_ && a.type!=_CPLX)
@@ -3363,6 +3392,33 @@ static int plus_terms(const giac::gen & g){
     n=(g._SYMBptr->sommet==at_plus && g._SYMBptr->feuille.type==_VECT?g._SYMBptr->feuille._VECTptr->size():0)+plus_terms(g._SYMBptr->feuille);
   return n;
 }
+// a rational number as giac's trees write it: 3, 2/3, inv(3), -inv(2), 2*inv(3)
+static bool rat_number(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_INT_ || g.type==_ZINT || g.type==_FRAC)
+    return true;
+  if (g.is_symb_of_sommet(at_neg))
+    return rat_number(g._SYMBptr->feuille);
+  if (g.is_symb_of_sommet(at_inv))
+    return g._SYMBptr->feuille.type==_INT_ || g._SYMBptr->feuille.type==_ZINT;
+  if (!g.is_symb_of_sommet(at_prod) || g._SYMBptr->feuille.type!=_VECT)
+    return false;
+  for (const_iterateur it=g._SYMBptr->feuille._VECTptr->begin();it!=g._SYMBptr->feuille._VECTptr->end();++it)
+    if (!rat_number(*it))
+      return false;
+  return true;
+}
+// a number written with fewer terms than g's is not possible: g has no sum, or g is a fraction plus
+// one term without a sum (2sqrt(2)+1/3, 4/3+2ln(2): normal over its radical took 0.22 s for nothing)
+static bool fewest_terms(const giac::gen & g){
+  using namespace giac;
+  const int n=plus_terms(g);
+  if (!n)
+    return true;
+  if (n!=2 || !g.is_symb_of_sommet(at_plus) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=2)
+    return false;
+  return rat_number((*g._SYMBptr->feuille._VECTptr)[0])!=rat_number((*g._SYMBptr->feuille._VECTptr)[1]);
+}
 // ln(4) as 2ln(2): ln of an integer that is a power (then 12ln(2)-6ln(4)+3 is 3)
 // (DeltaCE) a root of a fraction whose top and bottom are powers: (81/16)^(1/4) is 3/2 (giac leaves
 // it: solve(16x^4-81=0,x) answered x=(81/16)^(1/4))
@@ -3477,7 +3533,8 @@ static __attribute__((noinline)) giac::gen drop_constants(const giac::gen & g,co
     return g;
   gen best=g;
   int bt=taille(g,400);
-  for (int k=0;k<2;++k){
+  // (a polynomial: normal gives the numerator and denominator its fxnd gives, the first pass did it)
+  for (int k=0,nk=poly_like(g)?1:2;k<nk;++k){
     const gen h=k?safe_normal(g):g;
     if (is_undef(h) || h.type==_STRNG)
       continue;
@@ -3487,8 +3544,11 @@ static __attribute__((noinline)) giac::gen drop_constants(const giac::gen & g,co
       continue;
     const vecteur & t=*n._SYMBptr->feuille._VECTptr;
     vecteur keep;
+    // (a denominator without x: a term of the normalized numerator, a monomial, has x as t/d has it;
+    // its ratnormal, one per term of every antiderivative, is not needed then)
+    const bool dc=free_of(d,x);
     for (unsigned i=0;i<t.size();++i)
-      if (!floor_const(ratnormal(t[i]/d,contextptr),x))
+      if (!floor_const(dc?t[i]:ratnormal(t[i]/d,contextptr),x))
         keep.push_back(t[i]);
     if (keep.empty() || keep.size()==t.size())
       continue;
@@ -4043,13 +4103,15 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   focus_phase=84;
   if (interrupted)
     return;
+  trace_step(fewest_terms(g)?"fewest terms":"terms: maybe fewer",g);
   if (a.typed_sec) // sec(x)tan(x), not sin(x)/cos(x)^2, for the derivative of sec(x)
     g=sec_only(g);
   if (!is_undef(rs) && taille(rs,200)<=taille(g,200)+4)
     g=rs;
-  if (a.simp && g.type==_SYMB && !contains(g,at_sum) && !(poly_like(g) && free_name(g)) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
+  if (a.simp && g.type==_SYMB && !fewest_terms(g) && !contains(g,at_sum) && !(fn_tree(g) && free_name(g)) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
     // left: evalf would sum it), its terms collected:
     const gen m=map_nodes(g,ln_power,0),e=radicals(m)==1?normal(m,contextptr):ratnormal(m,contextptr); // 12ln(2)-6ln(4)+3: 3; subst's
+    trace_step("terms collected",e);
     if (!is_undef(e) && e.type!=_STRNG && plus_terms(e)<plus_terms(g) && taille(e,400)<=taille(g,400))
       g=e; // (2523-4*29*sqrt(29)-5046+348*sqrt(29)+2339)/16 is (29sqrt(29)-23)/2
   }

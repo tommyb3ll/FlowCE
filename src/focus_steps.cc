@@ -296,7 +296,9 @@ static item * put(int kind, char * s, int x, int y, int w, int h, int base, int 
   it.grp = kind == K_HEAD || kind == K_WORK || kind == K_EQ || kind == K_ANS ? GRP : 0;
   return &it;
 }
+static void drop_layouts();
 static void clear_page() {
+  drop_layouts(); // (the items' layouts: keyed by their places in P)
   for (item * p = P; p < P + NP; ++p) if (p->kind != K_TITLE && p->kind != K_FORM) free(p->s);
   free(P); P = 0; NP = CAPN = PH = 0;
 }
@@ -632,9 +634,34 @@ static __attribute__((noinline)) void lay_steps(const char * head, const std::ve
   PH = y + 12;
 }
 
-// drawing: the last math layout is kept (an item cut by a band's edge is drawn twice)
+// drawing: the math layouts of the last NCL items drawn are kept while the page is shown (a scroll
+// draws the same ones again: laying them out was 40% of it; an item cut by a band's edge is drawn
+// twice); with no memory for them, the last one only
+enum { NCL = 8 };
+static mi_layout * CLS;          // heap: NCL layouts
+static const item * clk[NCL];    // their items
+static unsigned char cln;        // the next one replaced
 static mi_layout * CL;
 static const item * cl_p;
+static void drop_layouts() {
+  delete[] CLS; CLS = 0;
+  for (int k = 0; k < NCL; ++k) clk[k] = 0;
+}
+static const mi_layout & item_layout(const item & it) {
+  if (!CLS) CLS = new mi_layout[NCL];
+  if (CLS) {
+    for (int k = 0; k < NCL; ++k) if (clk[k] == &it) return CLS[k];
+    const int k = cln;
+    cln = (unsigned char)(k + 1 == NCL ? 0 : k + 1);
+    clk[k] = 0;
+    lay(it.s, strlen(it.s), it.lv, CLS[k]);
+    clk[k] = &it;
+    return CLS[k];
+  }
+  if (!CL) CL = new mi_layout;
+  if (cl_p != &it) { lay(it.s, strlen(it.s), it.lv, *CL); cl_p = &it; }
+  return *CL;
+}
 static void draw_item(const item & it, int y, int bg) { // y: its top on the screen; bg: the page's
   const int b = y + it.base, ink = it.kind == K_FORM ? UC_SUB : UC_INK;
   int x = it.x;
@@ -659,8 +686,7 @@ static void draw_item(const item & it, int y, int bg) { // y: its top on the scr
       x += eqw(it.lv);
     }
   }
-  if (cl_p != &it) { lay(it.s, strlen(it.s), it.lv, *CL); cl_p = &it; }
-  ui_math_draw(*CL, it.s, it.lv, x, b, 0, ink, bg, UC_ACC);
+  ui_math_draw(item_layout(it), it.s, it.lv, x, b, 0, ink, bg, UC_ACC);
   if (it.kind == K_ANS && it.num) { // + C
     const unsigned char * r = ui_ramp(0, UC_SUB, bg);
     x = it.x + it.w - it.num;
@@ -676,7 +702,6 @@ static void part(int sec, int & y0, int & y1) {
 }
 // the page from its row top, on the screen's rows Y0..; part cur highlighted (not the answer)
 static void paint(int top, int cur) {
-  if (!CL) CL = new mi_layout;
   cl_p = 0;
   int h0, h1;
   part(cur, h0, h1);
