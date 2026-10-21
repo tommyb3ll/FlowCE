@@ -64,21 +64,20 @@ void ui_band_end(void) {
   band_busy = 0;
 }
 
-// Paper: the prototype's light theme, DeltaCE's teal accent (FlowCE's blue: 36, 92, 204); DeltaCE's
-// status bar is teal, its F-key bar tinted teal (FlowCE's: the background, white)
+// Paper: the prototype's light theme, FlowCE's blue accent; the status bar is the background (its
+// slots UC_HEAD...: DeltaCE's colored bar), the F-key bar white
 const ui_theme ui_theme_paper = {{
-  {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {0, 122, 122}, {218, 240, 238},
-  {255, 255, 255}, {255, 255, 255}, {226, 241, 239}, {40, 84, 86}, {39, 140, 74}, {208, 214, 222},
+  {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {36, 92, 204}, {226, 234, 250},
+  {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {78, 86, 98}, {39, 140, 74}, {208, 214, 222},
   {255, 255, 255}, {199, 68, 64}, {112, 72, 184}, {226, 118, 24}, {36, 92, 204}, {247, 248, 250},
-  {0, 122, 122}, {255, 255, 255}, {178, 222, 218}, {196, 225, 222}},
+  {247, 248, 250}, {36, 92, 204}, {108, 117, 129}, {219, 224, 231}},
   {30, 36, 46}, 36};
-// Night: the prototype's dark theme (UC_WHITE, text on a colored chip: dark here), teal accent
-// (FlowCE's blue: 100, 165, 255); a deep teal status bar
+// Night: the prototype's dark theme (UC_WHITE, text on a colored chip: dark here)
 const ui_theme ui_theme_night = {{
-  {12, 15, 20}, {234, 238, 243}, {134, 145, 158}, {38, 46, 58}, {52, 204, 188}, {14, 46, 46},
-  {7, 11, 17}, {22, 28, 36}, {13, 31, 33}, {150, 192, 188}, {86, 200, 130}, {4, 6, 9},
+  {12, 15, 20}, {234, 238, 243}, {134, 145, 158}, {38, 46, 58}, {100, 165, 255}, {24, 40, 64},
+  {7, 11, 17}, {22, 28, 36}, {16, 21, 28}, {150, 160, 173}, {86, 200, 130}, {4, 6, 9},
   {7, 11, 17}, {255, 112, 102}, {182, 146, 255}, {255, 170, 82}, {100, 165, 255}, {12, 15, 20},
-  {0, 98, 94}, {234, 250, 247}, {128, 204, 196}, {26, 56, 56}},
+  {12, 15, 20}, {100, 165, 255}, {134, 145, 158}, {38, 46, 58}},
   {0, 0, 0}, 50};
 
 // bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest: the scene's

@@ -989,9 +989,9 @@ int restore_session(const char * fname){
   clear_screen(); // Bdisp_AllClr_VRAM();
   drawRectangle(0,0,LCD_WIDTH_PX,16,COLOR_BLACK);
 #ifdef WITH_DESOLVE
-  os_draw_string_medium_(0,0,"DeltaCE");
+  os_draw_string_medium_(0,0,"FlowCE");
 #else
-  os_draw_string_medium_(0,0,"DeltaCE");
+  os_draw_string_medium_(0,0,"FlowCE");
 #endif
   os_draw_string_medium_(0,C18,"free software, GNU GPL v3");
   // os_draw_string_medium_(0,3*C18,"");

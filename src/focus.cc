@@ -407,16 +407,6 @@ static void help_line(const ui_face * f, const char * t, int base, int fg, const
   if (cut) ui_draw_text(f, ell, -1, x, base, ramp(fg, UC_BG), 0);
 }
 
-// DeltaCE's mark, a Delta (the fonts have none): base row y, h px high (h + 1 wide), stroke th
-// (1/16 px), in color c over bg
-static void delta_mark(int x, int y, int h, int th, int c, int bg = UC_BG) {
-  const unsigned char * r = ramp(c, bg);
-  const int x0 = x * 16 + 8, x1 = x0 + h * 8, x2 = x0 + h * 16, b = y * 16, t = (y - h) * 16;
-  ui_seg16(x0, b, x1, t, th, r);
-  ui_seg16(x1, t, x2, b, th, r);
-  ui_seg16(x0, b, x2, b, th, r);
-}
-
 // the empty console's tips: DeltaCE's features and the shortcuts that are easy to miss
 struct tip { const char * key, * text; };
 static const tip tips[] = {
@@ -561,10 +551,9 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 #endif
   } else {
     int m = y0 + h / 2 - 2, b = m + 20;
-    // the mark and a tip on the empty console only: not under the history, nor when a calculation
-    // starts (its entry is in the history: painting them there cost 70 ms a calculation)
+    // a tip on the empty console only: not under the history, nor when a calculation starts (its
+    // entry is in the history: painting it there cost 70 ms a calculation)
     if (NE) return;
-    if (m - 50 >= y0) delta_mark(UI_W / 2 - 13, m - 26, 24, 24, UC_LINE); // (faint)
     ui_text(&ui_tr12, "Type a calculation", UI_W / 2, m, UC_SUB, UC_BG, 1);
     int x = UI_W / 2 - 110; // the prototype's three hints: math templates, up history, down search
     x = key_hint(x, b, "math", "templates") + 12;
@@ -672,19 +661,17 @@ static void status_draw(int force) {
       ui_rrect(0, x, 2, w, 12, 4, c, UC_HEAD);
       ui_text(&ui_tb9, t, x + w / 2, 11, UC_WHITE, c, 1);
     }
-    else { // the app's mark and version by the battery (the 2nd/alpha chip takes its place):
-      // a Delta in the accent, then CE
-      const int vw = ui_text_width(&ui_tr9, "v" DELTACE_VERSION, -1) + 3;
-      int x = UI_W - 30 - vw - ui_text_width(&ui_tb9, "CE", -1) - 14;
-      delta_mark(x, 13, 10, 28, UC_HEADINK, UC_HEAD);
-      x += 14;
+    else { // the app's name and version by the battery (the 2nd/alpha chip takes its place)
+      const int vw = ui_text_width(&ui_tr9, "v" FLOWCE_VERSION, -1) + 3;
+      int x = UI_W - 30 - vw - ui_text_width(&ui_tb9, "FlowCE", -1);
+      x += ui_text(&ui_tb9, "Flow", x, 12, UC_HEADSUB, UC_HEAD, 0);
       x += ui_text(&ui_tb9, "CE", x, 12, UC_HEADINK, UC_HEAD, 0);
-      ui_text(&ui_tr9, "v" DELTACE_VERSION, x + 3, 12, UC_HEADSUB, UC_HEAD, 0);
+      ui_text(&ui_tr9, "v" FLOWCE_VERSION, x + 3, 12, UC_HEADSUB, UC_HEAD, 0);
     }
     int bx = UI_W - 24; // battery
-    ui_rframe(0, bx, 4, 15, 8, 2, UC_HEADINK, UC_HEAD);
-    ui_fill(bx + 15, 6, 1, 4, col(UC_HEADINK));
-    ui_fill(bx + 2, 6, lv > 0 ? (lv * 11 + 3) / 4 : 1, 4, col(lv <= 1 ? UC_ORANGE : UC_HEADINK));
+    ui_rframe(0, bx, 4, 15, 8, 2, UC_HEADSUB, UC_HEAD);
+    ui_fill(bx + 15, 6, 1, 4, col(UC_HEADSUB));
+    ui_fill(bx + 2, 6, lv > 0 ? (lv * 11 + 3) / 4 : 1, 4, col(lv <= 1 ? UC_ACC : UC_HEADSUB));
   }
   ui_noclip();
   focus_phase = ph;
@@ -770,7 +757,6 @@ void focus_tab(int i, int on, int bank) {
   else {
     ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
     ui_fill(cx - 32, SBOT + 1, 64, MB - 1, ui_col(bank, UC_BAR));
-    if (i) ui_fill(cx - 32, SBOT + 6, 1, MB - 11, ui_col(bank, UC_BARLINE)); // (a hairline between keys)
   }
   const ui_face * f = on ? &ui_tb10 : &ui_tr10;
   int bg = on ? UC_CARD : UC_BAR, lw = ui_text_width(f, w, -1), x0 = cx - (16 + lw) / 2;

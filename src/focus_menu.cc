@@ -174,12 +174,11 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
   const fm_item & it = m.items[k];
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
-  // (DeltaCE) the selected item: a soft teal row with a teal edge (FlowCE's: filled teal)
-  int on = k == sel, bg = on ? UC_ACCSOFT : UC_CARD, fg = UC_INK, sub = on ? UC_ACC : UC_SUB;
+  int on = k == sel, bg = on ? UC_ACC : UC_CARD, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
   ui_clip(x, y, x + w, y + h);
   ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
-    if (on) { ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACCSOFT, UC_CARD); ui_rframe(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_ACCSOFT); }
+    if (on) ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_CARD);
     if (m.grid == 2) { // a card: the preview, its label under it (a label alone: centered)
       int alone = PLV[k] < 0;
       preview(k, it.pv ? it.pv : it.text, x + 4, y + (h == CH2 ? 23 : 18), w - 8, fg, bg, 1);
@@ -190,7 +189,7 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
       }
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
   } else {
-    if (on) { ui_rrect(1, x, y, w, h, 6, UC_ACCSOFT, UC_CARD); ui_fill(x + 2, y + 5, 3, h - 10, ui_col(1, UC_ACC)); }
+    if (on) ui_rrect(1, x, y, w, h, 6, UC_ACC, UC_CARD);
     char num[2] = {(char)('1' + k), 0};
     int nw = ui_text_width(&ui_tb9, num, -1);
     if (k < 9) { // a keycap
@@ -470,177 +469,41 @@ void focus_splash_clear() {
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 }
-// the start screen (DeltaCE): a curve is drawn left to right, then a secant through P and a second
-// point Q, with its rise-over-run triangle (the Delta: dx, dy), slides as Q moves to P, until it is
-// the tangent at P, which locks in blue with a pulse; meanwhile DeltaCE is written letter by
-// letter, then the tagline appears. About 1.9 s on the 32768 Hz clock, once per start; any key
-// skips to the last frame and is not typed. first (no saved session): "press any key" too (the
-// caller reads it). The moving part is redrawn each frame in screen bands (no flicker).
-// Coordinates in 1/16 px (ui_seg16); the curve y = 212 - 62 sin((x-34)/68) - 0.0006 (x-34)^2,
-// sampled every 2 px from x = 34 to 286 (tools: python, see the commit).
-static const short splash_curve[127] = {
-  3392, 3363, 3334, 3304, 3275, 3246, 3216, 3187, 3158, 3129, 3101, 3072, 3044, 3015, 2987, 2960,
-  2932, 2905, 2879, 2852, 2826, 2801, 2775, 2751, 2726, 2703, 2679, 2656, 2634, 2613, 2591, 2571,
-  2551, 2532, 2513, 2495, 2477, 2461, 2445, 2429, 2415, 2401, 2388, 2375, 2363, 2352, 2342, 2333,
-  2324, 2316, 2309, 2303, 2297, 2292, 2288, 2285, 2282, 2281, 2280, 2280, 2280, 2282, 2284, 2287,
-  2290, 2295, 2300, 2306, 2312, 2320, 2328, 2336, 2346, 2356, 2366, 2377, 2389, 2402, 2415, 2428,
-  2443, 2457, 2472, 2488, 2504, 2521, 2538, 2555, 2573, 2592, 2610, 2629, 2648, 2668, 2688, 2708,
-  2728, 2748, 2769, 2790, 2811, 2831, 2852, 2874, 2895, 2916, 2937, 2958, 2979, 3000, 3020, 3041,
-  3061, 3081, 3101, 3121, 3140, 3159, 3178, 3196, 3214, 3232, 3249, 3266, 3282, 3298, 3313};
-enum { SP_X0 = 34, SP_P = 150, SP_TOP = 96, SP_BOT = 218, SP_END = 1900 };
-// the curve's y (1/16 px) at x (1/16 px), interpolated
-static int splash_y(long x16) {
-  long u = x16 - SP_X0 * 16;
-  if (u < 0) u = 0;
-  if (u > 252 * 16) u = 252 * 16;
-  const int i = (int)(u >> 5), r = (int)(u & 31);
-  return i >= 126 ? splash_curve[126] : splash_curve[i] + (int)((long)(splash_curve[i + 1] - splash_curve[i]) * r / 32);
-}
-// easings of t in [0, 1024]: smoothstep, ease-out (cubic), ease-in (cubic); 0..1024
-static int sp_clamp(long t) { return t < 0 ? 0 : t > 1024 ? 1024 : (int)t; }
-static int sp_ez(long t) { long u = sp_clamp(t); return (int)(u * u * (3072 - 2 * u) >> 20); }
-static int sp_eo(long t) { long u = 1024 - sp_clamp(t); return 1024 - (int)(u * u * u >> 20); }
-static long sp_phase(int ms, int a, int b) { return (long)(ms - a) * 1024 / (b - a); }
-static void sp_dot(int x16, int y16, int r, int c) { ui_rrect(0, (x16 >> 4) - r, (y16 >> 4) - r, 2 * r + 1, 2 * r + 1, r, c, UC_BG); }
-// a dashed segment (3 px on, 3 px off), 1/16 px
-static void sp_dash(int ax, int ay, int bx, int by, const unsigned char * ramp) {
-  const int dx = bx - ax, dy = by - ay, len = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
-  for (int s = 0; s < len; s += 96) {
-    const int e = s + 48 < len ? s + 48 : len;
-    ui_seg16(ax + (int)((long)dx * s / len), ay + (int)((long)dy * s / len), ax + (int)((long)dx * e / len), ay + (int)((long)dy * e / len), 16, ramp);
-  }
-}
-// a small Delta (the fonts have none) then a letter in the math italic, baseline y (px)
-static void sp_delta(int x, int y, const char * v, const unsigned char * ramp) {
-  ui_seg16(x * 16, y * 16, (x + 4) * 16, (y - 8) * 16, 18, ramp);
-  ui_seg16((x + 4) * 16, (y - 8) * 16, (x + 8) * 16, y * 16, 18, ramp);
-  ui_seg16(x * 16, y * 16, (x + 8) * 16, y * 16, 18, ramp);
-  ui_draw_text(&ui_mi12, v, -1, x + 10, y, ramp, 0);
-}
-// where the pen is at frame ms: the curve is drawn left to right (ease-out) in 0.52 s; 1/16 px
-static int splash_end16(int ms) { return (SP_X0 + (int)(252L * sp_eo(sp_phase(ms, 0, 520)) / 1024)) * 16; }
-// the curve's segments from segment *from up to x end16 (the last one partly: drawn again
-// longer next time, which the shading keeps right); *from: the first not yet whole
-static void splash_curve_to(int end16, int * from) {
-  const unsigned char * acc = ui_ramp(0, UC_ACC, UC_BG);
-  for (int i = *from; i < 126 && (SP_X0 + 2 * i) * 16 < end16; ++i) {
-    const int x1 = (SP_X0 + 2 * i + 2) * 16 < end16 ? (SP_X0 + 2 * i + 2) * 16 : end16;
-    ui_seg16((SP_X0 + 2 * i) * 16, splash_curve[i], x1, splash_y(x1), 40, acc);
-    if (x1 == (SP_X0 + 2 * i + 2) * 16) *from = i + 1;
-  }
-}
-// the moving part of frame ms (over the curve), in the band set up by the caller
-static void splash_graph(int ms) {
-  const unsigned char * acc = ui_ramp(0, UC_ACC, UC_BG), * ink = ui_ramp(0, UC_INK, UC_BG), * sub = ui_ramp(0, UC_SUB, UC_BG);
-  const int pa = sp_eo(sp_phase(ms, 0, 520)), end16 = splash_end16(ms);
-  if (pa > 0 && pa < 1024) sp_dot(end16, splash_y(end16), 3, UC_INK); // the pen
-  const long pb = sp_phase(ms, 420, 1500);
-  if (pb <= 0) return;
-  // Q slides to P (smoothstep), the secant turns into the tangent
-  const int e = sp_ez(pb), q16 = (SP_P + (int)(92L * (1024 - e) / 1024)) * 16, p16 = SP_P * 16;
-  const int fp = splash_y(p16), fq = splash_y(q16), locked = ms >= 1500;
-  long m1024 = q16 - p16 > 10 ? (long)(fq - fp) * 1024 / (q16 - p16) : -17; // slope, x1024 (-17: f'(P))
-  if (locked) m1024 = -17;
-  // the rise-over-run triangle (the Delta), its legs dashed, Dx and Dy; gone in the last quarter
-  if (pb < 800 && q16 - p16 > 24) {
-    const int top = (fp < fq ? fp : fq) >> 4, bot = (fp < fq ? fq : fp) >> 4, xq = q16 >> 4;
-    for (int y = top; y < bot; ++y) { // between the hypotenuse and the vertical leg
-      const int xl = SP_P + (int)((long)(q16 - p16) * ((y << 4) - fp) / ((fq - fp) ? (fq - fp) : 1) >> 4);
-      if (xq > xl) ui_fill(xl, y, xq - xl, 1, ui_col(0, UC_ACCSOFT));
-    }
-    sp_dash(p16, fp, q16, fp, sub);
-    sp_dash(q16, fp, q16, fq, sub);
-    if (q16 - p16 > 40 * 16) {
-      sp_delta(((p16 + q16) >> 5) - 9, (fp >> 4) + 15, "x", sub);
-      if ((fq - fp) > 18 * 16 || (fp - fq) > 18 * 16) sp_delta((q16 >> 4) + 5, ((fp + fq) >> 5) + 4, "y", sub);
-    }
-  }
-  // the line through P: 95 px left, 120 px right; ink while sliding, blue and thicker once locked
-  ui_seg16(p16 - 95 * 16, fp - (int)(95L * m1024 / 64), p16 + 120 * 16, fp + (int)(120L * m1024 / 64), locked ? 32 : 22, locked ? acc : ink);
-  sp_dot(p16, fp, 4, UC_INK);
-  if (!locked) sp_dot(q16, fq, 4, UC_SUB);
-  // the pulse when it locks: a ring growing from P, blue then soft
-  const long pc = sp_phase(ms, 1450, 1700);
-  if (pc > 0 && pc < 1024) {
-    const int r = 4 + 10 * sp_eo(pc) / 1024;
-    ui_rframe(0, SP_P - r, (fp >> 4) - r, 2 * r + 1, 2 * r + 1, r, pc < 512 ? UC_ACC : UC_ACCSOFT, UC_BG);
-  }
-}
-volatile int splash_frames; // frames drawn by the last start screen (the emulator tools read it)
+// the start screen: FlowCE written letter by letter over a curve drawn left to right, then held
+// (about 1 s in all, once per start; any key skips it and is not typed); first (no saved
+// session): three tips and "press any key" (the caller reads it)
 void focus_splash(int first) {
   static bool animated;
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
-  static const char * const cr[] = {"based on FlowCE by Tommy Bell and KhiCAS by B. Parisse",
-                                    "DeltaCE " DELTACE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
-  for (int k = 0; k < 2; ++k) // (under the graph's rows)
-    ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 14 + 12 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
-  const char * name = "DeltaCE", * tag = "the calculus of change, shown step by step";
-  const int w = ui_text_width(&ui_mi34, name, -1), w5 = ui_text_width(&ui_mi34, name, 5), x0 = (UI_W - w) / 2, y = 64;
-  int skip = animated, typed = 0, tagged = 0, frames = 0, rows = ui_band_open(48), from = 0;
+  static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
+                                    "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
+  for (int k = 0; k < 2; ++k)
+    ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
+  const char * name = "FlowCE"; // (the upright math faces have no capitals)
+  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 88 : 100;
+  static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
+  const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
+  int skip = animated, drawn = 0;
   animated = true;
-  // the graph's background (the curve drawn so far), 39 KB while the screen shows (the session is
-  // not loaded yet): each frame is a copy of it plus the moving part (6 frames/s drawing it all)
-  unsigned char * bg = rows ? (unsigned char *)malloc(UI_W * (SP_BOT - SP_TOP)) : 0;
-  if (bg) memset(bg, ui_col(0, UC_BG), UI_W * (SP_BOT - SP_TOP));
-  const long t0 = (long)(clock)(); // 32768 Hz ((clock): giac's first.h makes clock() 0)
-  for (int ms = 0;; ) {
-    if (skip) ms = SP_END;
-    // DeltaCE, a letter at a time (drawn once each: nothing else covers these rows)
-    const int k = ms < 60 ? 0 : ms >= 1410 ? 7 : (ms - 60) * 7 / 1350;
-    for (; typed < k; ++typed) {
-      const int x = x0 + ui_text_width(&ui_mi34, name, typed);
-      ui_draw_text(&ui_mi34, name + typed, 1, x, y, ui_ramp(0, typed < 5 ? UC_INK : UC_ACC, UC_BG), 0);
-    }
-    (void)w5;
-    // the tagline fades in: soft, then grey
-    const int tg = ms >= 1700 ? 2 : ms >= 1500 ? 1 : 0;
-    if (tg > tagged) {
-      tagged = tg;
-      ui_fill(0, y + 8, UI_W, 20, ui_col(0, UC_BG));
-      ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 22 + (tg == 1 ? 2 : 0), ui_ramp(0, tg == 1 ? UC_LINE : UC_SUB, UC_BG), 0);
-    }
-    // the curve's new segments, into the background
-    const int end16 = splash_end16(ms);
-    if (bg) {
-      unsigned char * fb = ui_fb;
-      ui_fb = bg - SP_TOP * UI_W;
-      ui_clip(0, SP_TOP, UI_W, SP_BOT);
-      splash_curve_to(end16, &from);
-      ui_fb = fb;
-      ui_noclip();
-    }
-    // the graph, in bands: the background, then the moving part (each band drawn whole, then
-    // copied: no half-drawn frame shows)
-    for (int b = SP_TOP; b < SP_BOT; b += rows ? rows : SP_BOT - SP_TOP) {
-      const int e = rows && b + rows < SP_BOT ? b + rows : SP_BOT;
-      if (rows) ui_band_begin(b, e);
-      else ui_clip(0, b, UI_W, e);
-      if (bg) memcpy(ui_fb + b * UI_W, bg + (b - SP_TOP) * UI_W, (e - b) * UI_W);
-      else { // (no memory for it: all of it, each frame)
-        int f0 = 0;
-        ui_fill(0, b, UI_W, e - b, ui_col(0, UC_BG));
-        splash_curve_to(end16, &f0);
-      }
-      splash_graph(ms);
-      if (rows) ui_band_end();
-    }
-    ui_noclip();
-    ++frames;
-    if (ms >= SP_END) break;
+  for (int f = 1; f <= 12; ++f) {
+    const int k = f < 6 ? f : 6, p = f == 12 ? np : f * np / 12;
+    ui_draw_text(&ui_mi34, name, k < 4 ? k : 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
+    if (k > 4) ui_draw_text(&ui_mi34, name + 4, k - 4, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
+    for (; drawn + 1 < p; ++drawn)
+      ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
+    if (skip) continue; // the rest at once
     if (key_waiting()) { skip = 1; key_discard(); continue; }
-    const long t = (long)(clock)() - t0;
-    ms = (int)(t * 1000 / 32768);
+    os_wait_1ms(40);
   }
-  free(bg);
-  if (rows) ui_band_close();
-  splash_frames = frames;
+  const char * tag = "calculus on your TI-84 Plus CE";
+  ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
   if (first) { // (the console shows its keys once past this screen)
     const char * go = "press any key";
-    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 46, ui_ramp(0, UC_ACC, UC_BG), 0);
+    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
-  else if (!skip) { // held a moment
-    for (int t = 0; t < 8 && !key_waiting(); ++t)
+  else if (!skip) { // held a moment (it flashed by: the session loads fast)
+    for (int t = 0; t < 10 && !key_waiting(); ++t)
       os_wait_1ms(50);
     key_discard();
   }
