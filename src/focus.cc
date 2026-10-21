@@ -504,31 +504,30 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
   } else if (hm == HM_RESULT) {
     const fent & e = E[NE - 1];
     const char * r = shown(Line[e.out].str);
-    // (DeltaCE) the answer on a card: a hairline frame, a teal rule at its left, the input as its
-    // caption; under the answer its decimal value and forms, then what to do with it next
-    const int kx = 8, ky = y0 + 3, kw = UI_W - 16, kh = h - 8, kb = ky + kh;
-    ui_rframe(0, kx, ky, kw, kh, 8, UC_LINE, UC_BG);
-    ui_rrect(0, kx, ky + 8, 3, kh - 16, 1, UC_ACC, UC_BG);
-    int top = ky + 7;
+    // the input over the answer, small and gray; under the answer its decimal value and forms, then
+    // (the steps build) what to do with it next. (DeltaCE's card around it all, a frame and a rule
+    // at its left, is gone: the user found the screen crowded.)
+    const int RW = UI_W - 28, x0 = (UI_W - RW) / 2;
+    int top = y0 + 8;
     if (e.in >= 0) {
-      fitc c = fitted(Line[e.in].str, 5, kw - 32, 30, MI_F_TIDY);
+      fitc c = fitted(Line[e.in].str, 4, RW, 36, MI_F_TIDY);
       if (!in_band(top - 2, top + c.a + c.d + 3)) ;
-      else if (c.w > kw - 32) { // too long even small: its start, clipped, "..." after it (it ran off the card)
-        const int dw = ui_text_width(&ui_tr10, "...", 3) + 4, r = kx + kw - 18;
-        ui_clip(kx + 14, 0, r - dw, UI_H);
-        draw_math(Line[e.in].str, c, kx + 14, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
+      else if (c.w > RW) { // too long even small: its start, clipped, "..." after it (it ran off the screen)
+        const int dw = ui_text_width(&ui_tr10, "...", 3) + 4;
+        ui_clip(x0, 0, x0 + RW - dw, UI_H);
+        draw_math(Line[e.in].str, c, x0, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
         ui_noclip();
-        ui_draw_text(&ui_tr10, "...", 3, r - dw + 4, top + c.a, ramp(UC_SUB, UC_BG), 0);
+        ui_draw_text(&ui_tr10, "...", 3, x0 + RW - dw + 4, top + c.a, ramp(UC_SUB, UC_BG), 0);
       }
-      else draw_math(Line[e.in].str, c, kx + 14, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
+      else draw_math(Line[e.in].str, c, (UI_W - c.w) / 2, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
       top += c.a + c.d + 6;
     }
     const int na = act_n;
-    const int ab = kb - 7, cy = na ? ab - 21 : ab - 1; // the baselines of the action row and of the footer
+    const int ab = y0 + h - 7, cy = na ? ab - 21 : ab - 6; // the baselines of the action row and of the footer
     int bot = cy - 12; // above the forms chip (tall fractions ran into it)
-    const int RW = kw - 20;
     if (!in_band(top - 4, bot + 4)) ;
     else if (is_text(r)) ui_text_wrapped(r, top, bot, RW);
+    else if (hero_matrix(r, top, bot, RW)) ;
     else {
       int anti = e.in >= 0 && is_antideriv(Line[e.in].str) && !console_form_check((const char *)Line[e.out].str);
       fitc c = fitted(r, HERO_LV, anti ? RW - 36 : RW, bot - top > 18 ? bot - top : 18, MI_F_IMPLDOT);
