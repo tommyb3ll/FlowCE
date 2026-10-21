@@ -69,6 +69,7 @@ static const fm_item m_sym[] = { // what the keypad has no key for, or hides beh
   {"sqrt()", 1, 0, 0, 0, 0}, {"surd(,)", 2, 0, 0, 0, 0}, {"abs()", 1, 0, 0, 0, 0}, {"!", 0, "n!", 0, 0, 0},
   {"^()", 1, 0, 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0}, {"ln()", 1, 0, 0, 0, 0}, {"()/()", 4, 0, 0, 0, 0},
   {"=", 0, 0, 0, 0, 0}, {"<=", 0, 0, 0, 0, 0}, {">=", 0, 0, 0, 0, 0}, {"!=", 0, 0, 0, 0, 0},
+  {"'", 0, "y'", 0, 0, 0}, // the prime: y'=2y in desolve, f'(x) of a defined f (no key has it)
 };
 static const fm_item m_more[] = {
   {0, 0, 0, "Graph", "line or answer", FA_GRAPH},
@@ -101,9 +102,13 @@ static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
 };
 #undef N
 
-enum { RH = 30, LW = 252, CH = 40, CH2 = 60, CH2S = 48, ST = 16, SBOT = 218 };
-// (a card of four rows, the steps build's calculus card: lower cells, so it stays under the status bar)
-static int cellh(const fm_menu & m) { return m.grid == 2 ? ((m.n + m.cols - 1) / m.cols > 3 ? CH2S : CH2) : CH; }
+enum { RH = 30, LW = 252, CH = 40, CH2 = 60, ST = 16, SBOT = 218 };
+// a card's cell height: lower cells when its rows would cover the status bar (the steps build's
+// calculus card of ten, four rows: 48; the symbols with ', five rows: 38)
+static int cellh(const fm_menu & m) {
+  const int rows = (m.n + m.cols - 1) / m.cols, h = m.grid == 2 ? CH2 : CH;
+  return rows * h + 10 <= SBOT - ST ? h : (SBOT - ST - 10) / rows;
+}
 
 static int px, py, pw, ph, cw; // the card
 static int hdr;                // focus_list: the title's height at the top of the card
@@ -143,7 +148,7 @@ static void prepare(const fm_menu & m) {
     PLV[k] = -1;
     if (!t || (!m.grid && !it.text)) continue; // (a list's symbol column is text)
     if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) == CH2 ? 36 : 26, MI_F_CALLBOX, PL[k]);
-    else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, CH - 4, MI_F_CALLBOX, PL[k]);
+    else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, cellh(m) - 4, MI_F_CALLBOX, PL[k]);
     else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, MI_F_CALLBOX, PL[k]);
   }
 }
