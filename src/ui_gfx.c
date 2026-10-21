@@ -157,19 +157,36 @@ static void slot_rgb(int bank, int s, int * c) {
     int t = ((s - UC_COUNT) & 1) ? 2 : 1; // 1/3 or 2/3 of the way to the ink
     for (int i = 0; i < 3; ++i) c[i] = a[i] + ((b[i] - a[i]) * t) / 3;
   }
-  if (bank == 0 && dimmed)
-    for (int i = 0; i < 3; ++i) c[i] += ((TH->dim_to[i] - c[i]) * TH->dim_pct) / 100;
 }
+// the colors as worked out when a slot is written (bank 0 plain and dimmed): ui_dim and ui_set_theme
+// copy them in (working them out, divisions are helper calls, took ~10 ms each time: on every
+// display update, and when a card opened or closed)
+static unsigned short pal0[2][BANK0], pal1[128 - BANK0];
 static void write_slot(int bank, int s) {
   int c[3];
   slot_rgb(bank, s, c);
-  PALETTE[128 + bank * BANK0 + s] = rgb565(c[0], c[1], c[2]);
+  if (bank == 0) {
+    pal0[0][s] = rgb565(c[0], c[1], c[2]);
+    for (int i = 0; i < 3; ++i) c[i] += ((TH->dim_to[i] - c[i]) * TH->dim_pct) / 100;
+    pal0[1][s] = rgb565(c[0], c[1], c[2]);
+    PALETTE[128 + s] = pal0[dimmed][s];
+  } else PALETTE[128 + BANK0 + s] = pal1[s] = rgb565(c[0], c[1], c[2]);
 }
 static void write_bank(int bank) {
   for (int s = 0; s < UC_COUNT + 2 * nr[bank]; ++s) write_slot(bank, s);
 }
 
-void ui_set_theme(const ui_theme * t) { TH = t; write_bank(0); write_bank(1); }
+// the same theme: its colors copied in again (anything may have reset the palette)
+void ui_set_theme(const ui_theme * t) {
+  static const ui_theme * done;
+  if (t == done) {
+    memcpy((void *)&PALETTE[128], pal0[dimmed], 2 * (UC_COUNT + 2 * nr[0]));
+    memcpy((void *)&PALETTE[128 + BANK0], pal1, 2 * (UC_COUNT + 2 * nr[1]));
+    return;
+  }
+  TH = done = t;
+  write_bank(0); write_bank(1);
+}
 const ui_theme * ui_theme_now(void) { return TH; }
 // entries 32-127 lent to a card (their colors back at ui_borrow_end)
 static unsigned short lent[96];
@@ -188,7 +205,11 @@ void ui_borrow_mix(int i, const unsigned char * a, const unsigned char * b, int 
 void ui_borrow_end(void) {
   for (int k = 0; k < 96; ++k) if (lent_on[k]) { PALETTE[32 + k] = lent[k]; lent_on[k] = 0; }
 }
-void ui_dim(int on) { if (dimmed != on) { dimmed = on; write_bank(0); } }
+void ui_dim(int on) {
+  if (dimmed == on) return;
+  dimmed = on;
+  memcpy((void *)&PALETTE[128], pal0[on], 2 * (UC_COUNT + 2 * nr[0]));
+}
 void ui_restore_os_palette(void) {}
 unsigned char ui_col(int bank, int c) { return (unsigned char)(128 + bank * BANK0 + c); }
 
@@ -292,8 +313,19 @@ static void corner_shades(unsigned char * t, int r, int ring) {
 }
 enum { CT_N = 16 };
 static unsigned char * ct_tab[CT_N], ct_key[CT_N], ct_next; // (kept: r | ring << 6)
-// the table: the r x r shades, then (ring 0: a disc's corner, its shades rising along a row) per row
-// the first pixel shaded and the first full one
+// the table (r * r + 2 r bytes): the r x r shades, then (ring 0: a disc's corner, its shades rising
+// along a row) per row the first pixel shaded and the first full one
+static void corner_build(unsigned char * t, int r, int ring) {
+  corner_shades(t, r, ring);
+  const unsigned char * s = t;
+  unsigned char * za = t + r * r;
+  for (int j = 0; j < r; ++j, s += r, za += 2) {
+    int z = 0, a;
+    while (z < r && !s[z]) ++z;
+    for (a = z; a < r && s[a] < 3; ++a) ;
+    za[0] = (unsigned char)z; za[1] = (unsigned char)a;
+  }
+}
 static const unsigned char * corner_table(int r, int ring) {
   const unsigned char key = (unsigned char)(r | ring << 6);
   for (int i = 0; i < CT_N; ++i) if (ct_tab[i] && ct_key[i] == key) return ct_tab[i];
@@ -303,24 +335,22 @@ static const unsigned char * corner_table(int r, int ring) {
   unsigned char * t = (unsigned char *)malloc(r * r + 2 * r);
   if (!(ct_tab[i] = t)) return 0;
   ct_key[i] = key;
-  corner_shades(t, r, ring);
-  for (int j = 0; j < r; ++j) {
-    const unsigned char * s = t + j * r;
-    int z = 0, a;
-    while (z < r && !s[z]) ++z;
-    for (a = z; a < r && s[a] < 3; ++a) ;
-    t[r * r + 2 * j] = (unsigned char)z; t[r * r + 2 * j + 1] = (unsigned char)a;
-  }
+  corner_build(t, r, ring);
   return t;
 }
-// corners of a rounded rectangle (its r x r corner boxes) from the table, inside the clip; a disc's:
-// per row its full run filled at once, its 1 or 2 shaded edge pixels one by one
+// (keeps a darker shade of the ramp already there)
+static void shade(unsigned char * p, int lv, const unsigned char * ramp) {
+  const unsigned char o = *p;
+  const int ol = o == ramp[3] ? 3 : o == ramp[2] ? 2 : o == ramp[1] ? 1 : 0;
+  if (lv > ol) *p = ramp[lv];
+}
+// the corners of a 1 px rounded frame (ring 1) or of a fillet (ring 2): their r x r boxes from the
+// table, inside the clip
 static void corners(int x, int y, int w, int h, int r, const unsigned char * ramp, int ring) {
   if (r <= 0 || r > 60) return;
-  unsigned char tmp[64];
+  unsigned char tmp[8 * 8 + 16];
   const unsigned char * t = corner_table(r, ring);
-  if (!t) { if (r > 8) return; corner_shades(tmp, r, ring); t = tmp; ring |= 4; } // (no memory: worked out here, no runs)
-  const unsigned char c1 = ramp[1], c2 = ramp[2], c3 = ramp[3];
+  if (!t) { if (r > 8) return; corner_build(tmp, r, ring); t = tmp; } // (no memory: worked out here)
   for (int q = 0; q < 4; ++q) {
     const int bx = (q & 1) ? x + w - r : x, by = (q & 2) ? y + h - r : y;
     int j0 = ui_cy0 - by, j1 = ui_cy1 - by, i0 = ui_cx0 - bx, i1 = ui_cx1 - bx; // (the box inside the clip)
@@ -331,38 +361,61 @@ static void corners(int x, int y, int w, int h, int r, const unsigned char * ram
     if (i0 >= i1) continue;
     unsigned char * row = ui_fb + (by + j0) * UI_W + bx;
     for (int j = j0; j < j1; ++j, row += UI_W) {
-      const int jj = (q & 2) ? r - 1 - j : j;
-      const unsigned char * s = t + jj * r;
-      int e0 = i0, e1 = i1; // the pixels done one by one (all of them but a disc's full run)
-      if (!ring) {
-        const int z = t[r * r + 2 * jj], a = t[r * r + 2 * jj + 1];
-        int f0 = (q & 1) ? 0 : a, f1 = (q & 1) ? r - a : r; // the full run, mirrored at the right
-        if (f0 < i0) f0 = i0;
-        if (f1 > i1) f1 = i1;
-        if (f1 > f0) memset(row + f0, c3, f1 - f0);
-        e0 = (q & 1) ? r - a : z; e1 = (q & 1) ? r - z : a; // the shaded edge
-        if (e0 < i0) e0 = i0;
-        if (e1 > i1) e1 = i1;
-      }
-      for (int i = e0; i < e1; ++i) {
+      const unsigned char * s = t + ((q & 2) ? r - 1 - j : j) * r;
+      for (int i = i0; i < i1; ++i) {
         const int lv = s[(q & 1) ? r - 1 - i : i];
-        if (!lv) continue;
-        unsigned char * p = row + i, o = *p; // (keeps the darker shade, as put)
-        const int ol = o == c3 ? 3 : o == c2 ? 2 : o == c1 ? 1 : 0;
-        if (lv > ol) *p = ramp[lv];
+        if (lv) shade(row + i, lv, ramp);
       }
     }
   }
 }
 
+// one corner row of a filled rounded rectangle [x, x + w): its run from a to w - a, the shaded edge
+// pixels [z, a) at both ends (s: the table's row, za: its z and a)
+static void rr_row(unsigned char * row, int x, int w, const unsigned char * s, const unsigned char * za, const unsigned char * ramp) {
+  const int z = za[0], a = za[1], cx0 = ui_cx0, cx1 = ui_cx1;
+  int f0 = x + a, f1 = x + w - a;
+  if (f0 < cx0) f0 = cx0;
+  if (f1 > cx1) f1 = cx1;
+  if (f1 > f0) memset(row + f0, ramp[3], f1 - f0);
+  for (int i = z; i < a; ++i) {
+    const int lv = s[i], l = x + i, rt = x + w - 1 - i;
+    if (!lv) continue;
+    if (l >= cx0 && l < cx1) shade(row + l, lv, ramp);
+    if (rt >= cx0 && rt < cx1) shade(row + rt, lv, ramp);
+  }
+}
 void ui_rrect(int bank, int x, int y, int w, int h, int r, int c, int bg) { ui_rrect_r(x, y, w, h, r, ui_ramp(bank, c, bg)); }
+// by rows, inside the clip: the top corners' rows, the middle ones (one run each), the bottom
+// corners' (their table rows upward). (Its fills and corners apart made ~100 memset calls a tile.)
 void ui_rrect_r(int x, int y, int w, int h, int r, const unsigned char * ramp) {
+  if (w <= 0 || h <= 0) return;
   if (r * 2 > h) r = h / 2;
   if (r * 2 > w) r = w / 2;
-  ui_fill(x + r, y, w - 2 * r, h, ramp[3]);
-  ui_fill(x, y + r, r, h - 2 * r, ramp[3]);
-  ui_fill(x + w - r, y + r, r, h - 2 * r, ramp[3]);
-  corners(x, y, w, h, r, ramp, 0);
+  if (r > 60) r = 60;
+  unsigned char tmp[8 * 8 + 16];
+  const unsigned char * t = r > 0 ? corner_table(r, 0) : 0;
+  if (r > 0 && !t) { if (r > 8) r = 8; corner_build(tmp, r, 0); t = tmp; } // (no memory: worked out here)
+  int j = ui_cy0 - y, j1 = ui_cy1 - y; // the rows and columns inside the clip (it may be empty)
+  if (j < 0) j = 0;
+  if (j1 > h) j1 = h;
+  const int f0 = x < ui_cx0 ? ui_cx0 : x, n = (x + w > ui_cx1 ? ui_cx1 : x + w) - f0;
+  if (j >= j1 || n <= 0) return;
+  unsigned char * row = ui_fb + (y + j) * UI_W;
+  if (j < r)
+    for (const unsigned char * s = t + j * r, * za = t + r * r + 2 * j; j < r && j < j1; ++j, row += UI_W, s += r, za += 2)
+      rr_row(row, x, w, s, za, ramp);
+  const int m1 = h - r < j1 ? h - r : j1;
+  for (; j < m1; ++j, row += UI_W) memset(row + f0, ramp[3], n);
+  // the bottom corners' rows from the last one up, the table's rows downward. (Walked downward with
+  // s -= r, clang 19 (CE toolchain 15.0) counted the rows from a subtraction that kept the borrow
+  // of -r: one row short, and none left for a 3 px high tile: 16 M rows, a reset.)
+  if (j < j1) {
+    const int k = h - j1; // the table row of the last row drawn
+    row += (j1 - 1 - j) * UI_W;
+    for (const unsigned char * s = t + k * r, * za = t + r * r + 2 * k; j < j1; ++j, row -= UI_W, s += r, za += 2)
+      rr_row(row, x, w, s, za, ramp);
+  }
 }
 
 void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg) {

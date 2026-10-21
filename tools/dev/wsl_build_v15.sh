@@ -63,6 +63,8 @@ pack_all() { # the link at the app's final address (from the size linked at 0), 
 link 0
 # v15's frame bias miscompiles functions with variable-length arrays: refuse such a build
 python3 tools/dev/v15_biascheck.py obj/lto.s || { echo "[build] REFUSED (tools/dev/v15_biascheck.py)"; exit 1; }
+# and drops the carry clear before some subtractions (a stale borrow): refuse those too
+python3 tools/dev/v15_carrycheck.py obj/lto.s || { echo "[build] REFUSED (tools/dev/v15_carrycheck.py)"; exit 1; }
 pack_all
 if [ "$last" -lt 1024 ]; then
   # INST stops on a last AppIns under 1 KB, whatever their number (DeltaCE: a 42-piece build with 86

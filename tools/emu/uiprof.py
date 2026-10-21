@@ -17,7 +17,7 @@ from cemu import Emu, KB, map_symbol
 
 args = sys.argv[1:]
 state, setup, key = args.pop(0), args.pop(0), args.pop(0)
-R, IV, W, TOP, IDLE_MS = 3, 2, 3000, 30, 0
+R, IV, W, TOP, IDLE_MS, WHO = 3, 2, 3000, 30, 0, None
 while args:
     a = args.pop(0)
     if a == '-r': R = int(args.pop(0))
@@ -25,6 +25,7 @@ while args:
     elif a == '-w': W = int(args.pop(0))
     elif a == '-n': TOP = int(args.pop(0))
     elif a == "-idle": IDLE_MS = int(args.pop(0))  # idle ms before the setup (focus_warm works ahead)
+    elif a == "-who": WHO = args.pop(0)  # its callers: the frame above it, per sample under it (a symbol name)
 
 mapfile = f'{KB}/emu/states/{state}.map'
 syms = []
@@ -42,7 +43,8 @@ hook, tick, polls = sym('__ZN4giac14control_c_hookE'), sym('__Z15focus_busy_tick
 u24 = lambda b, i=0: b[i] | b[i + 1] << 8 | b[i + 2] << 16
 CALLS = {0xCD, 0xC4, 0xCC, 0xD4, 0xDC, 0xE4, 0xEC, 0xF4, 0xFC}
 off = None
-self_n, incl_n, n, ms = {}, {}, 0, []
+self_n, incl_n, n, ms, span, osms = {}, {}, 0, [], [], []
+who_n = {}
 
 
 app_lo = min(a for a, _ in syms if a >= 0x100000)  # below: the OS's entry points (_boot_..., _os_...)
@@ -96,6 +98,7 @@ for rep in range(R):
         do_setup(e)
         e.cmd(f'keydown {key}')  # (sampled while held too: e.key's hold and 60 ms gap hid the work's start)
         t, quiet, incs, last, busy = 0, 0, 0, u24(e.peek(polls, 3)), 0
+        first, lastb, os_t = None, None, []
         while t < W:
             e.run(IV)
             t += IV
@@ -109,17 +112,22 @@ for rep in range(R):
             if os.environ.get('UIPROF_TRACE') and t <= 200:
                 print(f'  t={t} {f} polls={c}', flush=True)
             if idle(f):  # getkey waits (sleep), polling every 10 ms: done when it stays so through two polls
+                if f == '(OS)':  # (the OS's helpers too: divisions, multiplications called by the app)
+                    os_t.append(t)
                 quiet += IV
                 incs += c != last
                 last = c
                 if quiet >= 30 and incs >= 2 and (busy or t >= 300):  # (not before the key was read)
                     break
                 continue
+            if first is None:
+                first = t
+            lastb = t
             quiet, incs, last = 0, 0, c
             busy += IV
             n += 1
             self_n[f] = self_n.get(f, 0) + 1
-            seen = {f}
+            seen, chain = {f}, [f]
             for _ in range(64):  # the frames: ix -> (saved ix, return address)
                 if not 0xD00000 <= ix < top:
                     break
@@ -127,12 +135,20 @@ for rep in range(R):
                 ret, ix2 = u24(b, 3), u24(b, 0)
                 if app_lo <= ret - off < code_hi:
                     seen.add(fn_of(ret))
+                    chain.append(fn_of(ret))
                 if ix2 <= ix:
                     break
                 ix = ix2
             for g in seen:
                 incl_n[g] = incl_n.get(g, 0) + 1
+            if WHO and WHO in chain:  # (the outermost WHO: recursion counted once)
+                k = len(chain) - 1 - chain[::-1].index(WHO)
+                c2 = chain[k + 1] if k + 1 < len(chain) else '(top)'
+                who_n[c2] = who_n.get(c2, 0) + 1
         ms.append(busy)
+        # span: the first to the last sample in the app's code (OS calls inside it included); os: those
+        span.append(lastb - first + IV if first is not None else 0)
+        osms.append(IV * sum(1 for x in os_t if first is not None and first <= x <= lastb))
     finally:
         e.close()
 
@@ -146,8 +162,8 @@ def dem(names):
         return names
 
 
-print(f'{key} after {setup}: {R} runs, busy {ms} ms; {n} samples every {IV} ms (offset {off})')
-for title, d in (('self (running)', self_n), ('inclusive (on the stack)', incl_n)):
+print(f'{key} after {setup}: {R} runs, busy {ms} ms; {n} samples every {IV} ms (offset {off}); span {span} ms, os {osms} ms')
+for title, d in (('self (running)', self_n), ('inclusive (on the stack)', incl_n)) + ((('callers of ' + str(WHO), who_n),) if WHO else ()):
     top_n = sorted(d.items(), key=lambda x: -x[1])[:TOP]
     print(f'--- {title}')
     for (name, c), dn in zip(top_n, dem([x[0] for x in top_n])):
