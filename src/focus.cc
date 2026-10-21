@@ -725,7 +725,7 @@ extern "C" void focus_status_msg(const char * msg) {
   else { strncpy(m, msg, sizeof(m) - 1); m[sizeof(m) - 1] = 0; }
   if (!strcmp(m, smsg)) return;
   strcpy(smsg, m);
-  status_draw(0);
+  if (!focus_hold) status_draw(0); // (the start screen, the session loading: no status line over it)
 }
 
 // The standard layer is the prototype's: an icon and a word per key (algebra, calculus, trig,
