@@ -209,11 +209,12 @@ export class Calculator {
 
   // var: { name, type, data, version, archived }; onBytes(n): bytes of the data sent so far
   async sendVar(v, onBytes) {
+    const app = v.type === 0x24;
     const attrs = [
-      ...be(3, 2),
+      ...be(app ? 2 : 3, 2),
       ...be(0x02, 2), ...be(4, 2), 0xf0, 0x0f, 0x00, v.type, // variable type (CE)
       ...be(0x03, 2), ...be(1, 2), v.archived ? 1 : 0, // archived
-      ...be(0x08, 2), ...be(4, 2), 0, 0, 0, v.version || 0, // version
+      ...(app ? [] : [...be(0x08, 2), ...be(4, 2), 0, 0, 0, v.version || 0]), // version (variables only)
     ];
     await this.send(VIRT.RTS, [...be(v.name.length, 2), ...ascii(v.name), 0, ...be(v.data.length, 4), 1, ...attrs]);
     await this.expect(VIRT.DATA_ACK);
@@ -226,6 +227,17 @@ export class Calculator {
     await this.send(VIRT.EXECUTE, [0, 0, 3, 0, code], null, Math.min(timeout, 10000));
     await this.expect(VIRT.DATA_ACK, timeout);
   }
+}
+
+// Signed CE app (.8ek), as in CEmu core/usb/dusb.c. TI-OS verifies the signature on receipt.
+export function readAppFile(bytes) {
+  if (bytes.length < 78 || String.fromCharCode(...bytes.slice(0, 8)) !== '**TIFL**' ||
+      bytes[48] !== 0x73 || bytes[49] !== 0x24 || !bytes[16] || bytes[16] > 8)
+    throw new Error('The installer prerequisite is not a signed TI CE app. Reload the page.');
+  const size = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(74, true);
+  if (size !== bytes.length - 78) throw new Error('The TI app download is incomplete. Reload the page.');
+  return { name: String.fromCharCode(...bytes.slice(17, 17 + bytes[16])), type: 0x24,
+    archived: true, data: bytes.slice(78) };
 }
 
 // The variables of a TI-83 Plus family file (.8xp, .8xv): [{ name, type, version, archived, data }]

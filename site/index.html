@@ -63,14 +63,14 @@
     </label>
   </div>
 
-  <p class="need">You need a TI-84 Plus CE on OS 5.3 to 5.8.4, its USB cable, and Chrome or Edge on a computer. <strong>Installing erases the calculator's apps and archived files.</strong></p>
+  <p class="need">You need a TI-84 Plus CE, its USB cable, and Chrome or Edge on a computer. The page reads your OS and chooses the installer: v2.1 through 5.8.4, v3 on 5.8.5. <strong>Installing erases the calculator's apps and archived files.</strong></p>
 
   <div class="installer" id="installer">
     <div class="notice" id="no-usb" hidden>
       <strong>This browser can't reach a calculator.</strong> Use Chrome or Edge on a computer, or <a href="#manual">TI Connect CE</a>.
     </div>
     <div class="notice" id="win-note" hidden>
-      <strong>On Windows:</strong> install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer first. The page uses its USB driver; you don't need to open it.
+      <strong>Windows USB connection needs a driver update:</strong> install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer, then close it and reconnect here.
     </div>
 
     <ol class="steps">
@@ -87,35 +87,66 @@
         <div class="step-head"><span class="num">2</span><h3>Install</h3></div>
         <div class="step-body">
           <div id="erase-part">
-            <label class="confirm"><input type="checkbox" id="erase-ok"> <span>Erase all apps and archived files on my calculator</span></label>
+            <label class="confirm"><input type="checkbox" id="erase-ok"> <span id="erase-label">Erase all apps and archived files on my calculator</span></label>
           </div>
           <button class="btn primary" id="btn-install" disabled>Install FlowCE</button>
           <button class="btn primary" id="btn-reconnect" hidden>Reconnect calculator</button>
           <div class="progress" id="progress" hidden><div class="bar"><span id="bar"></span></div></div>
           <div class="status" id="st-install" aria-live="polite"></div>
+          <div class="notice" id="v3-guidance" hidden>
+            <div class="status" id="st-v3" aria-live="polite"></div>
+            <button class="btn primary" id="btn-v3-next">Continue</button>
+          </div>
           <p class="fine">Sends <span id="version">FlowCE</span>.</p>
         </div>
       </li>
 
       <li class="step" data-step="finish">
-        <div class="step-head"><span class="num">3</span><h3>Press enter on the calculator</h3></div>
+        <div class="step-head"><span class="num">3</span><h3>Finish on the calculator</h3></div>
         <div class="step-body">
-          <p>When it shows <strong>INST</strong>, press <kbd>enter</kbd> once. It installs and restarts by itself (<em>"RAM Cleared"</em>). Then <kbd>apps</kbd> → <strong>FlowCE</strong>.</p>
+          <p id="finish-intro">When it shows <strong>INST</strong>, press <kbd>enter</kbd> once. It installs and restarts by itself (<em>"RAM Cleared"</em>). Then <kbd>apps</kbd> → <strong>FlowCE</strong>.</p>
           <div class="status" id="st-finish" aria-live="polite"></div>
-          <img class="gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and FlowCE">
+          <img class="gif" id="install-gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and FlowCE">
+          <button class="btn" id="btn-finished" hidden>FlowCE opened successfully</button>
         </div>
       </li>
     </ol>
   </div>
 
   <details class="manual" id="manual">
-    <summary>Install with TI Connect CE instead</summary>
+    <summary>Install with TI Connect CE: OS 5.3–5.8.4</summary>
     <ol>
       <li>Clear the archive: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
       <li>Download <a id="dl" href="files/FlowCE.b84" download>FlowCE.b84</a> and send it with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>.</li>
       <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens arTIfiCE. <kbd>enter</kbd> starts INST, <kbd>enter</kbd> again installs.</li>
       <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>. Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
     </ol>
+  </details>
+
+  <details class="manual" id="os-help">
+    <summary>“Unknown OS version”, or updating the calculator</summary>
+    <p>If INST shows “Unknown OS version”, stop and <a href="https://github.com/tommyb3ll/FlowCE/issues/new/choose">report your model, OS and boot-code versions</a>. An OS update may leave the boot code unchanged, so upgrading is not a confirmed fix. If FlowCE already works, keep your OS.</p>
+    <p>If you choose to update, TI currently offers OS 5.8.5. <strong>TI says you cannot downgrade afterward.</strong></p>
+    <ol>
+      <li>Back up the calculator's files to your computer with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>.</li>
+      <li>Use <a href="https://education.ti.com/en/software/update/84-ce-software-update">TI's update page</a> and choose your exact calculator model.</li>
+      <li>Keep the calculator connected and powered. In TI Connect CE, choose <strong>Actions → Send OS/Bundles to Calculators…</strong>, select the downloaded OS file, then <strong>Send</strong>. Wait until the transfer and restart finish. <a href="https://education.ti.com/en/customer-support/knowledge-base/ti-83-84-plus-family/product-usage/37042">TI's illustrated instructions</a>.</li>
+      <li>Close TI Connect CE. Return here and connect again: this page detects 5.8.5 and selects arTIfiCE v3.</li>
+    </ol>
+  </details>
+
+  <details class="manual" id="manual-585">
+    <summary>Install on OS 5.8.5 with TI Connect CE</summary>
+    <p>Back up your files first. FlowCE replaces the other apps. Keep your current OS; upgrading isn't needed to use FlowCE.</p>
+    <ol>
+      <li>Clear the archive before starting: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
+      <li>Follow the <a href="https://yvantt.github.io/arTIfiCE/">official arTIfiCE v3 instructions for OS 5.8.5</a>: install Inequalz, reset RAM, send <code>arTIfiCE.8xp</code> to RAM, open Inequalz's Functions screen, then send <code>INEQUVAR.8xv</code>. After the restart, press <kbd>on</kbd> if the screen stays black.</li>
+      <li><kbd>apps</kbd> → <strong>AsmHook2</strong>. Dismiss “Installation successful!” to return to the home screen.</li>
+      <li>Download the version selected above: <a href="files/FlowCE.b84" download>FlowCE</a> or <a href="files/FlowCE-steps.b84" download>FlowCE Steps (beta)</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
+      <li><kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. Ignore the bundle's program A; it is for older OS versions. Press <kbd>enter</kbd> at the install prompt, then wait for the countdown to finish.</li>
+      <li>At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+    </ol>
+    <p class="fine">Verified in CEmu on OS 5.8.5.0074 with boot code 5.6.1.0006. Calculators with newer boot code still need verification. If INST says “Unknown OS version”, report your model, OS and boot-code versions.</p>
   </details>
 
   <details class="manual">
@@ -128,7 +159,8 @@
       <li><strong>"RAM Cleared" but this page still waits:</strong> FlowCE is installed. Press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
       <li><strong>Frozen at "Success! Will now reset":</strong> press the reset button on the back (a pen tip). FlowCE stays installed.</li>
       <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed.</li>
-      <li><strong>OS 5.8.5 or newer:</strong> not supported yet (the installer's arTIfiCE v2.1 works up to 5.8.4).</li>
+      <li><strong>OS 5.8.5:</strong> the page selects v3. Follow its calculator prompts, or use <a href="#manual-585">TI Connect CE</a>. OS 5.8.4.0058 uses v2.1.</li>
+      <li><strong>INST says “Unknown OS version”:</strong> see <a href="#os-help">OS help and update instructions</a>. Updating is not a confirmed fix for newer boot code.</li>
     </ul>
     <p class="fine">Something else, or a wrong answer? <a href="https://github.com/tommyb3ll/FlowCE/issues/new/choose">Report it on GitHub</a> or on the <a href="https://www.cemetech.net/forum/viewtopic.php?t=21437">Cemetech thread</a>.</p>
   </details>

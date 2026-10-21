@@ -86,7 +86,8 @@ class FakeCE {
         for (let i = 0; i < nat; i++) { const id = num(d.slice(j, j + 2)), s = num(d.slice(j + 2, j + 4)); at[id] = d.slice(j + 4, j + 4 + s); j += 4 + s; }
         if (j !== d.length) throw new Error('RTS has trailing bytes');
         if (at[2].join() !== [0xf0, 0x0f, 0x00, at[2][3]].join()) throw new Error('bad CE type attribute');
-        this.pending = { name, size: vsize, type: at[2][3], archived: at[3][0] === 1, version: at[8][3] };
+        if (nat !== (at[2][3] === 0x24 ? 2 : 3)) throw new Error('wrong attribute count for app/variable');
+        this.pending = { name, size: vsize, type: at[2][3], archived: at[3][0] === 1, version: at[8] ? at[8][3] : 0 };
         return this.emitVirt(0xaa00, [0, 1]);
       }
       case 0x000d: // variable contents

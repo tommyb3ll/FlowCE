@@ -8,6 +8,7 @@
   const MODE = P.get('erase') || 'stay';
   const ERASE_MS = +(P.get('ms') || 4000);
   const KEPT = +(P.get('kept') || 0), NODELETE = P.get('nodelete') === '1';
+  const OS = (P.get('os') || '5.8.0.22').split('.').map(Number);
   const LANG = ['Deutsch', 'Espanol', 'Francais', 'Svenska', 'Portugal'];
   const startFiles = () => [
     { name: 'GAME', type: 0x05, size: 20000, archived: true },
@@ -55,7 +56,7 @@
 
   const usb = new EventTarget();
   let remembered = true;
-  window.fake = new FakeCE2({ freeFlash: +(P.get('flash') || 400000), files: startFiles() });
+  window.fake = new FakeCE2({ os: OS, freeFlash: +(P.get('flash') || 400000), files: startFiles() });
   usb.requestDevice = async () => window.fake;
   usb.getDevices = async () => (remembered && !window.fake.gone ? [window.fake] : []);
   const fire = (type, device) => { const e = new Event(type); e.device = device; usb.dispatchEvent(e); };
@@ -64,7 +65,7 @@
     const old = window.fake;
     old.gone = true; old.opened = false;
     fire('disconnect', old);
-    window.fake = new FakeCE2({ freeFlash: old.freeFlash, files: old.files });
+    window.fake = new FakeCE2({ os: OS, freeFlash: old.freeFlash, files: old.files });
     window.fake.previous = old;
     remembered = false;
   };
