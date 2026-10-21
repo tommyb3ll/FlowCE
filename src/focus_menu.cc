@@ -114,17 +114,26 @@ static int cellh(const fm_menu & m) {
 }
 
 static int px, py, pw, ph, cw; // the card
+// a list with formulas (the algebra card, practice topics, fits): the card's width, its labels at
+// the right; its rows taller (a fraction, d/dx)
+static int formulas(const fm_menu & m) { for (int k = 0; k < m.n; ++k) if (m.items[k].text) return 1; return 0; }
 static int hdr;                // focus_list: the title's height at the top of the card
 static const char * title;
 static int top, vis = 99, rh = RH; // focus_list: the first row shown, the rows shown, their height
-static void geometry(int id, const fm_menu & m) {
+static int rh_need; // (prepare) the rows a list's formulas need, at one size
+// rmin: a list's rows at least so tall (its formulas'), fewer of them shown when it scrolls
+static void geometry(int id, const fm_menu & m, int rmin = 0) {
   if (m.grid) {
     cw = m.grid == 2 ? (m.cols == 3 ? 100 : 150) : m.cols == 3 ? 76 : 60;
     pw = m.cols * cw + 10; ph = grid_rows(m) * cellh(m) + (m.wide ? BH : 0) + 10;
   } else { // (a long list: vis rows, scrolled; DeltaCE: rows lower than RH when they would cover the status bar)
-    const int rows = m.n < vis ? m.n : vis;
-    rh = rows * RH + 10 > SBOT - ST - 2 ? (SBOT - ST - 12) / rows : RH;
-    pw = LW; ph = rows * rh + 10;
+    const int f = formulas(m), r0 = f ? (rmin > RH + 2 ? rmin : RH + 2) : RH;
+    int rows = m.n < vis ? m.n : vis;
+    if (rows * r0 + 10 > SBOT - ST - 2) {
+      if (rmin && vis < 99) rows = vis = (SBOT - ST - 12) / r0;
+      rh = (SBOT - ST - 12) / rows;
+    } else rh = r0;
+    pw = f ? 310 : LW; ph = rows * rh + 10;
   }
   int anchor = id < 5 ? 32 + 64 * id : UI_W / 2, mg = id < 5 ? 1 : 4; // (DeltaCE: a key's card over its whole tab)
   px = anchor - pw / 2;
@@ -140,6 +149,12 @@ static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & 
   else { x = px + 5; y = py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
 }
 
+// a list row's width for its formula: from after the keycap to its label (at the right), apart
+static int lroom(const fm_menu & m, int k) {
+  const fm_item & it = m.items[k];
+  const int w = pw - (m.n > vis ? 18 : 10), lw = it.label ? ui_text_width(&ui_tr12, it.label, -1) + 18 : 0;
+  return w - 40 - lw > 40 ? w - 40 - lw : 40;
+}
 // the previews of the open menu, laid out once (empty arguments drawn as boxes)
 static mi_layout * PL;
 static signed char PLV[16];
@@ -158,8 +173,29 @@ static void prepare(const fm_menu & m) {
     if (m.grid && m.wide && k == m.n - 1) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, 64, BH - 10, fl, PL[k]);
     else if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) - 24, fl, PL[k]);
     else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, cellh(m) - 4, MI_F_CALLBOX, PL[k]);
-    else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, fl, PL[k]);
+    else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, lroom(m, k), 200, fl, PL[k]); // (its width)
   }
+  if (m.grid) return;
+  // a list's formulas one size: the smallest any needs for its width (12 px at least: smaller
+  // ones alone); rh_need: the rows as tall as the tallest at that size (focus_card_list makes
+  // them so); in shorter rows, the tall ones smaller
+  int lv = 0, hm;
+  for (int k = 0; k < m.n; ++k) if (PLV[k] > lv && PLV[k] <= 6) lv = PLV[k];
+  for (int pass = 0; pass < 2; ++pass)
+    for (;;) { // (pass 0: the size; a size smaller when the tallest needs more than 40 px: 4 rows shown)
+      hm = 0;
+      for (int k = 0; k < m.n; ++k) {
+        if (PLV[k] < 0) continue;
+        const fm_item & it = m.items[k];
+        const char * t = it.pv ? it.pv : it.text;
+        if (pass ? PL[k].asc + PL[k].desc > rh - 8 : PLV[k] < lv)
+          PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, pass ? PLV[k] : lv, lroom(m, k), pass ? rh - 8 : 200, it.pv ? MI_F_IMPLDOT : MI_F_CALLBOX, PL[k]);
+        if (PL[k].asc + PL[k].desc > hm) hm = PL[k].asc + PL[k].desc;
+      }
+      if (!pass) rh_need = hm + 8;
+      if (pass || hm <= 40 || lv >= 6) break;
+      ++lv;
+    }
 }
 // item k's preview, centered vertically at ymid; centered in w if center, else from x
 static void preview(int k, const char * t, int x, int ymid, int w, int ink, int bg, int center) {
@@ -188,7 +224,7 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
   const fm_item & it = m.items[k];
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
-  int on = k == sel, bg = on ? UC_ACC : m.grid ? UC_TILE : UC_CARD, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
+  int on = k == sel, bg = on ? UC_ACC : UC_TILE, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
   ui_clip(x, y, x + w, y + h);
   ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
@@ -208,8 +244,8 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
         ui_draw_text(f, it.label, -1, x + (w - lw) / 2, alone ? y + h / 2 + 5 : y + h - 8, ui_ramp(1, alone ? fg : sub, bg), 0);
       }
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
-  } else {
-    if (on) ui_rrect(1, x, y, w, h, 6, UC_ACC, UC_CARD);
+  } else { // a list: each row on its tile, as the grids' items; a formula's label at the right, gray
+    ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, bg, UC_CARD);
     if (k < 9) { // a keycap: its digit's ink centered in the frame (from the advance, the 1 sat right)
       const char num[2] = {(char)('1' + k), 0};
       const int fx = x + 9, fy = y + h / 2 - 7;
@@ -219,10 +255,11 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
     }
     int lx = x + 30;
     if (it.text) {
-      ui_clip(x + 26, y, x + 128, y + h);
-      preview(k, it.pv ? it.pv : it.text, x + 28, y + h / 2, 98, fg, bg, 0);
-      ui_clip(x, y, x + w, y + h);
-      lx = x + 132;
+      if (it.label) ui_draw_text(&ui_tr12, it.label, -1, x + w - 10 - ui_text_width(&ui_tr12, it.label, -1), y + h / 2 + 5, ui_ramp(1, sub, bg), 0);
+      ui_clip(x + 26, y, x + 30 + lroom(m, k), y + h);
+      preview(k, it.pv ? it.pv : it.text, x + 30, y + h / 2, 0, fg, bg, 0);
+      ui_noclip();
+      return;
     }
     else if (it.pv) { // the symbol column
       sym_text(it.pv, x + 50, y + h / 2, fg, bg);
@@ -659,6 +696,11 @@ int focus_card_list(int col, const char * word, const char * const * maths, cons
   tab_word_ = word;
   geometry(col, m);
   prepare(m);
+  if (maths && rh_need > rh) { // (a tall formula, d/dx: taller rows, fewer of them shown)
+    geometry(col, m, rh_need);
+    top = sel >= vis ? sel - vis + 1 : 0;
+    prepare(m);
+  }
   open_card(m, col, 0, sel);
   cur = col;
   const int r = run_keys(m, sel, 0);
