@@ -875,6 +875,7 @@ static void stage_rows(int y0, int y1) { // repaints rows [y0, y1) through the s
     focus_phase = 31;
     ui_band_end();
     focus_phase = ph;
+    key_latch(); // (a key typed during a repaint of the stage, 0.3 s after a menu, is kept)
   }
 }
 

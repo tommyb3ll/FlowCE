@@ -124,6 +124,7 @@ extern "C" {
   void GetKey(int * key);
   int getkey(int allow_suspend); // transformed
   int key_waiting(void); // a key was pressed (kept for the next getkey): long drawing can stop
+  void key_latch(void); // the same, the poll counter untouched: drawing that must finish keeps a key
   void key_discard(void); // forget the key key_waiting() kept
   inline void ck_getkey(int *key){ GetKey(key);}
   void enable_back_interrupt();

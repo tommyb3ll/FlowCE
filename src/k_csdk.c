@@ -149,17 +149,33 @@ void dbgprint(int i){
 // getkey polls (test harness: tools/emu waits for this counter to move = ready for the next key)
 volatile unsigned getkey_polls;
 static char lcd_off; // turned off by getkey (2nd ON, or idle): the next ON turns the screen on
-// A key read by key_waiting() while drawing, returned by the next getkey: drawing that checks
-// between steps loses no key (os_GetCSC only sees a key still down when it is called).
-static unsigned char key_csc;
+// Keys read while drawing (key_waiting, key_latch), returned in order by the next getkeys: drawing
+// that checks between steps loses no key (os_GetCSC only sees a key still down when it is called).
+// Up to 4: keys typed every 0.25 s while a menu card opened for 0.6 s were all kept.
+static unsigned char key_q[4], key_n;
+static unsigned char key_pop(void){
+  const unsigned char k=key_q[0];
+  for (unsigned char i=1;i<key_n;++i) key_q[i-1]=key_q[i];
+  --key_n;
+  return k;
+}
+static void key_push(void){
+  if (key_n<sizeof(key_q)){
+    const unsigned char k=os_GetCSC();
+    if (k) key_q[key_n++]=k;
+  }
+}
 int key_waiting(void){
-  if (!key_csc){
-    key_csc=os_GetCSC();
+  if (!key_n){
+    key_push();
     ++getkey_polls;
   }
-  return key_csc;
+  return key_n?key_q[0]:0;
 }
-void key_discard(void){ key_csc=0; } // the key that skipped an animation is not typed
+void key_discard(void){ if (key_n) key_pop(); } // the key that skipped an animation is not typed
+// key_waiting() unseen by the test harness (getkey_polls stays), also behind keys already kept: a
+// card opening for longer than a key press (the calculus card, 0.5 s: F2 then 1 lost the 1)
+void key_latch(void){ key_push(); }
 int getkey(int allow_suspend){
   sync_screen();
   display_time();//statusline(0);
@@ -197,8 +213,7 @@ int getkey(int allow_suspend){
           display_time();
         if ((j&0x1ff)==0x1ff)
           focus_idle();
-        i=key_csc?key_csc:os_GetCSC();
-        key_csc=0;
+        i=key_n?key_pop():os_GetCSC();
         ++getkey_polls;
       }
       os_wait_1ms(10);      

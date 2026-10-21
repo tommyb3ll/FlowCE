@@ -241,7 +241,7 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
       if (!m.grid && (k < top || k >= top + vis)) continue; // scrolled out of a long list
       int x, y, w, h;
       item_box(m, k, x, y, w, h);
-      if (y < e && y + h > b) paint_item(m, k, sel);
+      if (y < e && y + h > b) { paint_item(m, k, sel); key_latch(); }
     }
     if (!m.grid && m.n > vis) { // a long list's scroll bar
       int ty = py + 5 + hdr, th = vis * rh, tx = px + pw - 10;
@@ -744,9 +744,13 @@ int focus_popover(int key, const char ** text, int * back) {
       else { *text = it.text; *back = it.back; res = FA_INSERT; }
     }
 #ifdef FLOWCE_STEPS
-    if (res == FA_APPS) { // the applications' card in its place
-      close_card(0, 1);
+    if (res == FA_APPS) { // the applications' card in its place, the scene still dimmed: only the
+      const int oy = py;  // strip the calculus card showed above it is repainted (the stage under
+      delete[] PL;        // it all was, 0.2 s: keys typed meanwhile were lost)
+      PL = 0;
       sub = &M_APPS;
+      geometry(id, *sub);
+      if (py > oy) focus_repaint(oy - 2, py);
       continue;
     }
 #endif
