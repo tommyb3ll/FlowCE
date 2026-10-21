@@ -562,7 +562,7 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 #ifdef FLOWCE_STEPS
       // the steps of a derivative or an integral: a filled chip, the action of Enter (console.cc)
       const int sw = steps_input(e) ? ui_text_width(&ui_tb9, "steps", -1) + ui_text_width(&ui_tb9, "enter", -1) + 28 : 0;
-      if (aw + cw2 + sw > kw - 8) { aw = 0; *abuf = 0; }
+      if (aw + cw2 + sw > UI_W - 16) { aw = 0; *abuf = 0; }
 #else
       const int sw = 0;
 #endif
