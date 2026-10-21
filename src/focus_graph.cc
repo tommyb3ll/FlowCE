@@ -1597,13 +1597,14 @@ static NOINL void run(float a, float b, bool eqs) {
     vx0 = (x0 + x1) / 2 - w / 2; vx1 = vx0 + w; vy0 = (y0 + y1) / 2 - h / 2; vy1 = vy0 + h;
   }
   w0 = vx1 - vx0;
-  int in = 0, all = 0; // y from -10 to 10, unless the curves are mostly outside: fitted to them
+  int in = 0, all = 0; // y from -10 to 10, unless the curves are mostly outside, or within a quarter
+  float lo = 1e30f, hi = -1e30f; // of it (sin x was a flat line): fitted to them
   for (int i = 0; i < NF && !eqs && !KIND_; ++i)
     for (int c = 0; c < UI_W; c += 4) {
       const float y = val(i, col_x(c));
-      if (fin(y)) { ++all; if (y >= -10 && y <= 10) ++in; }
+      if (fin(y)) { ++all; if (y >= -10 && y <= 10) ++in; if (y < lo) lo = y; if (y > hi) hi = y; }
     }
-  if (4 * in < all) fit_y();
+  if (4 * in < all || (all && hi - lo < 5)) fit_y();
   if (vy1 - vy0 > 1e4f && !KIND_) { vy0 = -10; vy1 = 10; } // (1/x: not its 1e8 near 0)
   if (DATN_ && !KIND_) fit_points();
   mode = 0; tf = 0; tx = 0; tang = false; area_a = area_b = fan_a = fan_b = 0; note[0] = 0;
