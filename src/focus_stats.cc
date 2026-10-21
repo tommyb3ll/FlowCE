@@ -568,7 +568,7 @@ static int pd, pinv, ptail, pinit, ptest = -1, talt; // the distribution, invers
 static const char * const PNAME[PD_N] = {"Normal", "t", "Chi-square", "Binomial", "Poisson"};
 static float SL[2], SR[2], MK[2], px0, px1; // the shaded intervals, the marks, the x range
 static int NS, NM;
-static short PH[PCOLS + 1];                 // the curve's heights (static: no big locals)
+static short PH[PCOLS + 1];                 // the curve's heights, 1/16 px (static: no big locals)
 static char pres[64], pnote[80];            // the result (math), a line of text above it
 
 static NOINL char * fixd(char * p, float v, int d) { // v >= 0 with d decimals, trailing zeros dropped
@@ -639,7 +639,12 @@ static NOINL float pshape(int d, const float * q, float x) {
 static NOINL void pcurve(int d, const float * q) {
   float h[PCOLS + 1], m = 0; // (floats: 4 bytes each, 600 on the stack)
   for (int c = 0; c <= PCOLS; ++c) { h[c] = pshape(d, q, px0 + (px1 - px0) * c / PCOLS); if (c > 1 && fin_(h[c]) && h[c] > m) m = h[c]; }
-  for (int c = 0; c <= PCOLS; ++c) { const float y = fin_(h[c]) && m > 0 ? h[c] / m : 0; PH[c] = (short)((y > 1.05f ? 1.05f : y) * (PB_ - PT_ - 4)); }
+  for (int c = 0; c <= PCOLS; ++c) { const float y = fin_(h[c]) && m > 0 ? h[c] / m : 0; PH[c] = (short)((y > 1.05f ? 1.05f : y) * (PB_ - PT_ - 4) * 16); }
+}
+// the curve's height at the middle of screen column x (between two samples), 1/16 px
+static NOINL int ph_at(int x) {
+  const int t = (x - PL_) * 8 + 4, c = t >> 4;
+  return c < 0 ? PH[0] : c >= PCOLS ? PH[PCOLS] : PH[c] + (PH[c + 1] - PH[c]) * (t & 15) / 16;
 }
 static NOINL int pxof(float x) { return PL_ + (int)((x - px0) * (PR_ - PL_) / (px1 - px0)); }
 static NOINL bool pshaded(float x) { for (int i = 0; i < NS; ++i) if (x >= SL[i] - 1e-6f && x <= SR[i] + 1e-6f) return true; return false; }
@@ -663,18 +668,20 @@ static NOINL void paint_plot(int b, int e) {
       ui_fill(x, PB_ - h, bw > 2 ? bw - 1 : 1, h, col(pshaded(k) ? UC_ACC : UC_LINE));
     }
   } else {
-    for (int c = 0; c < PCOLS; ++c) // the area under the curve where shaded
-      if (pshaded(px0 + (px1 - px0) * (c + 0.5f) / PCOLS) && PH[c] > 0) ui_fill(PL_ + 2 * c, PB_ - PH[c], 2, PH[c], col(UC_ACCSOFT));
-    for (int c = 0; c < PCOLS; ++c)
-      ui_seg16((PL_ + 2 * c) * 16, (PB_ - PH[c]) * 16, (PL_ + 2 * c + 2) * 16, (PB_ - PH[c + 1]) * 16, 24, ramp(UC_ACC, UC_BG));
+    for (int x = PL_; x < PR_; ++x) { // the area under the curve where shaded, column by column up to its middle
+      const int h = ph_at(x) >> 4;
+      if (h > 0 && pshaded(px0 + (px1 - px0) * (x + 0.5f - PL_) / (PR_ - PL_))) ui_fill(x, PB_ - h, 1, h, col(UC_ACCSOFT));
+    }
+    for (int c = 0; c < PCOLS; ++c) // (heights to 1/16 px: no steps where the slope changes)
+      ui_seg16((PL_ + 2 * c) * 16, PB_ * 16 - PH[c], (PL_ + 2 * c + 2) * 16, PB_ * 16 - PH[c + 1], 24, ramp(UC_ACC, UC_BG));
   }
   ui_fill(PL_ - 4, PB_, PR_ - PL_ + 8, 1, col(UC_INK));
   int mx[2];
-  for (int i = 0; i < NM; ++i) { // the marks: a line up to the curve, the value under the axis
+  for (int i = 0; i < NM; ++i) { // the marks: a line from under the axis up to the curve (its middle), the value under it
     mx[i] = pxof(MK[i]);
     if (mx[i] < PL_ - 2 || mx[i] > PR_ + 2) continue;
-    const int c = (mx[i] - PL_) / 2, h = disc ? 0 : PH[c < 0 ? 0 : c > PCOLS ? PCOLS : c];
-    ui_fill(mx[i], PB_ - h - 4, 1, h + 8, col(UC_ACC));
+    const int h = disc ? 4 : ph_at(mx[i]) >> 4;
+    ui_fill(mx[i], PB_ - h, 1, h + 4, col(UC_ACC));
     char v[16]; sig4(v, MK[i]);
     text(&ui_tb10, v, mx[i], PB_ + 14, UC_ACC, UC_BG, 1);
   }
@@ -878,7 +885,7 @@ static NOINL void ploop() { // the distribution screen or a test's: keys until b
     }
     if (key == KEY_CTRL_F1) {
       static const char * const hint[PD_N] = {"\xce\xbc, \xcf\x83", "df", "df", "n, p", "\xce\xbb"};
-      const int c = focus_card_list(4, "dist", 0, PNAME, hint, PD_N, pd);
+      const int c = focus_card_list(0, "dist", 0, PNAME, hint, PD_N, pd); // (on its key's tab, F1)
       if (c >= 0 && c != pd) { pd = c; ptail = 0; psel = 0; if (p_discrete(pd)) pinv = 0; pq[PD_BIN][0] = 10; pa = pd >= PD_BIN ? 2 : -1; pb = pd >= PD_BIN ? 5 : 1; }
     }
     if (key == KEY_CTRL_F2) ptail = (ptail + 1) % (pinv ? (pd == PD_CHI ? 2 : 3) : p_discrete(pd) ? 4 : 3);
@@ -887,7 +894,7 @@ static NOINL void ploop() { // the distribution screen or a test's: keys until b
       static const char * const TN[4] = {"1-proportion z interval", "1-proportion z test", "1-sample t interval", "1-sample t test"};
       static const char * const TH[4] = {"x, n, C", "p0, x, n", "mean, s, n, C", ("\xce\xbc" "0, mean, s, n")};
       focus_bar_tabs(0, -1); paint_prob(); // (the card over a repainted view)
-      const int c = focus_card_list(4, "tests", 0, TN, TH, 4, 0);
+      const int c = focus_card_list(3, "tests", 0, TN, TH, 4, 0);
       if (c >= 0) { ptest = c; talt = 0; psel = 0; ploop(); ptest = -1; psel = 0; }
     }
   }
