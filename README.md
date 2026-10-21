@@ -2,77 +2,128 @@
 
 <p align="center">
   <b>Calculus on your TI-84 Plus CE.</b><br>
-  Type math the way it looks. Get answers the way your textbook writes them, and now the steps.
+  Type math the way it looks. Get answers the way your textbook writes them, and every step to get there.
 </p>
 
 <p align="center">
   <a href="https://tommyb3ll.github.io/FlowCE/"><img src="https://img.shields.io/badge/install-from_the_web-245ccc" alt="Install from the web"></a>
+  <a href="https://github.com/tommyb3ll/FlowCE/releases/latest"><img src="https://img.shields.io/github/v/release/tommyb3ll/FlowCE?label=release&color=245ccc" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/calculator-TI--84%20Plus%20CE-2a5bd7" alt="TI-84 Plus CE">
   <img src="https://img.shields.io/badge/engine-Giac-555" alt="Engine: Giac">
 </p>
 
 <p align="center">
-  <img src="docs/flowce_light.gif" width="48%" alt="FlowCE in the Paper theme: a definite integral, a series, other forms and a graph">
-  <img src="docs/flowce_steps.gif" width="48%" alt="FlowCE: an antiderivative, then enter for its steps: integration by parts, down to the answer">
+  <img src="docs/flowce_light.gif" width="48%" alt="FlowCE: the start screen, a definite integral typed in 2D, the sum of 1/n² giving π²/6, other forms of an answer, and a graph traced">
+  <img src="docs/flowce_steps.gif" width="48%" alt="FlowCE: an antiderivative from the calculus menu, then enter for its steps: integration by parts, down to the answer">
 </p>
 
 FlowCE is a computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2. It gives
 exact answers: `π²/6`, not `1.64493`; `ln|sec x + tan x| + C`; `(2n²+3n+1)/(6n²)`. The decimal value
-sits right under the exact one. The interface is new from top to bottom: a clean light or dark
-look, math drawn as you type it, and keys that work the way a TI user expects.
+sits right under the exact one. Press `enter` after an answer and FlowCE shows you how to get it,
+step by step, the way a worked example in your textbook does.
 
 **[Install it from the FlowCE page](https://tommyb3ll.github.io/FlowCE/)**: plug in the calculator,
 pick a version, click Install, and follow the short calculator prompts.
+
+## New in FlowCE 2.0
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/flowce_themes.gif" alt="FlowCE in use while its theme changes: Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape, Forest"></td>
+    <td width="33%"><img src="docs/flowce_apps.gif" alt="Calculus, Applications, Area between curves: the form filled in, the area, its steps"></td>
+    <td width="33%"><img src="docs/flowce_graph.gif" alt="The graph screen: x³ − 3x typed, graphed, panned, its key points labeled, traced"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Nine themes</b></td>
+    <td align="center"><b>Calculus → Applications</b></td>
+    <td align="center"><b>A new graph screen</b></td>
+  </tr>
+</table>
+
+- **Steps for algebra too.** On top of derivatives, integrals, limits, sums and Taylor series:
+  linear and quadratic equations, factoring, rational and radical equations, systems,
+  exponential, log and trig equations, inequalities, absolute values and polynomial division.
+- **Applications of calculus**, filled in like a worksheet. Area between curves, volumes by washers
+  or shells, arc length, surface area and average value each open a short form (*between y =,
+  and y =, from x =, to x =*). Leave the bounds empty and FlowCE finds where the curves meet; then
+  `enter` shows the whole setup and the integral, step by step.
+- **A real graph screen.** Arrows pan and `+` `−` zoom; trace along the curve; exact key points
+  (zeros, extrema, inflections) labeled on the graph; a table; tangent lines, areas, max and min on
+  an interval. Equations in x and y (circles, ellipses), parametric and polar curves, slope fields.
+- **Nine themes.** Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest. *more* →
+  Themes shows each one on the whole screen as you move to it.
+- **`analyze(f)`**: domain, intercepts, asymptotes, increasing and decreasing, extrema,
+  concavity and inflection points on one page.
+- **Statistics and probability** in the *more* menu: enter data, box plots, fitted curves with r²;
+  normal, t, chi-square, binomial and Poisson distributions, inverses, intervals and tests.
+- **What next?** Under an answer, `▶` offers the likely next step: factor it, solve it for 0,
+  graph it, take its derivative.
+- **Answers that read better.** Matrices drawn as matrices, long lists of solutions wrapped,
+  `F4` with long division and the completed square, an antiderivative's derivative as a check,
+  `y′` in the symbols menu for `y″ + 4y = 0` and `f′(2)`.
+
+The algebra steps, the graph screen, `analyze`, statistics and probability come from
+[DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into FlowCE.
 
 ## Two versions
 
 | | **FlowCE** 2.0 | **FlowCE Python** 1.9.1 |
 |---|---|---|
 | Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
-| Graphs | a graph screen: exact key points, pan and zoom, circles, polar, slope fields | the classic graph, trace, table |
-| Applications menu | area, volumes, arc length, surface area, average value | |
-| Statistics and probability | data, regressions, distributions, tests | |
+| Graphs | the graph screen: exact key points, pan and zoom, conics, parametric, polar, slope fields | the classic graph, trace, table |
+| Calculus → Applications | area, volumes, arc length, surface area, average value | |
+| Statistics and probability | data, box plots, regressions, distributions, tests | |
+| Themes | nine | Paper and Night |
 | Programs (Python syntax, the program editor) | | yes |
 | Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-python.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE-python.b84) |
 
-FlowCE is the one for class; FlowCE Python is for writing programs. Both have the shared features
-below. Install one at a time.
+FlowCE is the one for class; FlowCE Python is for writing programs. Both have everything under
+[Highlights](#highlights). Install one at a time.
 
 ## Steps
 
-After an answer, press `enter`: FlowCE shows how to get it, the way a worked example in a textbook
-does. Derivatives, integrals, limits, sums and Taylor series, and in algebra linear and quadratic
-equations (by the formula), factoring, rational and radical equations, systems, exponential, log
-and trig equations, inequalities, absolute values and polynomial division. Each step says what it
-does and the rule it uses (integration by parts, the chain rule, L'Hôpital's rule, the
-quadratic formula, elimination...); a part worked out on the side gets its own steps. `▲` and
-`▼` move from step to step.
+After an answer, press `enter`. Each step says what it does and the rule it uses (integration by
+parts, the chain rule, L'Hôpital's rule, the quadratic formula, elimination...); a part worked
+out on the side gets its own steps. `▲` and `▼` move from step to step, and `F4` shows another
+method when there is one.
 
 | | | |
 |:-:|:-:|:-:|
 | ![Steps for the integral of x sin x: integration by parts](docs/screenshots/steps_parts.png) | ![Steps for a quadratic equation: the quadratic formula](docs/screenshots/steps_quadratic.png) | ![Steps for a limit: L'Hôpital's rule](docs/screenshots/steps_limit.png) |
 | integration by parts | a quadratic, by the formula | a limit, L'Hôpital's rule |
-| ![Steps for a system of equations: elimination](docs/screenshots/steps_system.png) | ![Steps for a telescoping sum: partial fractions](docs/screenshots/steps_sum.png) | ![Steps for an inequality: a number tested in each interval](docs/screenshots/steps_ineq.png) |
-| a system, by elimination | a sum, partial fractions | an inequality |
+| ![Steps for a system of equations: elimination](docs/screenshots/steps_system.png) | ![Steps for a log equation](docs/screenshots/steps_log.png) | ![Steps for an inequality: a number tested in each interval](docs/screenshots/steps_ineq.png) |
+| a system, by elimination | a log equation | an inequality |
+| ![Steps for a telescoping sum: partial fractions](docs/screenshots/steps_sum.png) | ![Steps for an absolute value equation](docs/screenshots/steps_abs.png) | ![Steps for a derivative: the chain rule](docs/screenshots/steps_deriv.png) |
+| a sum, partial fractions | an absolute value | a derivative |
 
-**Calculus → Applications** (the `0` key on the calculus menu): area between curves, volumes by
-washers or shells, arc length, surface area and average value, each in a form that asks for its
-curves and bounds in words, with worked steps. Under each answer, `▶` offers what to do next: factor, solve = 0, graph, the derivative...
+Not every problem has steps yet: when no textbook method explains the answer, FlowCE says so. If a
+step looks wrong, please [open an issue](https://github.com/tommyb3ll/FlowCE/issues/new/choose)
+with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
+
+## Applications, graphs, statistics
 
 | | | |
 |:-:|:-:|:-:|
-| ![The form of Area between curves: between y = x + 2 and y = x², from and to where they meet](docs/screenshots/apps_form.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) | ![The row of actions under an answer](docs/screenshots/action_row.png) |
-| Calculus → Applications: a form | find crossings, then the area | `▶`: what to do next |
-| ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) |
-| the graph screen, key points | `analyze(f)` | statistics: a fitted line |
+| ![The form of Area between curves: between y = x + 2 and y = x², from and to where they meet](docs/screenshots/apps_form.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) | ![Volume by washers, with steps](docs/screenshots/apps_washer_steps.png) |
+| Calculus → Applications: a form | find where they meet, then the area | a volume, by washers |
+| ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![An ellipse and a line on the graph screen](docs/screenshots/graph_conic.png) | ![A slope field](docs/screenshots/graph_field.png) |
+| the graph screen: key points | equations in x and y | a slope field |
+| ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) | ![The normal distribution: an area](docs/screenshots/prob_normal.png) |
+| `analyze(f)` | statistics: a fitted line | probability: the normal curve |
+| ![The row of actions under an answer](docs/screenshots/action_row.png) | ![A box plot and the five numbers](docs/screenshots/stats_box.png) | ![A t test](docs/screenshots/prob_ttest.png) |
+| `▶`: what to do next | a box plot | a t test |
 
-The algebra steps, the graph screen, `analyze`, statistics and probability come from
-[DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into FlowCE.
+## Themes
 
-Not every problem has steps yet: when no textbook method explains the answer, it says so. If a step
-looks wrong, please [open an issue](https://github.com/tommyb3ll/FlowCE/issues/new/choose) with
-what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
+<p align="center">
+  <img src="docs/themes_nine.png" width="80%" alt="The nine themes: Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest, on an answer, the calculus menu and a graph">
+</p>
+
+*more* → **Themes** opens a grid of all nine, each tile in its own colors. Moving to a tile shows
+that theme on the whole screen at once; `enter` keeps it, `clear` goes back. Paper and Night are
+FlowCE's light and dark looks; the others take after well-loved palettes (Solarized, Nord,
+Gruvbox, Rosé Pine, Dracula).
 
 ## Highlights
 
@@ -92,19 +143,16 @@ what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/
   polar areas, gradients, multiple integrals, complex numbers, vectors, matrices.
 - **Keys that work like a TI's.** `(-)` is a minus sign and `2nd (-)` is **Ans**. Starting a line
   with `×`, `÷`, `+`, `−` or `^` works on the last answer (`× 2 enter` doubles it). `2nd enter`
-  brings back your last input, and `sto→` stores (`5 → b`).
-- **Graphs.** Graph the line you typed, or the last answer, in one step. Trace along the curve,
-  zoom, find roots and extrema, and see a table of values.
+  brings back your last input, and `sto→` stores (`5 → b`). Keys typed while a menu opens are
+  kept, however fast you type.
 - **History and search.** **▲** walks through your past calculations; enter reuses an input or an
   answer. **▼** searches every command, with descriptions and examples.
-- **Nine themes** (*more* → Themes): Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest,
-  each shown on the whole screen as you move to it.
 - **Tested on the calculator itself.** Before a release, about 900 Calc 1–3 problems run on an
-  emulated TI-84 Plus CE and their answers are checked against a computer's. A long calculation
-  shows *Calculating*, and **ON** stops it; one that runs out of memory stops with a message
-  instead of closing the app.
+  emulated TI-84 Plus CE and their answers are checked against a computer's, along with every
+  menu and screen. A long calculation shows *Calculating*, and **ON** stops it; one that runs out
+  of memory stops with a message instead of closing the app.
 
-## Screenshots
+## More screens
 
 | | | |
 |:-:|:-:|:-:|
@@ -114,10 +162,10 @@ what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/
 | a power series: −ln(1−x) | a limit that does not exist | a Riemann sum, index i |
 | ![The integral of sec cubed](docs/screenshots/sec.png) | ![A trig substitution](docs/screenshots/trigsub.png) | ![An initial value problem](docs/screenshots/ivp.png) |
 | ∫ sec³x | a trig substitution | an initial value problem |
-| ![F4: other forms](docs/screenshots/forms.png) | ![A graph with trace](docs/screenshots/graph_sin_trace.png) | ![Table of values](docs/screenshots/table.png) |
-| F4: other forms | trace along a graph | a table of values |
-| ![History](docs/screenshots/history.png) | ![Command search](docs/screenshots/search.png) | ![Night theme](docs/screenshots/night.png) |
-| history | command search | Night theme |
+| ![F4: other forms](docs/screenshots/forms.png) | ![A graph with trace](docs/screenshots/graph_sin_trace.png) | ![A polar curve](docs/screenshots/graph_polar.png) |
+| F4: other forms | trace along a graph | a polar curve |
+| ![History](docs/screenshots/history.png) | ![Command search](docs/screenshots/search.png) | ![The calculus menu](docs/screenshots/menu_calculus.png) |
+| history | command search | the calculus menu |
 
 ## Install
 
@@ -181,22 +229,22 @@ rules (some tests, like the ACT, don't allow one).
 | `sto→` | stores a value: `5 → b` |
 | `clear` | erases the line; on an empty line, the answer |
 | ON or `clear` while computing | stops the calculation |
-| *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table (FlowCE 2.0: arrows pan, `+` `−` zoom, F1 trace, F3 key points and tools, F4 table) |
+| calculus menu, `0` | Applications: area, volumes, arc length, surface area, average value (FlowCE 2.0) |
+| *more* → Graph | graphs the line or the answer (FlowCE 2.0: arrows pan, `+` `−` zoom, F1 trace, F2 zoom menu, F3 key points and tools, F4 table) |
+| *more* → Themes | nine themes, shown as you move (FlowCE 2.0; FlowCE Python: Paper or Night) |
 | *more* → Statistics, Probability | data and fitted curves, distributions and tests (FlowCE 2.0) |
 | `mode` | settings (*Simplify answers* on or off), shortcuts, about |
 | `2nd quit` | quit (your session is kept) |
 
 ## Building
 
-FlowCE builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) (CEdev
-v14.2) plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac`
-submodule). `./mkappen` builds the English app: AppIns appvars (`.8xv`) installed by the INST
-program, and `FlowCE.b84` for TI Connect CE. After `make clean`, `STEPS=1 ./mkappen` builds FlowCE
-Steps (step-by-step solutions instead of Python syntax), and `UNITS=1 ./mkappen` builds physical
-units instead of Python syntax. The step-by-step code is on the `dev/ux-speed` branch; `main` is
-the 1.9 release. `tools/dev/build.sh` builds in WSL from the working tree, `tools/emu/` drives the
-CEmu emulator for regression tests, screenshots and the GIFs above, and `tests/host/` holds host
-tests of the editor and the 2D layout.
+FlowCE 2.0 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
+plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac` submodule).
+`tools/dev/build.sh en-steps-v15` builds it in WSL from the working tree (`APPLANG=en STEPS=1`;
+`tools/dev/wsl_build_v15.sh` links the app and cuts it into the AppIns appvars installed by the
+INST program). FlowCE Python 1.9.1 is the `v1.9.1-rc1` tag, built with CEdev v14.2 and
+`./mkappen`. `tools/emu/` drives the CEmu emulator for the regression tests, the screenshots and
+the GIFs above, and `tests/host/` holds host tests of the editor and the 2D layout.
 
 The app must fit in 43 flash pages (at most 2,818,045 bytes); the build prints the room left.
 

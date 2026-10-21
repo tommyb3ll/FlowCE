@@ -131,6 +131,20 @@ kbd {
 .confirm { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .8rem; font-weight: 700; cursor: pointer; }
 .confirm input { width: 18px; height: 18px; accent-color: var(--red); }
 
+.pill {
+  display: inline-block; margin-bottom: .9rem; padding: .3rem .8rem; border-radius: 999px;
+  background: var(--acc-soft); color: var(--acc); font-weight: 700; font-size: .9rem; text-decoration: none;
+}
+.pill:hover { filter: brightness(1.04); }
+.lead-sm { font-size: 1.12rem; color: var(--sub); max-width: 46rem; margin-bottom: 1.6rem; }
+.feat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+.feat figure { margin: 0; }
+.feat figcaption { margin-top: .8rem; color: var(--sub); font-size: .95rem; }
+.feat figcaption strong { display: block; color: var(--ink); font-size: 1.08rem; margin-bottom: .25rem; }
+.news { margin: 1.8rem 0 0; padding-left: 1.2rem; max-width: 60rem; }
+.news li { margin: .45rem 0; }
+.themes-all { margin-top: 2rem; text-align: center; }
+.themes-all img { max-width: 820px; }
 .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .gallery figure { margin: 0; }
 .gallery figcaption { text-align: center; font-size: .9rem; color: var(--sub); margin-top: .45rem; }
@@ -232,11 +246,13 @@ details.manual li { margin-bottom: .45rem; }
 @media (max-width: 820px) {
   .hero { grid-template-columns: 1fr; gap: 1.8rem; padding-top: 2rem; }
   .gallery { grid-template-columns: 1fr 1fr; }
+  .feat { grid-template-columns: 1fr 1fr; }
   .top nav { gap: .8rem; }
 }
 @media (max-width: 540px) {
   body { font-size: 16px; }
   .gallery { grid-template-columns: 1fr; }
+  .feat { grid-template-columns: 1fr; }
   .pick { grid-template-columns: 1fr; }
   .top nav a:not([href="#install"]) { display: none; }
   .installer { padding: .2rem 1rem; }
