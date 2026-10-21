@@ -410,25 +410,79 @@ static void help_line(const ui_face * f, const char * t, int base, int fg, const
   if (cut) ui_draw_text(f, ell, -1, x, base, ramp(fg, UC_BG), 0);
 }
 
-// the empty console's tips: DeltaCE's features and the shortcuts that are easy to miss
-struct tip { const char * key, * text; };
-static const tip tips[] = {
-  {"F4", "on an answer: its other forms"},
-#ifdef FLOWCE_STEPS
-  {"enter", "on a derivative or an integral: the steps"},
-#endif
-  {"F4", "on an integral: check it by differentiating"},
-#ifdef WITH_UNITS
-  {"alpha F4", "units, and Celsius to Fahrenheit"},
-#endif
-  {"F1", "Value at x = puts a number in for x"},
-  {0, "Solve works in any letter: 3b + 2 = 11 gives b = 3"},
-  {"^", "then enter: paste an earlier answer"},
-  {"2nd", "then F1 to F5: arithmetic, matrices and more"},
-  {"2nd", "then down, on the steps: jump to the answer"},
-};
-enum { N_TIPS = sizeof(tips) / sizeof(tips[0]) };
-static int tip_k = -1;
+
+// A matrix answer ([[1,0],[0,1]]: rref, an inverse...): its rows one under the other, the columns
+// aligned, in brackets, as large as fits in maxw by [top, bot) (one line, it was a small row of
+// lists across an empty screen: the user). 0 if r is not one: rows of the same length, 6 by 6 at
+// most, at least 14 px.
+static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bot, int maxw) {
+  const int n = strlen(r);
+  if (n < 5 || n > 400 || r[0] != '[' || r[1] != '[' || r[n - 1] != ']') return 0;
+  char * b = (char *)malloc(n + 1);
+  if (!b) return 0;
+  memcpy(b, r, n + 1);
+  const char * cell[36];
+  int nr = 0, nc = -1, k = 0, d = 1, ok = 1;
+  for (int i = 1; i < n - 1 && ok; ++i) { // depth 1: rows; 2: a row's cells; deeper: inside a cell
+    const char c = b[i];
+    if (d == 1) {
+      if (c == '[') { if (k == 36) ok = 0; else { d = 2; cell[k++] = b + i + 1; } }
+      else if (c != ',' && c != ' ') ok = 0;
+    } else if (d == 2 && (c == ',' || c == ']')) {
+      b[i] = 0;
+      if (c == ']') {
+        d = 1;
+        const int m = k - nr * (nc < 0 ? 0 : nc); // cells of this row
+        if (nc < 0) nc = m;
+        else if (m != nc) ok = 0;
+        ++nr;
+      } else if (k == 36) ok = 0;
+      else cell[k++] = b + i + 1;
+    }
+    else if (c == '(' || c == '[') ++d;
+    else if (c == ')' || c == ']') --d;
+  }
+  if (!ok || d != 1 || nr < 2 || nc < 1 || nr > 6 || nc > 6) { free(b); return 0; }
+  for (int i = 0; i < k; ++i) while (*cell[i] == ' ') ++cell[i];
+  short cw[6], ra[6], rd[6];
+  int lv = 2, w = 0, h = 0;
+  const int gx = 14, gy = 6;
+  for (; lv < UI_NSIZES - 2; ++lv) { // the largest level the matrix fits at
+    memset(cw, 0, sizeof cw); memset(ra, 0, sizeof ra); memset(rd, 0, sizeof rd);
+    for (int i = 0; i < nr; ++i)
+      for (int j = 0; j < nc; ++j) {
+        const fitc c = fitted(cell[i * nc + j], lv, 600, 200, MI_F_IMPLDOT);
+        if (c.w > cw[j]) cw[j] = (short)c.w;
+        if (c.a > ra[i]) ra[i] = (short)c.a;
+        if (c.d > rd[i]) rd[i] = (short)c.d;
+      }
+    w = 16 + gx * (nc - 1); h = gy * (nr - 1);
+    for (int j = 0; j < nc; ++j) w += cw[j];
+    for (int i = 0; i < nr; ++i) h += ra[i] + rd[i];
+    if (w <= maxw && h <= bot - top - 6) break;
+  }
+  if (lv >= UI_NSIZES - 2) { free(b); return 0; }
+  const int x0 = (UI_W - w) / 2, y = top + (bot - top - h) / 2, ink = col(UC_INK);
+  for (int s = 0; s < 2; ++s) { // the brackets: a bar and its two ends
+    const int bx = s ? x0 + w - 2 : x0;
+    ui_fill(bx, y - 3, 2, h + 6, ink);
+    ui_fill(s ? bx - 4 : bx, y - 3, 6, 2, ink);
+    ui_fill(s ? bx - 4 : bx, y + h + 1, 6, 2, ink);
+  }
+  int yy = y;
+  for (int i = 0; i < nr; ++i) {
+    int xx = x0 + 8;
+    for (int j = 0; j < nc; ++j) {
+      const char * t = cell[i * nc + j];
+      const fitc c = fitted(t, lv, 600, 200, MI_F_IMPLDOT);
+      draw_math(t, c, xx + (cw[j] - c.w) / 2, yy + ra[i], UC_INK, UC_BG, MI_F_IMPLDOT);
+      xx += cw[j] + gx;
+    }
+    yy += ra[i] + rd[i] + gy;
+  }
+  free(b);
+  return 1;
+}
 
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
@@ -533,59 +587,39 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
       ui_text(&ui_tb9, "enter", sx + 12 + w2, cy, UC_ACCSOFT, UC_ACC, 0);
     }
     // (DeltaCE) the action row: what the right arrow offers on this answer (console.cc), the
-    // likeliest first, outlined chips after the key; "more": the whole list. The right arrow
-    // selects the first (console.cc Console_GetKey), left and right move, enter does it.
+    // likeliest first, then "more" (the whole list). The right arrow selects the first (console.cc
+    // Console_GetKey), left and right move, enter does it. Soft gray buttons as the menus' tiles,
+    // the selected one blue, after a small right arrow (DeltaCE's outlined chips, the key in a box
+    // and a line over them crowded the screen)
     act_y = na ? ab : 0;
-    if (na && in_band(cy + 6, ab + 5)) {
-      ui_fill(kx + 12, cy + 7, kw - 24, 1, col(UC_LINE));
+    if (na && in_band(ab - 12, ab + 5)) {
       const short * ws = act_w;
       const char * const * act = act_lab;
-      int w = 17 + 6 + ui_text_width(&ui_tr9, "more", -1);
-      for (int k = 0; k < na; ++k) w += ws[k] + 5;
+      const int mw = ui_text_width(&ui_tb9, "more", -1) + 12;
+      int w = 11 + mw;
+      for (int k = 0; k < na; ++k) w += ws[k] + 6;
       int x = (UI_W - w) / 2;
-      ui_rframe(0, x, ab - 10, 17, 13, 3, UC_SUB, UC_BG); // the right arrow key
-      for (int k = 0; k < 4; ++k) ui_fill(x + 7 + k, ab - 7 + k, 1, 7 - 2 * k, col(UC_SUB));
-      x += 17 + 6;
-      for (int k = 0; k < na; ++k) {
-        const int on = act_sel == k;
-        if (on) ui_rrect(0, x, ab - 10, ws[k], 13, 6, UC_ACC, UC_BG);
-        else ui_rframe(0, x, ab - 10, ws[k], 13, 6, UC_ACC, UC_BG);
-        ui_text(&ui_tb9, act[k], x + 6, ab, on ? UC_ONACC : UC_ACC, on ? UC_ACC : UC_BG, 0);
-        x += ws[k] + 5;
+      for (int k = 0; k < 4; ++k) ui_fill(x + k, ab - 7 + k, 1, 7 - 2 * k, col(UC_SUB)); // the right arrow
+      x += 11;
+      for (int k = 0; k <= na; ++k) {
+        const int on = act_sel == k, bg = on ? UC_ACC : UC_TILE, bw = k < na ? ws[k] : mw;
+        ui_rrect(0, x, ab - 11, bw, 15, 7, bg, UC_BG);
+        ui_text(&ui_tb9, k < na ? act[k] : "more", x + 6, ab, on ? UC_ONACC : k < na ? UC_INK : UC_SUB, bg, 0);
+        x += bw + 6;
       }
-      if (act_sel == na) { // (selected: a chip as the others)
-        const int mw = ui_text_width(&ui_tb9, "more", -1) + 12;
-        ui_rrect(0, x, ab - 10, mw, 13, 6, UC_ACC, UC_BG);
-        ui_text(&ui_tb9, "more", x + 6, ab, UC_ONACC, UC_ACC, 0);
-      } else ui_text(&ui_tr9, "more", x, ab, UC_SUB, UC_BG, 0);
     }
 #endif
   } else {
     int m = y0 + h / 2 - 2, b = m + 20;
-    // a tip on the empty console only: not under the history, nor when a calculation starts (its
-    // entry is in the history: painting it there cost 70 ms a calculation)
+    // the prompt on the empty console only: not under the history, nor when a calculation starts
+    // (its entry is in the history: painting it there cost 70 ms a calculation). (DeltaCE's tip
+    // under it is gone: "2nd then down, on the steps: jump to the answer" puzzled the user.)
     if (NE) return;
     ui_text(&ui_tr12, "Type a calculation", UI_W / 2, m, UC_SUB, UC_BG, 1);
     int x = UI_W / 2 - 110; // the prototype's three hints: math templates, up history, down search
     x = key_hint(x, b, "math", "templates") + 12;
     x = key_hint(x, b, "^", "history") + 12;
     key_hint(x, b, "v", "search");
-    // a tip at the bottom, a different one each time the app starts: its key, what it does
-    const int tb = y0 + h - 12;
-    if (tb - 12 < b + 16) return;
-    if (tip_k < 0) {
-#ifdef TICE
-      tip_k = (rtc_Minutes * 60 + rtc_Seconds) % N_TIPS;
-#else
-      tip_k = 0;
-#endif
-    }
-    const tip & t = tips[tip_k];
-    int tw = ui_text_width(&ui_tb9, "TIP", -1) + 10 + (t.key ? ui_text_width(&ui_tb9, t.key, -1) + 12 : 0) + ui_text_width(&ui_tr9, t.text, -1);
-    x = (UI_W - tw) / 2;
-    x += ui_text(&ui_tb9, "TIP", x, tb, UC_ACC, UC_BG, 0) + 10;
-    if (t.key) key_hint(x, tb, t.key, t.text);
-    else ui_text(&ui_tr9, t.text, x, tb, UC_SUB, UC_BG, 0);
   }
 }
 
