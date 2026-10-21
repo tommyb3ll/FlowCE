@@ -799,8 +799,24 @@ static __attribute__((noinline)) giac::gen combine_numbers(const giac::gen & s){
     rest.push_back(c);
   return rest.empty()?gen(0):rest.size()==1?rest.front():sym1(at_plus,gen(rest,_SEQ__VECT));
 }
-// a power of a sum to an exponent of 8 or more in g ((asin(5x)+atan(4-x))^26): ratnormal expands it
-// into hundreds of terms, bigger than g in the end (the calculator ran out of memory and quit)
+// a function other than + * ^ in g (asin, atan, ln...)
+static bool has_func(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    for (unsigned i=0;i<g._VECTptr->size();++i)
+      if (has_func((*g._VECTptr)[i]))
+        return true;
+    return false;
+  }
+  if (g.type!=_SYMB)
+    return false;
+  const unary_function_ptr & u=g._SYMBptr->sommet;
+  return !(u==at_plus || u==at_prod || u==at_pow || u==at_neg || u==at_inv) || has_func(g._SYMBptr->feuille);
+}
+// a power of a sum of functions to an exponent of 8 or more in g ((asin(5x)+atan(4-x))^26):
+// ratnormal expands it into hundreds of terms, bigger than g in the end (the calculator ran out of
+// memory and quit). A polynomial's power stays ratnormal's: the derivative of (4x+1)^3/(x^2-x)^6 was
+// left as a polynomial of degree 14 over (x^2-x)^12
 static bool big_power(const giac::gen & g){
   using namespace giac;
   if (g.type==_VECT){
@@ -812,7 +828,7 @@ static bool big_power(const giac::gen & g){
   if (g.type!=_SYMB)
     return false;
   const gen & f=g._SYMBptr->feuille;
-  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f[1].type==_INT_ && (f[1].val>=8 || f[1].val<=-8) && f[0].is_symb_of_sommet(at_plus))
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f[1].type==_INT_ && (f[1].val>=8 || f[1].val<=-8) && f[0].is_symb_of_sommet(at_plus) && has_func(f[0]))
     return true;
   return big_power(f);
 }
