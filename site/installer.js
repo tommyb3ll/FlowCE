@@ -2,14 +2,19 @@
 // version picked (files/FlowCE.b84, or files/FlowCE-steps.b84 for the steps build) over WebUSB
 // and opens its installer, which then needs one key press on the calculator. Steps and texts:
 // index.html.
-import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile } from './dusb.js';
+import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile, readAppFile } from './dusb.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const step = name => document.querySelector(`.step[data-step="${name}"]`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const MB = n => (n / 1e6).toFixed(2) + ' MB';
-const OS_MAX = [5, 8, 4], OS_MIN = [5, 3, 0];
+const V2_MAX = [5, 8, 4], V3_OS = [5, 8, 5], OS_MIN = [5, 3, 0];
+const INEQUALZ_SHA = '1899cf87281941bde537c184a92dd9435ff0aff7bca0899da25c654ed4d9fdca';
+const V3_FILES = [
+  ['arTIfiCE.8xp', '98cbadab42f34d63542d3648f97ff4ad20527ff39c35df12bbc00842454d262b', 'PPPP'],
+  ['INEQUVAR.8xv', 'cc47cdda6fef69590a5377c095443e1cda911454ef68c173f0de5d17be2a0000', 'INEQUVAR'],
+];
 // Windows binds the calculator to TI's driver: the old one (tiehdusb) can't be used by browsers
 const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent);
 
@@ -29,6 +34,10 @@ let state = null;         // the last check: { blocked, needErase }
 let busy = false;         // installing
 let waitingReset = false; // the installer runs on the calculator: its restart ends the install
 let awaitingReconnect = false; // erased: waiting for the calculator to come back
+let inequalz = null;          // verified TI app supplied by the site's build
+let v3Files = null;
+let v3Stage = null;           // ram-reset -> inequalz -> asmhook -> native INST
+let v3Device = null;          // reuse permission when the same device stays connected
 
 // INST (KhiCAS's app_tools) waits for enter at "enter: install app" and for a key at "Success! Will
 // now reset", then returns into the arTIfiCE shell, which needs mode before the OS runs the
@@ -90,6 +99,40 @@ function cmp(a, b) {
   return 0;
 }
 
+function installRoute(os) {
+  if (!os || os.length < 3 || !os.slice(0, 3).every(Number.isInteger) || cmp(os, OS_MIN) < 0) return null;
+  if (cmp(os, V3_OS) === 0) return 'v3';
+  return cmp(os, V2_MAX) <= 0 ? 'v2' : null;
+}
+
+async function digest(bytes) {
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function loadV3() {
+  if (v3Files) return v3Files;
+  const loaded = [];
+  for (const [file, hash, name] of V3_FILES) {
+    const res = await fetch('artifice-v3/' + file);
+    if (!res.ok) throw new Error('Could not download arTIfiCE v3. Try again.');
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (await digest(bytes) !== hash) throw new Error('The arTIfiCE v3 download is damaged. Reload the page.');
+    const vars = readTIFile(bytes);
+    if (vars.length !== 1 || vars[0].name !== name) throw new Error('Unexpected arTIfiCE v3 file.');
+    loaded.push({ ...vars[0], archived: false });
+  }
+  const res = await fetch('artifice-v3/Inequalz.8ek');
+  if (!res.ok) throw new Error('Could not load the installer files. Try again.');
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length !== 44811 || await digest(bytes) !== INEQUALZ_SHA)
+    throw new Error('The installer download is damaged. Reload the page and try again.');
+  const app = readAppFile(bytes);
+  if (app.name !== 'Inequalz') throw new Error('Unexpected installer prerequisite.');
+  inequalz = app;
+  v3Files = loaded;
+  return loaded;
+}
+
 // Plain-English messages for what can go wrong
 function friendly(e) {
   const msg = String(e && e.message || e);
@@ -101,6 +144,8 @@ function friendly(e) {
         'calculator, plug it back in and try again (on Linux, see "If something goes wrong" below).';
   if (e && e.code === 'timeout')
     return 'The calculator stopped answering. Make sure it is on the home screen, unplug it and plug it back in, then press Connect calculator again.';
+  if (e && e.code === 'calc' && v3Stage)
+    return 'The calculator refused a file. Keep AsmHook2 installed. Use the TI Connect CE instructions below to finish, or reload to restart the setup.';
   if (e && e.code === 'calc')
     return 'The calculator refused a file. Usually part of FlowCE is already on it: erase it, then try again.';
   if (e && e.code === 'short')
@@ -117,6 +162,7 @@ function friendly(e) {
 
 // The message, and the browser's own words under it (for reports)
 function problem(e) {
+  if (WINDOWS && e && e.code === 'claim') $('win-note').hidden = false;
   const raw = esc(e && e.message || e);
   const f = friendly(e);
   return `<span class="bad">${f}</span>` + (f === raw || (e && e.code === 'short') ? '' : `<div class="fine">Details: ${raw}</div>`);
@@ -163,7 +209,7 @@ function showBuild() {
 // Another version picked: if a calculator is connected, check it again (the memory it needs)
 async function choose(b) {
   if (b === build) return;
-  if (busy || waitingReset) { // not during an install: the radios are disabled then anyway
+  if (busy || waitingReset || v3Stage) { // not during an install: the radios are disabled then anyway
     document.querySelector(`input[name="build"][value="${build}"]`).checked = true;
     return;
   }
@@ -181,41 +227,47 @@ async function choose(b) {
 
 // (nothing to click while INST runs: whatever reaches the calculator then could cancel its reset)
 function updateInstall() {
-  $('btn-install').disabled = busy || waitingReset || !calc || !state || state.blocked || (state.needErase && !$('erase-ok').checked);
-  document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = busy || waitingReset || r.dataset.off === '1'; });
+  const locked = busy || waitingReset || !!v3Stage;
+  $('btn-install').disabled = locked || !calc || !state || state.blocked ||
+    ((state.needErase || state.route === 'v3') && !$('erase-ok').checked);
+  document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = locked || r.dataset.off === '1'; });
+  $('btn-v3-next').disabled = busy;
 }
 
 // The calculator's OS and free memory: what the install has to do
 async function check(c = calc) {
   const info = await c.info();
-  const need = vars.filter(v => v.archived).reduce((a, v) => a + v.data.length + 32, 0);
+  const route = installRoute(info.os), blocked = !route;
+  // v3 temporarily needs Inequalz and AsmHook2 alongside the AppIns files.
+  const need = vars.filter(v => v.archived).reduce((a, v) => a + v.data.length + 32, 0) + (route === 'v3' ? 96 * 1024 : 0);
   const lines = [`${info.product}, OS ${info.osText}`];
-  let blocked = false;
-  if (info.os && cmp(info.os, OS_MAX) > 0) {
-    blocked = true;
-    lines.push(`<span class="bad">OS ${info.osText} isn't supported yet.</span> The installer uses arTIfiCE v2.1, which works up to OS 5.8.4.`);
-  } else if (info.os && cmp(info.os, OS_MIN) < 0) {
-    lines.push(`OS ${info.osText} is older than the versions FlowCE was tested on (5.3 to 5.8.4); it may not work.`);
-  }
+  if (route === 'v3') lines.push('Installer selected for OS 5.8.5. Click Install; the page gets the files for you.');
+  else if (route === 'v2') lines.push('Using arTIfiCE v2.1 for this OS.');
+  else lines.push('<span class="bad">This OS version could not be verified.</span> No installer will be sent. See <a href="#os-help">OS help</a>.');
+  $('finish-intro').hidden = route === 'v3';
+  $('install-gif').hidden = route === 'v3';
   // only the free archive decides (the RAM figure a real calculator reports is not its free RAM:
   // it read as too little even right after a full reset, and the page erased again and again)
   console.info('FlowCE: calculator', info);
   const needErase = info.freeFlash !== null && info.freeFlash < need;
   if (info.freeFlash !== null)
     lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : ' (enough for FlowCE).'));
-  state = { blocked, needErase };
+  state = { blocked, needErase, route };
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
     mark('connect', 'done');
     mark('install', 'active');
   }
-  $('erase-part').hidden = !needErase;
+  $('erase-part').hidden = !(needErase || route === 'v3');
+  $('erase-label').textContent = route === 'v3'
+    ? 'I backed up my calculator and allow its RAM, apps and archived files to be erased'
+    : 'Erase all apps and archived files on my calculator';
   updateInstall();
   return state;
 }
 
 async function connect() {
-  if (busy) return;
+  if (busy || v3Stage || waitingReset) return;
   say('st-connect', '');
   let c;
   try {
@@ -298,12 +350,16 @@ function ticking(id, text) {
 }
 
 async function sendAll(c) {
-  const total = vars.reduce((a, v) => a + v.data.length, 0);
+  const list = state.route === 'v3'
+    ? vars.filter(v => v.name.startsWith('AppIns') || v.name === 'INST')
+      .map(v => ({ ...v, archived: v.name !== 'INST' }))
+    : vars;
+  const total = list.reduce((a, v) => a + v.data.length, 0);
   let done = 0;
   $('progress').hidden = false;
-  for (let i = 0; i < vars.length; i++) {
-    const v = vars[i];
-    say('st-install', `Sending FlowCE: ${v.name} (${i + 1} of ${vars.length})…`);
+  for (let i = 0; i < list.length; i++) {
+    const v = list[i];
+    say('st-install', `Sending FlowCE: ${v.name} (${i + 1} of ${list.length})…`);
     await c.sendVar(v, n => {
       $('bar').style.width = (100 * (done + n) / total).toFixed(1) + '%';
     });
@@ -312,8 +368,122 @@ async function sendAll(c) {
   $('bar').style.width = '100%';
 }
 
+async function release(c) {
+  if (state && state.route === 'v3') v3Device = c.dev;
+  if (calc === c) calc = null;
+  await c.close();
+}
+
+function v3Prompt(stage, html, label) {
+  v3Stage = stage;
+  $('v3-guidance').hidden = false;
+  say('st-install', 'Complete the calculator step below.');
+  say('st-v3', html);
+  $('btn-v3-next').textContent = label;
+  updateInstall();
+}
+
+async function prepareV3(c) {
+  await loadV3(); // all downloads are verified before changing the calculator
+  say('st-install', 'Sending TI Inequalz…');
+  await c.sendVar(inequalz);
+  v3Stage = 'ram-reset';
+  say('st-install', 'Preparing the calculator. It may show “RAM Cleared”…');
+  let ready = c;
+  try {
+    for (const k of [KEY.quit, KEY.clear, KEY.mem, KEY.k7, KEY.k1]) {
+      await c.pressKey(k); await sleep(700);
+    }
+    await c.pressKey(KEY.k2, 180000); await sleep(1500); await c.ping(10000);
+  } catch (e) { await release(c); ready = null; }
+  if (!ready) {
+    v3Prompt('ram-reset', 'Check the calculator shows <strong>RAM Cleared</strong>, then reconnect below. ' +
+      'Press <kbd>on</kbd> if needed. <details><summary>RAM Cleared never appeared?</summary>' +
+      'Reset RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>, then reconnect.</details>', 'RAM cleared — reconnect');
+    return;
+  }
+  await openV3Screen(ready);
+}
+
+async function openV3Screen(c) {
+  await c.pressKey(KEY.clear);
+  await c.sendVar(v3Files[0]);
+  await release(c);
+  v3Prompt('inequalz', '<kbd>apps</kbd> → <strong>Inequalz</strong> → <kbd>enter</kbd>. Stay on its ' +
+    '<strong>Functions (Y=) screen</strong>.', 'Ready — continue');
+}
+
+async function continueV3() {
+  if (busy || !v3Stage || waitingReset) return;
+  const stage = v3Stage;
+  busy = true; updateInstall();
+  let c;
+  try {
+    const remembered = await navigator.usb.getDevices();
+    if (v3Device && remembered.includes(v3Device)) {
+      c = new Calculator(v3Device); await c.open();
+    } else {
+      c = await Calculator.request(); // reset may require the browser's device picker again
+    }
+  } catch (e) {
+    done();
+    if (e && e.name === 'NotFoundError') return;
+    say('st-install', problem(e)); return;
+  }
+  try {
+    calc = c;
+    await c.ping();
+    // Never continue a prepared session on a different OS, or erase the newly installed hook.
+    const info = await c.info();
+    if (installRoute(info.os) !== 'v3') throw new Error('This session needs the OS 5.8.5 calculator. Reload to start with a different OS.');
+    if (stage === 'ram-reset') {
+      await openV3Screen(c);
+    } else if (stage === 'inequalz') {
+      say('st-install', 'Sending the arTIfiCE v3 trigger…');
+      await c.sendVar(v3Files[1]);
+      await release(c);
+      v3Prompt('asmhook', 'The calculator restarts. Press <kbd>on</kbd> if the screen is black. ' +
+        '<kbd>apps</kbd> → <strong>AsmHook2</strong>, then dismiss “Installation successful!” and return home. ' +
+        'Keep AsmHook2 installed; do not reset RAM again.', 'AsmHook2 enabled — continue');
+    } else if (stage === 'asmhook') {
+      const need = vars.filter(v => v.name.startsWith('AppIns')).reduce((a, v) => a + v.data.length + 32, 0);
+      if (info.freeFlash === null || info.freeFlash < need)
+        throw new Error('Not enough archive space. Delete other apps while keeping AsmHook2, then try this button again. Do not reset RAM.');
+      await sendAll(c);
+      waitingReset = true;
+      mark('install', 'done'); mark('finish', 'active');
+      $('v3-guidance').hidden = true;
+      $('btn-finished').hidden = false;
+      say('st-install', '<span class="ok">Files sent.</span> Finish on the calculator below.');
+      say('st-finish', '<kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. ' +
+        `At “enter: install app”, press <kbd>enter</kbd>. Wait for ${countdown()} to count down to 0. ` +
+        'At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, ' +
+        'then <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+      if (autoInst) {
+        say('st-finish', 'Installing automatically. Leave the calculator alone until “RAM Cleared”. ' +
+          'Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+        try {
+          for (const k of [KEY.clear, KEY.prgm, KEY.enter, KEY.enter]) {
+            await c.pressKey(k); await sleep(700);
+          }
+        } catch (e) {
+          say('st-finish', 'Check the calculator. If the countdown started, leave it alone until “RAM Cleared”. ' +
+            'Otherwise <kbd>prgm</kbd> → <strong>INST</strong> → <kbd>enter</kbd> → <kbd>enter</kbd> starts it.');
+        }
+      }
+      await release(c);
+    }
+  } catch (e) {
+    say('st-install', problem(e) + (stage === 'inequalz'
+      ? '<p>If the calculator restarted and AsmHook2 appears in Apps, enable it and use <a href="#manual-585">the manual finish instructions</a>.</p>' : ''));
+    if (c) await release(c);
+  } finally { done(); }
+}
+
 // The rest of the install, once the calculator has room: send, open the arTIfiCE shell
 async function proceed(c) {
+  if (state.blocked) throw new Error('The detected OS has no verified installer.');
+  if (state.route === 'v3') return prepareV3(c);
   await sendAll(c);
   say('st-install', 'Opening the installer on the calculator…');
   for (const k of [KEY.clear, KEY.prgm, KEY.enter, KEY.enter]) {
@@ -324,6 +494,7 @@ async function proceed(c) {
   mark('install', 'done');
   mark('finish', 'active');
   waitingReset = true;
+  $('btn-finished').hidden = false;
   // The shell and INST don't read the USB: a key sent now would wait, and land after INST, where it
   // could replace the reset INST leaves for the OS. So nothing more is sent.
   say('st-finish', autoInst
@@ -335,11 +506,14 @@ async function proceed(c) {
 
 async function install() {
   if (busy || !calc || !state || state.blocked) return;
+  if (v3Stage || waitingReset) return;
+  if ((state.needErase || state.route === 'v3') && !$('erase-ok').checked) return;
   busy = true;
   updateInstall();
   $('btn-connect').disabled = true;
   let c = calc;
   try {
+    if (state.route === 'v3') await loadV3(); // fail before an archive erase if files are unavailable
     if (state.needErase) {
       const stop = ticking('st-install', 'Erasing the calculator. It shows <em>"Arc Vars &amp; Apps Cleared"</em> when it\'s done; nothing to press.');
       let c2;
@@ -367,6 +541,7 @@ async function install() {
       c = calc = c2;
       say('st-install', 'Erased. Checking the calculator…');
       await check(c);
+      if (state.blocked) throw new Error('The calculator OS changed. Reload before installing.');
       if (state.needErase) throw stillShort();
     }
     await proceed(c);
@@ -388,6 +563,7 @@ async function resume(c) {
     say('st-install', 'Checking the calculator…');
     await c.ping();
     await check(c);
+    if (state.blocked) throw new Error('The calculator OS changed. Reload before installing.');
     if (state.needErase) throw stillShort();
     await proceed(c);
   } catch (e) {
@@ -411,15 +587,18 @@ async function reconnectClick() {
 
 function done() {
   busy = false;
-  $('btn-connect').disabled = waitingReset;
+  $('btn-connect').disabled = waitingReset || !!v3Stage;
   updateInstall();
 }
 
 function finished() {
   waitingReset = false;
+  v3Stage = null;
+  $('btn-finished').hidden = true;
   mark('finish', 'done');
   $('btn-connect').disabled = busy;
-  say('st-finish', '<span class="ok">The calculator restarted.</span> When it shows <em>"RAM Cleared"</em>, FlowCE is installed: press <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+  say('st-finish', '<span class="ok">FlowCE is ready.</span>');
+  updateInstall();
 }
 
 function init() {
@@ -459,22 +638,26 @@ function init() {
     $('manual').open = true;
     return;
   }
-  if (WINDOWS) $('win-note').hidden = false;
   $('btn-connect').addEventListener('click', connect);
   $('btn-install').addEventListener('click', install);
   $('btn-reconnect').addEventListener('click', reconnectClick);
+  $('btn-v3-next').addEventListener('click', continueV3);
+  $('btn-finished').addEventListener('click', finished);
   $('erase-ok').addEventListener('change', updateInstall);
 
   navigator.usb.addEventListener('disconnect', e => {
     if (!calc || e.device !== calc.dev) return;
     calc = null;
-    if (waitingReset) finished();
+    if (waitingReset) say('st-finish', 'The USB connection ended. Check the calculator: after “RAM Cleared”, ' +
+      'press <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>. If INST has not finished, ' +
+      'follow its screen. A disconnected cable alone does not mean the installation finished.');
+    else if (v3Stage) say('st-install', 'Connection ended. Complete the calculator step below, then use its Continue button.');
     else if (!busy) say('st-connect', 'The calculator was disconnected. Plug it back in: this page picks it up again.');
     updateInstall();
   });
   // a calculator this page already used is plugged in again (or restarts): pick it up
   navigator.usb.addEventListener('connect', async () => {
-    if (busy || calc || !state) return;
+    if (busy || calc || !state || v3Stage || waitingReset || awaitingReconnect) return;
     const c = await reconnect(20000);
     if (!c || calc) return;
     calc = c;

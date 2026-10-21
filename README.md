@@ -101,19 +101,26 @@ with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/f
 
 ## Install
 
-**The easy way: [the FlowCE page](https://tommyb3ll.github.io/FlowCE/#install).** Open it in Chrome
+**[The FlowCE page](https://tommyb3ll.github.io/FlowCE/#install) selects the installer for your OS.** Open it in Chrome
 or Edge with the calculator plugged in, pick FlowCE or FlowCE Steps, and click Install: it checks
 the calculator, erases its archive (after you agree), sends FlowCE and opens the installer. Press
 `enter` once on the calculator: it installs and restarts by itself. On Windows it needs
 [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw) 6.1 or
 newer installed (for its USB driver).
 
-You need a **TI-84 Plus CE** (or TI-83 Premium CE) on **OS 5.3 to 5.8.4**. FlowCE fills most of the
+**OS 5.8.5:** the page selects **arTIfiCE v3** and guides you through Inequalz, **AsmHook2**,
+then **INST**. The page supplies and transfers all required files; there is nothing to download
+or select yourself. It prepares RAM and starts INST automatically, with two short calculator prompts in between.
+[TI Connect CE instructions](docs/install/os-5.8.5.md) are also available.
+OS **5.8.4.0058** still uses v2.1. The one-enter automatic finish above applies to the v2.1 path.
+Keep your current OS; upgrading is not necessary to use FlowCE.
+
+You need a **TI-84 Plus CE** (or TI-83 Premium CE). FlowCE fills most of the
 memory (about 2.8 MB), so installing it erases the calculator's apps and archived files: back up
 anything you want to keep first. FlowCE is a computer algebra system: follow your class and test
 rules (some tests, like the ACT, don't allow one).
 
-**By hand, with TI Connect CE:**
+**OS 5.3–5.8.4 by hand, with TI Connect CE:**
 
 1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
    `1:All Memory...` → `2:Reset`.
