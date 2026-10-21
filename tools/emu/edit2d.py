@@ -7,7 +7,8 @@ with | at the caret. Checks it against the expected text when one is given.
 
 Usage (WSL): edit2d.py <state> <casefile> [outdir]
   casefile lines: name<TAB>keys[<TAB>expected]   (# = comment)
-  keys: text typed char by char, {key,key} for named keys (as typecheck: {del} {left} {sq} ...)
+  keys: text typed char by char, {key,key} for named keys (as typecheck: {del} {left} {sq} ...),
+  {run:MS} to let the calculator run MS ms without a key
   expected: the edit line with | at the caret, e.g. (1)/(x+|)
 Env: GAP (ms after each key, default 250).
 """
@@ -76,6 +77,9 @@ def main():
         try:
             e.run(800)
             for k in keyseq(keys):
+                if k.startswith('run:'):  # {run:MS}: let the calculator work (keys kept while it drew)
+                    e.run(int(k[4:]))
+                    continue
                 e.cmd(f'key {k} 80'); e.ms += 80
                 e.run(gap)
             e.run(400)
