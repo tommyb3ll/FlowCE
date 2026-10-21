@@ -813,10 +813,11 @@ static bool has_func(const giac::gen & g){
   const unary_function_ptr & u=g._SYMBptr->sommet;
   return !(u==at_plus || u==at_prod || u==at_pow || u==at_neg || u==at_inv) || has_func(g._SYMBptr->feuille);
 }
-// a power of a sum of functions to an exponent of 8 or more in g ((asin(5x)+atan(4-x))^26):
-// ratnormal expands it into hundreds of terms, bigger than g in the end (the calculator ran out of
-// memory and quit). A polynomial's power stays ratnormal's: the derivative of (4x+1)^3/(x^2-x)^6 was
-// left as a polynomial of degree 14 over (x^2-x)^12
+// a power of a sum of functions to an exponent of 8 or more in g ((asin(5x)+atan(4-x))^26), or of
+// any sum to an exponent over 40 ((2x+1)^2027, worksheet B): ratnormal expands it into hundreds of
+// terms, bigger than g in the end (the calculator ran out of memory and quit). A polynomial's lower
+// power stays ratnormal's: the derivative of (4x+1)^3/(x^2-x)^6 was left as a polynomial of degree
+// 14 over (x^2-x)^12
 static bool big_power(const giac::gen & g){
   using namespace giac;
   if (g.type==_VECT){
@@ -828,7 +829,7 @@ static bool big_power(const giac::gen & g){
   if (g.type!=_SYMB)
     return false;
   const gen & f=g._SYMBptr->feuille;
-  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f[1].type==_INT_ && (f[1].val>=8 || f[1].val<=-8) && f[0].is_symb_of_sommet(at_plus) && has_func(f[0]))
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f[1].type==_INT_ && (f[1].val>=8 || f[1].val<=-8) && f[0].is_symb_of_sommet(at_plus) && (has_func(f[0]) || f[1].val>40 || f[1].val<-40))
     return true;
   return big_power(f);
 }
@@ -1185,9 +1186,27 @@ static __attribute__((noinline)) giac::gen bqf(const char * f,const giac::gen * 
   const gen g=subst(gen(f,contextptr),ids,vals,true,contextptr);
   return how==2?ratnormal(g,contextptr):how?eval(g,1,contextptr):g;
 }
+// biquad's quick look at f: -1 a power of a sum above 4 (no such fraction, and _numer would expand
+// it: 8x(2x+1)^2026, worksheet B, quit the calculator), 1 a denominator, else 0
+static int bq_shape(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_VECT){
+    int r=0;
+    for (unsigned i=0;i<g._VECTptr->size() && r>=0;++i){ const int k=bq_shape((*g._VECTptr)[i]); if (k) r=k; }
+    return r;
+  }
+  if (g.type!=_SYMB) return 0;
+  const gen & f=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_inv) return bq_shape(f)<0?-1:1;
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2 && f[1].type==_INT_){
+    if ((f[1].val>4 || f[1].val<-4) && f[0].is_symb_of_sommet(at_plus)) return -1;
+    if (f[1].val<0) return bq_shape(f[0])<0?-1:1;
+  }
+  return bq_shape(f);
+}
 static __attribute__((noinline)) giac::gen biquad(const giac::gen & f,const giac::gen & x){
   using namespace giac;
-  if (x.type!=_IDNT) return 0;
+  if (x.type!=_IDNT || bq_shape(f)!=1) return 0;
   const gen n=_numer(f,contextptr),d=_denom(f,contextptr);
   const vecteur ld=lidnt(d),ln_=lidnt(n);
   if (ld.size()!=1 || ld[0]!=x || ln_.size()>1 || (ln_.size() && ln_[0]!=x)) return 0;
