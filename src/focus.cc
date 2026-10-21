@@ -455,7 +455,15 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     int top = ky + 7;
     if (e.in >= 0) {
       fitc c = fitted(Line[e.in].str, 5, kw - 32, 30, MI_F_TIDY);
-      if (in_band(top - 2, top + c.a + c.d + 3)) draw_math(Line[e.in].str, c, kx + 14, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
+      if (!in_band(top - 2, top + c.a + c.d + 3)) ;
+      else if (c.w > kw - 32) { // too long even small: its start, clipped, "..." after it (it ran off the card)
+        const int dw = ui_text_width(&ui_tr10, "...", 3) + 4, r = kx + kw - 18;
+        ui_clip(kx + 14, 0, r - dw, UI_H);
+        draw_math(Line[e.in].str, c, kx + 14, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
+        ui_noclip();
+        ui_draw_text(&ui_tr10, "...", 3, r - dw + 4, top + c.a, ramp(UC_SUB, UC_BG), 0);
+      }
+      else draw_math(Line[e.in].str, c, kx + 14, top + c.a, UC_SUB, UC_BG, MI_F_TIDY);
       top += c.a + c.d + 6;
     }
     const int na = act_n;
