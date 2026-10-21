@@ -237,12 +237,16 @@ static NOINL void paint() {
     text(&ui_tr10, ASK[topic], 12, Y0 + 40, UC_SUB);
     math(show_->c_str(), UI_W / 2, Y0 + 84, 1, UI_W - 24, UC_INK);
     ui_fill(12, Y0 + 112, UI_W - 24, 1, col(UC_LINE));
-    if (state == 0) text(&ui_tr10, "enter: answer    F2: the steps    F3: another one", UI_W / 2, Y0 + 134, UC_SUB, 1);
+    if (state == 0) { // what enter does as FlowCE's answers show it (the bar has the rest)
+      const int w = focus_chip(0, -1, Y0 + 136, "answer", "enter", 1, UC_BG);
+      focus_chip(0, (UI_W - w) / 2, Y0 + 136, "answer", "enter", 1, UC_BG);
+    }
     else {
       const bool ok = state == 1;
       ui_rrect(0, 10, Y0 + 120, UI_W - 20, SBOT - Y0 - 128, 8, ok ? UC_ACCSOFT : UC_CARD, UC_BG);
       ui_draw_text(&ui_tb12, ok ? "Right!" : state == 2 ? "Not quite" : "The answer", -1, 22, Y0 + 140, ui_ramp(0, ok ? UC_ACC : UC_RED, ok ? UC_ACCSOFT : UC_CARD), 0);
       const int bg = ok ? UC_ACCSOFT : UC_CARD;
+      focus_chip(0, UI_W - 20 - focus_chip(0, -1, 0, "next one", "enter", 1, bg), Y0 + 139, "next one", "enter", 1, bg);
       for (int k = 0; k < 2; ++k) { // yours, then the right one (labeled)
         const std::string & m = k ? *right_ : *yours_;
         if (m.empty() || (k && ok)) continue;
@@ -252,7 +256,6 @@ static NOINL void paint() {
         const int lv = ui_math_fit(m.c_str(), m.size(), -1, 3, UI_W - 100, 30, MI_F_IMPLDOT, L);
         ui_math_draw(L, m.c_str(), lv, 76, yb, 0, UC_INK, bg, UC_ACC);
       }
-      if (ok) ui_draw_text(&ui_tr10, "enter: the next one", -1, 22, SBOT - 16, ui_ramp(0, UC_SUB, bg), 0);
     }
     if (rows) ui_band_end();
   }

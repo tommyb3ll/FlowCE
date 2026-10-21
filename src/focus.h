@@ -76,6 +76,8 @@ void focus_tab(int i, int on, int bank); // the standard layer's tab of F-key i 
 void focus_bar_tabs(const char * const * labels, int on); // the F-key bar as 5 text tabs, tab on selected
 enum { IC_X2, IC_INT, IC_WAVE, IC_PI, IC_FORMS, IC_MORE, IC_SEARCH };
 void focus_icon(int ic, int x, int cy, int bank, int c, int bg); // the prototype's icons
+// a chip (exact F4, steps enter) at x (x < 0: none drawn), text baseline cy, filled if on: its width
+int focus_chip(int bank, int x, int cy, const char * w, const char * k, int on, int bg);
 
 // focus_menu.cc: F1-F5 and the math key open a popover over the dimmed stage. Returns FA_NONE
 // (closed), FA_INSERT with the template to insert (*text, then the caret back *back chars), or

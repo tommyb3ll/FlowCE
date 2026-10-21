@@ -562,32 +562,23 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
       char abuf[40] = "";
       if (*ap) { strcpy(abuf, "\xe2\x89\x88 "); strncat(abuf, ap, sizeof(abuf) - 5); } // ≈ value
       int aw = *abuf ? ui_text_width(&ui_tr10, abuf, -1) + 12 : 0;
-      int cw2 = ui_text_width(&ui_tb9, fn, -1) + ui_text_width(&ui_tb9, "F4", -1) + 20;
+      const int cw2 = focus_chip(0, -1, cy, fn, "F4", 0, UC_BG);
 #ifdef FLOWCE_STEPS
       // the steps of a derivative or an integral: a filled chip, the action of Enter (console.cc)
-      const int sw = steps_input(e) ? ui_text_width(&ui_tb9, "steps", -1) + ui_text_width(&ui_tb9, "enter", -1) + 28 : 0;
+      const int sw = steps_input(e) ? focus_chip(0, -1, cy, "steps", "enter", 1, UC_BG) + 8 : 0;
       if (aw + cw2 + sw > UI_W - 16) { aw = 0; *abuf = 0; }
 #else
       const int sw = 0;
 #endif
       int x0 = (UI_W - aw - cw2 - sw) / 2, cx = x0 + aw;
       if (*abuf) ui_draw_text(&ui_tr10, abuf, -1, x0, cy, ramp(UC_SUB, UC_BG), 0);
-      ui_rrect(0, cx, cy - 10, cw2, 13, 6, UC_ACCSOFT, UC_BG);
-      int w1 = ui_text(&ui_tb9, fn, cx + 6, cy, UC_ACC, UC_ACCSOFT, 0);
-      ui_text(&ui_tb9, "F4", cx + 12 + w1, cy, UC_SUB, UC_ACCSOFT, 0);
-      if (sw) { // (soft while the action row has the keys: enter does the action selected)
-        const int sx = cx + cw2 + 8, on = act_sel < 0, bg = on ? UC_ACC : UC_ACCSOFT;
-        ui_rrect(0, sx, cy - 10, sw - 8, 13, 6, bg, UC_BG);
-        int w2 = ui_text(&ui_tb9, "steps", sx + 6, cy, on ? UC_ONACC : UC_ACC, bg, 0);
-        ui_text(&ui_tb9, "enter", sx + 12 + w2, cy, on ? UC_ACCSOFT : UC_SUB, bg, 0);
-      }
+      focus_chip(0, cx, cy, fn, "F4", 0, UC_BG);
+      if (sw) focus_chip(0, cx + cw2 + 8, cy, "steps", "enter", act_sel < 0, UC_BG); // (soft while the action row has the keys: enter does the action selected)
     }
 #ifdef FLOWCE_STEPS
     else if (steps_input(e)) { // a text answer with steps (no solution, does not exist): their chip alone
-      const int sw = ui_text_width(&ui_tb9, "steps", -1) + ui_text_width(&ui_tb9, "enter", -1) + 20, sx = (UI_W - sw) / 2;
-      ui_rrect(0, sx, cy - 10, sw, 13, 6, UC_ACC, UC_BG);
-      int w2 = ui_text(&ui_tb9, "steps", sx + 6, cy, UC_ONACC, UC_ACC, 0);
-      ui_text(&ui_tb9, "enter", sx + 12 + w2, cy, UC_ACCSOFT, UC_ACC, 0);
+      const int sw = focus_chip(0, -1, cy, "steps", "enter", 1, UC_BG);
+      focus_chip(0, (UI_W - sw) / 2, cy, "steps", "enter", 1, UC_BG);
     }
     // (DeltaCE) the action row: what the right arrow offers on this answer (console.cc), the
     // likeliest first, then "more" (the whole list). The right arrow selects the first (console.cc
@@ -784,6 +775,17 @@ void focus_icon(int ic, int x, int cy, int bank, int c, int bg) {
 }
 #undef P16
 
+// a chip (exact F4, steps enter): a word and its key in a soft pill, or a filled one (on: what
+// enter does); its left edge at x (x < 0: its width only), the text's baseline at cy; its width
+int focus_chip(int bank, int x, int cy, const char * w, const char * k, int on, int bg) {
+  const int c = on ? UC_ACC : UC_ACCSOFT, wd = ui_text_width(&ui_tb9, w, -1) + ui_text_width(&ui_tb9, k, -1) + 20;
+  if (x >= 0) {
+    ui_rrect(bank, x, cy - 10, wd, 13, 6, c, bg);
+    const int w1 = ui_draw_text(&ui_tb9, w, -1, x + 6, cy, ui_ramp(bank, on ? UC_ONACC : UC_ACC, c), 0);
+    ui_draw_text(&ui_tb9, k, -1, x + 12 + w1, cy, ui_ramp(bank, on ? UC_ACCSOFT : UC_SUB, c), 0);
+  }
+  return wd;
+}
 static int forms_key(); // F4 shows forms (a result is selected, or shown large)
 static const char * const tab_word[5] = {"algebra", "calculus", "trig", "symbols", "more"};
 static const unsigned char tab_icon[5] = {IC_X2, IC_INT, IC_WAVE, IC_PI, IC_MORE};

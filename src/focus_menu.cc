@@ -559,7 +559,9 @@ int focus_prompt(const char * t, const char * sub, std::string & s, bool numeric
   ui_dim(1);
   note_card(x, y, w, h);
   if (t) ui_draw_text(&ui_tb12, t, fit(&ui_tb12, t, fw), fx, y + 24, ui_ramp(1, UC_INK, UC_CARD), 0);
-  ui_draw_text(&ui_tr10, "EXE: OK    EXIT: cancel", -1, fx, y + h - 10, ui_ramp(1, UC_SUB, UC_CARD), 0);
+  const int ok = focus_chip(1, -1, 0, "OK", "enter", 1, UC_CARD), no = focus_chip(1, -1, 0, "cancel", "clear", 0, UC_CARD);
+  focus_chip(1, fx + fw - ok - no - 6, y + h - 10, "cancel", "clear", 0, UC_CARD); // (the TI's keys)
+  focus_chip(1, fx + fw - ok, y + h - 10, "OK", "enter", 1, UC_CARD);
   int pos = s.size(), res = 0;
   while (!res) {
     // the field: its label, the text scrolled so that the caret shows, the caret
