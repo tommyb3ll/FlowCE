@@ -19,6 +19,7 @@ namespace xcas {
 #endif
 using namespace std;
 #include "mathinput.h" // after "#define std ustl": its vector is uSTL's
+#include <ctype.h>
 #include "focus.h"
 #include "mathedit.h"
 
@@ -934,6 +935,7 @@ void menu_setup(){
         Console_Disp(1);
         continue;
       }
+#if !focus_on
       if (smallmenu.selection>=4) {
 	textArea text;
 	text.editable=false;
@@ -944,6 +946,7 @@ void menu_setup(){
 	doTextArea(&text);
 	continue;
       }
+#endif
     }
   }
 }
@@ -2262,6 +2265,8 @@ static __attribute__((noinline)) int console_empty_slot(const char * s){
   int e=n;
   while (e>0 && s[e-1]==' ')
     --e;
+  if (e>1 && (s[e-1]=='*' || s[e-1]=='+') && s[e-2]=='>' && (e<3 || s[e-3]=='=')) // (DeltaCE) x^4-1=>* factors, =>+: partial fractions
+    return -1;
   if (e>0 && !str && strchr("+-*/^(",s[e-1])) // x^2+ and x^2+( (unclosed: evaluated to undef)
     return e;
   return -1;
@@ -2347,8 +2352,83 @@ static __attribute__((noinline)) bool console_wrappable(const char * e,bool solv
   return !strchr("+-*/^=,(<>",last);
 }
 
+// (DeltaCE) the variable an action (solve, diff, integrate, limit, series, subst) works in on
+// expr: x, or the one letter expr has when it has no x (3b+2=11: b; 2t^2+5t: t; ans(): the last
+// answer's), read from its text: names before ( are functions, _km units, e pi i oo constants; a
+// name of several letters other than a Greek one (ab: a*b) leaves x. (Calling giac to parse it
+// from here reset the calculator: the popover's memory state.)
+static int greek_name(const char * s,int n){
+  static const char * const g[]={"alpha","beta","gamma","delta","theta","lambda","mu","phi","omega","rho","sigma","tau",0};
+  for (int i=0;g[i];++i) if ((int)strlen(g[i])==n && !strncmp(s,g[i],n)) return 1;
+  return 0;
+}
+static void console_action_var(const char * expr,char * var,int cap){
+  strcpy(var,"x");
+  const char * s=expr;
+  if (!strcmp(expr,"ans()")){
+    const int l=focus_result_line();
+    if (l<0 || !Line[l].str) return;
+    s=(const char *)Line[l].str;
+  }
+  const char * found=0;
+  int flen=0,many=0;
+  for (int i=0;s[i];){
+    const char c=s[i];
+    if (c=='"'){ // a string
+      for (++i;s[i] && s[i]!='"';++i) if (s[i]=='\\' && s[i+1]) ++i;
+      if (s[i]) ++i;
+      continue;
+    }
+    if ((c>='0' && c<='9') || c=='.'){ // a number (2e-3; 2t is 2 then t)
+      while ((s[i]>='0' && s[i]<='9') || s[i]=='.') ++i;
+      if (s[i]=='e' && ((s[i+1]>='0' && s[i+1]<='9') || ((s[i+1]=='-' || s[i+1]=='+') && s[i+2]>='0' && s[i+2]<='9')))
+        for (i+=2;s[i]>='0' && s[i]<='9';) ++i;
+      continue;
+    }
+    if (isalpha((unsigned char)c) || c=='_'){
+      int j=i;
+      while (isalnum((unsigned char)s[j]) || s[j]=='_') ++j;
+      int k=j;
+      while (s[k]==' ') ++k;
+      const int n=j-i;
+      const bool skip=s[k]=='(' || c=='_' || (n==1 && (c=='e' || c=='i')) || (n==2 && !strncmp(s+i,"pi",2)) ||
+        (n==2 && !strncmp(s+i,"oo",2)) || (n==3 && !strncmp(s+i,"inf",3)) || (n==8 && !strncmp(s+i,"infinity",8));
+      if (!skip){
+        if (n==1 && c=='x') return; // x is there
+        if (n>1 && !greek_name(s+i,n)) many=1; // ab: a*b
+        else if (!found){ found=s+i; flen=n; }
+        else if (flen!=n || strncmp(found,s+i,n)) many=1;
+      }
+      i=j;
+      continue;
+    }
+    ++i;
+  }
+  if (found && !many && flen<cap){ memcpy(var,found,flen); var[flen]=0; }
+}
+// (DeltaCE) a temperature conversion of the units menu (code CF, FC, CK, KC: from, to), applied as
+// F1's actions are: to the line typed (caret at its end), else to the last answer on an empty
+// line, else its template goes in with the caret in its box: 100 then Celsius to F is 9/5*(100)+32
+static void console_temperature(const char * code){
+  const char * pre=!strcmp(code,"CF")?"9/5*(":!strcmp(code,"FC")?"5/9*((":"(";
+  const char * post=!strcmp(code,"CF")?")+32":!strcmp(code,"FC")?")-32)":!strcmp(code,"CK")?")+273.15":")-273.15";
+  if (!console_input2d() || !Edit_Line) return;
+  const char * e=(const char *)Edit_Line;
+  const int len=strlen(e),caret=console_caret();
+  std::string s(pre);
+  if (len && caret==len) s+=e;
+  else if (!len && focus_result_line()>=0) s+="ans()";
+  else {
+    Console_Input((const Char *)(std::string(pre)+post).c_str());
+    for (int b=strlen(post);b>0;--b) Console_MoveCursor(CURSOR_LEFT);
+    return;
+  }
+  s+=post;
+  Console_Clear_EditLine();
+  Console_Input((const Char *)s.c_str());
+}
 static int console_apply_action(const char * text){
-  static const char * const acts[]={"solve(","factor(","expand(","simplify(","partfrac(","integrate(","diff(","limit(","series("};
+  static const char * const acts[]={"solve(","factor(","expand(","simplify(","partfrac(","integrate(","diff(","limit(","series(","subst(","analyze("};
   const char * open=strchr(text,'(');
   bool act=false;
   for (unsigned i=0;open && i<sizeof(acts)/sizeof(acts[0]);++i)
@@ -2361,20 +2441,35 @@ static int console_apply_action(const char * text){
   for (int i=caret;at_end && i<len;++i)
     at_end=e[i]==')';
   std::string s(text,open+1-text); // factor(
+  std::string expr;
   if (at_end && console_wrappable(e,text[0]=='s' && text[1]=='o'))
-    s+=e;
+    expr=e;
   else if (!len && focus_result_line()>=0)
-    s+="ans()";
+    expr="ans()";
   else {
     if (caret>0 && (isalpha((unsigned char)e[caret-1]) || e[caret-1]=='_'))
       Console_Input((const Char *)"*");
     return 0;
   }
-  s+=open+1; // ) or ,x) or ,x,,)
+  s+=expr;
+  std::string rest(open+1); // ) or ,x) or ,x,,) or ,x=)
+  // (DeltaCE) in the expression's own letter when it has no x: 3b+2=11 solved for b, 5t^2 in t
+  if (rest.size()>=3 && rest[0]==',' && rest[1]=='x' && (rest[2]==',' || rest[2]==')' || rest[2]=='=')){
+    char v[16];
+    console_action_var(expr.c_str(),v,sizeof(v));
+    if (strcmp(v,"x") && rest.size()<40){ // (built in a char buffer: uSTL's "," + string + substr reset the calculator)
+      char nr[64];
+      nr[0]=',';
+      strcpy(nr+1,v);
+      strcat(nr,rest.c_str()+2);
+      rest=nr;
+    }
+  }
+  s+=rest;
   Console_Clear_EditLine();
   Console_Input((const Char *)s.c_str());
-  for (const char * p=open+1;p[0] && p[1];++p)
-    if (p[0]==',' && (p[1]==',' || p[1]==')')){ // the first empty slot
+  for (const char * p=rest.c_str();p[0] && p[1];++p)
+    if ((p[0]==',' && (p[1]==',' || p[1]==')')) || (p[0]=='=' && p[1]==')')){ // the first empty slot
       for (int b=strlen(p+1);b>0;--b)
         Console_MoveCursor(CURSOR_LEFT);
       break;
@@ -2382,6 +2477,91 @@ static int console_apply_action(const char * text){
   return 1;
 }
 
+#ifdef FLOWCE_STEPS
+// DeltaCE: analyze(f) typed or from the calculus menu: the analysis of f (focus_steps.cc), ans()
+// as the answer it stands for; false if f is empty
+static bool console_analyze(const char * line){
+  const char * a=line+8, * end=a+strlen(a);
+  while (end>a && end[-1]==' ') --end;
+  if (end>a && end[-1]==')') --end; // (its closing parenthesis)
+  if (end==a) return false;
+  const int rl=focus_result_line();
+  const char * ans=rl>=0 && Line[rl].str?(const char *)Line[rl].str:"0";
+  const int n=end-a,cap=n+(int)strlen(ans)*4+8;
+  char * buf=(char *)malloc(cap);
+  if (!buf) return false;
+  int k=0;
+  for (const char * p=a;p<end;){
+    if (!strncmp(p,"ans()",5) && k+(int)strlen(ans)+2<cap){ buf[k++]='('; strcpy(buf+k,ans); k+=strlen(ans); buf[k++]=')'; p+=5; }
+    else buf[k++]=*p++;
+  }
+  buf[k]=0;
+  focus_analyze(buf);
+  free(buf);
+  return true;
+}
+#endif
+#ifdef FLOWCE_STEPS
+// (DeltaCE) right arrow on an answer shown large (an expression in a letter): what to do next with
+// it, done at once (Value at: its box to fill). -1: not such an answer (the key does what it did)
+// the answer shown or selected if the actions apply to it (an expression in its letter, v), else 0
+static const char * console_action_answer(char * v,int cap){
+  const int rl=focus_result_line();
+  if (rl<0 || !Line[rl].str) return 0;
+  const char * a=(const char *)Line[rl].str;
+  if (strchr(a,'=') || strchr(a,'[') || strchr(a,'"') || strchr(a,'<') || strchr(a,'>')) return 0; // (solutions, lists, text)
+  console_action_var("ans()",v,cap);
+  const int vn=strlen(v);
+  bool has=false; // the letter in the answer (2x: x; exp(x): x; not a number)
+  for (const char * p=a;(p=strstr(p,v))!=0;p+=vn)
+    if ((p==a || (!isalpha((unsigned char)p[-1]) && p[-1]!='_')) && !isalnum((unsigned char)p[vn]) && p[vn]!='(' && p[vn]!='_') has=true;
+  return has?a:0;
+}
+static const char * const answer_labels[]={"Factor","Expand","Simplify","Solve = 0","Derivative","Integral","Value at","Graph","Analyze"};
+// (DeltaCE) the row under an answer shown large (focus.cc): its likeliest actions, their number
+// (0: none). A function (sin, ln, sqrt): Derivative, Integral, Graph; else Factor (Expand for a
+// product or a power of a sum), Solve = 0, Graph.
+int console_answer_row(const char ** lab,signed char * idx){
+  char v[16];
+  const char * a=console_action_answer(v,sizeof(v));
+  if (!a) return 0;
+  bool fn=false;
+  for (const char * p=a;*p && !fn;++p) fn=isalpha((unsigned char)p[0]) && p[1]=='(';
+  static const signed char calc[3]={4,5,7},alg[3]={0,3,7}; // (indexes in answer_labels)
+  for (int i=0;i<3;++i) idx[i]=fn?calc[i]:alg[i];
+  if (!fn && (strstr(a,")*") || strstr(a,"*(") || strstr(a,")^"))) idx[0]=1;
+  for (int i=0;i<3;++i) lab[i]=answer_labels[(int)idx[i]];
+  return 3;
+}
+// the actions on the answer: pick (an index in answer_labels), or the list of all (pick < 0)
+static int console_answer_actions(int pick){
+  char v[16];
+  const char * a=console_action_answer(v,sizeof(v));
+  if (!a) return -1;
+  const int vn=strlen(v);
+  const char * const * labels=answer_labels;
+  static const char * const how[]={"factor(ans())","expand(ans())","simplify(ans())","solve(ans()=0,@)","diff(ans(),@)","integrate(ans(),@)","","",""};
+  const int c=pick>=0?pick:focus_list("Use this answer",labels,9,0,0,0);
+  if (c<0){ Console_Disp(1); return CONSOLE_SUCCEEDED; }
+  if (c==6) // Value at: subst(Ans, x=[]) with the caret in the box
+    return console_apply_action("subst(,x=)")?CONSOLE_SUCCEEDED:-1;
+  if (c==8){ console_analyze("analyze(ans())"); Console_Disp(1); return CONSOLE_SUCCEEDED; }
+  char buf[64];
+  int k=0;
+  if (c==7){ strcpy(buf,"plot("); k=5; } // (the answer's text: the graph is not a calculation of Ans)
+  const char * src=c==7?a:how[c];
+  for (;*src && k<(int)sizeof(buf)-20;++src){
+    if (*src=='@'){ strcpy(buf+k,v); k+=vn; }
+    else buf[k++]=*src;
+  }
+  if (c==7){ if (*src) return -1; buf[k++]=')'; } // (too long to graph from here)
+  buf[k]=0;
+  Console_Clear_EditLine();
+  Console_Input((const Char *)buf);
+  console_prepare_input();
+  return Console_NewLine(LINE_TYPE_INPUT,1);
+}
+#endif
 static const char * const console_yesno[]={"Clear history","Cancel"};
 int Console_GetKey(){
   unsigned int key, move_line, move_col;
@@ -2396,13 +2576,33 @@ int Console_GetKey(){
     oldkeyflag=keyflag;
     ck_getkey((int *)&key);
     if (key==KEY_CTRL_QUIT
-#ifndef WITH_PLOT
+#if !defined WITH_PLOT && !defined FLOWCE_STEPS // (DeltaCE: F1 is a menu, not save and quit)
         || key==KEY_CTRL_F1
 #endif
         )
       return -2;
     if (key==KEY_CTRL_SHIFT || key==KEY_CTRL_ALPHA)
       continue;
+#ifdef FLOWCE_STEPS
+    // (DeltaCE) the action row under an answer has the keys once the right arrow selected an
+    // action: left and right move (left of the first: out), enter does it ("more": the list of
+    // all); any other key leaves the row, then does what it does (clear: only that)
+    if (focus_on && focus_act()>=0){
+      const int sel=focus_act();
+      const char * lab[3];
+      signed char idx[3];
+      const int n=Current_Line==Last_Line && Edit_Line && !Edit_Line[0]?console_answer_row(lab,idx):0;
+      if (n && key==KEY_CTRL_RIGHT){ if (sel<n) focus_act_select(sel+1); continue; }
+      if (n && key==KEY_CTRL_LEFT){ focus_act_select(sel-1); continue; }
+      focus_act_select(-1);
+      if (n && key==KEY_CTRL_EXE){
+        const int r=console_answer_actions(sel<n?idx[sel]:-1);
+        if (r!=-1) return r;
+        continue;
+      }
+      if (key==KEY_CTRL_EXIT || key==KEY_CTRL_AC) continue;
+    }
+#endif
     // Focus: F1-F3, F5 and the math key open popovers (focus_menu.cc); F4 cycles the forms of a
     // result (selected, or shown large), else opens the symbols
     if (focus_on && key==KEY_CTRL_F4 && Current_Line==Last_Line && focus_result_line()>=0){
@@ -2430,6 +2630,13 @@ int Console_GetKey(){
       }
       if (a==FA_PLOT)
         return Console_FMenu(KEY_CTRL_F3);
+#ifdef FLOWCE_STEPS
+      if (a==FA_STATS || a==FA_PROB || a==FA_PRACTICE){ // (DeltaCE) statistics, probability (focus_stats.cc), practice (focus_practice.cc)
+        if (a==FA_STATS) focus_stats(); else if (a==FA_PROB) focus_prob(); else focus_practice();
+        Console_Disp(1);
+        continue;
+      }
+#endif
       if (a==FA_THEME){
         focus_toggle_theme();
         continue;
@@ -2447,15 +2654,26 @@ int Console_GetKey(){
         }
         if (g.compare(0,2,"y=")==0) // y=x^2: its right side
           g=g.substr(2,g.size()-2);
-        if (g.empty() || g.find('=')!=string::npos){ // nothing, or an equation (x=2 answers)
+        // nothing, or not something to draw: a definition, a test (DeltaCE: equations in x and y are,
+        // x^2+y^2=25 a circle; x=2 a vertical line)
+        if (g.empty() || g.find(":=")!=string::npos || g.find("==")!=string::npos || g.find("=>")!=string::npos || g.find("<=")!=string::npos || g.find(">=")!=string::npos || g.find("!=")!=string::npos){
           focus_status_msg(g.empty()?"Type a function of x first":"Not a function of x");
           continue;
         }
         for (int k=0;Current_Line<Last_Line && k<4000;++k)
           Console_MoveCursor(CURSOR_DOWN);
         Console_Clear_EditLine();
-        g="plot("+g+")";
-        Console_Input((const Char *)g.c_str());
+        int dep=0; // x^2, 2x+1: both, plot([x^2, 2x+1])
+        bool list=false;
+        for (unsigned k=0;k<g.size();++k){
+          const char c=g[k];
+          if (c=='(' || c=='[' || c=='{') ++dep;
+          else if (c==')' || c==']' || c=='}') --dep;
+          else if (c==',' && !dep) list=true;
+        }
+        string p=list?"plot([":"plot(";
+        p+=g; p+=list?"])":")";
+        Console_Input((const Char *)p.c_str());
         console_prepare_input();
         return Console_NewLine(LINE_TYPE_INPUT,1);
       }
@@ -2597,7 +2815,8 @@ int Console_GetKey(){
       continue;
     }
 #endif
-    if (!focus_on && (key==KEY_CTRL_RIGHT || key==KEY_CTRL_LEFT || key==KEY_EQW_TEMPLATE) && Current_Line<Last_Line){ // (Focus: history keys above)
+#if !focus_on
+    if ((key==KEY_CTRL_RIGHT || key==KEY_CTRL_LEFT || key==KEY_EQW_TEMPLATE) && Current_Line<Last_Line){
       int l=Current_Line;
       bool graph=strcmp((const char *)Line[l].str,"Graphic object")==0;
       if (graph && l>0) --l;
@@ -2635,6 +2854,7 @@ int Console_GetKey(){
       Console_Disp(1);
       continue;
     }
+#endif
     if (key==KEY_CTRL_SYMB){
       const int nmath=sizeof(math_items)/sizeof(math_items[0]);
       int k=quick_menu("math",math_items,nmath);
@@ -2700,20 +2920,36 @@ int Console_GetKey(){
 #endif
 #endif
       smallmenuitems[smallmenu.numitems-1].text = (char*) (lang?"Quitter":"Quit");
+      // the entries by their number in the full list (sel); DeltaCE has no script editor (2026-10-17,
+      // 17 KB): Script editor, Open script and Clear script are not shown
+      const int nall=smallmenu.numitems;
+      const char * full[18];
+      unsigned char sel_of[18];
+      int nshown=0;
+      for (int i=0;i<nall;++i){
+        full[i]=smallmenuitems[i].text;
+#ifndef WITH_EDITOR
+        if (i==5 || i==6 || i==9) continue;
+#endif
+        smallmenuitems[nshown]=smallmenuitems[i];
+        sel_of[nshown++]=i+1;
+      }
+      smallmenu.numitems=nshown;
       // smallmenuitems[2].text = (char*)(isRecording ? "Stop Recording" : "Record Script");
       while(1) {
         int sres = doMenu(&smallmenu);
         if(sres == MENU_RETURN_SELECTION) {
           const char * ptr=nullptr;
-          if (smallmenu.selection==1){
+          int sel=sel_of[smallmenu.selection-1];
+          if (sel==1){
             if (strcmp(session_filename,"session")==0)
-              smallmenu.selection=2;
+              sel=2;
             else {
               save(session_filename);
               break;
             }
           }
-          if (smallmenu.selection==2){
+          if (sel==2){
             char buf[270];
             if (get_filename(buf,".xw")){
               save(buf);
@@ -2724,7 +2960,7 @@ int Console_GetKey(){
             }
             break;
           }
-          if (smallmenu.selection==3){
+          if (sel==3){
             char filename[MAX_FILENAME_SIZE+1];
             if (fileBrowser(filename, (char*)"*.xw", (char *)"Sessions")){
               if (console_changed==0 || strcmp(session_filename,"session")==0 || confirm(lang?"Session courante perdue?":"Current session will be lost",lang?"F1: annul, F5: ok":"F1: cancel, F5: ok")==KEY_CTRL_F5){
@@ -2735,7 +2971,7 @@ int Console_GetKey(){
             }
             break;
           }
-          if (0 && smallmenu.selection==3) {
+          if (0 && sel==3) {
             // FIXME: make a menu catalog?
             char buf[512];
             if (doCatalogMenu(buf,"CATALOG",0))
@@ -2743,7 +2979,7 @@ int Console_GetKey(){
              oldkeyflag=-1;
              break;
           }
-          if (smallmenu.selection==4) {
+          if (sel==4) {
             char filename[MAX_FILENAME_SIZE+1];
             if (!focus_on) // (Focus: the prompt card over the console)
               drawRectangle(0, 16, LCD_WIDTH_PX, LCD_HEIGHT_PX-24, _WHITE);
@@ -2758,39 +2994,43 @@ int Console_GetKey(){
             }
             break;
           }
-          if (smallmenu.selection==5) {
+          if (sel==5) {
             run_session();
             break;
           }
-          if (smallmenu.selection==6) {
+#ifdef WITH_EDITOR
+          if (sel==6) {
             if (!edptr || merge_area(edptr->elements).size()<2)
               edit_script((remove_extension(session_filename)+".py").c_str());
             else
               doTextArea(edptr);
             break;
           }
-          if (smallmenu.selection==7) {
+          if (sel==7) {
             char filename[MAX_FILENAME_SIZE+1];
             drawRectangle(0, 16, LCD_WIDTH_PX, LCD_HEIGHT_PX-24, _WHITE);
             if (fileBrowser(filename, (char*)"*.py", (char *)"Scripts"))
               edit_script(filename);
             break;
           }
-          if (smallmenu.selection==8) {
+#endif
+          if (sel==8) {
             select_script_and_run();
             break;
           }
-          if(smallmenu.selection == 9) {
+          if(sel == 9) {
             chk_restart();
             Console_Init();
             Console_Clear_EditLine();
             break;
           }
-          if (smallmenu.selection==10){
+#ifdef WITH_EDITOR
+          if (sel==10){
             erase_script();
             break;
           }
-          if (smallmenu.selection==12){
+#endif
+          if (sel==12){
 #if defined WITH_EQW && !focus_on
             const char * matrix_ptr=input_matrix(false);
             if (matrix_ptr)
@@ -2814,7 +3054,7 @@ int Console_GetKey(){
             continue;
 #endif
           }
-          if (smallmenu.selection == 11){
+          if (sel == 11){
 #if defined WITH_EQW && !focus_on
             char buf[GEN_PRINT_BUFSIZE+2];
             buf[0]='0'; buf[1]=0;
@@ -2840,38 +3080,40 @@ int Console_GetKey(){
             continue;
 #endif
           }
-          if (smallmenu.selection == 13){
+          if (sel == 13){
             menu_setup();
             continue;
           }
 #ifdef WITH_PERIODIC
-          if (smallmenu.selection == 16)
+          if (sel == 16)
             return Console_Input(run_periodic_table().c_str());
 #ifdef WITH_SHEET
-          if (smallmenu.selection == 17){
+          if (sel == 17){
             sheet();
             return 0;
           }
 #endif
 #endif
-          if (smallmenu.selection == smallmenu.numitems){
+          if (sel == nall){
             return -2;
           }
-          if (smallmenu.selection >= 14 && focus_on){ // Shortcuts, About
-            focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==14?shortcuts_string:apropos_string);
+          if (sel >= 14 && focus_on){ // Shortcuts, About
+            focus_text(full[sel-1],sel==14?shortcuts_string:apropos_string);
             Console_Disp(1);
             continue;
           }
-          if(smallmenu.selection >= 14) {
+#if !focus_on
+          if(sel >= 14) {
             textArea text;
             text.editable=false;
             text.clipline=-1;
-            text.title = smallmenuitems[smallmenu.selection-1].text;
-            add(&text,smallmenu.selection==14?shortcuts_string:apropos_string);
+            text.title = smallmenuitems[sel-1].text;
+            add(&text,sel==14?shortcuts_string:apropos_string);
             text.minimini=false;
             doTextArea(&text);
             continue;
           }
+#endif
         }
         break;
       } // end while(1)
@@ -2924,6 +3166,13 @@ int Console_GetKey(){
       Console_Disp(1);
       continue;
     }
+#ifdef FLOWCE_STEPS
+    if (focus_on && key==KEY_CTRL_RIGHT && Current_Line==Last_Line && Edit_Line && !Edit_Line[0]){
+      if (focus_act_select(0)) continue; // (DeltaCE) on an answer: its action row (above)
+      const int r=console_answer_actions(-1); // (no row on screen: the list)
+      if (r!=-1) return r;
+    }
+#endif
     if (console_input2d() && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT || key==KEY_CTRL_UP || key==KEY_CTRL_DOWN)){
       const char * s=(const char *)Edit_Line;
       const int dir=key==KEY_CTRL_LEFT?0:key==KEY_CTRL_RIGHT?1:key==KEY_CTRL_UP?2:3;
@@ -2993,6 +3242,7 @@ int Console_GetKey(){
     }
     if (key == KEY_SHIFT_LEFT)	return Console_MoveCursor(CURSOR_SHIFT_LEFT);
     if (key == KEY_SHIFT_RIGHT)	return Console_MoveCursor(CURSOR_SHIFT_RIGHT);
+#ifdef WITH_EDITOR
     if (key==KEY_CTRL_PRGM){
       if (!edptr)
         edit_script((remove_extension(session_filename)+".py").c_str());
@@ -3000,10 +3250,13 @@ int Console_GetKey(){
         doTextArea(edptr);
       Console_Disp(1);
     }
+#endif
     if (key == KEY_CTRL_EXIT){
       if (Last_Line==Current_Line){
         if (strlen(Edit_Line))
           Console_Clear_EditLine();
+        else if (focus_on && focus_clear_hero()) // (DeltaCE) an answer shown large: first it goes up into the history
+          ;
         else if (focus_on?focus_choose("Clear the history?",console_yesno,2)==0:do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
           Console_Init();
           Console_Clear_EditLine();
@@ -3045,6 +3298,10 @@ int Console_GetKey(){
     if (key == KEY_CTRL_EXE){
       if (Current_Line == Last_Line){
 #ifdef FLOWCE_STEPS
+        if (Edit_Line && !strncmp((const char *)Edit_Line,"analyze(",8) && console_analyze((const char *)Edit_Line)){
+          Console_Disp(1); // (DeltaCE: the analysis screen; the line stays, to edit or open again)
+          continue;
+        }
         const char * sa=0, * st=Edit_Line && !Edit_Line[0]?focus_steps_input(&sa):0;
         if (st){ // Enter after a derivative or an integral shown large: its steps (focus_steps.cc)
           focus_steps(st,sa);
@@ -3344,6 +3601,13 @@ const char * Console_Draw_FMenu(int key, struct FMenu* menu,Char * cfg,int activ
   char ** entries = menu->str;
   nb_entries = menu->count;
   if (focus_on && ((active_app==0 && focus_screen()) || (active_app==2 && focus_view))){ // the console or the program editor: a Focus card of the entries
+#ifdef WITH_UNITS
+    if (key-KEY_CTRL_F1==13){ // alpha F4: DeltaCE's units menu (KhiCAS's draw menu was there)
+      const char * u=focus_units(13);
+      if (u && u[0]==1){ console_temperature(u+1); return nullptr; }
+      return u;
+    }
+#endif
     const int r=focus_fmenu(key-KEY_CTRL_F1,(const char * const *)entries,nb_entries);
     if (r>=0)
       return entries[r];
@@ -3458,20 +3722,20 @@ int Console_Init()
   return CONSOLE_SUCCEEDED;
 }
 
-#ifdef WITH_PLOT
+#if defined WITH_PLOT || defined FLOWCE_STEPS // (DeltaCE: F3's plots, its graph screen's)
 
 #ifdef FRANCAIS
-  constexpr const char conf_standard[] = "F1 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2  calcul\n'\ndiff(\nintegrate(\nlimit(\ntabvar(\nseries(\nsolve(\ndesolve(\n=\nF3   graphes  \nplot(\nplotseq(\nplotlist(\nplotparam(\nplotpolar(\nplotfield(\nhistogram(\nbarplot(\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   draw\ndraw_pixel(\ndraw_line(\ndraw_rectangle(\ndraw_polygon(\ndraw_circle(\ndraw_string(\nget_pixel(\nclearscreen();\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
+  constexpr const char conf_standard[] = "F1 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2  calcul\n'\ndiff(\nintegrate(\nlimit(\ntabvar(\nseries(\nsolve(\ndesolve(\n=\nF3   graphes  \nplot(\nplotparam(\nplotpolar(\nplotfield(\nplotode(\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
 #else
-  constexpr const char conf_standard[] = "F1 algebra\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2 calculus\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF3  plot  \nplot(\nplotseq(\nplotlist(\nplotparam(\nplotpolar(\nplotfield(\nhistogram(\nbarplot(\nF5 menu\nreserved\nF6  arithm. \n mod \nirem(\nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reals\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomials\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   lin. alg.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   draw\ndraw_pixel(\ndraw_line(\ndraw_rectangle(\ndraw_polygon(\ndraw_circle(\ndraw_string(\nget_pixel(\nclearscreen();\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
+  constexpr const char conf_standard[] = "F1 algebra\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2 calculus\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF3  plot  \nplot(\nplotparam(\nplotpolar(\nplotfield(\nplotode(\nF5 menu\nreserved\nF6  arithm. \n mod \nirem(\nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reals\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomials\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   lin. alg.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
 #endif
 
 #else // WITH_PLOT
 
 #ifdef FRANCAIS
-  constexpr const char conf_standard[] = "F1 save,quit\nreserved\nF2 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF4 calcul\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   draw\ndraw_pixel(\ndraw_line(\ndraw_rectangle(\ndraw_polygon(\ndraw_circle(\ndraw_string(\nget_pixel(\nclearscreen();\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
+  constexpr const char conf_standard[] = "F1 save,quit\nreserved\nF2 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF4 calcul\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
 #else
-  constexpr const char conf_standard[] = "F1 save,quit\nreserved\nF2 algebra\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF4 calculus\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF5 menu\nreserved\nF6  arithm. \n mod \nirem(\nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reals\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomials\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   lin. alg.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   draw\ndraw_pixel(\ndraw_line(\ndraw_rectangle(\ndraw_polygon(\ndraw_circle(\ndraw_string(\nget_pixel(\nclearscreen();\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
+  constexpr const char conf_standard[] = "F1 save,quit\nreserved\nF2 algebra\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF4 calculus\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF5 menu\nreserved\nF6  arithm. \n mod \nirem(\nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reals\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomials\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   lin. alg.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
 #endif
 
 #endif

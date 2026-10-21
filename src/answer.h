@@ -57,10 +57,16 @@ std::string answer_print(const giac::gen & g,const giac::gen & graw,const answer
 //    is left: 2sin(x)cos(x) is 2tan(x)/(tan(x)^2+1)); then simplified (only with trig below a
 //    bar, and when shorter: sin(x)/(1+cos(x)) is tan(x/2); elsewhere giac's simplify gives the tan
 //    form, slowly, or tan(x/2) messes), one fraction, factored, expanded, decimal;
-//  else: simplified, one fraction, factored, expanded, decimal.
+//  else: simplified, one fraction, factored, completed square, long division, expanded, decimal;
+//  a fraction a/b with |a|>b also: its mixed number (7/2 is 3+1/2), after decimal.
 // A form is offered when it is new (not shown in the round: texts compared up to the order of
 // their terms) and not much larger than the result. Each is computed once per result.
-enum { FORM_SIMP, FORM_RAT, FORM_FACT, FORM_EXPA, FORM_TLIN, FORM_TEXP, FORM_TSIN, FORM_TCOS, FORM_TTAN, FORM_DEC };
+// (FORM_DIV, FORM_SQR, FORM_MIX last: the trig forms are the range FORM_TLIN..FORM_TTAN)
+// (DeltaCE) FORM_CHECK, FORM_CHECKD first for an antiderivative (integrate(f,x)): its derivative,
+// shown as f when it is f ("d/dx: matches the integrand"), else as computed ("d/dx of the answer")
+enum { FORM_SIMP, FORM_RAT, FORM_FACT, FORM_EXPA, FORM_TLIN, FORM_TEXP, FORM_TSIN, FORM_TCOS, FORM_TTAN, FORM_DEC, FORM_DIV, FORM_SQR, FORM_MIX,
+       FORM_CHECK, FORM_CHECKD };
+extern const char * answer_forms_input; // the result's input (main.cc sets it before answer_forms_start)
 extern const char * const answer_form_names[]; // "simplified", ... (by kind)
 struct answer_forms {
   std::string orig;               // the result's text
@@ -72,6 +78,8 @@ struct answer_forms {
   std::vector<giac::gen> form;    // form k
   std::vector<char> done;         // form k computed
   std::vector<std::string> seen;  // the texts shown in this round, the original first
+  bool chk;                       // (DeltaCE) an antiderivative: its integrand ci in cx
+  giac::gen ci, cx;
 };
 // a new result to cycle (number: its decimal value is shown under it)
 void answer_forms_start(answer_forms & F,const std::string & orig,bool number);

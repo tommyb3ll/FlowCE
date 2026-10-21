@@ -149,17 +149,46 @@ static void print_steps(const char * s){
   // STEPS_PEAK: the most heap the steps held at once (the calculator has far less than the PC)
   const bool pk=getenv("STEPS_PEAK") && tab;
   if (pk){ track_start(); peak_bytes=0; }
+  steps_method=getenv("STEPS_METHOD")?atoi(getenv("STEPS_METHOD")):0; // (DeltaCE: a division's other methods)
   bool ok=steps_of(g,v,contextptr);
   if (pk){ track_stop(); printf("   peak heap %zu bytes\n",peak_bytes); }
   clock_gettime(CLOCK_MONOTONIC,&t1);
   steps_timer(0);
   ctrl_c=kbd_interrupted=interrupted=false;
   printf("== %s   [%s, %d steps, %.0f ms]\n",s,ok?"ok":"NO STEPS",(int)v.size(),(t1.tv_sec-t0.tv_sec)*1e3+(t1.tv_nsec-t0.tv_nsec)/1e6);
+  if (steps_methods>1) printf("   method %d of %d: %s\n",steps_method%steps_methods+1,steps_methods,steps_method_name);
   for (unsigned i=0;(ok || getenv("STEPS_REJECTED")) && i<v.size();++i){ // (STEPS_REJECTED: also a failed search's)
     const char * t=steps_title(v[i]);
     printf("%s%*s%s%s%s\n",ok?"":"x",2+4*v[i].depth-!ok,"",*t?t:"",*t?":  ":"= ",steps_math(v[i],contextptr).print(contextptr).c_str());
   }
   if (khicas_do_run) printf("   FlowCE answer: %s\n",khicas_do_run(s).c_str());
+  fflush(stdout);
+}
+double hg_now_ms(){ struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t); return t.tv_sec*1e3+t.tv_nsec/1e6; }
+// -A: the analysis of each input (src/analyze.cc, DeltaCE): its report, line by line
+#include "../../src/analyze.h"
+static void print_analysis(const char * s){
+  signal(SIGALRM,steps_alarm);
+  steps_timer(getenv("STEPS_ALARM_MS")?atol(getenv("STEPS_ALARM_MS")):20000);
+  char buf[1024]; strncpy(buf,s,500); buf[500]=0;
+  answer_prepass(buf,sizeof(buf),true);
+  gen g(buf,contextptr);
+  std::vector<an_line> v;
+  struct timespec t0,t1; clock_gettime(CLOCK_MONOTONIC,&t0);
+  const bool pk=getenv("STEPS_PEAK") && tab;
+  if (pk){ track_start(); peak_bytes=0; }
+  const char * why=analyze_of(g,v,contextptr);
+  if (pk){ track_stop(); printf("   peak heap %zu bytes\n",peak_bytes); }
+  clock_gettime(CLOCK_MONOTONIC,&t1);
+  steps_timer(0);
+  ctrl_c=kbd_interrupted=interrupted=false;
+  printf("== %s   [%s, %.0f ms]\n",s,why?why:"ok",(t1.tv_sec-t0.tv_sec)*1e3+(t1.tv_nsec-t0.tv_nsec)/1e6);
+  for (unsigned i=0;i<v.size();++i){
+    std::string m=v[i].math;
+    for (unsigned k=0;k<m.size();++k){ if (m[k]=='\n') m[k]='|'; else if (m[k]=='\1') m[k]='~'; }
+    if (v[i].kind==AN_SECTION) printf("  %s\n",v[i].text);
+    else printf("    %s%s%s\n",v[i].text?v[i].text:"",v[i].text && *v[i].text && !m.empty()?":  ":"",m.c_str());
+  }
   fflush(stdout);
 }
 // -V <dir>: the steps screen of each input (src/focus_steps.cc) drawn off screen, one image per
@@ -169,6 +198,36 @@ int focus_steps_preview(const char * in,const char * ans,int stop);
 #include "../../src/ui_font.h"
 #include "../../src/ui_fontdata.h"
 extern "C" { extern unsigned char * ui_fb; unsigned short * ui_host_palette(void); }
+int focus_analyze_preview(const char * in,int stop);
+int focus_steps_able(const char * s,const char * ans=0);
+static void write_ppm(const char * fn);
+// -W <dir>: the analysis screen of each input (DeltaCE), as -V: <dir>/<n>_<stop>.ppm
+static void view_analysis(const char * dir,int n,const char * s){
+  ui_set_theme(&ui_theme_paper);
+  int stops=1;
+  for (int k=0;k<stops && k<12;++k){
+    stops=focus_analyze_preview(s,k)+1;
+    if (stops<=0){ printf("%d: %s  no analysis\n",n,s); return; }
+    ui_fill(0,0,UI_W,18,ui_col(0,UC_BG));
+    ui_draw_text(&ui_tb9,"ANALYSIS",-1,8,13,ui_ramp(0,UC_SUB,UC_BG),0);
+    char fn[600]; snprintf(fn,sizeof(fn),"%s/%d_%d.ppm",dir,n,k);
+    write_ppm(fn);
+  }
+  printf("%d: %s  %d stops\n",n,s,stops);
+  fflush(stdout);
+}
+static void write_ppm(const char * fn){
+  FILE * f=fopen(fn,"wb");
+  if (!f){ perror(fn); return; }
+  fprintf(f,"P6\n%d %d\n255\n",UI_W,UI_H);
+  const unsigned short * pal=ui_host_palette();
+  for (int i=0;i<UI_W*UI_H;++i){
+    unsigned v=pal[ui_fb[i]];
+    unsigned char rgb[3]={(unsigned char)((v>>10&31)<<3),(unsigned char)((v>>5&31)<<3),(unsigned char)((v&31)<<3)};
+    fwrite(rgb,1,3,f);
+  }
+  fclose(f);
+}
 static void view_steps(const char * dir,int n,const char * s){
   static bool themed;
   if (!themed){ ui_set_theme(&ui_theme_paper); themed=true; }
@@ -176,7 +235,8 @@ static void view_steps(const char * dir,int n,const char * s){
   const size_t ap=ans.find("  ~"); // (the decimal value: shown apart on the calculator)
   if (ap!=std::string::npos) ans=ans.substr(0,ap);
   int stops=1;
-  for (int k=0;k<stops && k<8;++k){
+  steps_method=getenv("STEPS_METHOD")?atoi(getenv("STEPS_METHOD")):0; // (DeltaCE: a division's other methods)
+  for (int k=0;k<stops && k<16;++k){
     stops=focus_steps_preview(s,ans.c_str(),k);
     if (stops<0){ printf("%d: %s  no steps\n",n,s); return; }
     ui_fill(0,0,UI_W,18,ui_col(0,UC_BG)); // the status bar, as on the calculator (its label)
@@ -218,8 +278,8 @@ static std::string eval_one(const char * s,bool autosimp,bool prepass){
 
 int main(int argc,char ** argv){
   int N=1,trace_round=0;
-  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false,timing=false,forms=false,steps=false;
-  const char * viewdir=0;
+  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false,timing=false,forms=false,steps=false; bool analysis=false,able=false;
+  const char * viewdir=0; const char * aviewdir=0;
   const char * file=0;
   static const char * exprs[8192]; int ne=0;
   for (int i=1;i<argc;++i){
@@ -237,7 +297,10 @@ int main(int argc,char ** argv){
     }
     else if (!strcmp(argv[i],"-m")) measure=true;
     else if (!strcmp(argv[i],"-S")) steps=true;
+    else if (!strcmp(argv[i],"-A")) analysis=true;
+    else if (!strcmp(argv[i],"-Q")) able=true;
     else if (!strcmp(argv[i],"-V") && i+1<argc) viewdir=argv[++i];
+    else if (!strcmp(argv[i],"-W") && i+1<argc) aviewdir=argv[++i];
     else if (!strcmp(argv[i],"-t") && i+1<argc) trace_round=atoi(argv[++i]);
     else if (!strcmp(argv[i],"-d") && i+1<argc) stack_depth=atoi(argv[++i]);
     else if (!strcmp(argv[i],"-L")){ static void * volatile p; p=malloc(100); p=0; }
@@ -266,6 +329,18 @@ int main(int argc,char ** argv){
   giac::epsilon(contextptr)=1e-5;
   angle_radian(1,contextptr);
   { char c; giac::stack_floor=(size_t)&c-(6<<20); } // as main.cc's stack_floor: 6 MB of the 8 MB stack
+  if (able){ // -Q: the steps chip for each input (focus_steps_able, as typed)
+    for (int k=0;k<ne;++k) printf("%d  %s\n",focus_steps_able(exprs[k]),exprs[k]);
+    return 0;
+  }
+  if (aviewdir){
+    for (int k=0;k<ne;++k) view_analysis(aviewdir,k,exprs[k]);
+    return 0;
+  }
+  if (analysis){
+    for (int k=0;k<ne;++k) print_analysis(exprs[k]);
+    return 0;
+  }
   if (steps){
     for (int k=0;k<ne;++k) print_steps(exprs[k]);
     return 0;

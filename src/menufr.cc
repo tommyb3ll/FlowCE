@@ -527,7 +527,6 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
     {"_qe_", nullptr, "charge de l'electron", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
     {"_qme_", nullptr, "_q_/_me_", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
     {"_rad", nullptr, "Angle en radians", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_rem", nullptr, "Radioactivite: rem", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
     {"_s", nullptr, "Temps: seconde", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
     {"_sd_", nullptr, "Jour sideral", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
     {"_syr_", nullptr, "Annee siderale", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
@@ -546,7 +545,9 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"arg(z)", nullptr, "Argument du complexe z.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
   {"asc(string)", nullptr, "Liste des codes ASCII d'une chaine", "\"Bonjour\"", nullptr, CAT_CATEGORY_ARIT},
   {"assume(hyp)", nullptr, "Hypothese sur une variable.", "x>1", "x>-1 and x<1", CAT_CATEGORY_PROGCMD },
+#ifdef WITH_PLOT
   {"barplot(list)", nullptr, "Diagramme en batons d'une serie statistique 1d.", "[3/2,2,1,1/2,3,2,3/2]", nullptr, (CAT_CATEGORY_PLOT<<8)},
+#endif
   {"binomial(n,p,k)", nullptr, "binomial(n,p,k) probabilite de k succes avec n essais ou p est la proba de succes d'un essai.", "10,5,.4", nullptr, CAT_CATEGORY_REAL},
   {"bitxor", "bitxor", "Ou exclusif", "#bitxor(1,2)", nullptr, CAT_CATEGORY_PROGCMD},
   {"black", "black", "Option d'affichage", "#display=black", nullptr, CAT_CATEGORY_OPTIONS},
@@ -555,7 +556,9 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"cfactor(p)", nullptr, "Factorisation sur C.", "x^4-1", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_COMPLEXNUM << 8)},
   {"char(liste)", nullptr, "Chaine donnee par une liste de code ASCII", "[97,98,99]", nullptr, CAT_CATEGORY_ARIT},
   {"charpoly(M,x)", nullptr, "Polynome caracteristique de la matrice M en la variable x.", "[[1,2],[3,4]],x", nullptr, CAT_CATEGORY_MATRIX},
+#ifdef WITH_PLOT
   {"circle(centre,rayon)", nullptr, "Cercle donne par centre et rayon ou par un diametre", "2+i,3", "1-i,1+i", CAT_CATEGORY_PLOT},
+#endif
   {"coeff(p,x,n)", nullptr, "Coefficient de x^n dans le polynome p.", "(1+x)^6,x,3", nullptr, CAT_CATEGORY_POLYNOMIAL},
   {"comb(n,k)", nullptr, "Renvoie k parmi n.", "10,4", nullptr, CAT_CATEGORY_REAL},
   //{"cond(A,[1,2,inf])", 0, "Nombre de condition d'une matrice par rapport a la norme specifiee (par defaut 1)", "[[1,2],[3,4]]", 0, CAT_CATEGORY_MATRIX},
@@ -602,7 +605,9 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"gcd(a,b,...)", nullptr, "Plus grand commun diviseur. Voir iegcd ou egcd pour Bezout.", "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
   {"green", "green", "Option d'affichage", "#display=green", nullptr, CAT_CATEGORY_OPTIONS},
   {"halftan(expr)", nullptr, "Exprime cos, sin, tan avec tan(angle/2).","cos(x)", nullptr, CAT_CATEGORY_TRIG},
+#ifdef WITH_PLOT
   {"histogram(list,min,size)", nullptr, "Histogramme d'une liste de donneees, classes commencant a min de taille size.","ranv(100)/100.,0,0.1", nullptr, (CAT_CATEGORY_PLOT<<8)},
+#endif
   {"iabcuv(a,b,c)", nullptr, "Cherche 2 entiers u,v tels que a*u+b*v=c","23,13,15", nullptr, CAT_CATEGORY_ARIT},
   {"ichinrem([a,m],[b,n])", nullptr,"Restes chinois entiers de a mod m et b mod n.", "[3,13],[2,7]", nullptr, CAT_CATEGORY_ARIT},
   {"idivis(n)", nullptr, "Liste des diviseurs d'un entier n.", "10", nullptr, CAT_CATEGORY_ARIT},
@@ -610,6 +615,7 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"iegcd(a,b)", nullptr, "Determine les entiers u,v,d tels que a*u+b*v=d=gcd(a,b)","23,13", nullptr, CAT_CATEGORY_ARIT},
   {"ifactor(n)", nullptr, "Factorisation d'un entier (pas trop grand!). Raccourci n=>*", "1234", nullptr, CAT_CATEGORY_ARIT},
   {"im(z)", nullptr, "Partie imaginaire.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"implicitdiff(eq,x,y)", nullptr, "dy/dx pour y fonction de x definie par une equation (derivation implicite).", "x^2+y^2=25,x,y", nullptr, CAT_CATEGORY_CALCULUS}, // (DeltaCE)
   {"inf", "inf", "Plus l'infini. Utiliser -inf pour moins l'infini ou infinity pour l'infini complexe.", "-inf", "infinity", CAT_CATEGORY_CALCULUS},
   {"input()", "input()", "Lire une chaine au clavier", "\"Valeur ?\"", nullptr, CAT_CATEGORY_PROG},
   {"integrate(f,x,[,a,b])", nullptr, "Primitive de f par rapport a la variable x, par ex. integrate(x*sin(x),x). Pour calculer une integrale definie, entrer les arguments optionnels a et b, par ex. integrate(x*sin(x),x,0,pi).", "x*sin(x),x", "cos(x)/(1+x^4),x,0,inf", CAT_CATEGORY_CALCULUS},
@@ -623,7 +629,9 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"lcm(a,b,...)", nullptr, "Plus petit commun multiple.", "23,13", "x^3-1,x^2-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
   {"lcoeff(p,x)", nullptr, "Coefficient dominant du polynome p.", "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
   {"limit(f,x=a)", nullptr, "Limite de f en x = a. Ajouter 1 ou -1 pour une limite a droite ou a gauche, limit(sin(x)/x,x=0) ou limit(abs(x)/x,x=0,1).", "sin(x)/x,x=0", "exp(-1/x),x=0,1", CAT_CATEGORY_CALCULUS},
+#ifdef WITH_PLOT
   {"line(equation)", nullptr, "Droite donnee par une equation ou 2 points", "y=2x+1", "[1,1],[2,-1]", CAT_CATEGORY_PLOT },
+#endif
   {"linsolve([eq1,eq2,..],[x,y,..])", nullptr, "Resolution de systeme lineaire. Peut utiliser le resultat de lu pour resolution en O(n^2).","[x+y=1,x-y=2],[x,y]", "#p,l,u:=lu([[1,2],[3,4]]); linsolve(p,l,u,[5,6])", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_LINALG <<8) | (CAT_CATEGORY_MATRIX << 16)},
   //{"lu(A)", 0, "decomposition LU de la matrice A, P*A=L*U, renvoie P permutation, L et U triangulaires inferieure et superieure", "[[1,2],[3,4]]", 0, CAT_CATEGORY_MATRIX},
   {"magenta", "magenta", "Option d'affichage", "#display=magenta", nullptr, CAT_CATEGORY_OPTIONS},
@@ -640,7 +648,7 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"odesolve(f(t,y),[t,y],[t0,y0],t1)", nullptr, "Solution approchee d'equation differentielle y'=f(t,y) et y(t0)=y0, valeur en t1 (ajouter curve pour les valeurs intermediaires de y)", "sin(t*y),[t,y],[0,1],2", "0..pi,(t,v)->{[-v[1],v[0]]},[0,1]", CAT_CATEGORY_SOLVE},
 #endif
   {"partfrac(p,x)", nullptr, "Decomposition en elements simples. Raccourci p=>+", "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA},
-#ifdef WITH_PLOT
+#if defined WITH_PLOT || defined FLOWCE_STEPS
   {"plot(expr,x)", nullptr, "Graphe de fonction.", "ln(x),x=0..5", "1/x,x=1..5,xstep=1", CAT_CATEGORY_PLOT},
   //{"plotarea(expr,x=a..b,[n,meth])", 0, "Aire sous la courbe selon une methode d'integration.", "1/x,x=1..3,2,trapeze", 0, CAT_CATEGORY_PLOT},
   {"plotfield(f(t,y), [t=tmin..tmax,y=ymin..ymax])", nullptr, "Champ des tangentes de y'=f(t,y), optionnellement graphe avec arg. optionnel plotode=[t0,y0]", "sin(t*y), [t=-3..3,y=-3..3]", "5*[-y,x], [x=-1..1,y=-1..1]", CAT_CATEGORY_PLOT},
@@ -649,9 +657,13 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"plotpolar(r,theta)", nullptr, "Graphe en polaire.","cos(3*x),x,0,pi", "1/(1+cos(x)),x=0..pi,xstep=0.05", CAT_CATEGORY_PLOT},
   //{"plotcontour(expr,[x=xm..xM,y=ym..yM],niveaux)", 0, "Lignes de niveau de expr.", "x^2+2y^2, [x=-2..2,y=-2..2],[1,2]", 0, CAT_CATEGORY_PLOT},
   //{"plotlist(list)", 0, "Graphe d'une liste", "[3/2,2,1,1/2,3,2,3/2]", "[1,13],[2,10],[3,15],[4,16]", CAT_CATEGORY_PLOT},
+#ifdef WITH_PLOT
   {"plotseq(f(x),x=[u0,m,M],n)", nullptr, "Trace f(x) sur [m,M] et n termes de la suite recurrente u_{n+1}=f(u_n) de 1er terme u0.","sqrt(2+x),x=[6,0,7],5", nullptr, CAT_CATEGORY_PLOT},
 #endif
+#endif
+#ifdef WITH_PLOT
   {"point(x,y)", nullptr, "Point", "1,2", "1+2i", CAT_CATEGORY_PLOT },
+#endif
   // {"pour (boucle Xcas)", "pour  de  jusque  faire  fpour;", "Boucle definie.","#pour j de 1 jusque 10 faire print(j,j^2); fpour;", 0, CAT_CATEGORY_PROG},
   {"powmod(a,n,p[,P,x])", nullptr, "Renvoie a^n mod p, ou a^n mod un entier p et un polynome P en x.","123,456,789", "x+1,452,19,x^4+x+1,x", CAT_CATEGORY_ARIT},
   {"print(expr)", nullptr, "Afficher dans la console", nullptr, nullptr, CAT_CATEGORY_PROG},
@@ -717,307 +729,386 @@ const char apropos_string[]="FlowCE 1.0 (2026): calcul formel pour TI-84 Plus CE
 #else
 constexpr const char aide_khicas_string[]="Help";
 const char shortcuts_string[]="Keys:\nF1 to F5: algebra, calculus, trig, symbols and more. With 2nd or alpha: more menus (lists, matrices, complex numbers...).\nmath: templates (fraction, root, integrals, limit, sum).\nup: your past calculations (left, right: walk; enter: use it again). down: search every command.\nF4 on an answer: its other forms (simplified, factored, expanded, decimal).\nclear: erase the line; on an empty line, the answer.\n2nd quit: quit (your session is kept).\n\nTyping:\n/ makes a fraction of what is before it. ^ opens an exponent; the right arrow leaves it. A ( right after / or ^ is that box, and ) closes what you opened: 1/(x+1) and x^(1/2) type as they read.\n(-) is a minus sign. del right after ) goes inside the brackets.\n\nGraphs:\nmore, then Graph: graphs the line (or the answer). In the graph: F2 window, zoom and curve study (roots, extrema, area), trace with the arrows, 2nd graph: table of values.\n\nClock:\nmode, then Set time.";
-const char apropos_string[]="FlowCE 1.0 (2026): computer algebra for the TI-84 Plus CE, made for calculus.\n\nLicense:\nFlowCE is free software under the GNU General Public License, version 3 or later: its source code is open, and it comes with no warranty.\n\nCredits:\nmath engine Giac (c) Bernard Parisse and contributors (Institut Fourier, Universite Grenoble Alpes). Console interface by G. Maia (gbl08ma.com), Mike Smith, Nemhardy, LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz.\n\nFonts: Atkinson Hyperlegible, STIX Two (SIL Open Font License).";
+const char apropos_string[]="DeltaCE " DELTACE_VERSION " (2026): computer algebra for the TI-84 Plus CE, made for calculus, with step-by-step solutions. DeltaCE, by Gabriel, is a fork of FlowCE " FLOWCE_VERSION " by Tommy Bell.\n\nLicense:\nDeltaCE is free software under the GNU General Public License, version 3 or later: its source code is open, and it comes with no warranty.\n\nCredits:\nmath engine Giac (c) Bernard Parisse and contributors (Institut Fourier, Universite Grenoble Alpes). Console interface by G. Maia (gbl08ma.com), Mike Smith, Nemhardy, LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz.\n\nFonts: Atkinson Hyperlegible, STIX Two (SIL Open Font License).";
 #endif
 
 constexpr const int CAT_COMPLETE_COUNT_FR=sizeof(completeCatfr)/sizeof(catalogFunc);
 
+// (DeltaCE) the English descriptions are packed (tools/catpack.py, src/catalog_text.h: 4 KB less):
+// D("...") is a description's packed text, found at compile time; catalog_desc() expands it
+#include "catalog_text.h"
+static constexpr unsigned long cat_fnv(const char * s, unsigned long h) { return *s ? cat_fnv(s + 1, ((h ^ (unsigned char)*s) * 16777619ul) & 0xFFFFFFFFul) : h; }
+static constexpr int cat_at(unsigned long h, int i) { return i == CAT_N ? -1 : cat_keys[i] == h ? i : cat_at(h, i + 1); }
+template <int I> struct cat_index { static_assert(I >= 0, "a description is not in src/catalog_text.h: run tools/catpack.py"); enum { v = I }; };
+#define D(s) (cat_text + cat_offs[cat_index<cat_at(cat_fnv(s, 2166136261ul), 0)>::v])
+static void cat_put(unsigned char c, char *& o, char * end) {
+  if (const unsigned char k = cat_code[c]) { cat_put(cat_pair[k - 1][0], o, end); cat_put(cat_pair[k - 1][1], o, end); }
+  else if (o < end) *o++ = c;
+}
+const char * catalog_desc(const char * p) {
+  static char buf[480];
+  if (!p) return p;
+  char * o = buf;
+  while (*p) cat_put((unsigned char)*p++, o, buf + sizeof(buf) - 1);
+  *o = 0;
+  return buf;
+}
 const catalogFunc completeCaten[] = { // list of all functions (including some not in any category)
-  {" loop for", "for ", "Defined loop.", "#\nfor ", nullptr, CAT_CATEGORY_PROG},
-  {" loop in list", "for in", "Loop on all elements of a list.", "#\nfor in", nullptr, CAT_CATEGORY_PROG},
-  {" loop while", "while ", "Undefined loop.", "#\nwhile ", nullptr, CAT_CATEGORY_PROG},
-  {" test if", "if ", "Test", "#\nif ", nullptr, CAT_CATEGORY_PROG},
-  {" test else", "else ", "Test false case", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {" function def", "f(x):=", "Definition of function.", "#\nf(x):=", nullptr, CAT_CATEGORY_PROG},
-  {" range(a,b)", nullptr, "In range [a,b) (a included, b excluded)", "# in range(1,10)", nullptr, CAT_CATEGORY_PROG},
-  {" return res", "return ", "Leaves current function and returns res.", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {"!", "!", "Logical not (prefix) or factorial of n (suffix).", "#7!", "~!b", CAT_CATEGORY_PROGCMD},
-  {"#", "#", "Python comment, for Xcas comment type //. Shortcut ALPHA F2", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {"%", "%", "a % b means a modulo b", nullptr, nullptr, CAT_CATEGORY_ARIT | (CAT_CATEGORY_PROGCMD << 8)},
-  {"&", "&", "Logical and or +", "#1&2", nullptr, CAT_CATEGORY_PROGCMD},
+  {" loop for", "for ", D("Loop a set number of times."), "#\nfor ", nullptr, CAT_CATEGORY_PROG},
+  {" loop in list", "for in", D("Loop on all elements of a list."), "#\nfor in", nullptr, CAT_CATEGORY_PROG},
+  {" loop while", "while ", D("Loop while a condition is true."), "#\nwhile ", nullptr, CAT_CATEGORY_PROG},
+  {" test if", "if ", D("Test"), "#\nif ", nullptr, CAT_CATEGORY_PROG},
+  {" test else", "else ", D("Test false case"), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {" function def", "f(x):=", D("Definition of function."), "#\nf(x):=", nullptr, CAT_CATEGORY_PROG},
+  {" range(a,b)", nullptr, D("In range [a,b) (a included, b excluded)"), "# in range(1,10)", nullptr, CAT_CATEGORY_PROG},
+  {" return res", "return ", D("Leaves current function and returns res."), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {"!", "!", D("Logical not (prefix) or factorial of n (suffix)."), "#7!", "~!b", CAT_CATEGORY_PROGCMD},
+  {"#", "#", D("Python comment (Xcas comment: //)."), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {"%", "%", D("a % b means a modulo b"), nullptr, nullptr, CAT_CATEGORY_ARIT | (CAT_CATEGORY_PROGCMD << 8)},
+  {"&", "&", D("Logical and or +"), "#1&2", nullptr, CAT_CATEGORY_PROGCMD},
 #ifdef WITH_UNITS
-  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#15_ft=>_cm", CAT_CATEGORY_PROGCMD | (CAT_CATEGORY_PHYS <<8) | (CAT_CATEGORY_UNIT << 16) },
-  {" mksa(x)", nullptr, "Convert to MKSA units", nullptr, nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
-  {" ufactor(a,b)", nullptr, "Factorizes unit b in a", "100_J,1_kW", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
-  {" usimplify(a)", nullptr, "Simplifies unit in a", "100_l/10_cm^2", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
-    {"_(km/h)", "_(km/h)", "Speed kilometer per hour", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_(m/s)", "_(m/s)", "Speed meter/second", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_(m/s^2)", "_(m/s^2)", "Acceleration", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_(m^2/s)", "_(m^2/s)", "Viscosity", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_A", nullptr, "Ampere", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Bq", nullptr, "Becquerel", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_C", nullptr, "Coulomb", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Ci", nullptr, "Curie", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_F", nullptr, "Farad", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_F_", nullptr, "Faraday constant", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_G_", nullptr, "Gravitation force=_G_*m1*m2/r^2", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_H", nullptr, "Henry", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Hz", nullptr, "Hertz", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_J", nullptr, "Joule=kg*m^2/s^2", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_K", nullptr, "Temperature in Kelvin", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Kcal", nullptr, "Energy kilo-calorie", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_MeV", nullptr, "Energy mega-electron-Volt", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_N", nullptr, "Force Newton=kg*m/s^2", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_NA_", nullptr, "Avogadro constant", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_Ohm", nullptr, "Ohm", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_PSun_", nullptr, "Sun power", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_Pa", nullptr, "Pressure in Pascal=kg/m/s^2", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_REarth_", nullptr, "Earth radius", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_RSun_", nullptr, "Sun radius", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_R_", nullptr, "Boltzmann constant (per mol)", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_S", nullptr, "", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_StdP_", nullptr, "Standard pressure", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_StdT_", nullptr, "Standard temperature (0 degre Celsius in Kelvins)", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_Sv", nullptr, "Sievert", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_T", nullptr, "Tesla", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_V", nullptr, "Volt", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Vm_", nullptr, "Volume molaire", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_W", nullptr, "Watt=kg*m^2/s^3", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_Wb", nullptr, "Weber", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_alpha_", nullptr, "fine structure constant", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_c_", nullptr, "speed of light", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_cd", nullptr, "candela", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_d", nullptr, "day", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_deg", nullptr, "degree", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_eV", nullptr, "electron-Volt", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_epsilon0_", nullptr, "vacuum permittivity", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_ft", nullptr, "feet", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_g_", nullptr, "Earth gravity (ground)", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_grad", nullptr, "grades (angle unit(", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_h", nullptr, "Hour", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_h_", nullptr, "Planck constant", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_ha", nullptr, "hectare", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_hbar_", nullptr, "Planck constant/(2*pi)", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_inch", nullptr, "inches", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_kWh", nullptr, "kWh", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_k_", nullptr, "Boltzmann constant", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_kg", nullptr, "kilogram", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_l", nullptr, "liter", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_m", nullptr, "meter", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_mEarth_", nullptr, "Earth mass", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_m^2", nullptr, "Area in m^2", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_m^3", nullptr, "Volume in m^3", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_me_", nullptr, "electron mass", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_miUS", nullptr, "US miles", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_mn", nullptr, "minute", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_mp_", nullptr, "proton mass", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_mpme_", nullptr, "proton/electron mass-ratio", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_mu0_", nullptr, "", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_phi_", nullptr, "magnetic flux quantum", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_qe_", nullptr, "electron charge", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_qme_", nullptr, "_q_/_me_", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_rad", nullptr, "radians", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_rem", nullptr, "rem", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_s", nullptr, "second", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_sd_", nullptr, "Sideral day", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_syr_", nullptr, "Sideral year", nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
-    {"_tr", nullptr, "tour (angle unit)", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
-    {"_yd", nullptr, "yards", nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+  {"=>", "=>", D("Store (sto key) or convert: 5=>a stores, x^4-1=>* factors, p=>+ partial fractions, sin(x)^2=>cos rewrites with cos."), "#5=>a", "#15_ft=>_cm", CAT_CATEGORY_PROGCMD | (CAT_CATEGORY_PHYS <<8) | (CAT_CATEGORY_UNIT << 16) },
+  {" mksa(x)", nullptr, D("Convert to MKSA units"), nullptr, nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
+  {" ufactor(a,b)", nullptr, D("Factorizes unit b in a"), "100_J,1_kW", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
+  {" usimplify(a)", nullptr, D("Simplifies unit in a"), "100_l/10_cm^2", nullptr, CAT_CATEGORY_PHYS | (CAT_CATEGORY_UNIT << 8) },
+    {"_(km/h)", "_(km/h)", D("Speed kilometer per hour"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_(m/s)", "_(m/s)", D("Speed meter/second"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_(m/s^2)", "_(m/s^2)", D("Acceleration"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_(m^2/s)", "_(m^2/s)", D("Viscosity"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_A", nullptr, D("Ampere"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Bq", nullptr, D("Becquerel"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Btu", "_Btu", D("British thermal unit (energy), 1055 J"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_C", nullptr, D("Coulomb"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Ci", nullptr, D("Curie"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_F", nullptr, D("Farad"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_F_", nullptr, D("Faraday constant"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_G_", nullptr, D("Gravitation force=_G_*m1*m2/r^2"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_H", nullptr, D("Henry"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Hz", nullptr, D("Hertz"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_J", nullptr, D("Joule=kg*m^2/s^2"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_K", nullptr, D("Temperature in Kelvin"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Kcal", nullptr, D("Energy kilo-calorie"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_MeV", nullptr, D("Energy mega-electron-Volt"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_N", nullptr, D("Force Newton=kg*m/s^2"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_NA_", nullptr, D("Avogadro constant"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_Ohm", nullptr, D("Ohm"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_PSun_", nullptr, D("Sun power"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_Pa", nullptr, D("Pressure in Pascal=kg/m/s^2"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_REarth_", nullptr, D("Earth radius"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_RSun_", nullptr, D("Sun radius"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_R_", nullptr, D("Boltzmann constant (per mol)"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_Rankine", "_Rankine", D("Rankine (temperature)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_S", nullptr, D(""), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_StdP_", nullptr, D("Standard pressure"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_StdT_", nullptr, D("Standard temperature (0 degre Celsius in Kelvins)"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_Sv", nullptr, D("Sievert"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_T", nullptr, D("Tesla"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_V", nullptr, D("Volt"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Vm_", nullptr, D("Volume molaire"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_W", nullptr, D("Watt=kg*m^2/s^3"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_Wb", nullptr, D("Weber"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_acre", "_acre", D("acre (area), 4046.86 m^2"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_alpha_", nullptr, D("fine structure constant"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_arcmin", "_arcmin", D("arc minute (angle), 1/60 degree"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_arcs", "_arcs", D("arc second (angle), 1/3600 degree"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_atm", "_atm", D("atmosphere (pressure), 101.325 kPa"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_bar", "_bar", D("bar (pressure), 100 kPa"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_c_", nullptr, D("speed of light"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_cal", "_cal", D("calorie (energy), 4.184 J"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_cd", nullptr, D("candela"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_cm", "_cm", D("centimeter (length), 0.01 m"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_cu", "_cu", D("US cup (volume), 0.237 liter"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_d", nullptr, D("day"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_deg", nullptr, D("degree"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_eV", nullptr, D("electron-Volt"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_epsilon0_", nullptr, D("vacuum permittivity"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_ft", nullptr, D("feet"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_g", "_g", D("gram (mass), 0.001 kg"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_g_", nullptr, D("Earth gravity (ground)"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_galUS", "_galUS", D("US gallon (volume), 3.785 liters"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_gon", "_gon", D("gon or grad (angle), 1/400 of a turn"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_grad", nullptr, D("grades (angle unit("), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_h", nullptr, D("Hour"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_h_", nullptr, D("Planck constant"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_ha", nullptr, D("hectare"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_hbar_", nullptr, D("Planck constant/(2*pi)"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_hp", "_hp", D("horsepower (power), 745.7 W"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_inch", nullptr, D("inches"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_kPa", "_kPa", D("kilopascal (pressure), 1000 Pa"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_kWh", nullptr, D("kWh"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_k_", nullptr, D("Boltzmann constant"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_kcal", "_kcal", D("kilocalorie (energy), a food Calorie"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_kg", nullptr, D("kilogram"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_km", "_km", D("kilometer (length), 1000 m"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_knot", "_knot", D("knot (speed), one nautical mile per hour"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_kph", "_kph", D("kilometer per hour (speed)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_l", nullptr, D("liter"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_lb", "_lb", D("pound (mass), 0.4536 kg"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_lbf", "_lbf", D("pound-force (force), 4.448 newtons"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_m", nullptr, D("meter"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_mEarth_", nullptr, D("Earth mass"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_m^2", nullptr, D("Area in m^2"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_m^3", nullptr, D("Volume in m^3"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_me_", nullptr, D("electron mass"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_mg", "_mg", D("milligram (mass), 0.001 g"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mi", "_mi", D("mile (length), 1609.34 m"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_miUS", nullptr, D("US miles"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_min", "_min", D("minute (time), 60 s"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_ml", "_ml", D("milliliter (volume), 0.001 liter"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mm", "_mm", D("millimeter (length), 0.001 m"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mmHg", "_mmHg", D("millimeter of mercury (pressure)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mn", nullptr, D("minute"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_mol", "_mol", D("mole (amount of substance)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mp_", nullptr, D("proton mass"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_mph", "_mph", D("mile per hour (speed)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_mpme_", nullptr, D("proton/electron mass-ratio"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_mu0_", nullptr, D(""), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_nmi", "_nmi", D("nautical mile (length), 1852 m"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_oz", "_oz", D("ounce (mass), 28.35 g"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_phi_", nullptr, D("magnetic flux quantum"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_psi", "_psi", D("pound per square inch (pressure)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_qe_", nullptr, D("electron charge"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_qme_", nullptr, D("_q_/_me_"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_qt", "_qt", D("US quart (volume), 0.946 liter"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_rad", nullptr, D("radians"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_rev", "_rev", D("revolution (angle), one turn"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_s", nullptr, D("second"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_sd_", nullptr, D("Sideral day"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_syr_", nullptr, D("Sideral year"), nullptr, nullptr, CAT_CATEGORY_PHYS | XCAS_ONLY},
+    {"_t", "_t", D("metric ton (mass), 1000 kg"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_ton", "_ton", D("short ton (mass), 2000 pounds"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_tr", nullptr, D("tour (angle unit)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_u", "_u", D("atomic mass unit (mass)"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
+    {"_yd", nullptr, D("yards"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY},
+    {"_yr", "_yr", D("year (time), 365.24 days"), nullptr, nullptr, CAT_CATEGORY_UNIT | XCAS_ONLY}, // (DeltaCE)
 #else
-  {"=>", "=>", "Store value in variable or conversion (touche ->). For example 5=>a or x^4-1=>* or (x+1)^2=>+ or sin(x)^2=>cos.", "#5=>a", "#x^4-1=>*", CAT_CATEGORY_PROGCMD },
+  {"=>", "=>", D("Store (sto key) or convert: 5=>a stores, x^4-1=>* factors, p=>+ partial fractions, sin(x)^2=>cos rewrites with cos."), "#5=>a", "#x^4-1=>*", CAT_CATEGORY_PROGCMD },
 #endif
-  {"a and b", " and ", "Logical and", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"a or b", " or ", "Logical or", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"a and b", " and ", D("Logical and"), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"a or b", " or ", D("Logical or"), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
 #ifdef WITH_QUAD
   {"a2q(A,[vars])", 0, "Matrix to quadratic form", "[[1,2],[2,3]]","[[1,2],[2,3]],[x,y]", CAT_CATEGORY_LINALG},
 #endif
-  {"abcuv(a,b,c)", nullptr, "Find 2 polynomial u,v such that a*u+b*v=c","x+1,x^2-2,x", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"abs(x)", nullptr, "Absolute value or norm of x x", "-3", "[1,2,3]", CAT_CATEGORY_COMPLEXNUM | (CAT_CATEGORY_REAL<<8)},
-  {"acos(x)", nullptr, "Inverse cosine arccos(x), between 0 and pi.", "1/2", nullptr, CAT_CATEGORY_TRIG},
-  {"append", nullptr, "Adds an element at the end of a list","#l.append(x)", nullptr, CAT_CATEGORY_LIST},
-  {"approx(x)", nullptr, "Approx. value x. Shortcut S-D", "pi", nullptr, CAT_CATEGORY_REAL},
-#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
-  {"arclength(f,a,b)", nullptr, "Length of the curve y=f(x) from x=a to x=b; also x=g(y), a and b in y, or [x(t),y(t)] for t from a to b. Steps: enter after the answer.", "x^(3/2),0,4", "[cos(t),sin(t)],0,pi", CAT_CATEGORY_CALCULUS},
-  {"area(f,g,a,b)", nullptr, "Area between the curves y=f(x) and y=g(x) from x=a to x=b; a and b left empty: between the points where they meet. area(f,a,b): with the x-axis.", "x^2,x+2", "sin(x),cos(x),0,pi", CAT_CATEGORY_CALCULUS},
+  {"abcuv(a,b,c)", nullptr, D("Finds 2 polynomials u,v such that a*u+b*v=c"),"x+1,x^2-2,x", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"abs(x)", nullptr, D("Absolute value or norm of x"), "-3", "[1,2,3]", CAT_CATEGORY_COMPLEXNUM | (CAT_CATEGORY_REAL<<8)},
+  {"acos(x)", nullptr, D("Inverse cosine arccos(x), between 0 and pi."), "1/2", nullptr, CAT_CATEGORY_TRIG},
+#ifdef FLOWCE_STEPS
+  {"analyze(f)", nullptr, D("Studies a function: domain, intercepts, symmetry, asymptotes, where it increases and decreases, extrema, concavity. Up and down go through the parts."), "x^3-3x", "(x^2-1)/(x-2)", CAT_CATEGORY_CALCULUS},
 #endif
-  {"arg(z)", nullptr, "Angle of complex z.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
-  {"asc(string)", nullptr, "List of ASCII codes os a string", "\"Hello\"", nullptr, CAT_CATEGORY_ARIT},
-  {"asin(x)", nullptr, "Inverse sine arcsin(x), between -pi/2 and pi/2.", "1/2", nullptr, CAT_CATEGORY_TRIG},
-  {"assume(hyp)", nullptr, "Assumption on variable.", "x>1", "x>-1 and x<1", CAT_CATEGORY_PROGCMD},
-  {"atan(x)", nullptr, "Inverse tangent arctan(x), between -pi/2 and pi/2.", "1", nullptr, CAT_CATEGORY_TRIG},
+  {"append", nullptr, D("Adds an element at the end of a list"),"#l.append(x)", nullptr, CAT_CATEGORY_LIST},
+  {"approx(x)", nullptr, D("Decimal value of x."), "pi", nullptr, CAT_CATEGORY_REAL},
 #ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
-  {"average(f,a,b)", nullptr, "Average value of f on [a,b]: its integral divided by b-a.", "x^2,0,3", "sin(x),0,pi", CAT_CATEGORY_CALCULUS},
+  {"arclength(f,a,b)", nullptr, D("Length of the curve y=f(x) from x=a to x=b; also x=g(y), a and b in y, or [x(t),y(t)] for t from a to b. Steps: enter after the answer."), "x^(3/2),0,4", "[cos(t),sin(t)],0,pi", CAT_CATEGORY_CALCULUS},
+  {"area(f,g,a,b)", nullptr, D("Area between the curves y=f(x) and y=g(x) from x=a to x=b; a and b left empty: between the points where they meet. area(f,a,b): with the x-axis."), "x^2,x+2", "sin(x),cos(x),0,pi", CAT_CATEGORY_CALCULUS},
 #endif
-  {"axes", "axes", "Axes visible or not axes=1 or 0", "#axes=0", nullptr, CAT_CATEGORY_PROGCMD << 8},
+  {"arg(z)", nullptr, D("Angle of complex z."), "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"asc(string)", nullptr, D("List of ASCII codes of a string"), "\"Hello\"", nullptr, CAT_CATEGORY_ARIT},
+  {"asin(x)", nullptr, D("Inverse sine arcsin(x), between -pi/2 and pi/2."), "1/2", nullptr, CAT_CATEGORY_TRIG},
+  {"assume(hyp)", nullptr, D("Assumption on variable."), "x>1", "x>-1 and x<1", CAT_CATEGORY_PROGCMD},
+  {"atan(x)", nullptr, D("Inverse tangent arctan(x), between -pi/2 and pi/2."), "1", nullptr, CAT_CATEGORY_TRIG},
+#ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
+  {"average(f,a,b)", nullptr, D("Average value of f on [a,b]: its integral divided by b-a."), "x^2,0,3", "sin(x),0,pi", CAT_CATEGORY_CALCULUS},
+#endif
+  {"axes", "axes", D("Axes visible or not axes=1 or 0"), "#axes=0", nullptr, CAT_CATEGORY_PROGCMD << 8},
   //{"binomial(n,p,k)", 0, "binomial(n,p,k) probability to get k success with n trials where p is the probability of success of 1 trial. binomial_cdf(n,p,k) is the probability to get at most k successes. binomial_icdf(n,p,t) returns the smallest k such that binomial_cdf(n,p,k)>=t", "10,.5,4", 0, CAT_CATEGORY_PROBA},
-  {"barplot(list)", nullptr, "Bar plot of 1-d statistic series data in list.", "[3/2,2,1,1/2,3,2,3/2]", nullptr, CAT_CATEGORY_PLOT},
-  {"black", "black", "Display option", "#display=black", nullptr, CAT_CATEGORY_OPTIONS},
-  {"blue", "blue", "Display option", "#display=blue", nullptr, CAT_CATEGORY_OPTIONS},
-  {"ceil(x)", nullptr, "Smallest integer not less than x", "1.2", nullptr, CAT_CATEGORY_REAL},
-  {"cfactor(p)", nullptr, "Factorization over C.", "x^4-1", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_COMPLEXNUM << 8)},
-  {"char(liste)", nullptr, "Converts a list of ASCII codes to a string.", "[97,98,99]", nullptr, CAT_CATEGORY_ARIT},
-  {"charpoly(M,x)", nullptr, "Characteristic polynomial of matrix M in variable x.", "[[1,2],[3,4]],x", nullptr, CAT_CATEGORY_MATRIX},
-  {"circle(center,radius)", nullptr, "Circle", "2+i,3", "1-i,1+i", CAT_CATEGORY_PLOT },
-  {"clearscreen()", "clearscreen()", "Clear screen.", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"coeff(p,x,n)", nullptr, "Coefficient of x^n in polynomial p.", nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
+#ifdef WITH_PLOT
+  {"barplot(list)", nullptr, D("Bar plot of 1-d statistic series data in list."), "[3/2,2,1,1/2,3,2,3/2]", nullptr, CAT_CATEGORY_PLOT},
+#endif
+  {"black", "black", D("Display option"), "#display=black", nullptr, CAT_CATEGORY_OPTIONS},
+  {"blue", "blue", D("Display option"), "#display=blue", nullptr, CAT_CATEGORY_OPTIONS},
+  {"ceil(x)", nullptr, D("Smallest integer not less than x"), "1.2", nullptr, CAT_CATEGORY_REAL},
+  {"cfactor(p)", nullptr, D("Factorization over C."), "x^4-1", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_COMPLEXNUM << 8)},
+  {"char(list)", nullptr, D("Converts a list of ASCII codes to a string."), "[97,98,99]", nullptr, CAT_CATEGORY_ARIT},
+  {"charpoly(M,x)", nullptr, D("Characteristic polynomial of matrix M in variable x."), "[[1,2],[3,4]],x", nullptr, CAT_CATEGORY_MATRIX},
+#ifdef WITH_PLOT
+  {"circle(center,radius)", nullptr, D("Circle"), "2+i,3", "1-i,1+i", CAT_CATEGORY_PLOT },
+#endif
+  {"clearscreen()", "clearscreen()", D("Clear screen."), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"coeff(p,x,n)", nullptr, D("Coefficient of x^n in polynomial p."), nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
   //{"comb(n,k)", 0, "Returns nCk", "10,4", 0, CAT_CATEGORY_PROBA},
-  {"conj(z)", nullptr, "Complex conjugate of z.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
-  {"cos(x)", nullptr, "Cosine.", "pi/3", nullptr, CAT_CATEGORY_TRIG},
-  {"cosh(x)", nullptr, "Hyperbolic cosine (e^x+e^-x)/2.", "0", nullptr, CAT_CATEGORY_TRIG},
-  {"cot(x)", nullptr, "Cotangent 1/tan(x).", "pi/4", nullptr, CAT_CATEGORY_TRIG},
-  {"cpartfrac(p,x)", nullptr, "Partial fraction decomposition over C.", "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_COMPLEXNUM << 8)},
-  {"csc(x)", nullptr, "Cosecant 1/sin(x).", "pi/6", nullptr, CAT_CATEGORY_TRIG},
-  {"csolve(equation,x)", nullptr, "Solve equation (or polynomial system) in exact mode over the complex numbers.","x^2+x+1=0", nullptr, CAT_CATEGORY_SOLVE| (CAT_CATEGORY_COMPLEXNUM << 8)},
-  {"cyan", "cyan", "Display option", "#display=cyan", nullptr, CAT_CATEGORY_OPTIONS},
-  {"debug(f(args))", nullptr, "Runs user function f in step by step mode.", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {"degree(p,x)", nullptr, "Degre of polynomial p in x.", "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"desolve(equation,t,y)", nullptr, "Exact differential equation solving.", "desolve([y'+y=exp(x),y(0)=1])", "[y'=[[1,2],[2,1]]*y+[x,x+1],y(0)=[1,2]]", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_CALCULUS << 8)},
-  {"det(A)", nullptr, "Determinant of matrix A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"diff(f,var,[n])", nullptr, "Derivative of expression f with respect to var (order n, n=1 by default), for example diff(sin(x),x) or diff(x^3,x,2). For derivation with respect to x, run f' (shortcut F3). For the gradient of f, var is the list of variables.", "sin(x),x", "sin(x^2),x,3", CAT_CATEGORY_CALCULUS},
-  {"draw_arc(x1,y1,rx,ry,theta1,theta2,c)", nullptr, "Pixelised arc of ellipse.", "100,100,60,80,0,pi,magenta", nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_circle(x1,y1,r,c)", nullptr, "Pixelised circle. Option: filled", "100,100,60,cyan+filled", nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_line(x1,y1,x2,y2,c)", nullptr, "Pixelised line.", "100,50,300,200,blue", nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_pixel(x,y,color)", nullptr, "Colors pixel x,y. Run draw_pixel() to synchronise screen.", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_polygon([[x1,y1],...],c)", nullptr, "Pixelised polygon.", "[[100,50],[30,20],[60,70]],red+filled", nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_rectangle(x,y,w,h,c)", nullptr, "Rectangle.", "100,50,30,20,red+filled", nullptr, CAT_CATEGORY_PROGCMD},
-  {"draw_string(s,x,y,c)", nullptr, "Draw string s at pixel x,y", "\"Bonjour\",80,60", nullptr, CAT_CATEGORY_PROGCMD},
-  {"egcd(A,B)", nullptr, "Find polynomials U,V,D such that A*U+B*V=D=gcd(A,B)","x^2+3x+1,x^2-5x-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  //{"elif test", "elif ", "Test cascade", 0, 0, CAT_CATEGORY_PROG},
-  {"egv(A)", nullptr, "Eigenvectors of matrix A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"egvl(A)", nullptr, "Eigenvalues of matrix  A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX },
-  {"euler(n)",nullptr,"Euler indicatrix: number of integers < n coprime with n","25",nullptr,CAT_CATEGORY_ARIT},
-  {"eval(f)", nullptr, "Evals f.", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"evalc(z)", nullptr, "Write z=x+i*y.", "1/(1+i*sqrt(3))", nullptr, CAT_CATEGORY_COMPLEXNUM},
-  {"exact(x)", nullptr, "Converts x to a rational. Shortcut shift S-D", "1.2", nullptr, CAT_CATEGORY_REAL},
-  {"exp(x)", nullptr, "Exponential e^x.", "1", nullptr, CAT_CATEGORY_REAL},
-  {"exp2trig(expr)", nullptr, "Convert complex exponentials to sin/cos", "exp(i*x)", nullptr, CAT_CATEGORY_TRIG},
-  {"extend", nullptr, "Merge 2 lists. Note that + does not merge lists, it adds vectors","#l1.extend(l2)", nullptr, CAT_CATEGORY_LIST},
-  {"factor(p,[x])", nullptr, "Factors polynomial p (run ifactor for an integer). Shortcut: p=>*", "x^4-1", "x^6+1,sqrt(3)", CAT_CATEGORY_ALGEBRA| (CAT_CATEGORY_POLYNOMIAL << 8)},
-  {"filled", "filled", "Display option", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"float(x)", nullptr, "Converts x to a floating point value.", "pi", nullptr, CAT_CATEGORY_REAL},
-  {"floor(x)", nullptr, "Largest integer not greater than x", "pi", nullptr, CAT_CATEGORY_REAL},
-  {"fourier_an(f,x,T,n,a)", nullptr, "Cosine Fourier coefficients of f", "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
-  {"fourier_bn(f,x,T,n,a)", nullptr, "Sine Fourier coefficients of f", "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
-  {"fourier_cn(f,x,T,n,a)", nullptr, "Exponential Fourier coefficients of f", "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
-  //{"from math/... import *", "from math import *", "Access to math or to random functions ([random]) or turtle with English commandnames [turtle]. Math import is not required in KhiCAS", "#from random import *", "#from turtle import *", CAT_CATEGORY_PROG},
-  {"fsolve(equation,x=a..b)", nullptr, "Approx equation solving in interval a..b.","cos(x)=x,x=0..1", "cos(x)-x,x=0.0", CAT_CATEGORY_SOLVE},
-  // {"function f(x):...", "function f(x) local y;   ffunction:;", "Function definition.", "#function f(x) local y; y:=x^2; return y; ffunction:;", 0, CAT_CATEGORY_PROG},
+  {"conj(z)", nullptr, D("Complex conjugate of z."), "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"correlation(X,Y)", nullptr, D("Correlation coefficient r of the points (X[i], Y[i]): from -1 to 1. Statistics (more menu) shows it with a fitted line."), "[1,2,3,4],[2,4,5,9]", nullptr, CAT_CATEGORY_LIST},
+  {"cos(x)", nullptr, D("Cosine."), "pi/3", nullptr, CAT_CATEGORY_TRIG},
+  {"cosh(x)", nullptr, D("Hyperbolic cosine (e^x+e^-x)/2."), "0", nullptr, CAT_CATEGORY_TRIG},
+  {"cot(x)", nullptr, D("Cotangent 1/tan(x)."), "pi/4", nullptr, CAT_CATEGORY_TRIG},
+  {"covariance(X,Y)", nullptr, D("Covariance of the points (X[i], Y[i])."), "[1,2,3],[2,4,7]", nullptr, CAT_CATEGORY_LIST},
+  {"cpartfrac(p,x)", nullptr, D("Partial fraction decomposition over C."), "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_COMPLEXNUM << 8)},
+  {"csc(x)", nullptr, D("Cosecant 1/sin(x)."), "pi/6", nullptr, CAT_CATEGORY_TRIG},
+  {"csolve(equation,x)", nullptr, D("Solve equation (or polynomial system) in exact mode over the complex numbers."),"x^2+x+1=0", nullptr, CAT_CATEGORY_SOLVE| (CAT_CATEGORY_COMPLEXNUM << 8)},
+  {"cyan", "cyan", D("Display option"), "#display=cyan", nullptr, CAT_CATEGORY_OPTIONS},
+  {"debug(f(args))", nullptr, D("Runs user function f in step by step mode."), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {"degree(p,x)", nullptr, D("Degree of polynomial p in x."), "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"desolve(equation,t,y)", nullptr, D("Exact differential equation solving."), "desolve([y'+y=exp(x),y(0)=1])", "[y'=[[1,2],[2,1]]*y+[x,x+1],y(0)=[1,2]]", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_CALCULUS << 8)},
+  {"det(A)", nullptr, D("Determinant of matrix A."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"diff(f,var,[n])", nullptr, D("Derivative of expression f with respect to var (order n, n=1 by default), for example diff(sin(x),x) or diff(x^3,x,2). For the derivative in x, f' also works. For the gradient of f, var is the list of variables."), "sin(x),x", "sin(x^2),x,3", CAT_CATEGORY_CALCULUS},
+  {"draw_arc(x1,y1,rx,ry,theta1,theta2,c)", nullptr, D("Pixelised arc of ellipse."), "100,100,60,80,0,pi,magenta", nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_circle(x1,y1,r,c)", nullptr, D("Pixelised circle. Option: filled"), "100,100,60,cyan+filled", nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_line(x1,y1,x2,y2,c)", nullptr, D("Pixelised line."), "100,50,300,200,blue", nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_pixel(x,y,color)", nullptr, D("Colors pixel x,y. Run draw_pixel() to synchronise screen."), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_polygon([[x1,y1],...],c)", nullptr, D("Pixelised polygon."), "[[100,50],[30,20],[60,70]],red+filled", nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_rectangle(x,y,w,h,c)", nullptr, D("Rectangle."), "100,50,30,20,red+filled", nullptr, CAT_CATEGORY_PROGCMD},
+  {"draw_string(s,x,y,c)", nullptr, D("Draw string s at pixel x,y"), "\"Bonjour\",80,60", nullptr, CAT_CATEGORY_PROGCMD},
+  {"egcd(A,B)", nullptr, D("Find polynomials U,V,D such that A*U+B*V=D=gcd(A,B)"),"x^2+3x+1,x^2-5x-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  //{"elif test", "elif ", D("Test cascade"), 0, 0, CAT_CATEGORY_PROG},
+  {"egv(A)", nullptr, D("Eigenvectors of matrix A."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"egvl(A)", nullptr, D("Eigenvalues of matrix A."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX },
+  {"euler(n)",nullptr,D("Euler indicatrix: number of integers < n coprime with n"),"25",nullptr,CAT_CATEGORY_ARIT},
+  {"eval(f)", nullptr, D("Evals f."), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"evalc(z)", nullptr, D("Write z=x+i*y."), "1/(1+i*sqrt(3))", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"exact(x)", nullptr, D("Converts x to an exact fraction."), "1.2", nullptr, CAT_CATEGORY_REAL},
+  {"exp(x)", nullptr, D("Exponential e^x."), "1", nullptr, CAT_CATEGORY_REAL},
+  {"exp2trig(expr)", nullptr, D("Convert complex exponentials to sin/cos"), "exp(i*x)", nullptr, CAT_CATEGORY_TRIG},
+  {"exponential_regression(X,Y)", nullptr, D("Best fit y = b*a^x through the points (X[i], Y[i]): returns a, b."), "[1,2,3,4],[2,4,9,15]", nullptr, CAT_CATEGORY_LIST},
+  {"extend", nullptr, D("Merge 2 lists. Note that + does not merge lists, it adds vectors"),"#l1.extend(l2)", nullptr, CAT_CATEGORY_LIST},
+  {"factor(p,[x])", nullptr, D("Factors polynomial p (run ifactor for an integer). Shortcut: p=>*"), "x^4-1", "x^6+1,sqrt(3)", CAT_CATEGORY_ALGEBRA| (CAT_CATEGORY_POLYNOMIAL << 8)},
+  {"filled", "filled", D("Display option"), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"float(x)", nullptr, D("Converts x to a floating point value."), "pi", nullptr, CAT_CATEGORY_REAL},
+  {"floor(x)", nullptr, D("Largest integer not greater than x"), "pi", nullptr, CAT_CATEGORY_REAL},
+  {"fourier_an(f,x,T,n,a)", nullptr, D("Cosine Fourier coefficients of f"), "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
+  {"fourier_bn(f,x,T,n,a)", nullptr, D("Sine Fourier coefficients of f"), "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
+  {"fourier_cn(f,x,T,n,a)", nullptr, D("Exponential Fourier coefficients of f"), "x^2,x,2*pi,n,-pi", nullptr, CAT_CATEGORY_CALCULUS},
+  //{"from math/... import *", "from math import *", D("Access to math or to random functions ([random]) or turtle with English commandnames [turtle]. Math import is not required in KhiCAS"), "#from random import *", "#from turtle import *", CAT_CATEGORY_PROG},
+  {"fsolve(equation,x=a..b)", nullptr, D("Approx equation solving in interval a..b."),"cos(x)=x,x=0..1", "cos(x)-x,x=0.0", CAT_CATEGORY_SOLVE},
+  // {"function f(x):...", "function f(x) local y;   ffunction:;", D("Function definition."), "#function f(x) local y; y:=x^2; return y; ffunction:;", 0, CAT_CATEGORY_PROG},
 #ifdef WITH_QUAD
   {"gauss(q)", 0, "Quadratic form reduction", "x^2+x*y+x*z+y^2+z^2,[x,y,z]", 0, CAT_CATEGORY_LINALG},
 #endif
-  {"gcd(a,b,...)", nullptr, "Greatest common divisor. See also iegcd and egcd for extended GCD.", "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
-  {"green", "green", "Display option", "#display=green", nullptr, CAT_CATEGORY_OPTIONS},
-  {"halftan(expr)", nullptr, "Convert cos, sin, tan with tan(angle/2).","cos(x)", nullptr, CAT_CATEGORY_TRIG},
-  {"histogram(list,min,size)", nullptr, "Histogram of data in list, classes begin at min of size size.","ranv(100)/100.,0,0.1", nullptr, CAT_CATEGORY_PLOT},
-  {"iabcuv(a,b,c)", nullptr, "Find 2 integers u,v such that a*u+b*v=c","23,13,15", nullptr, CAT_CATEGORY_ARIT},
-  {"ichinrem([a,m],[b,n])", nullptr,"Integer chinese remainder of a mod m and b mod n.", "[3,13],[2,7]", nullptr, CAT_CATEGORY_ARIT},
-   {"idivis(n)", nullptr, "Returns the list of divisors of an integer n.", "10", nullptr, CAT_CATEGORY_ARIT},
-  {"idn(n)", nullptr, "Identity matrix of order n", "4", nullptr, CAT_CATEGORY_MATRIX},
-  {"iegcd(a,b)", nullptr, "Find integers u,v,d such that a*u+b*v=d=gcd(a,b)","23,13", nullptr, CAT_CATEGORY_ARIT},
-  {"ifactor(n)", nullptr, "Factorization of an integer (not too large!). Shortcut n=>*", nullptr, nullptr, CAT_CATEGORY_ARIT},
-  {"ilaplace(f,s,x)", nullptr, "Inverse Laplace transform of f", "s/(s^2+1),s,x", nullptr, CAT_CATEGORY_CALCULUS},
-  {"im(z)", nullptr, "Imaginary part.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
-  {"inf", "inf", "Plus infinity. -inf for minus infinity and infinity for unsigned/complex infinity. Shortcut shift INS.", "oo", nullptr, CAT_CATEGORY_CALCULUS},
-  {"input()", "input()", "Read a string from keyboard", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {"integrate(f,x,[a,b])", nullptr, "Antiderivative of f with respect to x, like integrate(x*sin(x),x). For definite integral enter optional arguments a and b, like integrate(x*sin(x),x,0,pi). For line integral, integrate([field_x,field_y],[x,y],courbe,tmin,tmax), e.g.. ellipse area G:=plotparam([2*cos(t),sin(t)],t):; integrate([0,x],[x,y],G,0,2*pi). Shortcut SHIFT F3.", "x*sin(x),x", "cos(x)/(1+x^4),x,0,inf", CAT_CATEGORY_CALCULUS},
-  {"interp(X,Y)", nullptr, "Lagrange interpolation at points (xi,yi) where X is the list of xi and Y of yi. If interp is passed as 3rd argument, returns the divided differences list.", "[1,2,3,4,5],[0,1,3,4,4]", "[1,2,3,4,5],[0,1,3,4,4],interp", CAT_CATEGORY_POLYNOMIAL},
-  {"inv(A)", nullptr, "Inverse of A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"iquo(a,b)", nullptr, "Integer quotient of a and b.", "23,13", nullptr, CAT_CATEGORY_ARIT},
-  {"irem(a,b)", nullptr,"Integer remainder of a and b.", "23,13", nullptr, CAT_CATEGORY_ARIT},
-  {"isprime(n)", nullptr, "Returns 1 if n is prime, 0 otherwise.", "11", "10", CAT_CATEGORY_ARIT},
+  {"gcd(a,b,...)", nullptr, D("Greatest common divisor. See also iegcd and egcd for extended GCD."), "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
+  {"green", "green", D("Display option"), "#display=green", nullptr, CAT_CATEGORY_OPTIONS},
+  {"halftan(expr)", nullptr, D("Convert cos, sin, tan with tan(angle/2)."),"cos(x)", nullptr, CAT_CATEGORY_TRIG},
+#ifdef WITH_PLOT
+  {"histogram(list,min,size)", nullptr, D("Histogram of data in list, classes begin at min of size size."),"ranv(100)/100.,0,0.1", nullptr, CAT_CATEGORY_PLOT},
+#endif
+  {"iabcuv(a,b,c)", nullptr, D("Find 2 integers u,v such that a*u+b*v=c"),"23,13,15", nullptr, CAT_CATEGORY_ARIT},
+  {"ichinrem([a,m],[b,n])", nullptr,D("Integer chinese remainder of a mod m and b mod n."), "[3,13],[2,7]", nullptr, CAT_CATEGORY_ARIT},
+   {"idivis(n)", nullptr, D("Returns the list of divisors of an integer n."), "10", nullptr, CAT_CATEGORY_ARIT},
+  {"idn(n)", nullptr, D("Identity matrix of order n"), "4", nullptr, CAT_CATEGORY_MATRIX},
+  {"iegcd(a,b)", nullptr, D("Find integers u,v,d such that a*u+b*v=d=gcd(a,b)"),"23,13", nullptr, CAT_CATEGORY_ARIT},
+  {"ifactor(n)", nullptr, D("Factorization of an integer (not too large!). Shortcut n=>*"), nullptr, nullptr, CAT_CATEGORY_ARIT},
+  {"ilaplace(f,s,x)", nullptr, D("Inverse Laplace transform of f"), "s/(s^2+1),s,x", nullptr, CAT_CATEGORY_CALCULUS},
+  {"im(z)", nullptr, D("Imaginary part."), "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"implicitdiff(eq,x,y)", nullptr, D("dy/dx for y a function of x given by an equation (implicit differentiation). Its steps on the steps screen."), "x^2+y^2=25,x,y", "x^3+y^3=6*x*y,x,y", CAT_CATEGORY_CALCULUS}, // (DeltaCE)
+  {"inf", "inf", D("Plus infinity. -inf for minus infinity and infinity for unsigned/complex infinity."), "oo", nullptr, CAT_CATEGORY_CALCULUS},
+  {"input()", "input()", D("Read a string from keyboard"), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {"integrate(f,x,[a,b])", nullptr, D("Antiderivative of f with respect to x, like integrate(x*sin(x),x). For definite integral enter optional arguments a and b, like integrate(x*sin(x),x,0,pi). For line integral, integrate([field_x,field_y],[x,y],courbe,tmin,tmax), e.g.. ellipse area G:=plotparam([2*cos(t),sin(t)],t):; integrate([0,x],[x,y],G,0,2*pi)."), "x*sin(x),x", "cos(x)/(1+x^4),x,0,inf", CAT_CATEGORY_CALCULUS},
+  {"interp(X,Y)", nullptr, D("Lagrange interpolation at points (xi,yi) where X is the list of xi and Y of yi. If interp is passed as 3rd argument, returns the divided differences list."), "[1,2,3,4,5],[0,1,3,4,4]", "[1,2,3,4,5],[0,1,3,4,4],interp", CAT_CATEGORY_POLYNOMIAL},
+  {"inv(A)", nullptr, D("Inverse of A."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"iquo(a,b)", nullptr, D("Integer quotient of a and b."), "23,13", nullptr, CAT_CATEGORY_ARIT},
+  {"irem(a,b)", nullptr,D("Integer remainder of a and b."), "23,13", nullptr, CAT_CATEGORY_ARIT},
+  {"isprime(n)", nullptr, D("Returns 1 if n is prime, 0 otherwise."), "11", "10", CAT_CATEGORY_ARIT},
   //{"jordan(A)", 0, "Jordan normal form of matrix A, returns P and D such that P^-1*A*P=D", "[[1,2],[3,4]]", "[[1,1,-1,2,-1],[2,0,1,-4,-1],[0,1,1,1,1],[0,1,2,0,1],[0,0,-3,3,-1]]", CAT_CATEGORY_MATRIX},
   //{"laguerre(n,a,x)", 0, "n-ieme Laguerre polynomial (default a=0).", "10", 0, CAT_CATEGORY_POLYNOMIAL},
-  {"laplace(f,x,s)", nullptr, "Laplace transform of f","sin(x),x,s", nullptr, CAT_CATEGORY_CALCULUS},
-  {"lcm(a,b,...)", nullptr, "Least common multiple.", "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
-  {"lcoeff(p,x)", nullptr, "Leading coefficient of polynomial p in x.", "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"laplace(f,x,s)", nullptr, D("Laplace transform of f"),"sin(x),x,s", nullptr, CAT_CATEGORY_CALCULUS},
+  {"lcm(a,b,...)", nullptr, D("Least common multiple."), "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
+  {"lcoeff(p,x)", nullptr, D("Leading coefficient of polynomial p in x."), "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
   //{"legendre(n)", 0, "n-the Legendre polynomial.", "10", "10,t", CAT_CATEGORY_POLYNOMIAL},
-  {"len(l)", nullptr, "Size of a list.", "[3/2,2,1,1/2,3,2,3/2]", nullptr, CAT_CATEGORY_LIST},
-  {"limit(f,x=a)", nullptr, "Limit of f at x = a. Add 1 or -1 for unidirectional limits, e.g. limit(sin(x)/x,x=0) or limit(abs(x)/x,x=0,1). Shortcut: SHIFT MIXEDFRAC", "sin(x)/x,x=0", "exp(-1/x),x=0,1", CAT_CATEGORY_CALCULUS},
-  {"line(equation)", nullptr, "Line of equation or from 2 points", "y=2x+1", "[1,2],[3,1]", CAT_CATEGORY_PLOT},
-  {"linsolve([eq1,eq2,..],[x,y,..])", nullptr, "Linear system solving. May use the output of lu for O(n^2) solving (see example 2).","[x+y=1,x-y=2],[x,y]", "#p,l,u:=lu([[1,2],[3,4]]); linsolve(p,l,u,[5,6])", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_LINALG <<8) | (CAT_CATEGORY_MATRIX << 16)},
-  {"ln(x)", nullptr, "Natural logarithm (base e).", "e^2", nullptr, CAT_CATEGORY_REAL},
-  {"log(x)", nullptr, "Logarithm in base 10.", "100", nullptr, CAT_CATEGORY_REAL},
-  {"lu(A)", nullptr, "LU decomposition LU of matrix A, P*A=L*U", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"magenta", "magenta", "Display option", "#display=magenta", nullptr, CAT_CATEGORY_OPTIONS},
-  {"map(f,l)", nullptr, "Maps f on element of list l.","lambda x:x*x,[1,2,3]", nullptr, CAT_CATEGORY_LIST},
-  {"matpow(A,n)", nullptr, "Returns matrix A^n", "[[1,2],[3,4]],n","#assume(n>=1);matpow([[0,2],[0,4]],n)",  CAT_CATEGORY_MATRIX},
-  {"matrix(r,c,func)", nullptr, "Matrix from a defining function.", "2,3,(j,k)->j^k", nullptr, CAT_CATEGORY_MATRIX},
-  {"mult_c_conjugate", nullptr, "Multiplier par le conjugue complexe.", "1+2*i", nullptr,  (CAT_CATEGORY_COMPLEXNUM << 8)},
-  {"mult_conjugate", nullptr, "Multiplier par le conjugue (sqrt).", "sqrt(2)-sqrt(3)", nullptr, CAT_CATEGORY_ALGEBRA},
-  {"not(x)", nullptr, "Logical not.", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
-  {"numer(x)", nullptr, "Numerator of x.", "3/4", nullptr, CAT_CATEGORY_POLYNOMIAL},
-#ifdef WITH_DESOLVE
-  {"odesolve(f(t,y),[t,y],[t0,y0],t1)", nullptr, "Approx. solution of differential equation y'=f(t,y) and y(t0)=y0, value for t=t1 (add curve to get intermediate values of y)", "sin(t*y),[t,y],[0,1],2", "0..pi,(t,v)->{[-v[1],v[0]]},[0,1]", CAT_CATEGORY_SOLVE},
-#endif
-  {"partfrac(p,x)", nullptr, "Partial fraction expansion. Shortcut p=>+", "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA},
+  {"len(l)", nullptr, D("Size of a list."), "[3/2,2,1,1/2,3,2,3/2]", nullptr, CAT_CATEGORY_LIST},
+  {"limit(f,x=a)", nullptr, D("Limit of f at x = a. Add 1 or -1 for unidirectional limits, e.g. limit(sin(x)/x,x=0) or limit(abs(x)/x,x=0,1)."), "sin(x)/x,x=0", "exp(-1/x),x=0,1", CAT_CATEGORY_CALCULUS},
 #ifdef WITH_PLOT
-  {"plot(expr,x)", nullptr, "Plot an expression. For example plot(sin(x)), plot(ln(x),x.0,5)", "ln(x),x,0,5", "1/x,x=1..5,xstep=1", CAT_CATEGORY_PLOT},
-  //{"plotarea(expr,x=a..b,[n,meth])", 0, "Area under curve with specified quadrature.", "1/x,x=1..3,2,trapezoid", 0, CAT_CATEGORY_PLOT},
-  //{"plotcontour(expr,[x=xm..xM,y=ym..yM],levels)", 0, "Levels of expr.", "x^2+2y^2,[x=-2..2,y=-2..2],[1,2]", 0, CAT_CATEGORY_PLOT},
-  {"plotfield(f(t,y),[t=tmin..tmax,y=ymin..ymax])", nullptr, "Plot field of differential equation y'=f(t,y), an optionnally one solution by adding plotode=[t0,y0]", "sin(t*y),[t=-3..3,y=-3..3],plotode=[0,1]", nullptr, CAT_CATEGORY_PLOT},
-  //{"plotlist(list)", 0, "Plot a list", "[3/2,2,1,1/2,3,2,3/2]", 0, CAT_CATEGORY_PLOT},
-  {"plotode(f(t,y),[t=tmin..tmax,y],[t0,y0])", nullptr, "Plot solution of differential equation y'=f(t,y), y(t0)=y0.", "sin(t*y),[t=-3..3,y],[0,1]", nullptr, CAT_CATEGORY_PLOT},
-  {"plotparam([x,y],t)", nullptr, "Parametric plot. For example plotparam([sin(3t),cos(2t)],t,0,pi) or plotparam(exp(i*t),t,0,pi)", "[cos(3t),sin(2t)],t,0,2*pi", "[t^2,t^3],t=-1..1,tstep=0.1", CAT_CATEGORY_PLOT},
-  {"plotpolar(r,theta)", nullptr, "Polar plot.","cos(3*x),x,0,pi", "1/(1+cos(x)),x=0..pi,xstep=0.05", CAT_CATEGORY_PLOT},
-  {"plotseq(f(x),x=[u0,m,M],n)", nullptr, "Plot f(x) on [m,M] and n terms of the sequence defined by u_{n+1}=f(u_n) and u0.","sqrt(2+x),x=[6,0,7],5", nullptr, CAT_CATEGORY_PLOT},
+  {"line(equation)", nullptr, D("Line of equation or from 2 points"), "y=2x+1", "[1,2],[3,1]", CAT_CATEGORY_PLOT},
 #endif
-  {"point(x,y)", nullptr, "Point", "1,2", "1+2i", CAT_CATEGORY_PLOT },
-  {"powmod(a,n,p)", nullptr, "Returns a^n mod p.","123,456,789", nullptr, CAT_CATEGORY_ARIT},
-  {"print(expr)", nullptr, "Print expr in console", nullptr, nullptr, CAT_CATEGORY_PROG},
-  {"proot(p)", nullptr, "Returns real and complex roots, of polynomial p. Exemple proot([1,2.1,3,4.2]) or proot(x^3+2.1*x^2+3x+4.2)", "x^3+2.1*x^2+3x+4.2", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"purge(x)", nullptr, "Clear assigned variable x. Shortcut SHIFT-FORMAT", nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"linear_regression(X,Y)", nullptr, D("Best line y = a*x + b through the points (X[i], Y[i]): returns a, b. Statistics (more menu) shows it with r and r^2 and graphs it with the points."), "[1,2,3,4],[2,4,5,9]", nullptr, CAT_CATEGORY_LIST},
+  {"linsolve([eq1,eq2,..],[x,y,..])", nullptr, D("Linear system solving. May use the output of lu for O(n^2) solving (see example 2)."),"[x+y=1,x-y=2],[x,y]", "#p,l,u:=lu([[1,2],[3,4]]); linsolve(p,l,u,[5,6])", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_LINALG <<8) | (CAT_CATEGORY_MATRIX << 16)},
+  {"ln(x)", nullptr, D("Natural logarithm (base e)."), "e^2", nullptr, CAT_CATEGORY_REAL},
+  {"log(x,[b])", nullptr, D("Logarithm in base 10, or in base b: log(8,2) is 3."), "100", "8,2", CAT_CATEGORY_REAL},
+  {"logarithmic_regression(X,Y)", nullptr, D("Best fit y = a*ln(x) + b through the points (X[i], Y[i]): returns a, b."), "[1,2,3,4],[1,3,4,5]", nullptr, CAT_CATEGORY_LIST},
+  {"lu(A)", nullptr, D("LU decomposition LU of matrix A, P*A=L*U"), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"magenta", "magenta", D("Display option"), "#display=magenta", nullptr, CAT_CATEGORY_OPTIONS},
+  {"map(f,l)", nullptr, D("Maps f on element of list l."),"lambda x:x*x,[1,2,3]", nullptr, CAT_CATEGORY_LIST},
+  {"matpow(A,n)", nullptr, D("Returns matrix A^n"), "[[1,2],[3,4]],n","#assume(n>=1);matpow([[0,2],[0,4]],n)",  CAT_CATEGORY_MATRIX},
+  {"matrix(r,c,func)", nullptr, D("Matrix from a defining function."), "2,3,(j,k)->j^k", nullptr, CAT_CATEGORY_MATRIX},
+  {"mean(l)", nullptr, D("Mean (average) of the list l, exact when its values are. Statistics (more menu): data in L1 and L2."), "[1,2,3,4]", "L1", CAT_CATEGORY_LIST},
+  {"median(l)", nullptr, D("Median of the list l."), "[3,1,4,1,5]", nullptr, CAT_CATEGORY_LIST},
+  {"mult_c_conjugate", nullptr, D("Multiplies by the complex conjugate."), "1+2*i", nullptr,  (CAT_CATEGORY_COMPLEXNUM << 8)},
+  {"mult_conjugate", nullptr, D("Multiplies by the conjugate (rationalizes square roots)."), "sqrt(2)-sqrt(3)", nullptr, CAT_CATEGORY_ALGEBRA},
+  {"not(x)", nullptr, D("Logical not."), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
+  {"numer(x)", nullptr, D("Numerator of x."), "3/4", nullptr, CAT_CATEGORY_POLYNOMIAL},
+#ifdef WITH_DESOLVE
+  {"odesolve(f(t,y),[t,y],[t0,y0],t1)", nullptr, D("Approx. solution of differential equation y'=f(t,y) and y(t0)=y0, value for t=t1 (add curve to get intermediate values of y)"), "sin(t*y),[t,y],[0,1],2", "0..pi,(t,v)->{[-v[1],v[0]]},[0,1]", CAT_CATEGORY_SOLVE},
+#endif
+  {"partfrac(p,x)", nullptr, D("Partial fraction expansion. Shortcut p=>+"), "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA},
+#if defined WITH_PLOT || defined FLOWCE_STEPS // (DeltaCE: its graph screen draws these)
+  {"plot(expr,x)", nullptr, D("Graph of y = f(x), a list of up to 4, or equations in x and y"), "ln(x),x,0,5", "[x^2+y^2=25,y=x+1]", CAT_CATEGORY_PLOT},
+  {"plotfield(f(x,y))", nullptr, D("Slope field of y' = f(x,y); F3 points: solutions through points"), "x-y", "-x/y,[x=-3..3,y=-3..3]", CAT_CATEGORY_PLOT},
+  {"plotode(f(x,y),[x0,y0])", nullptr, D("Slope field of y' = f(x,y) and the solution through (x0,y0)"), "x*y,[0,1]", "y-x,[x=-4..4,y],[0,1]", CAT_CATEGORY_PLOT},
+  {"plotparam([x,y],t)", nullptr, D("Parametric x(t), y(t), t from 0 to 2pi; or add a,b: t from a to b"), "[cos(3t),sin(2t)],t", "[t^2,t^3],t,-2,2", CAT_CATEGORY_PLOT},
+  {"plotpolar(r,theta)", nullptr, D("Polar r(theta), theta from 0 to 2pi; or add a,b: theta from a to b"),"1+cos(theta),theta", "sin(4*theta),theta,0,pi", CAT_CATEGORY_PLOT},
+#endif
+#ifdef WITH_PLOT
+  {"point(x,y)", nullptr, D("Point"), "1,2", "1+2i", CAT_CATEGORY_PLOT },
+#endif
+  {"polynomial_regression(X,Y,n)", nullptr, D("Best polynomial of degree n through the points (X[i], Y[i]): its coefficients, highest power first."), "[1,2,3,4],[1,4,9,17],2", nullptr, CAT_CATEGORY_LIST},
+  {"power_regression(X,Y)", nullptr, D("Best fit y = b*x^m through the points (X[i], Y[i]): returns m, b."), "[1,2,3,4],[1,3,8,16]", nullptr, CAT_CATEGORY_LIST},
+  {"powmod(a,n,p)", nullptr, D("Returns a^n mod p."),"123,456,789", nullptr, CAT_CATEGORY_ARIT},
+  {"print(expr)", nullptr, D("Print expr in console"), nullptr, nullptr, CAT_CATEGORY_PROG},
+  {"proot(p)", nullptr, D("Returns real and complex roots of polynomial p. Example proot([1,2.1,3,4.2]) or proot(x^3+2.1*x^2+3x+4.2)"), "x^3+2.1*x^2+3x+4.2", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"propfrac(f)", nullptr, D("Long division: quotient plus remainder over the divisor."), "(x^3+1)/(x-2)", nullptr, CAT_CATEGORY_ALGEBRA | (CAT_CATEGORY_POLYNOMIAL << 8)},
+  {"purge(x)", nullptr, D("Clears stored variable x."), nullptr, nullptr, CAT_CATEGORY_PROGCMD},
   //{"python(f)", 0, "Displays f in Python syntax.", 0, 0, CAT_CATEGORY_PROGCMD},
   //{"python_compat(0|1|2)", 0, "python_compat(0) Xcas syntax, python_compat(1) Python syntax with ^ interpreted as power, python_compat(2) ^ as bit xor", "0", "1", CAT_CATEGORY_PROG},
 #ifdef WITH_QUAD
   {"q2a(expr,vars)", 0, "Matrix of a quadratic form", "x^2+3*x*y","x^2+3*x*y,[x,y]", CAT_CATEGORY_LINALG},
 #endif
-  {"quo(p,q,x)", nullptr, "Quotient of synthetic division of polynomials p and q (variable x).", nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"quote(x)", nullptr, "Returns expression x unevaluated.", nullptr, nullptr, CAT_CATEGORY_ALGEBRA},
-  //{"rand()", "rand()", "Random real between 0 and 1", 0, 0, CAT_CATEGORY_PROBA},
+  {"quo(p,q,x)", nullptr, D("Quotient of synthetic division of polynomials p and q (variable x)."), nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"quote(x)", nullptr, D("Returns expression x unevaluated."), nullptr, nullptr, CAT_CATEGORY_ALGEBRA},
+  //{"rand()", "rand()", D("Random real between 0 and 1"), 0, 0, CAT_CATEGORY_PROBA},
   //{"randint(a,b)", 0, "Random integer between a and b. With 1 argument in Xcas, random integer between 1 and n.", "5,25", "6", CAT_CATEGORY_PROBA},
-  {"ranm(n,m,[loi,parametres])", nullptr, "Random matrix with integer coefficients or according to a probability law (ranv for a vector). Examples ranm(2,3), ranm(3,2,binomial,20,.3), ranm(4,2,normald,0,1)", "3,3","4,2,normald,0,1",  CAT_CATEGORY_MATRIX},
-  {"ranv(n,[loi,parametres])", nullptr, "Random vector.", "10","4,normald,0,1", CAT_CATEGORY_LINALG},
-  {"ratnormal(x)", nullptr, "Puts everything over a common denominator.", nullptr, nullptr, CAT_CATEGORY_ALGEBRA},
-  {"re(z)", nullptr, "Real part.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
-  {"red", "red", "Display option", "#display=red", nullptr, CAT_CATEGORY_OPTIONS},
-  {"rem(p,q,x)", nullptr, "Remainder of synthetic division of polynomials p and q (variable x)", nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"resultant(p,q,x)", nullptr, "Resultant in x of polynomials p and q.", "#P:=x^3+p*x+q;resultant(P,P',x);", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"ranm(n,m,[loi,parametres])", nullptr, D("Random matrix with integer coefficients or according to a probability law (ranv for a vector). Examples ranm(2,3), ranm(3,2,binomial,20,.3), ranm(4,2,normald,0,1)"), "3,3","4,2,normald,0,1",  CAT_CATEGORY_MATRIX},
+  {"ranv(n,[loi,parametres])", nullptr, D("Random vector."), "10","4,normald,0,1", CAT_CATEGORY_LINALG},
+  {"ratnormal(x)", nullptr, D("Puts everything over a common denominator."), nullptr, nullptr, CAT_CATEGORY_ALGEBRA},
+  {"re(z)", nullptr, D("Real part."), "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
+  {"red", "red", D("Display option"), "#display=red", nullptr, CAT_CATEGORY_OPTIONS},
+  {"rem(p,q,x)", nullptr, D("Remainder of synthetic division of polynomials p and q (variable x)"), nullptr, nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"resultant(p,q,x)", nullptr, D("Resultant in x of polynomials p and q."), "#P:=x^3+p*x+q;resultant(P,P',x);", nullptr, CAT_CATEGORY_POLYNOMIAL},
   //{"rsolve(equation,u(n),[init])", 0, "Solve a recurrence relation.","u(n+1)=2*u(n)+3,u(n),u(0)=1", "([u(n+1)=3*v(n)+u(n),v(n+1)=v(n)+u(n)],[u(n),v(n)],[u(0)=1,v(0)=2]", CAT_CATEGORY_SOLVE},
-  {"sec(x)", nullptr, "Secant 1/cos(x).", "pi/3", nullptr, CAT_CATEGORY_TRIG},
-  {"seq(expr,var,a,b)", nullptr, "Generates a list from an expression.","j^2,j,1,10", nullptr, CAT_CATEGORY_PROGCMD},
-  //{"si", "si  alors  sinon  fsi;", "Test.", "#f(x):=si x>0 alors x; sinon -x; fsi;// valeur absolue", 0, CAT_CATEGORY_PROG},
-  {"sign(x)", nullptr, "Returns -1 if x is negative, 0 if x is zero and 1 if x is positive.", nullptr, nullptr, CAT_CATEGORY_REAL},
-  {"simplify(expr)", nullptr, "Returns x in a simpler form. Shortcut expr=>/", "sin(3x)/sin(x)", nullptr, CAT_CATEGORY_ALGEBRA},
-  {"sin(x)", nullptr, "Sine.", "pi/6", nullptr, CAT_CATEGORY_TRIG},
-  {"sinh(x)", nullptr, "Hyperbolic sine (e^x-e^-x)/2.", "0", nullptr, CAT_CATEGORY_TRIG},
-  {"solve(equation,x)", nullptr, "Exact solving of equation w.r.t. x (or of a polynomial system). Run csolve for complex solutions, linsolve for a linear system. Shortcut SHIFT XthetaT", "x^2-x-1=0,x", "[x^2-y^2=0,x^2-z^2=0],[x,y,z]", CAT_CATEGORY_SOLVE},
-  {"sorted(l)", nullptr, "Sorts a list.","[3/2,2,1,1/2,3,2,3/2]", "[[1,2],[2,3],[4,3]],(x,y)->when(x[1]==y[1],x[0]>y[0],x[1]>y[1]", CAT_CATEGORY_LIST},
-  {"sqrt(x)", nullptr, "Square root.", "8", nullptr, CAT_CATEGORY_REAL},
-  {"subst(a,b=c)", nullptr, "Substitutes b for c in a. Shortcut a(b=c).", "x^2,x=3", nullptr, CAT_CATEGORY_ALGEBRA},
-  {"sum(f,k,m,M)", nullptr, "Summation of expression f for k from m to M. Exemple sum(k^2,k,1,n)=>*. Shortcut ALPHA F3", "k,k,1,n", nullptr, CAT_CATEGORY_CALCULUS},
+  {"sec(x)", nullptr, D("Secant 1/cos(x)."), "pi/3", nullptr, CAT_CATEGORY_TRIG},
+  {"seq(expr,var,a,b)", nullptr, D("Generates a list from an expression."),"j^2,j,1,10", nullptr, CAT_CATEGORY_PROGCMD},
+  //{"si", "si  alors  sinon  fsi;", D("Test."), "#f(x):=si x>0 alors x; sinon -x; fsi;// valeur absolue", 0, CAT_CATEGORY_PROG},
+  {"sign(x)", nullptr, D("Returns -1 if x is negative, 0 if x is zero and 1 if x is positive."), nullptr, nullptr, CAT_CATEGORY_REAL},
+  {"simplify(expr)", nullptr, D("Returns expr in a simpler form. Shortcut expr=>/"), "sin(3x)/sin(x)", nullptr, CAT_CATEGORY_ALGEBRA},
+  {"sin(x)", nullptr, D("Sine."), "pi/6", nullptr, CAT_CATEGORY_TRIG},
+  {"sinh(x)", nullptr, D("Hyperbolic sine (e^x-e^-x)/2."), "0", nullptr, CAT_CATEGORY_TRIG},
+  {"solve(equation,x)", nullptr, D("Exact solving of equation for x (or of a polynomial system). Run csolve for complex solutions, linsolve for a linear system."), "x^2-x-1=0,x", "[x^2-y^2=0,x^2-z^2=0],[x,y,z]", CAT_CATEGORY_SOLVE},
+  {"sorted(l)", nullptr, D("Sorts a list."),"[3/2,2,1,1/2,3,2,3/2]", "[[1,2],[2,3],[4,3]],(x,y)->when(x[1]==y[1],x[0]>y[0],x[1]>y[1]", CAT_CATEGORY_LIST},
+  {"sqrt(x)", nullptr, D("Square root."), "8", nullptr, CAT_CATEGORY_REAL},
+  {"stdDev(l)", nullptr, D("Sample standard deviation of the list l (divides by n-1). stddev(l): the population one."), "[2,4,4,4,5,5,7,9]", nullptr, CAT_CATEGORY_LIST},
+  {"stddev(l)", nullptr, D("Population standard deviation of the list l (divides by n). stdDev(l): the sample one."), "[2,4,4,4,5,5,7,9]", nullptr, CAT_CATEGORY_LIST},
+  {"subst(a,b=c)", nullptr, D("Replaces b with c in a. Shortcut a(b=c)."), "x^2,x=3", nullptr, CAT_CATEGORY_ALGEBRA},
+  {"sum(f,k,m,M)", nullptr, D("Summation of expression f for k from m to M. Example sum(k^2,k,1,n)=>*."), "k,k,1,n", nullptr, CAT_CATEGORY_CALCULUS},
 #ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
-  {"surfacearea(f,a,b,axis)", nullptr, "Area of the surface made by turning y=f(x), a<=x<=b, around the axis y=c or x=c (y=0: the x-axis).", "sqrt(x),1,4,y=0", "x^2,0,1,x=0", CAT_CATEGORY_CALCULUS},
+  {"surfacearea(f,a,b,axis)", nullptr, D("Area of the surface made by turning y=f(x), a<=x<=b, around the axis y=c or x=c (y=0: the x-axis)."), "sqrt(x),1,4,y=0", "x^2,0,1,x=0", CAT_CATEGORY_CALCULUS},
 #endif
 #if defined WITH_SHEET
-  {"tablefunc(f(x),x[,xmin,xstep])", nullptr, "Table of values of expression f", "sqrt(x^2+x+1),x,-1,0.1",  nullptr, CAT_CATEGORY_CALCULUS},
-  {"tableseq(f(x),x,u0)", nullptr, "Table of values of recurrent sequence u_{n+1}=f(u_n)", "cos(x),x,0.0",  nullptr, CAT_CATEGORY_CALCULUS},
+  {"tablefunc(f(x),x[,xmin,xstep])", nullptr, D("Table of values of expression f"), "sqrt(x^2+x+1),x,-1,0.1",  nullptr, CAT_CATEGORY_CALCULUS},
+  {"tableseq(f(x),x,u0)", nullptr, D("Table of values of recurrent sequence u_{n+1}=f(u_n)"), "cos(x),x,0.0",  nullptr, CAT_CATEGORY_CALCULUS},
 #endif
-  {"tabvar(f,[x=a..b])", nullptr, "Table of variations of expression f, optional arguments variable x in interval a..b", "sqrt(x^2+x+1)",  "[cos(t),sin(3t)],t", CAT_CATEGORY_CALCULUS},
-  //{"tantque", "tantque  faire   ftantque;", "While loop.", "#j:=13; tantque j!=1 faire j:=when(even(j),j/2,3j+1); print(j); ftantque;", 0, CAT_CATEGORY_PROG},
-  {"tan(x)", nullptr, "Tangent.", "pi/4", nullptr, CAT_CATEGORY_TRIG},
-  {"tanh(x)", nullptr, "Hyperbolic tangent.", "0", nullptr, CAT_CATEGORY_TRIG},
-  {"taylor(f,x=a,n,[polynom])", nullptr, "Taylor expansion of f of x at a order n, add parameter polynom to remove remainder term.","sin(x),x=0,5", "sin(x),x=0,5,polynom", CAT_CATEGORY_CALCULUS},
-  {"tchebyshev1(n)", nullptr, "Tchebyshev polynomial 1st kind: cos(n*x)=T_n(cos(x))", "10", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"tchebyshev2(n)", nullptr, "Tchebyshev polynomial 2nd kind: sin((n+1)*x)=sin(x)*U_n(cos(x))", "10", nullptr, CAT_CATEGORY_POLYNOMIAL},
-  {"tcollect(expr)", nullptr, "Linearize and collect trig functions.","sin(x)+cos(x)", nullptr, CAT_CATEGORY_TRIG},
-  {"texpand(expr)", nullptr, "Expand trigonometric, exp and ln functions.","sin(3x)", nullptr, CAT_CATEGORY_TRIG},
-  {"time(cmd)", nullptr, "Time to run a command or set the clock","int(1/(x^4+1),x)","8,0", CAT_CATEGORY_PROG},
-  {"tlin(expr)", nullptr, "Trigonometric linearization of expr.","sin(x)^3", nullptr, CAT_CATEGORY_TRIG},
-  {"trace(A)", nullptr, "Trace of the matrix A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"transpose(A)", nullptr, "Transposes matrix A. Transconjugate command is trn(A) or A^*.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
-  {"trig2exp(expr)", nullptr, "Convert complex exponentials to trigonometric functions","cos(x)^3", nullptr, CAT_CATEGORY_TRIG},
-  {"trigcos(expr)", nullptr, "Convert sin^2 and tan^2 to cos^2.","sin(x)^4", nullptr, CAT_CATEGORY_TRIG},
-  {"trigsin(expr)", nullptr, "Convert cos^2 and tan^2 to sin^2.","cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
-  {"trigtan(expr)", nullptr, "Convert cos^2 and sin^2 to tan^2.","cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
-  {"tstep",nullptr, "Parametric graph step", "tstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
+  {"tabvar(f,[x=a..b])", nullptr, D("Table of variations of expression f, optional arguments variable x in interval a..b"), "sqrt(x^2+x+1)",  "[cos(t),sin(3t)],t", CAT_CATEGORY_CALCULUS},
+  //{"tantque", "tantque  faire   ftantque;", D("While loop."), "#j:=13; tantque j!=1 faire j:=when(even(j),j/2,3j+1); print(j); ftantque;", 0, CAT_CATEGORY_PROG},
+  {"tan(x)", nullptr, D("Tangent."), "pi/4", nullptr, CAT_CATEGORY_TRIG},
+  {"tanh(x)", nullptr, D("Hyperbolic tangent."), "0", nullptr, CAT_CATEGORY_TRIG},
+  {"taylor(f,x=a,n,[polynom])", nullptr, D("Taylor expansion of f of x at a order n, add parameter polynom to remove remainder term."),"sin(x),x=0,5", "sin(x),x=0,5,polynom", CAT_CATEGORY_CALCULUS},
+  {"tchebyshev1(n)", nullptr, D("Tchebyshev polynomial 1st kind: cos(n*x)=T_n(cos(x))"), "10", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"tchebyshev2(n)", nullptr, D("Tchebyshev polynomial 2nd kind: sin((n+1)*x)=sin(x)*U_n(cos(x))"), "10", nullptr, CAT_CATEGORY_POLYNOMIAL},
+  {"tcollect(expr)", nullptr, D("Linearize and collect trig functions."),"sin(x)+cos(x)", nullptr, CAT_CATEGORY_TRIG},
+  {"texpand(expr)", nullptr, D("Expand trigonometric, exp and ln functions."),"sin(3x)", nullptr, CAT_CATEGORY_TRIG},
+  {"time(cmd)", nullptr, D("Time to run a command or set the clock"),"int(1/(x^4+1),x)","8,0", CAT_CATEGORY_PROG},
+  {"tlin(expr)", nullptr, D("Trigonometric linearization of expr."),"sin(x)^3", nullptr, CAT_CATEGORY_TRIG},
+  {"trace(A)", nullptr, D("Trace of the matrix A."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"transpose(A)", nullptr, D("Transposes matrix A. Transconjugate command is trn(A) or A^*."), "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
+  {"trig2exp(expr)", nullptr, D("Convert trigonometric functions to complex exponentials"),"cos(x)^3", nullptr, CAT_CATEGORY_TRIG},
+  {"trigcos(expr)", nullptr, D("Convert sin^2 and tan^2 to cos^2."),"sin(x)^4", nullptr, CAT_CATEGORY_TRIG},
+  {"trigsin(expr)", nullptr, D("Convert cos^2 and tan^2 to sin^2."),"cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
+  {"trigtan(expr)", nullptr, D("Convert cos^2 and sin^2 to tan^2."),"cos(x)^4", nullptr, CAT_CATEGORY_TRIG},
+  {"tstep",nullptr, D("Parametric graph step"), "tstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
+  {"variance(l)", nullptr, D("Population variance of the list l (the square of stddev)."), "[2,4,4,4,5,5,7,9]", nullptr, CAT_CATEGORY_LIST},
 #ifdef FLOWCE_STEPS // the calculus menu's applications (steps.cc)
-  {"volume(f,g,a,b,axis)", nullptr, "Volume of the solid made by turning the region between the curves around the axis y=c or x=c (washers or shells, by the axis). a and b left empty: where the curves meet. One curve: volume(f,a,b,axis).", "x,x^2,y=0", "sqrt(x),0,4,y=0", CAT_CATEGORY_CALCULUS},
+  {"volume(f,g,a,b,axis)", nullptr, D("Volume of the solid made by turning the region between the curves around the axis y=c or x=c (washers or shells, by the axis). a and b left empty: where the curves meet. One curve: volume(f,a,b,axis)."), "x,x^2,y=0", "sqrt(x),0,4,y=0", CAT_CATEGORY_CALCULUS},
 #endif
-  {"xstep",nullptr, "Funciton graph step", "xstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
-  //{"version", "version()", "Khicas 1.5.0, (c) B. Parisse et al. www-fourier.ujf-grenoble.fr/~parisse\nLicense GPL version 2. Interface adapted from Eigenmath for Casio, G. Maia, http://gbl08ma.com. Do not use if CAS calculators are forbidden.", 0, 0, CAT_CATEGORY_PROGCMD},
-  {"yellow", "yellow", "Display option", "#display=yellow", nullptr, CAT_CATEGORY_OPTIONS},
-  {"|", "|", "Logical or", "#1|2", nullptr, CAT_CATEGORY_PROGCMD},
-  {"~", "~", "Complement", "#~7", nullptr, CAT_CATEGORY_PROGCMD},
+  {"xstep",nullptr, D("Funciton graph step"), "xstep=0.2", nullptr, CAT_CATEGORY_OPTIONS},
+  //{"version", "version()", D("Khicas 1.5.0, (c) B. Parisse et al. www-fourier.ujf-grenoble.fr/~parisse\nLicense GPL version 2. Interface adapted from Eigenmath for Casio, G. Maia, http://gbl08ma.com. Do not use if CAS calculators are forbidden."), 0, 0, CAT_CATEGORY_PROGCMD},
+  {"yellow", "yellow", D("Display option"), "#display=yellow", nullptr, CAT_CATEGORY_OPTIONS},
+  {"|", "|", D("Logical or"), "#1|2", nullptr, CAT_CATEGORY_PROGCMD},
+  {"~", "~", D("Complement"), "#~7", nullptr, CAT_CATEGORY_PROGCMD},
 };
 
 constexpr const int CAT_COMPLETE_COUNT_EN=sizeof(completeCaten)/sizeof(catalogFunc);
@@ -1045,9 +1136,9 @@ std::string insert_string(int index){
 int showCatalog(char* insertText,int preselect,int menupos) {
   // returns 0 on failure (user exit) and 1 on success (user chose a option)
 #ifdef WITH_UNITS
-#ifdef WITH_PLOT
+#if defined WITH_PLOT || defined FLOWCE_STEPS
   MenuItem menuitems[CAT_CATEGORY_PLOT+1];
-  menuitems[CAT_CATEGORY_PLOT].text = (char*)((lang==1)?"Courbes, points":"Curves, points");
+  menuitems[CAT_CATEGORY_PLOT].text = (char*)((lang==1)?"Courbes, points":"Graphs");
 #else
   MenuItem menuitems[CAT_CATEGORY_UNIT+1];
 #endif
@@ -1191,6 +1282,24 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
         return sres;
       }
       int index=menuitems[menu.selection-1].isfolder;
+#ifndef WITH_EDITOR
+      // the command's help on DeltaCE's text page (the script editor's text area is not built):
+      // its name, what it does, its examples (F2, F3 in the list type them)
+      if(sres == KEY_CTRL_F5 || sres==KEY_CTRL_F10 || sres==KEY_CTRL_F15) {
+	std::string t(index<allcmds?completeCat[index].name:menuitems[menu.selection-1].text);
+	t += "\n\n";
+	t += index<allcmds?completeCat[index].desc:"Sorry, no help available";
+	for (int k=0;k<2 && index<allcmds;++k){
+	  const char * ex=k?completeCat[index].example2:completeCat[index].example;
+	  if (!ex) break;
+	  t += k?"\nF3: ":"\n\nF2: ";
+	  if (ex[0]=='#') t += ex+1;
+	  else { t += insert_string(index); t += ex; t += ")"; }
+	}
+	focus_text("Help on command",t.c_str());
+	sres=0;
+      }
+#else
       if(sres == KEY_CTRL_F5 || sres==KEY_CTRL_F10 || sres==KEY_CTRL_F15) {
 	const char * example=index<allcmds?completeCat[index].example:nullptr;
 	const char * example2=index<allcmds?completeCat[index].example2:nullptr;
@@ -1210,7 +1319,7 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
 	//elem[1].minimini=1;
 	std::string autoexample;
 	if (index<allcmds)
-	  elem[1].s = completeCat[index].desc;
+	  elem[1].s = catalog_desc(completeCat[index].desc); // (DeltaCE: packed; lang is 0, the English catalog)
 	else {
 	  int token=menuitems[menu.selection-1].token;
 	  elem[1].s=lang?"Desole, pas d'aide disponible...":"Sorry, no help available";
@@ -1256,6 +1365,7 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
 	}
 	sres=doTextArea(&text);
       }
+#endif
       if (sres == KEY_CTRL_F2 || sres==KEY_CTRL_F3 ||
 	  sres == KEY_CTRL_F7 || sres==KEY_CTRL_F8 ||
 	  sres == KEY_CTRL_F12 || sres==KEY_CTRL_F13

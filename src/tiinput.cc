@@ -300,8 +300,15 @@ std::string ti_implicit_mult(const std::string & line,ti_classify_fn classify,bo
       k=K_NUM;
       end=true;
     }
-    else if (c=='_') // unit (5_m, 3_(m/s)): never takes part
-      j=im_nameend(s,i,n);
+    else if (c=='_'){ // unit (5_m, 3_(m/s)): never takes part, nor its letters in parentheses
+      j=im_nameend(s,i,n);  // (DeltaCE: 96.5_(km/h) stayed k*m/h)
+      if (j==i+1 && j<n && s[j]=='('){
+        for (int d=0;j<n;++j){
+          if (s[j]=='(') ++d;
+          else if (s[j]==')' && --d==0){ ++j; break; }
+        }
+      }
+    }
     else if (im_namestart(c)){
       j=im_nameend(s,i,n);
       const int len=j-i,cls=classify(s+i,len);

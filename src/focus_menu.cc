@@ -4,6 +4,7 @@
 // of 30 px, labels at 12 px, previews at 17-20 px. Repaints go through bands loaded from the
 // screen (ui_band_load), so moving the selection never shows a blank frame.
 #include <string.h>
+#include <time.h>              // clock (before console.h: giac's first.h defines a clock macro)
 #include "console.h"           // Console_*, Line[]; maps std to ustl
 #include "focus.h"
 #include "k_defs.h"
@@ -24,11 +25,12 @@ struct fm_menu { char grid, cols, n; const fm_item * items; };
 
 static const fm_item m_alg[] = {
   {"solve(,x)", 3, 0, "Solve for x", 0, 0},
+  {"solve([,],[x,y])", 9, 0, "Solve a system", 0, 0}, // (DeltaCE: its steps, elimination)
   {"factor()", 1, 0, "Factor", 0, 0},
   {"expand()", 1, 0, "Expand", 0, 0},
   {"simplify()", 1, 0, "Simplify", 0, 0},
   {"partfrac()", 1, 0, "Partial fractions", 0, 0},
-  {"()/()", 4, 0, "Fraction", 0, 0},
+  {"subst(,x=)", 4, 0, "Value at x =", 0, 0}, // (DeltaCE; a fraction is the / key)
 };
 static const fm_item m_calc[] = {
   {"integrate(,x)", 3, 0, "Antiderivative", 0, 0},
@@ -37,7 +39,9 @@ static const fm_item m_calc[] = {
   {"limit(,x,)", 4, 0, "Limit", 0, 0},
   {"sum(,k,,)", 5, 0, "Sum", 0, 0},
   {"series(,x,0,5)", 7, 0, "Taylor series", 0, 0},
-#ifdef FLOWCE_STEPS // (the steps build: three columns)
+  {"implicitdiff(,x,y)", 5, 0, "Implicit dy/dx", 0, 0}, // (DeltaCE: kmisc.cc, steps.cc)
+#ifdef FLOWCE_STEPS // (the steps build: three columns, four rows; the 0 key is the tenth item)
+  {"analyze()", 1, 0, "Analyze f(x)", 0, 0}, // (DeltaCE: analyze.cc, the report on the steps' page)
   {"desolve(diff(y,x)=,x,y)", 5, "diff(y,x)=f", "Diff. equation", 0, 0},
   {0, 0, "integrate(f-g,x,a,b)", "Applications", 0, FA_APPS},
 #endif
@@ -71,6 +75,11 @@ static const fm_item m_more[] = {
   {0, 0, 0, "All commands", "search", FA_CATALOG},
   {0, 0, 0, "Paper or Night", "theme", FA_THEME},
   {0, 0, 0, "Other plots", "kinds", FA_PLOT},
+#ifdef FLOWCE_STEPS
+  {0, 0, 0, "Statistics", "data, fits", FA_STATS}, // (DeltaCE: focus_stats.cc)
+  {0, 0, 0, "Probability", "curves, tests", FA_PROB}, // (DeltaCE: focus_stats.cc)
+  {0, 0, 0, "Practice", "problems", FA_PRACTICE}, // (DeltaCE: focus_practice.cc)
+#endif
   {0, 0, 0, "File", "sessions", FA_FILE},
   {0, 0, 0, "Clear history", 0, FA_CLEAR},
 };
@@ -92,8 +101,9 @@ static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
 };
 #undef N
 
-enum { RH = 30, LW = 252, CH = 40, CH2 = 60, ST = 16, SBOT = 218 };
-static int cellh(const fm_menu & m) { return m.grid == 2 ? CH2 : CH; }
+enum { RH = 30, LW = 252, CH = 40, CH2 = 60, CH2S = 48, ST = 16, SBOT = 218 };
+// (a card of four rows, the steps build's calculus card: lower cells, so it stays under the status bar)
+static int cellh(const fm_menu & m) { return m.grid == 2 ? ((m.n + m.cols - 1) / m.cols > 3 ? CH2S : CH2) : CH; }
 
 static int px, py, pw, ph, cw; // the card
 static int hdr;                // focus_list: the title's height at the top of the card
@@ -103,12 +113,16 @@ static void geometry(int id, const fm_menu & m) {
   if (m.grid) {
     cw = m.grid == 2 ? (m.cols == 3 ? 100 : 150) : m.cols == 3 ? 76 : 60;
     pw = m.cols * cw + 10; ph = ((m.n + m.cols - 1) / m.cols) * cellh(m) + 10;
-  } else { pw = LW; ph = m.n * RH + 10; }
-  int anchor = id < 5 ? 32 + 64 * id : UI_W / 2;
+  } else { // (a long list: vis rows, scrolled; DeltaCE: rows lower than RH when they would cover the status bar)
+    const int rows = m.n < vis ? m.n : vis;
+    rh = rows * RH + 10 > SBOT - ST - 2 ? (SBOT - ST - 12) / rows : RH;
+    pw = LW; ph = rows * rh + 10;
+  }
+  int anchor = id < 5 ? 32 + 64 * id : UI_W / 2, mg = id < 5 ? 1 : 4; // (DeltaCE: a key's card over its whole tab)
   px = anchor - pw / 2;
-  if (px < 4) px = 4;
-  if (px > UI_W - pw - 4) px = UI_W - pw - 4;
-  py = id == 5 ? ST + (SBOT - ST - ph) / 2 : SBOT - ph - 6;
+  if (px < mg) px = mg;
+  if (px > UI_W - pw - mg) px = UI_W - pw - mg;
+  py = id == 5 ? ST + (SBOT - ST - ph) / 2 : SBOT - ph; // (DeltaCE: on the bar, joined to its tab)
 }
 
 // the box of item k (screen coordinates)
@@ -128,7 +142,7 @@ static void prepare(const fm_menu & m) {
     const char * t = it.pv ? it.pv : it.text;
     PLV[k] = -1;
     if (!t || (!m.grid && !it.text)) continue; // (a list's symbol column is text)
-    if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, 36, MI_F_CALLBOX, PL[k]);
+    if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) == CH2 ? 36 : 26, MI_F_CALLBOX, PL[k]);
     else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, CH - 4, MI_F_CALLBOX, PL[k]);
     else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, MI_F_CALLBOX, PL[k]);
   }
@@ -160,14 +174,15 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
   const fm_item & it = m.items[k];
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
-  int on = k == sel, bg = on ? UC_ACC : UC_CARD, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
+  // (DeltaCE) the selected item: a soft teal row with a teal edge (FlowCE's: filled teal)
+  int on = k == sel, bg = on ? UC_ACCSOFT : UC_CARD, fg = UC_INK, sub = on ? UC_ACC : UC_SUB;
   ui_clip(x, y, x + w, y + h);
   ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
-    if (on) ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_CARD);
+    if (on) { ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACCSOFT, UC_CARD); ui_rframe(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_ACCSOFT); }
     if (m.grid == 2) { // a card: the preview, its label under it (a label alone: centered)
       int alone = PLV[k] < 0;
-      preview(k, it.pv ? it.pv : it.text, x + 4, y + 23, w - 8, fg, bg, 1);
+      preview(k, it.pv ? it.pv : it.text, x + 4, y + (h == CH2 ? 23 : 18), w - 8, fg, bg, 1);
       if (it.label) {
         const ui_face * f = alone ? (on ? &ui_tb12 : &ui_tr12) : on ? &ui_tb10 : &ui_tr10;
         int lw = ui_text_width(f, it.label, -1);
@@ -175,20 +190,23 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
       }
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
   } else {
-    if (on) ui_rrect(1, x, y, w, h, 6, UC_ACC, UC_CARD);
+    if (on) { ui_rrect(1, x, y, w, h, 6, UC_ACCSOFT, UC_CARD); ui_fill(x + 2, y + 5, 3, h - 10, ui_col(1, UC_ACC)); }
     char num[2] = {(char)('1' + k), 0};
-    int nw = ui_text_width(&ui_tb10, num, -1);
-    if (k < 9) ui_draw_text(&ui_tb10, num, -1, x + 10 - nw / 2, y + h / 2 + 4, ui_ramp(1, sub, bg), 0);
-    int lx = x + 24;
+    int nw = ui_text_width(&ui_tb9, num, -1);
+    if (k < 9) { // a keycap
+      ui_rframe(1, x + 9, y + h / 2 - 7, 13, 13, 3, sub, bg);
+      ui_draw_text(&ui_tb9, num, -1, x + 16 - nw / 2, y + h / 2 + 4, ui_ramp(1, sub, bg), 0);
+    }
+    int lx = x + 30;
     if (it.text) {
-      ui_clip(x + 20, y, x + 124, y + h);
-      preview(k, it.pv ? it.pv : it.text, x + 22, y + h / 2, 100, fg, bg, 0);
+      ui_clip(x + 26, y, x + 128, y + h);
+      preview(k, it.pv ? it.pv : it.text, x + 28, y + h / 2, 98, fg, bg, 0);
       ui_clip(x, y, x + w, y + h);
-      lx = x + 128;
+      lx = x + 132;
     }
     else if (it.pv) { // the symbol column
-      sym_text(it.pv, x + 46, y + h / 2, fg, bg);
-      lx = x + 76;
+      sym_text(it.pv, x + 50, y + h / 2, fg, bg);
+      lx = x + 80;
     }
     ui_draw_text(on ? &ui_tb12 : &ui_tr12, it.label, -1, lx, y + h / 2 + 5, ui_ramp(1, fg, bg), 0);
     if (it.hint) {
@@ -243,16 +261,21 @@ static void repaint_item(const fm_menu & m, int k, int sel) {
 static void tab_text(int i, const char * w, int fg);
 // opens card m (its geometry set): the scene dims at once, tab col of the bar is drawn open
 // (layer 0: its icon and word; 2nd, alpha: its text label), the card is painted
+static const char * tab_word_; // (DeltaCE) the open tab's word instead of the console's (the graph's menus)
 static void open_card(const fm_menu & m, int col, int layer, int sel) {
   ui_dim(1);
-  if (col < 5) {
-    int band = ui_band_open(24) >= 22;
-    if (band) { ui_band_begin(SBOT, UI_H); ui_band_load(); }
-    if (!layer) focus_tab(col, 1, 1);
-    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_ACC : UC_GREEN);
+  paint_rows(m, py, col < 5 ? SBOT : py + ph + 4, sel, 1);
+  if (col < 5) { // (DeltaCE) its tab, joined to the card: the card rises out of its key
+    int band = ui_band_open(32) >= 32;
+    if (band) { ui_band_begin(SBOT - 4, UI_H); ui_band_load(); }
+    if (tab_word_) tab_text(col, tab_word_, UC_ACC);
+    else if (!layer) focus_tab(col, 1, 1);
+    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : UC_GREEN);
+    ui_clip(0, SBOT - 4, UI_W, UI_H);
+    ui_fill(32 + 64 * col - 29, SBOT - 3, 58, 4, ui_col(1, UC_CARD)); // (the card's edge over the tab: gone)
+    ui_noclip();
     if (band) ui_band_end();
   }
-  paint_rows(m, py, py + ph + 4, sel, 1);
   ui_band_close();
 }
 // closes the card: the scene comes back; under it, the stage is repainted (repaint) unless a
@@ -300,6 +323,7 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
       if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
     }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
+    if (k == KEY_CHAR_0 && n == 10) return 9; // (the steps build's calculus card: its tenth item)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
       int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
@@ -446,41 +470,177 @@ void focus_splash_clear() {
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 }
-// the start screen: FlowCE written letter by letter over a curve drawn left to right, then held
-// (about 1 s in all, once per start; any key skips it and is not typed); first (no saved
-// session): three tips and "press any key" (the caller reads it)
+// the start screen (DeltaCE): a curve is drawn left to right, then a secant through P and a second
+// point Q, with its rise-over-run triangle (the Delta: dx, dy), slides as Q moves to P, until it is
+// the tangent at P, which locks in blue with a pulse; meanwhile DeltaCE is written letter by
+// letter, then the tagline appears. About 1.9 s on the 32768 Hz clock, once per start; any key
+// skips to the last frame and is not typed. first (no saved session): "press any key" too (the
+// caller reads it). The moving part is redrawn each frame in screen bands (no flicker).
+// Coordinates in 1/16 px (ui_seg16); the curve y = 212 - 62 sin((x-34)/68) - 0.0006 (x-34)^2,
+// sampled every 2 px from x = 34 to 286 (tools: python, see the commit).
+static const short splash_curve[127] = {
+  3392, 3363, 3334, 3304, 3275, 3246, 3216, 3187, 3158, 3129, 3101, 3072, 3044, 3015, 2987, 2960,
+  2932, 2905, 2879, 2852, 2826, 2801, 2775, 2751, 2726, 2703, 2679, 2656, 2634, 2613, 2591, 2571,
+  2551, 2532, 2513, 2495, 2477, 2461, 2445, 2429, 2415, 2401, 2388, 2375, 2363, 2352, 2342, 2333,
+  2324, 2316, 2309, 2303, 2297, 2292, 2288, 2285, 2282, 2281, 2280, 2280, 2280, 2282, 2284, 2287,
+  2290, 2295, 2300, 2306, 2312, 2320, 2328, 2336, 2346, 2356, 2366, 2377, 2389, 2402, 2415, 2428,
+  2443, 2457, 2472, 2488, 2504, 2521, 2538, 2555, 2573, 2592, 2610, 2629, 2648, 2668, 2688, 2708,
+  2728, 2748, 2769, 2790, 2811, 2831, 2852, 2874, 2895, 2916, 2937, 2958, 2979, 3000, 3020, 3041,
+  3061, 3081, 3101, 3121, 3140, 3159, 3178, 3196, 3214, 3232, 3249, 3266, 3282, 3298, 3313};
+enum { SP_X0 = 34, SP_P = 150, SP_TOP = 96, SP_BOT = 218, SP_END = 1900 };
+// the curve's y (1/16 px) at x (1/16 px), interpolated
+static int splash_y(long x16) {
+  long u = x16 - SP_X0 * 16;
+  if (u < 0) u = 0;
+  if (u > 252 * 16) u = 252 * 16;
+  const int i = (int)(u >> 5), r = (int)(u & 31);
+  return i >= 126 ? splash_curve[126] : splash_curve[i] + (int)((long)(splash_curve[i + 1] - splash_curve[i]) * r / 32);
+}
+// easings of t in [0, 1024]: smoothstep, ease-out (cubic), ease-in (cubic); 0..1024
+static int sp_clamp(long t) { return t < 0 ? 0 : t > 1024 ? 1024 : (int)t; }
+static int sp_ez(long t) { long u = sp_clamp(t); return (int)(u * u * (3072 - 2 * u) >> 20); }
+static int sp_eo(long t) { long u = 1024 - sp_clamp(t); return 1024 - (int)(u * u * u >> 20); }
+static long sp_phase(int ms, int a, int b) { return (long)(ms - a) * 1024 / (b - a); }
+static void sp_dot(int x16, int y16, int r, int c) { ui_rrect(0, (x16 >> 4) - r, (y16 >> 4) - r, 2 * r + 1, 2 * r + 1, r, c, UC_BG); }
+// a dashed segment (3 px on, 3 px off), 1/16 px
+static void sp_dash(int ax, int ay, int bx, int by, const unsigned char * ramp) {
+  const int dx = bx - ax, dy = by - ay, len = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
+  for (int s = 0; s < len; s += 96) {
+    const int e = s + 48 < len ? s + 48 : len;
+    ui_seg16(ax + (int)((long)dx * s / len), ay + (int)((long)dy * s / len), ax + (int)((long)dx * e / len), ay + (int)((long)dy * e / len), 16, ramp);
+  }
+}
+// a small Delta (the fonts have none) then a letter in the math italic, baseline y (px)
+static void sp_delta(int x, int y, const char * v, const unsigned char * ramp) {
+  ui_seg16(x * 16, y * 16, (x + 4) * 16, (y - 8) * 16, 18, ramp);
+  ui_seg16((x + 4) * 16, (y - 8) * 16, (x + 8) * 16, y * 16, 18, ramp);
+  ui_seg16(x * 16, y * 16, (x + 8) * 16, y * 16, 18, ramp);
+  ui_draw_text(&ui_mi12, v, -1, x + 10, y, ramp, 0);
+}
+// where the pen is at frame ms: the curve is drawn left to right (ease-out) in 0.52 s; 1/16 px
+static int splash_end16(int ms) { return (SP_X0 + (int)(252L * sp_eo(sp_phase(ms, 0, 520)) / 1024)) * 16; }
+// the curve's segments from segment *from up to x end16 (the last one partly: drawn again
+// longer next time, which the shading keeps right); *from: the first not yet whole
+static void splash_curve_to(int end16, int * from) {
+  const unsigned char * acc = ui_ramp(0, UC_ACC, UC_BG);
+  for (int i = *from; i < 126 && (SP_X0 + 2 * i) * 16 < end16; ++i) {
+    const int x1 = (SP_X0 + 2 * i + 2) * 16 < end16 ? (SP_X0 + 2 * i + 2) * 16 : end16;
+    ui_seg16((SP_X0 + 2 * i) * 16, splash_curve[i], x1, splash_y(x1), 40, acc);
+    if (x1 == (SP_X0 + 2 * i + 2) * 16) *from = i + 1;
+  }
+}
+// the moving part of frame ms (over the curve), in the band set up by the caller
+static void splash_graph(int ms) {
+  const unsigned char * acc = ui_ramp(0, UC_ACC, UC_BG), * ink = ui_ramp(0, UC_INK, UC_BG), * sub = ui_ramp(0, UC_SUB, UC_BG);
+  const int pa = sp_eo(sp_phase(ms, 0, 520)), end16 = splash_end16(ms);
+  if (pa > 0 && pa < 1024) sp_dot(end16, splash_y(end16), 3, UC_INK); // the pen
+  const long pb = sp_phase(ms, 420, 1500);
+  if (pb <= 0) return;
+  // Q slides to P (smoothstep), the secant turns into the tangent
+  const int e = sp_ez(pb), q16 = (SP_P + (int)(92L * (1024 - e) / 1024)) * 16, p16 = SP_P * 16;
+  const int fp = splash_y(p16), fq = splash_y(q16), locked = ms >= 1500;
+  long m1024 = q16 - p16 > 10 ? (long)(fq - fp) * 1024 / (q16 - p16) : -17; // slope, x1024 (-17: f'(P))
+  if (locked) m1024 = -17;
+  // the rise-over-run triangle (the Delta), its legs dashed, Dx and Dy; gone in the last quarter
+  if (pb < 800 && q16 - p16 > 24) {
+    const int top = (fp < fq ? fp : fq) >> 4, bot = (fp < fq ? fq : fp) >> 4, xq = q16 >> 4;
+    for (int y = top; y < bot; ++y) { // between the hypotenuse and the vertical leg
+      const int xl = SP_P + (int)((long)(q16 - p16) * ((y << 4) - fp) / ((fq - fp) ? (fq - fp) : 1) >> 4);
+      if (xq > xl) ui_fill(xl, y, xq - xl, 1, ui_col(0, UC_ACCSOFT));
+    }
+    sp_dash(p16, fp, q16, fp, sub);
+    sp_dash(q16, fp, q16, fq, sub);
+    if (q16 - p16 > 40 * 16) {
+      sp_delta(((p16 + q16) >> 5) - 9, (fp >> 4) + 15, "x", sub);
+      if ((fq - fp) > 18 * 16 || (fp - fq) > 18 * 16) sp_delta((q16 >> 4) + 5, ((fp + fq) >> 5) + 4, "y", sub);
+    }
+  }
+  // the line through P: 95 px left, 120 px right; ink while sliding, blue and thicker once locked
+  ui_seg16(p16 - 95 * 16, fp - (int)(95L * m1024 / 64), p16 + 120 * 16, fp + (int)(120L * m1024 / 64), locked ? 32 : 22, locked ? acc : ink);
+  sp_dot(p16, fp, 4, UC_INK);
+  if (!locked) sp_dot(q16, fq, 4, UC_SUB);
+  // the pulse when it locks: a ring growing from P, blue then soft
+  const long pc = sp_phase(ms, 1450, 1700);
+  if (pc > 0 && pc < 1024) {
+    const int r = 4 + 10 * sp_eo(pc) / 1024;
+    ui_rframe(0, SP_P - r, (fp >> 4) - r, 2 * r + 1, 2 * r + 1, r, pc < 512 ? UC_ACC : UC_ACCSOFT, UC_BG);
+  }
+}
+volatile int splash_frames; // frames drawn by the last start screen (the emulator tools read it)
 void focus_splash(int first) {
   static bool animated;
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
-  static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
-                                    "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
-  for (int k = 0; k < 2; ++k)
-    ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
-  const char * name = "FlowCE"; // (the upright math faces have no capitals)
-  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 88 : 100;
-  static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
-  const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
-  int skip = animated, drawn = 0;
+  static const char * const cr[] = {"based on FlowCE by Tommy Bell and KhiCAS by B. Parisse",
+                                    "DeltaCE " DELTACE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
+  for (int k = 0; k < 2; ++k) // (under the graph's rows)
+    ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 14 + 12 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
+  const char * name = "DeltaCE", * tag = "the calculus of change, shown step by step";
+  const int w = ui_text_width(&ui_mi34, name, -1), w5 = ui_text_width(&ui_mi34, name, 5), x0 = (UI_W - w) / 2, y = 64;
+  int skip = animated, typed = 0, tagged = 0, frames = 0, rows = ui_band_open(48), from = 0;
   animated = true;
-  for (int f = 1; f <= 12; ++f) {
-    const int k = f < 6 ? f : 6, p = f == 12 ? np : f * np / 12;
-    ui_draw_text(&ui_mi34, name, k < 4 ? k : 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
-    if (k > 4) ui_draw_text(&ui_mi34, name + 4, k - 4, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
-    for (; drawn + 1 < p; ++drawn)
-      ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
-    if (skip) continue; // the rest at once
+  // the graph's background (the curve drawn so far), 39 KB while the screen shows (the session is
+  // not loaded yet): each frame is a copy of it plus the moving part (6 frames/s drawing it all)
+  unsigned char * bg = rows ? (unsigned char *)malloc(UI_W * (SP_BOT - SP_TOP)) : 0;
+  if (bg) memset(bg, ui_col(0, UC_BG), UI_W * (SP_BOT - SP_TOP));
+  const long t0 = (long)(clock)(); // 32768 Hz ((clock): giac's first.h makes clock() 0)
+  for (int ms = 0;; ) {
+    if (skip) ms = SP_END;
+    // DeltaCE, a letter at a time (drawn once each: nothing else covers these rows)
+    const int k = ms < 60 ? 0 : ms >= 1410 ? 7 : (ms - 60) * 7 / 1350;
+    for (; typed < k; ++typed) {
+      const int x = x0 + ui_text_width(&ui_mi34, name, typed);
+      ui_draw_text(&ui_mi34, name + typed, 1, x, y, ui_ramp(0, typed < 5 ? UC_INK : UC_ACC, UC_BG), 0);
+    }
+    (void)w5;
+    // the tagline fades in: soft, then grey
+    const int tg = ms >= 1700 ? 2 : ms >= 1500 ? 1 : 0;
+    if (tg > tagged) {
+      tagged = tg;
+      ui_fill(0, y + 8, UI_W, 20, ui_col(0, UC_BG));
+      ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 22 + (tg == 1 ? 2 : 0), ui_ramp(0, tg == 1 ? UC_LINE : UC_SUB, UC_BG), 0);
+    }
+    // the curve's new segments, into the background
+    const int end16 = splash_end16(ms);
+    if (bg) {
+      unsigned char * fb = ui_fb;
+      ui_fb = bg - SP_TOP * UI_W;
+      ui_clip(0, SP_TOP, UI_W, SP_BOT);
+      splash_curve_to(end16, &from);
+      ui_fb = fb;
+      ui_noclip();
+    }
+    // the graph, in bands: the background, then the moving part (each band drawn whole, then
+    // copied: no half-drawn frame shows)
+    for (int b = SP_TOP; b < SP_BOT; b += rows ? rows : SP_BOT - SP_TOP) {
+      const int e = rows && b + rows < SP_BOT ? b + rows : SP_BOT;
+      if (rows) ui_band_begin(b, e);
+      else ui_clip(0, b, UI_W, e);
+      if (bg) memcpy(ui_fb + b * UI_W, bg + (b - SP_TOP) * UI_W, (e - b) * UI_W);
+      else { // (no memory for it: all of it, each frame)
+        int f0 = 0;
+        ui_fill(0, b, UI_W, e - b, ui_col(0, UC_BG));
+        splash_curve_to(end16, &f0);
+      }
+      splash_graph(ms);
+      if (rows) ui_band_end();
+    }
+    ui_noclip();
+    ++frames;
+    if (ms >= SP_END) break;
     if (key_waiting()) { skip = 1; key_discard(); continue; }
-    os_wait_1ms(40);
+    const long t = (long)(clock)() - t0;
+    ms = (int)(t * 1000 / 32768);
   }
-  const char * tag = "calculus on your TI-84 Plus CE";
-  ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
+  free(bg);
+  if (rows) ui_band_close();
+  splash_frames = frames;
   if (first) { // (the console shows its keys once past this screen)
     const char * go = "press any key";
-    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
+    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 46, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
-  else if (!skip) { // held a moment (it flashed by: the session loads fast)
-    for (int t = 0; t < 10 && !key_waiting(); ++t)
+  else if (!skip) { // held a moment
+    for (int t = 0; t < 8 && !key_waiting(); ++t)
       os_wait_1ms(50);
     key_discard();
   }
@@ -524,6 +684,9 @@ int focus_prompt(const char * t, const char * sub, std::string & s, bool numeric
       s.insert(s.begin() + pos, char(key));
       ++pos;
     }
+    else if (!numeric) // the keys that type a word: pi, sqrt(, sin(, ^2 (as on the edit line)
+      if (const char * a = keytostring(key, 0, false))
+        for (; *a && s.size() < 60; ++a, ++pos) s.insert(s.begin() + pos, *a);
   }
   ui_dim(0);
   if (!focus_view) {
@@ -546,8 +709,8 @@ static const char * const fm_lab[] = { // command, label
   "tran", "Transpose", "egvl", "Eigenvalues", "egv", "Eigenvectors", "makelist", "New list", "range", "Range",
   "seq", "Sequence", "len", "Length", "append", "Append", "ranv", "Random", "sort", "Sort", "apply", "Apply",
   "hex", "Hexadecimal", "bin", "Binary", "debug", "Debug", "python", "Python", "f", "Function",
-  "plot", "Function", "plotseq", "Cobweb", "plotlist", "Points", "plotparam", "Parametric",
-  "plotpolar", "Polar", "plotfield", "Slope field", "histogram", "Histogram", "barplot", "Bar chart",
+  "plot", "Function", "plotparam", "Parametric", "plotpolar", "Polar", "plotfield", "Slope field",
+  "plotode", "Solution curve",
   "draw_pixel", "Pixel", "draw_line", "Line", "draw_rectangle", "Rectangle", "draw_polygon", "Polygon",
   "draw_circle", "Circle", "draw_string", "Text", "get_pixel", "Read pixel", "clearscreen", "Clear",
   "rand", "Random", "randint", "Random integer", "binomial", "Binomial", "and", "And", "or", "Or",
@@ -571,13 +734,31 @@ static void tab_text(int i, const char * w, int fg) {
   while (n && b[n - 1] == ' ') --n;
   b[n] = 0;
   int cx = 32 + 64 * i, tw = ui_text_width(&ui_tb10, b, -1);
-  ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
-  ui_fill(cx - 32, SBOT + 1, 64, UI_H - SBOT - 1, ui_col(1, UC_BAR));
-  ui_rrect(1, cx - 30, SBOT + 3, 60, UI_H - SBOT - 5, 6, UC_ACCSOFT, UC_BAR);
-  ui_draw_text(&ui_tb10, b, -1, cx - tw / 2, SBOT + 15, ui_ramp(1, fg, UC_ACCSOFT), 0);
+  focus_tab_open_box(i);
+  ui_draw_text(&ui_tb10, b, -1, cx - tw / 2, SBOT + 15, ui_ramp(1, fg, UC_CARD), 0);
   ui_noclip();
 }
 void focus_tab_open(int i, const char * label) { tab_text(i, label, UC_ACC); }
+// (DeltaCE) a list on F-key col's tab (word: the tab's), its items' math (or 0) and words, 6 rows
+// shown at most (scrolled): the item picked, -1 if none
+int focus_card_list(int col, const char * word, const char * const * maths, const char * const * labels, const char * const * hints, int n, int sel) {
+  if (n <= 0) return -1;
+  fm_item * it = (fm_item *)malloc(n * sizeof(fm_item));
+  if (!it) return -1;
+  for (int k = 0; k < n; ++k) { it[k].text = maths ? maths[k] : 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0; }
+  const fm_menu m = {0, 1, (char)(n > 60 ? 60 : n), it};
+  vis = 6; top = sel >= vis ? sel - vis + 1 : 0; hdr = 0; rh = RH;
+  tab_word_ = word;
+  geometry(col, m);
+  prepare(m);
+  open_card(m, col, 0, sel);
+  cur = col;
+  const int r = run_keys(m, sel, 0);
+  close_card(0, 0);
+  tab_word_ = 0; vis = 99; top = 0;
+  free(it);
+  return r;
+}
 // idx: the menu, numbered as console_menu does (key - F1: 0-4 plain, 5-9 2nd, 10-14 alpha, 15+
 // others). Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
 int focus_fmenu(int idx, const char * const * e, int n) {
@@ -619,18 +800,77 @@ int focus_fmenu(int idx, const char * const * e, int n) {
   return res;
 }
 
+#ifdef WITH_UNITS
+// DeltaCE's units menu (alpha F4, where KhiCAS's draw menu was; its commands stay in the search):
+// nine categories, then up to nine units of one (as typed: giac's unit names, with an SI prefix
+// where giac has none: _cm, _km, _kWh), each over its name. Not in giac: degrees Celsius; its
+// _degreeF converts to nothing, and _grad reads as the gradient (_gon is the same unit). EXIT in a category goes back to the
+// categories; Convert types => (5_mi=>_km)
+static const char * const un_cat[9] = {"Convert", "Length", "Area, volume", "Mass", "Time, speed",
+                                       "Force, energy", "Pressure, electric", "Temp., angle", "Constants"};
+static const char * const un_tab[8][18] = {
+  {"_m", "meter", "_cm", "centimeter", "_mm", "millimeter", "_km", "kilometer", "_inch", "inch",
+   "_ft", "foot", "_yd", "yard", "_mi", "mile", "_nmi", "nautical mile"},
+  {"_m^2", "square meter", "_ha", "hectare", "_acre", "acre", "_m^3", "cubic meter", "_l", "liter",
+   "_ml", "milliliter", "_galUS", "gallon (US)", "_qt", "quart", "_cu", "cup (US)"},
+  {"_kg", "kilogram", "_g", "gram", "_mg", "milligram", "_t", "metric ton", "_lb", "pound",
+   "_oz", "ounce", "_ton", "short ton", "_u", "atomic mass", "_mol", "mole"},
+  {"_s", "second", "_min", "minute", "_h", "hour", "_d", "day", "_yr", "year",
+   "_m/_s", "meter/second", "_kph", "km/hour", "_mph", "mile/hour", "_knot", "knot"},
+  {"_N", "newton", "_lbf", "pound-force", "_J", "joule", "_cal", "calorie", "_kcal", "kilocalorie",
+   "_eV", "electron-volt", "_W", "watt", "_hp", "horsepower", "_kWh", "kilowatt-hour"},
+  {"_Pa", "pascal", "_kPa", "kilopascal", "_bar", "bar", "_atm", "atmosphere", "_psi", "psi",
+   "_mmHg", "mm of mercury", "_V", "volt", "_A", "ampere", "_Ohm", "ohm"},
+  // \x01: a temperature conversion, applied to the line (console.cc: giac has no degrees Celsius)
+  {"\x01" "CF", "Celsius to F", "\x01" "FC", "F to Celsius", "\x01" "CK", "Celsius to K", "\x01" "KC", "K to Celsius",
+   "_K", "kelvin", "_deg", "degree", "_rad", "radian", "_arcmin", "arc minute", "_rev", "revolution"},
+  {"_c_", "light speed", "_g_", "gravity (Earth)", "_G_", "gravitation", "_h_", "Planck", "_k_", "Boltzmann",
+   "_NA_", "Avogadro", "_R_", "gas constant", "_qe_", "electron charge", "_me_", "electron mass"},
+};
+// a card grid of n items, from menu idx's F-key; the item chosen, -1 cancelled, -2 another F-key
+static int un_cards(int idx, fm_item * it, int n) {
+  fm_menu m = {2, 3, (char)n, it};
+  const int col = idx % 5;
+  geometry(col, m);
+  prepare(m);
+  open_card(m, col, idx / 5, 0);
+  cur = idx;
+  const int r = run_keys(m, 0, fk_kh);
+  close_card(1, 1);
+  return r < -1 ? -2 : r;
+}
+const char * focus_units(int idx) {
+  for (;;) {
+    fm_item it[9];
+    for (int k = 0; k < 9; ++k) { it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = un_cat[k]; it[k].hint = 0; it[k].act = 0; }
+    const int c = un_cards(idx, it, 9);
+    if (c < 0) return 0;
+    if (c == 0) return "=>";
+    for (int k = 0; k < 9; ++k) { // (a temperature conversion: its name alone)
+      it[k].text = un_tab[c - 1][2 * k][0] == 1 ? 0 : un_tab[c - 1][2 * k]; it[k].label = un_tab[c - 1][2 * k + 1];
+    }
+    const int u = un_cards(idx, it, 9);
+    if (u >= 0) return un_tab[c - 1][2 * u];
+    if (u == -2) return 0;
+  }
+}
+#endif
+
+static signed char pop_last[6], sub_last; // (DeltaCE) each menu opens on the item picked last (sub_last: the applications' card)
 int focus_popover(int key, const char ** text, int * back) {
   int id = key == KEY_CTRL_SYMB ? 5 : key - KEY_CTRL_F1;
   if (id < 0 || id > 5) return FA_NONE;
   const fm_menu * sub = 0; // the card opened from a card (the calculus card's applications)
   for (;;) {
     const fm_menu & m = sub ? *sub : MENUS[id];
+    const int sel = sub ? sub_last : pop_last[id] < m.n ? pop_last[id] : 0;
     geometry(id, m);
     prepare(m);
-    open_card(m, id, 0, 0);
+    open_card(m, id, 0, sel);
     cur = id;
-    int r = run_keys(m, 0, fk_pop), res = FA_NONE;
+    int r = run_keys(m, sel, fk_pop), res = FA_NONE;
     if (r >= 0) {
+      if (sub) sub_last = (signed char)r; else pop_last[id] = (signed char)r;
       const fm_item & it = m.items[r];
       if (it.act) res = it.act;
       else { *text = it.text; *back = it.back; res = FA_INSERT; }

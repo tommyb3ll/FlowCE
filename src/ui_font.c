@@ -4,7 +4,7 @@
 
 // glyph codes above 0x7f: 0x80 + index here (same order as EXTRA in mkfonts.py)
 static const unsigned short extra_cp[] = {0x3c0, 0x2212, 0xb7, 0x3b8, 0x3a3, 0xb1, 0xd7, 0x221e,
-                                          0x2192, 0x2264, 0x2265, 0x2260, 0x2248, 0x2026};
+                                          0x2192, 0x2264, 0x2265, 0x2260, 0x2248, 0x2026, 0x3bc, 0x3c3, 0x3bb}; // (μ σ λ: text faces)
 
 unsigned ui_utf8(const char ** sp, const char * end) {
   const unsigned char * s = (const unsigned char *)*sp;

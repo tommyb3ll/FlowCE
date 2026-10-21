@@ -68,7 +68,7 @@ enum { MAXN = 192, MAXD = 24, MAXOPS = 400, RMAX = 2 * MAXD + 4, MAXC = 64 };
 
 // token types: TK_* or the punctuation char itself
 enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP_LE, OP_GE,
-       OP_POW, TK_OTHER = 31 };
+       OP_POW, OP_PM, TK_OTHER = 31 };
 
 // node kinds; leaves first
 enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF, K_THETA,
@@ -149,8 +149,11 @@ static void lex(int i) {
       if (j < L && digit(ch(j))) i = digits(j);
     }
     tt = TK_NUM;
+  } else if (c == 0xc2 && d == 0xb1) { // the plus-minus sign (the steps' quadratic formula)
+    i += 2;
+    tt = OP_PM;
   } else if (namec(c)) {
-    while (i < L && (namec(ch(i)) || digit(ch(i)))) ++i;
+    while (i < L && (namec(ch(i)) || digit(ch(i))) && !(ch(i) == 0xc2 && i + 1 < L && ch(i + 1) == 0xb1)) ++i; // (b+-c: not one name)
     // pi right before a letter (2pir typed with the pi key) is its own token, drawn as the pi
     // glyph, as the input pre-pass reads it (2*pi*r); not before ( : piecewise(...) is a name
     if (i - tc > 2 && S[tc] == 'p' && S[tc + 1] == 'i' && (S[tc + 2] | 32) >= 'a' &&
@@ -177,13 +180,13 @@ static int binlev(int t) { // binary operator precedence level, 0: none
   case ';': case ',': return 1;
   case OP_DEF: case OP_IMP: case OP_ARR: return 2;
   case '=': case OP_EQ: case OP_NE: case '<': case '>': case OP_LE: case OP_GE: return 3;
-  case '+': case '-': return 4;
+  case '+': case '-': case OP_PM: return 4;
   case '*': case '/': return 5;
   }
   return 0;
 }
 static int prim(int t) { return t == TK_NUM || t == TK_NAME || t == TK_STR || t == '(' || t == '[' || t == '{'; }
-static int prefix(int t) { return t == '-' || t == '+' || t == '!' || t == '\''; }
+static int prefix(int t) { return t == '-' || t == '+' || t == '!' || t == '\'' || t == OP_PM; }
 static int powop(int t) { return t == '^' || t == OP_POW; }
 static int otype(int t) { return t == '(' ? 0 : t == '[' ? 1 : t == '{' ? 2 : -1; }
 static int ctype(int t) { return t == ')' ? 0 : t == ']' ? 1 : t == '}' ? 2 : -1; }
@@ -233,7 +236,8 @@ static int namei(int n, const char * w) { // name core == w
 // the name a function is drawn with, as textbooks and TI write it (asin: arcsin, log10: log), 0:
 // its own. The caret steps over it as a whole.
 static const char * dname(int n) {
-  static const char * const al[] = {"asin", "arcsin", "acos", "arccos", "atan", "arctan", "log10", "log", "ans", "Ans", 0};
+  static const char * const al[] = {"asin", "arcsin", "acos", "arccos", "atan", "arctan", "log10", "log", "ans", "Ans",
+    "_", " ", 0}; // (DeltaCE: _(m*s^-1), a compound unit, after a space)
   if (!(T[n].f & F_FN)) return 0;
   for (int i = 0; al[i]; i += 2)
     if (namei(n, al[i])) return al[i + 1];
@@ -248,6 +252,28 @@ static int kfn(int n) {
   for (int i = 0; fn[i]; ++i)
     if (namei(n, fn[i])) return 1;
   return 0;
+}
+// DeltaCE: units as textbooks write them. A name starting with _ is a unit (8.04672_km): drawn
+// upright without its _, after a thin space; a physical constant (_c_) italic without its two _.
+// The letters of a compound unit (_(m*s^-1), as giac prints them) are upright too. [uc, ue): the
+// text shown, ug: the space before it (0: not a unit)
+static int inunit(int c) { // position c is inside the parentheses of _( )
+  for (int i = c - 1, depth = 0; i >= 0; --i) {
+    if (S[i] == ')') ++depth;
+    else if (S[i] == '(' && depth-- == 0) return i > 0 && S[i - 1] == '_' && (i < 2 || !namec(S[i - 2]));
+  }
+  return 0;
+}
+static void unitspan(int n, int c, int b, int sm, int & uc, int & ue, int & ug) {
+  uc = c; ue = b; ug = 0;
+  if (!(T[n].f & F_NAME) || (T[n].f & F_FN) || b - c < 2) return;
+  if (S[c] != '_') { // a constant inside a compound unit (_(c_*s)): without its _
+    if (S[b - 1] == '_' && inunit(c)) --ue;
+    return;
+  }
+  uc = c + 1;
+  if (b - c > 2 && S[b - 1] == '_') --ue; // _c_
+  ug = (sm ? M->small.adv : M->big.adv) / 4 + 1;
 }
 static int dw(const char * t, int sm) { // width of a display name, upright
   int n = 0;
@@ -309,6 +335,7 @@ static int pcall(int nm) { // name( args ): normal or special call
     T[nm].f |= F_FN; // a function name: upright
     if (na == 1 && T[t].k == K_EMPTY && (!(M->flags & MI_F_CALLBOX) || namei(nm, "ans"))) T[t].f |= F_NOBOX; // f(), ans(): no box
     if (na == 1 && T[t].k == K_EMPTY && namei(nm, "ans") && (T[cl].f & F_CLOSED)) T[cl].f |= F_HID; // ans(): Ans, as on a TI
+    if (na == 1 && namei(nm, "_") && (T[cl].f & F_CLOSED) && (M->flags & (MI_F_IMPLDOT | MI_F_TIDY))) T[cl].f |= F_HID; // (DeltaCE) 0.5_(m/s): m/s without parentheses (not while typed)
     if ((M->flags & MI_F_HINTS) && mi_arg_label) { // its empty arguments show their names
       for (int i = 0, q = T[nm].nx; q; q = T[q].nx) {
         if (T[q].k == K_SEP) { ++i; continue; }
@@ -391,10 +418,14 @@ static int pfactor() {
 // levels 1-5 as one flat row. Returns a list head (tail in rtail).
 static int prow(int stopc) {
   int h = 0, t = 0, tp = 0, need = 1, nb = 0, n; // tp: item before the current level-5 term
-  for (;;) {
+  for (int pk = 0;;) { // pk: the operator before
     int k = tt, lv = binlev(k);
     if (stopc && k == ',') lv = 0;
     if (over()) { if ((n = flat())) { add(h, t, n, n); need = 0; } break; }
+    if (need && pk == OP_IMP && (k == '*' || k == '+')) { // x^4-1=>* (factor), =>+ (partial fractions): the sign as is
+      n = leaf(K_TEXT); add(h, t, n, n); lex(tb); need = 0; pk = 0;
+      continue;
+    }
     if (need ? prim(k) || prefix(k) || powop(k) : prim(k)) { // operand, or implicit *
       if (!(n = pfactor())) break;
       if (!need) T[n].f |= F_IMPL;
@@ -425,6 +456,7 @@ static int prow(int stopc) {
     }
     n = leaf(lv == 1 ? K_SEP : k == '*' ? K_DOT : K_OP);
     add(h, t, n, n); lex(tb);
+    pk = k;
     if (lv < 5) tp = n;
     need = 1; nb = k != ';';
   }
@@ -464,6 +496,11 @@ static int parse() {
 // ---------------------------------------------------------------- measure / geometry
 static int style(int n, int k) { // style of the text of leaf n of kind k: names italic, calls upright
   // (a one-letter name stays italic before its bracket: x(x+1), f(x), as textbooks write them)
+  if (k == K_TEXT && (T[n].f & F_NAME) && !(T[n].f & F_FN)) { // (DeltaCE) units upright, constants italic
+    const int c = T[n].c, b = T[n].b;
+    if (S[c] == '_' && b - c > 1) return b - c > 2 && S[b - 1] == '_' ? (int)MI_IT : (int)MI_UP;
+    if (inunit(c)) return b - c > 1 && S[b - 1] == '_' ? (int)MI_IT : (int)MI_UP; // (c_ in _(c_*s): a constant)
+  }
   return k == K_TEXT && (T[n].f & F_NAME) && (!(T[n].f & F_FN) || T[n].b - T[n].c == 1) ? (int)MI_IT : (int)MI_UP;
 }
 static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication:
@@ -690,7 +727,9 @@ static void measure(int n, int sm) {
     else if (k == K_PI || k == K_INF || k == K_THETA) w += lw(symlit(k), 1, sm);
     else if (k != K_BLANK) {
       const char * dn = dname(n);
-      w += dn ? dw(dn, sm) : tw(c, d.b - c, sm, style(n, k));
+      int uc, ue, ug;
+      unitspan(n, c, d.b, sm, uc, ue, ug);
+      w += dn ? dw(dn, sm) : ug + tw(uc, ue - uc, sm, style(n, k));
       if (k == K_OP) w += 2 * M->opgap;
       if (k == K_SEP) w += h;
     }
@@ -811,11 +850,21 @@ static void place(int n, int x, int y, int dp, int sm) {
       else {
         int st = style(n, k), sy = k == K_PI || k == K_INF || k == K_THETA;
         const char * dn = sy ? 0 : dname(n);
+        int uc, ue, ug;
+        unitspan(n, c, d.b, sm, uc, ue, ug);
+        if ((uc != c || ue != d.b) && !sy && !dn) { // (DeltaCE) a unit: its text without the _, after a thin space
+          op(MI_TEXT, sm, gx + ug, y, tw(uc, ue - uc, sm, st), f.asc + f.desc, uc, ue - uc, 0, st);
+          for (p = c + 1; p < d.b; ++p)
+            if (p > uc && p < ue && gstart(p)) P(p, gx + ug + tw(uc, p - uc, sm, st), y, sm, dp);
+            else if (p == uc) P(p, gx + ug, y, sm, dp);
+            else alias(p, p + 1);
+        } else {
         op(MI_TEXT, sm, gx, y, sy ? lw(symlit(k), 1, sm) : dn ? dw(dn, sm) : tw(c, d.b - c, sm, st),
            f.asc + f.desc, c, d.b - c, sy ? symlit(k) : dn, sy ? (int)MI_SYM : st);
         for (p = c + 1; p < d.b; ++p) // inside a glyph or a built-in function's name (sin is one
           if (k < K_PI && k != K_OP && !kfn(n) && gstart(p)) P(p, gx + tw(c, p - c, sm, st), y, sm, dp);
           else alias(p, p + 1);         // unit: the arrows stepped into it, s0in(x) was typed; <= is one glyph)
+        }
       }
     }
     P(d.b, x + d.w, y, sm, dp);

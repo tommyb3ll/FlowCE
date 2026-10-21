@@ -72,6 +72,8 @@ typedef struct {
   const char * example2;
   int category;
 } catalogFunc;
+// (DeltaCE) a description of the English catalog as text (they are packed: menufr.cc); valid until the next call
+const char * catalog_desc(const char * packed);
 
 // catalogFunc::category: up to 3 of these codes, in bytes 0, 1 and 2
 #define CAT_CATEGORY_ALL 0

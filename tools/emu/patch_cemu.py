@@ -221,3 +221,45 @@ patch(root + '/core/mem.c', FC_MARK,
       if (unlikely(fixed < 0)) { const char *e = getenv("KHICAS_FLASH_CYCLES"); fixed = e ? atoi(e) : 0; }
       if (fixed) { cpu.cycles += (uint32_t)fixed; return mem.flash.block[addr & flash.mask]; } }
 ''')
+
+# 10) the line trace at a finer grain: `chunktrace <bits>` before `linetrace on <path>` records the
+#     first and the last address read in each visit to a chunk of 2^bits bytes (u32 pairs) instead
+#     of the lines (0: lines again). With 8-byte chunks a cache simulation can move code by any
+#     number of bytes and split it into lines as the real cache does (scripts/cachesim.c -c).
+CT_MARK = '/* khicas-review: chunk trace */'
+patch(root + '/core/flash.c', CT_MARK,
+      'uint32_t flash_touch_cache(uint32_t addr) {',
+      '''unsigned khicas_chunkshift, khicas_lastchunk, khicas_lastaddr; ''' + CT_MARK + '''
+''')
+patch(root + '/core/flash.c', '/* khicas-review: chunk trace entry */',
+      '    uint32_t line = addr >> FLASH_CACHE_LINE_BITS;\n    if (likely(line == flash.lastCacheLine)) {',
+      '''    if (khicas_chunkshift && khicas_linetrace) { /* khicas-review: chunk trace entry */
+        if ((addr >> khicas_chunkshift) != khicas_lastchunk) { /* (the last visit's end, this one's start) */
+            if (khicas_lastchunk != 0xFFFFFFFF) { khicas_linebuf[khicas_linepos++] = khicas_lastaddr; }
+            if (khicas_linepos == 65536) { fwrite(khicas_linebuf, 4, 65536, khicas_linetrace); khicas_linepos = 0; }
+            khicas_lastchunk = addr >> khicas_chunkshift;
+            khicas_linebuf[khicas_linepos++] = addr;
+            if (khicas_linepos == 65536) { fwrite(khicas_linebuf, 4, 65536, khicas_linetrace); khicas_linepos = 0; }
+        }
+        khicas_lastaddr = addr;
+    }
+''')
+src = open(root + '/core/flash.c').read()
+old = 'if (khicas_linetrace) { /* khicas-review: linetrace entry */'
+if old in src:
+    open(root + '/core/flash.c', 'w').write(src.replace(old, 'if (khicas_linetrace && !khicas_chunkshift) { /* khicas-review: linetrace entry */'))
+    print('patched: line entries only without a chunk trace')
+CTC_MARK = '/* khicas-review: chunktrace */'
+patch(root + '/tests/autotester/headless_cli.cpp', CTC_MARK,
+      '    respond("ERR unknown command " + command);',
+      '''    if (command == "chunktrace") { ''' + CTC_MARK + '''
+        unsigned bits = 0; input >> bits;
+        cemucore::khicas_chunkshift = bits; cemucore::khicas_lastchunk = 0xFFFFFFFF;
+        respond("OK chunktrace " + std::to_string(bits));
+        return true;
+    }
+''')
+patch(root + '/tests/autotester/headless_cli.cpp', '/* khicas-review: chunktrace extern */',
+      '        #include "../../core/usb/usb.h"',
+      '''        extern unsigned khicas_chunkshift, khicas_lastchunk; /* khicas-review: chunktrace extern */
+''')

@@ -64,18 +64,26 @@ void ui_band_end(void) {
   band_busy = 0;
 }
 
-// Paper: the prototype's light theme
+// Paper: the prototype's light theme, DeltaCE's teal accent (FlowCE's blue: 36, 92, 204); DeltaCE's
+// status bar is teal, its F-key bar tinted teal (FlowCE's: the background, white)
 const ui_theme ui_theme_paper = {{
-  {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {36, 92, 204}, {226, 234, 250},
-  {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {78, 86, 98}, {39, 140, 74}, {208, 214, 222},
-  {255, 255, 255}, {199, 68, 64}, {112, 72, 184}, {226, 118, 24}, {247, 248, 250}}, {30, 36, 46}, 36};
-// Night: the prototype's dark theme (UC_WHITE, text on a colored chip: dark here)
+  {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {0, 122, 122}, {218, 240, 238},
+  {255, 255, 255}, {255, 255, 255}, {226, 241, 239}, {40, 84, 86}, {39, 140, 74}, {208, 214, 222},
+  {255, 255, 255}, {199, 68, 64}, {112, 72, 184}, {226, 118, 24}, {36, 92, 204}, {247, 248, 250},
+  {0, 122, 122}, {255, 255, 255}, {178, 222, 218}, {196, 225, 222}},
+  {30, 36, 46}, 36};
+// Night: the prototype's dark theme (UC_WHITE, text on a colored chip: dark here), teal accent
+// (FlowCE's blue: 100, 165, 255); a deep teal status bar
 const ui_theme ui_theme_night = {{
-  {12, 15, 20}, {234, 238, 243}, {134, 145, 158}, {38, 46, 58}, {100, 165, 255}, {24, 40, 64},
-  {7, 11, 17}, {22, 28, 36}, {16, 21, 28}, {150, 160, 173}, {86, 200, 130}, {4, 6, 9},
-  {7, 11, 17}, {255, 112, 102}, {182, 146, 255}, {255, 170, 82}, {12, 15, 20}}, {0, 0, 0}, 50};
+  {12, 15, 20}, {234, 238, 243}, {134, 145, 158}, {38, 46, 58}, {52, 204, 188}, {14, 46, 46},
+  {7, 11, 17}, {22, 28, 36}, {13, 31, 33}, {150, 192, 188}, {86, 200, 130}, {4, 6, 9},
+  {7, 11, 17}, {255, 112, 102}, {182, 146, 255}, {255, 170, 82}, {100, 165, 255}, {12, 15, 20},
+  {0, 98, 94}, {234, 250, 247}, {128, 204, 196}, {26, 56, 56}},
+  {0, 0, 0}, 50};
 
-enum { BANK = 64, MAXR = (BANK - UC_COUNT) / 2 };
+// bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest: the scene's
+// screens need more ramps (the graph 23) than popovers (9)
+enum { BANK0 = 82, MAXR = (BANK0 - UC_COUNT) / 2, MAXR1 = (128 - BANK0 - UC_COUNT) / 2 };
 static const ui_theme * TH = &ui_theme_paper;
 static int dimmed;
 static unsigned char rfg[2][MAXR], rbg[2][MAXR], nr[2];
@@ -106,7 +114,7 @@ static void slot_rgb(int bank, int s, int * c) {
 static void write_slot(int bank, int s) {
   int c[3];
   slot_rgb(bank, s, c);
-  PALETTE[128 + bank * BANK + s] = rgb565(c[0], c[1], c[2]);
+  PALETTE[128 + bank * BANK0 + s] = rgb565(c[0], c[1], c[2]);
 }
 static void write_bank(int bank) {
   for (int s = 0; s < UC_COUNT + 2 * nr[bank]; ++s) write_slot(bank, s);
@@ -115,18 +123,46 @@ static void write_bank(int bank) {
 void ui_set_theme(const ui_theme * t) { TH = t; write_bank(0); write_bank(1); }
 void ui_dim(int on) { if (dimmed != on) { dimmed = on; write_bank(0); } }
 void ui_restore_os_palette(void) {}
-unsigned char ui_col(int bank, int c) { return (unsigned char)(128 + bank * BANK + c); }
+unsigned char ui_col(int bank, int c) { return (unsigned char)(128 + bank * BANK0 + c); }
 
+// (DeltaCE) Ramps are not freed: a session's screens used 28 of the 30. A full table reuses a ramp
+// whose two mids show nowhere (the screen, the band being drawn) and that was not handed out
+// among the last four (callers draw with the ramps they just got); none: the last one, as before.
+// The screen scan (76,800 bytes, about 20 ms) happens only then. UI_MAXR_TEST: a smaller table.
+#ifdef UI_MAXR_TEST
+#define RMAX(b) ((b) ? (MAXR1 < UI_MAXR_TEST ? MAXR1 : UI_MAXR_TEST) : UI_MAXR_TEST)
+#else
+#define RMAX(b) ((b) ? MAXR1 : MAXR)
+#endif
+static unsigned char rrec[2][4], rrpos[2]; // the ramps handed out last
+static void rtouch(int bank, int k) { rrec[bank][rrpos[bank]++ & 3] = (unsigned char)(k + 1); }
+static int revict(int bank) {
+  unsigned char seen[256];
+  memset(seen, 0, sizeof seen);
+  for (const unsigned char * p = FB, * e = FB + UI_W * UI_H; p < e; ++p) seen[*p] = 1;
+  if (band_busy && strip)
+    for (const unsigned char * p = strip, * e = strip + UI_W * (band_y1 - band_y0); p < e; ++p) seen[*p] = 1;
+  const int mr = RMAX(bank);
+  for (int k = mr - 1; k >= 0; --k) {
+    const int m = 128 + bank * BANK0 + UC_COUNT + 2 * k;
+    if (seen[m] || seen[m + 1]) continue;
+    int r = 0;
+    for (int j = 0; j < 4; ++j) r |= rrec[bank][j] == k + 1;
+    if (!r) return k;
+  }
+  return mr - 1;
+}
 const unsigned char * ui_ramp(int bank, int fg, int bg) {
   int k;
   for (k = 0; k < nr[bank]; ++k)
-    if (rfg[bank][k] == fg && rbg[bank][k] == bg) return ridx[bank][k];
-  if (k >= MAXR) k = MAXR - 1; // full: reuse the last ramp (never happens with the screens' needs)
+    if (rfg[bank][k] == fg && rbg[bank][k] == bg) { rtouch(bank, k); return ridx[bank][k]; }
+  if (k >= RMAX(bank)) k = revict(bank); // full: one no pixel uses
   else ++nr[bank];
+  rtouch(bank, k);
   rfg[bank][k] = fg; rbg[bank][k] = bg;
   unsigned char * r = ridx[bank][k];
   r[0] = ui_col(bank, bg); r[3] = ui_col(bank, fg);
-  r[1] = (unsigned char)(128 + bank * BANK + UC_COUNT + 2 * k);
+  r[1] = (unsigned char)(128 + bank * BANK0 + UC_COUNT + 2 * k);
   r[2] = (unsigned char)(r[1] + 1);
   write_slot(bank, UC_COUNT + 2 * k); write_slot(bank, UC_COUNT + 2 * k + 1);
   return r;
@@ -135,8 +171,14 @@ const unsigned char * ui_ramp(int bank, int fg, int bg) {
 void ui_fill(int x, int y, int w, int h, unsigned char idx) {
   int x0 = x < ui_cx0 ? ui_cx0 : x, x1 = x + w > ui_cx1 ? ui_cx1 : x + w;
   int y0 = y < ui_cy0 ? ui_cy0 : y, y1 = y + h > ui_cy1 ? ui_cy1 : y + h;
-  if (x1 <= x0) return;
-  for (; y0 < y1; ++y0) memset(ui_fb + y0 * UI_W + x0, idx, x1 - x0);
+  if (x1 <= x0 || y1 <= y0) return;
+  // the row's address once (a multiplication is a helper call on the eZ80), then UI_W further per
+  // row; a column (the graph's lines) without memset, the full width in one
+  unsigned char * p = ui_fb + y0 * UI_W + x0;
+  const int n = x1 - x0;
+  if (n == UI_W) { memset(p, idx, (size_t)(y1 - y0) * UI_W); return; }
+  if (n == 1) { for (; y0 < y1; ++y0, p += UI_W) *p = idx; return; }
+  for (; y0 < y1; ++y0, p += UI_W) memset(p, idx, n);
 }
 
 // pixel x of the framebuffer row row (inside the clip rows), shade lv: keeps the darker shade

@@ -609,7 +609,25 @@ const char * console_form_name="exact"; // the form of the line F4 cycles (Focus
 bool console_form_of(const char * s){
   return form_line && s==form_line && !strcmp(s,(form_idx?forms->text[form_idx-1]:forms->orig).c_str());
 }
+// (DeltaCE) line s shows the check of an antiderivative (its derivative: no "+ C")
+bool console_form_check(const char * s){
+  return console_form_of(s) && form_idx && (forms->order[form_idx-1]==FORM_CHECK || forms->order[form_idx-1]==FORM_CHECKD);
+}
 static void form_busy(){ statuslinemsg("computing..."); }
+#ifdef FLOWCE_STEPS
+// (DeltaCE) line s shows a form with steps (completed square, long division, factored): the command
+// that gives it from the result, canonical_form(x^2+6*x+5), propfrac(...), factor(...); 0 for none
+const char * console_form_steps(const char * s){
+  static std::string * in; // (no static constructor in the app)
+  if (!console_form_of(s) || !form_idx) return 0;
+  const int f=forms->order[form_idx-1];
+  if (f!=FORM_SQR && f!=FORM_DIV && f!=FORM_FACT) return 0;
+  if (!in && !(in=new std::string)) return 0;
+  *in=f==FORM_SQR?"canonical_form(":f==FORM_DIV?"propfrac(":"factor(";
+  *in+=forms->orig; *in+=")";
+  return in->c_str();
+}
+#endif
 void console_cycle_form(int l){
   using namespace giac;
   if (!forms)
@@ -619,6 +637,9 @@ void console_cycle_form(int l){
   dconsole_mode=0; // giac's notes ("Warning: unable to find oo integer solutions...") are not shown
   if (!console_form_of((const char *)Line[l].str)){ // another result: its forms
     const std::string orig((const char *)Line[l].str);
+    answer_forms_input=0; // (DeltaCE) its input, for the check of an antiderivative
+    for (int k=l-1;k>=0 && k>=l-8;--k)
+      if (Line[k].type==LINE_TYPE_INPUT){ answer_forms_input=(const char *)Line[k].str; break; }
     answer_forms_start(*forms,orig,*console_approx() && orig==console_approx_for);
     form_idx=0;
   }
@@ -968,9 +989,9 @@ int restore_session(const char * fname){
   clear_screen(); // Bdisp_AllClr_VRAM();
   drawRectangle(0,0,LCD_WIDTH_PX,16,COLOR_BLACK);
 #ifdef WITH_DESOLVE
-  os_draw_string_medium_(0,0,"FlowCE");
+  os_draw_string_medium_(0,0,"DeltaCE");
 #else
-  os_draw_string_medium_(0,0,"FlowCE");
+  os_draw_string_medium_(0,0,"DeltaCE");
 #endif
   os_draw_string_medium_(0,C18,"free software, GNU GPL v3");
   // os_draw_string_medium_(0,3*C18,"");
@@ -1218,6 +1239,18 @@ void do_run(const char * s){
     if (focus_on && !strstr(buf,"print"))
       dconsole_mode=0;
     giac::gen g(buf,contextptr);
+#ifdef FLOWCE_STEPS
+    int graphed=focus_on?focus_graph_input(buf):0;
+    if (graphed){ // plot(...): DeltaCE's graph screen (focus_graph.cc)
+      dconsole_mode=1;
+      if (defn)
+        giac::logptr(savelog,contextptr);
+      Console_Output(graphed>0?"Graph":"Can't graph that: one letter, 4 curves at most");
+      Console_NewLine(LINE_TYPE_OUTPUT,1);
+      free(buf);
+      return;
+    }
+#endif
     answer_ctx actx; // the steps around eval are in answer.cc (the host tests run them too)
     focus_busy(1); // "Calculating" after 0.4 s, from giac's checks of the ON key
     giac::control_c_hook=focus_busy_tick;

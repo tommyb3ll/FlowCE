@@ -229,7 +229,7 @@ static int classify(const catalogFunc * c) {
   if (n >= s.ql && at(nm, s.q, s.ql)) return 0;
   for (int i = 1; i + s.ql <= n; ++i)
     if (low(nm[i]) == s.q[0] && at(nm + i, s.q, s.ql)) return 1;
-  return c->desc && in_text(c->desc, s.q, s.ql) ? 2 : 3;
+  return c->desc && in_text(catalog_desc(c->desc), s.q, s.ql) ? 2 : 3;
 }
 // the matches in the prototype's catList order (class, then catalog order). narrow: the query
 // only grew, so only the current matches can still match
@@ -273,7 +273,7 @@ static int example_text(const catalogFunc & c, char * out, int m) {
 void focus_entry_help(int e, char * desc, int dsize, char * ex, int esize) {
   int nc, k = 0;
   const catalogFunc & c = catalog_entries(nc)[e];
-  for (const char * p = c.desc; p && *p && k < dsize - 1; ++p) {
+  for (const char * p = catalog_desc(c.desc); p && *p && k < dsize - 1; ++p) {
     desc[k++] = *p;
     if (*p == '.' && (!p[1] || p[1] == ' ')) break;
   }
@@ -342,7 +342,7 @@ static void row_draw(int r) { // row r of the view: the name in bold, the descri
   if (on) ui_rrect(0, 6, y, 306, RH, 5, UC_ACC, UC_BG);
   int w = text_cut(&ui_tb12, c.name, name_len(c.name), 13, y + 14, 200, ramp(on ? UC_ONACC : UC_INK, bg));
   int dx = 13 + w + 10 > DX ? 13 + w + 10 : DX;
-  if (c.desc) text_cut(&ui_tr10, c.desc, -1, dx, y + 14, 306 - dx, ramp(on ? UC_ONACC : UC_SUB, bg));
+  if (c.desc) text_cut(&ui_tr10, catalog_desc(c.desc), -1, dx, y + 14, 306 - dx, ramp(on ? UC_ONACC : UC_SUB, bg));
 }
 
 static void footer_draw() { // the selected entry: signature, "enter insert", example

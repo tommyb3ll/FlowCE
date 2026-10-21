@@ -22,16 +22,22 @@ STEPS ?= 0
 # Physical units (WITH_UNITS, 34.6 KB) are traded for giac's Python syntax (its translator,
 # 28.4 KB; B. Parisse's suggestion, 2026-10-08): both do not fit. UNITS=1 builds units and no
 # Python syntax, as up to v1.7 (released as FlowCE-units.b84 since v1.8).
-FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
+FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW
 ifeq ($(UNITS),1)
     FEATURE_DEFS += -DWITH_UNITS
 endif
-# The step-by-step build (FlowCE.b84 from 2.0): no Python syntax and no units, for the room
+# The step-by-step build (FlowCE.b84 from 2.0): no Python syntax. DeltaCE: with units too (STEPS=1
+# UNITS=1: they fit together with CE toolchain v15, 2026-10-15)
+# DeltaCE (the steps build) draws its graphs on its own screen (src/focus_graph.cc: functions,
+# equations, parametric, polar, slope fields): KhiCAS's plot commands and graph viewer (WITH_PLOT,
+# 146 KB: cobweb, histograms, bar charts, point lists, geometry figures) are out (2026-10-17)
+# DeltaCE has giac's statistics (mean, median, quartiles, standard deviation, correlation,
+# regressions: WITH_STATS, kmisc.cc) without the spreadsheet they came with (WITH_SHEET); its graph
+# screen draws the data (2026-10-18)
 ifeq ($(STEPS),1)
-    ifeq ($(UNITS),1)
-        $(error STEPS=1 and UNITS=1 do not fit together)
-    endif
-    FEATURE_DEFS += -DFLOWCE_STEPS
+    FEATURE_DEFS += -DFLOWCE_STEPS -DWITH_STATS
+else
+    FEATURE_DEFS += -DWITH_EDITOR -DWITH_PLOT # (DeltaCE, the steps build: no script editor, 17 KB, 2026-10-17)
 endif
 
 ifeq ($(APPLANG),fr)
@@ -71,16 +77,20 @@ LTOFLAGS = $(CFLAGS) -Xclang -fmerge-functions -mllvm -inline-threshold=-10
 # on the emulator (same answers) take 1.0% less time than with v14.2 for an app 5.6% smaller
 # (2,561,255 B vs 2,712,385); inline thresholds -10 and -20 save 56 and 76 KB more but cost
 # 4.7% and 9.6% of time (calls to small helpers such as unary_function_ptr::operator==).
+# DeltaCE 1.2: threshold 0 saves 29 KB at no measurable cost (the quick suite's median time 1.00,
+# the same answers); -5 saves 36 KB but costs 4%.
 CEDEV_MAJOR := $(firstword $(subst ., ,$(patsubst v%,%,$(shell cedev-config --version 2>/dev/null))))
 ifeq ($(shell [ "0$(CEDEV_MAJOR)" -ge 15 ] && echo y),y)
 CXXFLAGS += -include src/toolchain_compat.h
-LTOFLAGS = $(CFLAGS) -Xclang -fmerge-functions -mllvm -z80-frame-bias-policy=auto
+LTOFLAGS = $(CFLAGS) -Xclang -fmerge-functions -mllvm -z80-frame-bias-policy=auto -mllvm -inline-threshold=0
 endif
 
 # giac's files inline as little as the LTO step (a small helper stays a call on the eZ80): 24 KB
-# less; FlowCE's own files keep the default inlining
+# less; FlowCE's own files keep the default inlining, except (DeltaCE 2.1) the ones not drawing
+# per pixel: answer, console, the catalog, the menus, main, menufr, the steps page (0.9 KB less;
+# file.cc stays: with less inlining v15 miscompiled load_console_state_smem, v15_biascheck.py)
 INLFILE = -mllvm -inline-threshold=-10
-%/answer.cc.bc %/console.cc.bc %/fake.cc.bc %/file.cc.bc %/focus.cc.bc %/focus_catalog.cc.bc %/focus_edit.cc.bc %/focus_menu.cc.bc %/focus_steps.cc.bc %/main.cc.bc %/mathedit.cc.bc %/mathinput.cc.bc %/mathinput_glue.cc.bc %/menufr.cc.bc %/steps.cc.bc %/textGUI.cc.bc %/tiinput.cc.bc %/tiinput_glue.cc.bc %/ui_math.cc.bc: INLFILE :=
+%/fake.cc.bc %/file.cc.bc %/focus.cc.bc %/focus_edit.cc.bc %/focus_graph.cc.bc %/mathedit.cc.bc %/mathinput.cc.bc %/mathinput_glue.cc.bc %/textGUI.cc.bc %/tiinput.cc.bc %/tiinput_glue.cc.bc %/ui_math.cc.bc: INLFILE :=
 
 # The Focus drawing code works per pixel: compiled for speed (with -Oz, shifts and multiplies
 # become helper calls). Small files: a few KB of flash.

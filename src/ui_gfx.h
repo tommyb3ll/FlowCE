@@ -39,8 +39,13 @@ unsigned ui_strip_size(void);        // its bytes while it can be released (the 
 // theme colors
 // UC_DIM: the background as dimmed by ui_dim (for the edges of popovers drawn over the dimmed scene)
 // UC_RED UC_PURPLE UC_ORANGE: curves of the graph view, after UC_ACC and UC_GREEN
+// UC_BLUE: the 2nd layer's labels and chip, blue as the 2nd key (UC_GREEN: alpha, as its key);
+// DeltaCE's accent is teal
+// (DeltaCE) UC_HEAD the status bar, teal (UC_HEADINK its text, UC_HEADSUB its quieter text); the
+// F-key bar's hairlines UC_BARLINE
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,
-       UC_GREEN, UC_SHADOW, UC_WHITE, UC_RED, UC_PURPLE, UC_ORANGE, UC_DIM, UC_COUNT };
+       UC_GREEN, UC_SHADOW, UC_WHITE, UC_RED, UC_PURPLE, UC_ORANGE, UC_BLUE, UC_DIM,
+       UC_HEAD, UC_HEADINK, UC_HEADSUB, UC_BARLINE, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
 extern const ui_theme ui_theme_paper, ui_theme_night;
 
