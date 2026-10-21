@@ -503,11 +503,12 @@ static int style(int n, int k) { // style of the text of leaf n of kind k: names
   }
   return k == K_TEXT && (T[n].f & F_NAME) && (!(T[n].f & F_FN) || T[n].b - T[n].c == 1) ? (int)MI_IT : (int)MI_UP;
 }
-// a prime (leaf n, at c) after a letter: a gap for the italic letter's lean, an eighth of the font
-// (f' was drawn as f: the f's hook covered the prime; TeX's italic correction); f'' keeps its
-// primes together
+// a prime (leaf n, at c) after a letter: a gap for the italic letter's lean, an eighth of the font,
+// more after f (f' was drawn as f: the f's hook covered the prime; TeX's italic correction); f''
+// keeps its primes together
 static int pgap(int n, int c, int adv) {
-  return T[n].k == K_OPU && ch(c) == '\'' && c > 0 && namec(ch(c - 1)) && !digit(ch(c - 1)) ? adv / 4 : 0;
+  if (T[n].k != K_OPU || ch(c) != '\'' || c < 1 || !namec(ch(c - 1)) || digit(ch(c - 1))) return 0;
+  return ch(c - 1) == 'f' ? adv * 3 / 8 + 1 : adv / 4; // (the f leans furthest: f' was still close)
 }
 static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication:
   if (!(M->flags & MI_F_IMPLDOT)) return 0; // its gap, 1 px; a thin space before a differential
