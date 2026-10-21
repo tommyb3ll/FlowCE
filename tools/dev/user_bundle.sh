@@ -22,7 +22,7 @@ mkdir -p "$OUT/files"
 cp "$KB2"/out/"$V"/AppIns*.8xv "$OUT/files/"
 cp "$NEW2/artific2.8xp" "$OUT/files/"
 cp "$KB2/src/app_tools/INST.8xp" "$OUT/files/"
-cmp "$OUT/files/INST.8xp" "$NEW2/INST.8xp" && echo "INST identical to NEW2's"
+cmp "$OUT/files/INST.8xp" "$KB2/src/app_tools/INST.8xp" && echo "INST matches this build's source"
 args=""
 for f in $(ls "$OUT"/files/AppIns*.8xv | sort); do args="$args -i $f"; done
 "$KB2/CEdev/bin/convbin" -j 8x -k b84 $args -i "$OUT/files/artific2.8xp" -i "$OUT/files/INST.8xp" -o "$OUT/FlowCE-$NAME.b84" >/dev/null

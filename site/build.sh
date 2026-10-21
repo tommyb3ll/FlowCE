@@ -21,10 +21,12 @@ cp site/icon.svg "$OUT/media/icon.svg"
 cp docs/flowce_light.gif docs/flowce_dark.gif docs/flowce_themes.gif docs/flowce_apps.gif docs/flowce_graph.gif "$OUT/media/"
 cp docs/screenshots/*.png "$OUT/media/screenshots/"
 cp docs/install/*.gif "$OUT/media/install/"
-cp "$B84" "$OUT/files/FlowCE.b84"
+# Update the app installer even when the release predates the boot-code compatibility fix.
+# All AppIns files and the launch program retain their original bytes.
+python3 tools/dev/repack_installer.py "$B84" "$OUT/files/FlowCE.b84"
 printf '%s\n' "$VER" > "$OUT/files/version.txt"
 if [ -n "$PY_B84" ]; then
-  cp "$PY_B84" "$OUT/files/FlowCE-python.b84"
+  python3 tools/dev/repack_installer.py "$PY_B84" "$OUT/files/FlowCE-python.b84"
   printf '%s\n' "${PY_VER:-v1.9}" > "$OUT/files/version-python.txt"
 fi
 echo "built $OUT ($(du -sh "$OUT" | cut -f1)), FlowCE ${VER:-(no version)}${PY_B84:+, Python ${PY_VER:-v1.9}}"
