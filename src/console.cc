@@ -1626,6 +1626,15 @@ unsigned translate_fkey(unsigned input_key){
 }
 
 void chk_clearscreen(){
+  if (focus_on){ // 2nd clear on an empty line: the card clear asks with (KhiCAS's full screen was shown)
+    static const char * const yesno[]={"Clear history","Cancel"};
+    if (focus_choose("Clear the history?",yesno,2)==0){
+      Console_Init();
+      Console_Clear_EditLine();
+    }
+    Console_Disp(1);
+    return;
+  }
   drawRectangle(0, 18, LCD_WIDTH_PX, LCD_HEIGHT_PX-18, _WHITE);
   if (confirm(lang?"Effacer l'historique?":"Clear history?",lang?"F1: annuler,   F5: effacer":"F1: cancel,   F5: erase",true)==KEY_CTRL_F5){
     Console_Init();
