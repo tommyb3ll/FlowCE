@@ -551,14 +551,22 @@ void focus_splash_clear() {
 // session): three tips and "press any key" (the caller reads it)
 void focus_splash(int first) {
   static bool animated;
+  const int y = 100;
   ui_noclip();
+  if (first && animated) { // (no session: the screen drawn stays, its key line under it; drawn
+    const char * go = "press any key"; // again, it flickered and the name moved)
+    ui_fill(0, 0, UI_W, ST, ui_col(0, UC_BG)); // (the loader's status line gone)
+    ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
+    focus_invalidate();
+    return;
+  }
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
   static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
                                     "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
   for (int k = 0; k < 2; ++k)
     ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
   const char * name = "FlowCE"; // (the upright math faces have no capitals)
-  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2, y = first ? 88 : 100;
+  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2;
   static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
   const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
   int skip = animated, drawn = 0;
