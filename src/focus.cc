@@ -333,9 +333,10 @@ static void hero_prepare(int y0, int h) {
 static bool in_band(int y0, int y1) { return y1 > ui_cy0 && y0 < ui_cy1; }
 
 // A result too wide for one line even at the smallest size is wrapped at its top-level + and -
-// (between terms) on up to WL lines of one level: each term is measured once, the lines are
-// packed greedily, then measured. The lines are copies (0-terminated) in WB; wrapped() caches
-// the last result.
+// (between terms) and after its top-level commas (a list of solutions: x=pi/12,x=pi/6,... ran off
+// both sides of the card) on up to WL lines of one level: each term is measured once, the lines
+// are packed greedily, then measured. The lines are copies (0-terminated) in WB, without a comma
+// at their end; wrapped() caches the last result.
 enum { WL = 6 };
 static char * WB;                    // the lines, one after the other
 static const char * wl_src;          // the result wrapped (Line str), its hash
@@ -361,6 +362,7 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
     if (c == '(' || c == '[') ++d;
     else if (c == ')' || c == ']') --d;
     else if (i && !d && (c == '+' || c == '-') && !strchr("^*/(e=,", r[i - 1])) cut[nc++] = (short)i;
+    else if (!d && c == ',' && i + 1 < n) cut[nc++] = (short)(i + 1);
   }
   cut[nc] = (short)n;
   if (nc < 2 || n > 600) return 0;
@@ -376,6 +378,7 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
       wl_at[lines++] = (short)p;
       memcpy(WB + p, r + cut[k], cut[j] - cut[k]);
       p += cut[j] - cut[k];
+      if (WB[p - 1] == ',') --p; // (a trailing comma: an empty box after it)
       WB[p++] = 0;
       k = j;
     }

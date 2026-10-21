@@ -344,7 +344,8 @@ static __attribute__((noinline)) void unwrap(char * s) {
     a = *b ? b + 1 + ((*b == '<' || *b == '>') && b[1] == '=') : b;
   }
 }
-// where a line of s[0,n) may break: before a + or - between terms, at top level, after the =
+// where a line of s[0,n) may break: before a + or - between terms, at top level, after the =; after
+// a comma of a list (x=pi/12,x=pi/6,...: the answer ran off the box)
 static int cuts(const char * s, int n, short * at, int max) {
   int depth = 0, k = 0, eq = top(s, '=');
   const int s0 = eq < 0 ? 0 : eq + 1; // (every parenthesis counted: from 1, ((u)-(v))/(1-w)^2 was cut
@@ -354,6 +355,7 @@ static int cuts(const char * s, int n, short * at, int max) {
     else if (c == ')' || c == ']') --depth;
     else if (!depth && i > s0 + 1 && (c == '+' || c == '-') && !strchr("+-*/^(,=", s[i - 1]) &&
              !(s[i - 1] == 'e' && i > 1 && s[i - 2] >= '0' && s[i - 2] <= '9')) at[k++] = i;
+    else if (!depth && c == ',' && i + 1 < n) at[k++] = i + 1;
   }
   return k;
 }
@@ -379,7 +381,7 @@ static int add_math(const char * s, int n, int x, int y, int w, int lv0, int kin
     if (it && lead) { it->num = 1; it->eqx = 0; }
     return L.asc + L.desc;
   }
-  const int e = lead ? -1 : top(s, '=');
+  const int e = lead || top(s, ',') >= 0 ? -1 : top(s, '='); // (a list: cut after its commas, below)
   if (e > 0 && e < n) { // too wide: its left side, then "= the right side" below (a product had no
     const int h1 = add_math(s, e, x, y, w, lv0, kind); // place to break: clipped at both edges)
     return h1 + 4 + add_math(s + e + 1, n - e - 1, x, y + h1 + 4, w, lv0, kind, 1);
@@ -396,9 +398,10 @@ static int add_math(const char * s, int n, int x, int y, int w, int lv0, int kin
       else break;
     }
     if (best < 0) best = k < nc ? at[k] : n; // (too wide anyway: smaller, down to 10 px, then clipped)
+    const int ln = best - a - (best - a > 1 && s[best - 1] == ','); // (a list's line: its comma dropped)
     int lv = LVWRAP;
-    while (lay(s + a, best - a, lv, L) > wi && lv < UI_NSIZES - 1) ++lv;
-    item * it = put(kind, dup(s + a, best - a), xi, y + h + 4, (a ? 0 : lr) + L.width, L.asc + L.desc, L.asc, lv);
+    while (lay(s + a, ln, lv, L) > wi && lv < UI_NSIZES - 1) ++lv;
+    item * it = put(kind, dup(s + a, ln), xi, y + h + 4, (a ? 0 : lr) + L.width, L.asc + L.desc, L.asc, lv);
     if (it && lead && !a) { it->num = 1; it->eqx = 0; }
     h += L.asc + L.desc + 4;
     a = best;
