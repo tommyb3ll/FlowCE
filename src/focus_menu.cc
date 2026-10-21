@@ -209,11 +209,12 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
   } else {
     if (on) ui_rrect(1, x, y, w, h, 6, UC_ACC, UC_CARD);
-    char num[2] = {(char)('1' + k), 0};
-    int nw = ui_text_width(&ui_tb9, num, -1);
-    if (k < 9) { // a keycap
-      ui_rframe(1, x + 9, y + h / 2 - 7, 13, 13, 3, sub, bg);
-      ui_draw_text(&ui_tb9, num, -1, x + 16 - nw / 2, y + h / 2 + 4, ui_ramp(1, sub, bg), 0);
+    if (k < 9) { // a keycap: its digit's ink centered in the frame (from the advance, the 1 sat right)
+      const char num[2] = {(char)('1' + k), 0};
+      const int fx = x + 9, fy = y + h / 2 - 7;
+      ui_rframe(1, fx, fy, 13, 13, 3, sub, bg);
+      if (const ui_glyph * g = ui_glyph_of(&ui_tb9, (unsigned char)num[0]))
+        ui_draw_text(&ui_tb9, num, -1, fx + 6 - g->ox - (g->w - 1) / 2, fy + 6 - g->oy - (g->h - 1) / 2, ui_ramp(1, sub, bg), 0);
     }
     int lx = x + 30;
     if (it.text) {
