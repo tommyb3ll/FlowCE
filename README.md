@@ -48,9 +48,10 @@ pick a version, click Install, and follow the short calculator prompts.
   or shells, arc length, surface area and average value each open a short form (*between y =,
   and y =, from x =, to x =*). Leave the bounds empty and FlowCE finds where the curves meet; then
   `enter` shows the whole setup and the integral, step by step.
-- **A real graph screen.** Arrows pan and `+` `−` zoom; trace along the curve; exact key points
-  (zeros, extrema, inflections) labeled on the graph; a table; tangent lines, areas, max and min on
-  an interval. Equations in x and y (circles, ellipses), parametric and polar curves, slope fields.
+- **A real graph screen.** Arrows pan and `+` `−` zoom; trace along the curve; the key points
+  (zeros, extrema, inflections) marked and labeled, exact when you jump to one; a table; tangent
+  lines, areas, max and min on an interval. Equations in x and y (circles, ellipses), parametric
+  and polar curves, slope fields.
 - **Nine themes.** Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest. *more* →
   Themes shows each one on the whole screen as you move to it.
 - **`analyze(f)`**: domain, intercepts, asymptotes, increasing and decreasing, extrema,
@@ -63,15 +64,12 @@ pick a version, click Install, and follow the short calculator prompts.
   `F4` with long division and the completed square, an antiderivative's derivative as a check,
   `y′` in the symbols menu for `y″ + 4y = 0` and `f′(2)`.
 
-The algebra steps, the graph screen, `analyze`, statistics and probability come from
-[DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into FlowCE.
-
 ## Two versions
 
 | | **FlowCE** 2.0 | **FlowCE Python** 1.9.1 |
 |---|---|---|
 | Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
-| Graphs | the graph screen: exact key points, pan and zoom, conics, parametric, polar, slope fields | the classic graph, trace, table |
+| Graphs | the graph screen: key points, pan and zoom, conics, parametric, polar, slope fields | the classic graph, trace, table |
 | Calculus → Applications | area, volumes, arc length, surface area, average value | |
 | Statistics and probability | data, box plots, regressions, distributions, tests | |
 | Themes | nine | Paper and Night |
@@ -117,7 +115,7 @@ with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/f
 ## Themes
 
 <p align="center">
-  <img src="docs/themes_nine.png" width="80%" alt="The nine themes: Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest, on an answer, the calculus menu and a graph">
+  <img src="docs/screenshots/themes_grid.png" width="60%" alt="more, Themes: nine tiles, Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest, each in its own colors">
 </p>
 
 *more* → **Themes** opens a grid of all nine, each tile in its own colors. Moving to a tile shows
@@ -255,9 +253,6 @@ by Bernard Parisse.
 
 - **Math engine:** Giac, by Bernard Parisse and contributors (Institut Fourier, Université
   Grenoble Alpes).
-- **Algebra steps, the graph screen, analyze, statistics and probability** (FlowCE
-  2.0): from [DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by
-  Gabriel, merged back into FlowCE with its history.
 - **Console interface:** adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith,
   Nemhardy and LePhenixNoir.
 - **Thanks** to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community,
@@ -268,3 +263,6 @@ by Bernard Parisse.
 
 FlowCE is free software under the [GNU General Public License](LICENSE), version 3 or later. It
 comes with no warranty.
+
+Parts of FlowCE 2.0 (the algebra steps, the graph screen, analyze, statistics and probability)
+were adapted from [DeltaCE](https://github.com/bupfff/DeltaCE), a GPL-3.0 fork of FlowCE.

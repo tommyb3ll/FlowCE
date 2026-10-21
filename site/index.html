@@ -50,8 +50,15 @@
 </section>
 
 <section id="new" class="wrap">
-  <h2>New in FlowCE 2.0</h2>
-  <p class="lead-sm">Steps for algebra as well as calculus, a real graph screen, the applications of calculus as forms you fill in, statistics, probability, and nine themes.</p>
+ <details class="whatsnew" id="whatsnew">
+  <summary>
+    <span class="wn-text">
+      <h2>New in FlowCE 2.0</h2>
+      <span class="wn-sub">Steps for algebra as well as calculus, a real graph screen, the applications of calculus as forms you fill in, statistics, probability, and nine themes.</span>
+    </span>
+    <span class="wn-more"><span class="wn-open">See what's new</span><span class="wn-close">Hide</span></span>
+  </summary>
+  <div class="wn-body">
   <div class="feat">
     <figure>
       <img class="gif" src="media/flowce_themes.gif" loading="lazy" width="640" height="480" alt="FlowCE in use while its theme changes: Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest">
@@ -63,7 +70,7 @@
     </figure>
     <figure>
       <img class="gif" src="media/flowce_graph.gif" loading="lazy" width="640" height="480" alt="The graph screen: x cubed minus 3x typed, graphed, panned, its key points labeled, traced">
-      <figcaption><strong>A new graph screen</strong>Pan with the arrows, zoom, trace, and see the exact zeros, extrema and inflections. Conics, parametric and polar curves, slope fields.</figcaption>
+      <figcaption><strong>A new graph screen</strong>Pan with the arrows, zoom, trace; the zeros, extrema and inflections marked, exact when you jump to one. Conics, parametric and polar curves, slope fields.</figcaption>
     </figure>
   </div>
   <ul class="news">
@@ -73,7 +80,8 @@
     <li><strong>What next?</strong> Under an answer, <kbd>&#9654;</kbd> offers the likely next step: factor, solve for 0, graph, differentiate.</li>
     <li><strong>Answers that read better:</strong> matrices drawn as matrices, long lists wrapped, the completed square and long division in <kbd>F4</kbd>, an antiderivative checked by its derivative.</li>
   </ul>
-  <figure class="screen themes-all"><img src="media/themes_nine.png" loading="lazy" width="980" height="740" alt="The nine themes on an answer, the calculus menu and a graph"></figure>
+  </div>
+ </details>
 </section>
 
 <section id="install" class="wrap">
@@ -224,10 +232,21 @@
 </main>
 
 <footer class="wrap foot">
-  <p>FlowCE, by Tommy Bell, is a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. The algebra steps, the graph screen, analyze, statistics and probability come from <a href="https://github.com/bupfff/DeltaCE">DeltaCE</a>, a fork of FlowCE by Gabriel. Math engine: Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). Console adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 community, especially Jacob Young, commandblockguy and Matt Waltz. Installer: <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page's USB code is adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible and STIX Two.</p>
+  <p>FlowCE, by Tommy Bell, is a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. Math engine: Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). Console adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 community, especially Jacob Young, commandblockguy and Matt Waltz. Installer: <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page's USB code is adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible and STIX Two.</p>
   <p>Free software under the <a href="https://github.com/tommyb3ll/FlowCE/blob/main/LICENSE">GNU GPL</a> v3 or later, with no warranty. FlowCE is a computer algebra system: follow your class and test rules. Not affiliated with Texas Instruments; TI-84 Plus CE is a trademark of Texas Instruments.</p>
+  <p>Parts of FlowCE 2.0 (the algebra steps, the graph screen, analyze, statistics and probability) were adapted from <a href="https://github.com/bupfff/DeltaCE">DeltaCE</a>, a GPL-3.0 fork of FlowCE.</p>
 </footer>
 
 <script type="module" src="installer.js"></script>
+<script>
+  // a link to #new (the top bar, the pill) opens what's new
+  (function () {
+    var d = document.getElementById('whatsnew');
+    function open() { if (location.hash === '#new') d.open = true; }
+    document.querySelectorAll('a[href="#new"]').forEach(function (a) { a.addEventListener('click', function () { d.open = true; }); });
+    window.addEventListener('hashchange', open);
+    open();
+  })();
+</script>
 </body>
 </html>
