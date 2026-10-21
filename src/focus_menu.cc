@@ -20,8 +20,9 @@ const char * console_fkey_label(int layer, int k); // console.cc: an F-key's lab
 // arguments are drawn as boxes) or an action; pv: the preview when it differs from the template
 struct fm_item { const char * text; signed char back; const char * pv; const char * label; const char * hint; char act; };
 // kind: 0 a list (number, preview, label), 1 a grid of previews, 2 a grid of cards (a large
-// preview over its label)
-struct fm_menu { char grid, cols, n; const fm_item * items; };
+// preview over its label); wide: the last item is a bar across the card under the grid (its
+// preview, label and hint in a row: the steps build's Applications)
+struct fm_menu { char grid, cols, n; const fm_item * items; char wide; };
 
 static const fm_item m_alg[] = {
   {"solve(,x)", 3, 0, "Solve for x", 0, 0},
@@ -39,11 +40,11 @@ static const fm_item m_calc[] = {
   {"limit(,x,)", 4, 0, "Limit", 0, 0},
   {"sum(,k,,)", 5, 0, "Sum", 0, 0},
   {"series(,x,0,5)", 7, 0, "Taylor series", 0, 0},
-  {"implicitdiff(,x,y)", 5, 0, "Implicit dy/dx", 0, 0}, // (DeltaCE: kmisc.cc, steps.cc)
-#ifdef FLOWCE_STEPS // (the steps build: three columns, four rows; the 0 key is the tenth item)
-  {"analyze()", 1, 0, "Analyze f(x)", 0, 0}, // (DeltaCE: analyze.cc, the report on the steps' page)
+  {"implicitdiff(,x,y)", 5, "(dy)/(dx)", "Implicit dy/dx", 0, 0}, // (DeltaCE: kmisc.cc, steps.cc)
+#ifdef FLOWCE_STEPS // (the steps build: three by three, then Applications across the card: the 0 key)
+  {"analyze()", 1, "f(x)", "Analyze f(x)", 0, 0}, // (DeltaCE: analyze.cc, the report on the steps' page)
   {"desolve(diff(y,x)=,x,y)", 5, "diff(y,x)=f", "Diff. equation", 0, 0},
-  {0, 0, "integrate(f-g,x,a,b)", "Applications", 0, FA_APPS},
+  {0, 0, "integrate(f-g,x,a,b)", "Applications", "area, volume, arc length, more", FA_APPS},
 #endif
 };
 #ifdef FLOWCE_STEPS
@@ -67,9 +68,9 @@ static const fm_item m_trig[] = {
 static const fm_item m_sym[] = { // what the keypad has no key for, or hides behind 2nd/alpha
   {"pi", 0, 0, 0, 0, 0}, {"e", 0, 0, 0, 0, 0}, {"oo", 0, 0, 0, 0, 0}, {"theta", 0, 0, 0, 0, 0},
   {"sqrt()", 1, 0, 0, 0, 0}, {"surd(,)", 2, 0, 0, 0, 0}, {"abs()", 1, 0, 0, 0, 0}, {"!", 0, "n!", 0, 0, 0},
-  {"^()", 1, 0, 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0}, {"ln()", 1, 0, 0, 0, 0}, {"()/()", 4, 0, 0, 0, 0},
+  // the prime: y'=2y in desolve, f'(x) of a defined f (no key has it; in place of ^(), the ^ key)
+  {"'", 0, "y'", 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0}, {"ln()", 1, 0, 0, 0, 0}, {"()/()", 4, 0, 0, 0, 0},
   {"=", 0, 0, 0, 0, 0}, {"<=", 0, 0, 0, 0, 0}, {">=", 0, 0, 0, 0, 0}, {"!=", 0, 0, 0, 0, 0},
-  {"'", 0, "y'", 0, 0, 0}, // the prime: y'=2y in desolve, f'(x) of a defined f (no key has it)
 };
 static const fm_item m_more[] = {
   {0, 0, 0, "Graph", "line or answer", FA_GRAPH},
@@ -91,23 +92,24 @@ static const fm_item m_math[] = {
 };
 #define N(a) (char)(sizeof(a) / sizeof(a[0]))
 #ifdef FLOWCE_STEPS
-#define CALC_COLS 3
 static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
+#define CALC_MENU {2, 3, N(m_calc), m_calc, 1}
 #else
-#define CALC_COLS 2
+#define CALC_MENU {2, 2, N(m_calc), m_calc}
 #endif
 static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
-  {0, 1, N(m_alg), m_alg}, {2, CALC_COLS, N(m_calc), m_calc}, {1, 3, N(m_trig), m_trig},
+  {0, 1, N(m_alg), m_alg}, CALC_MENU, {1, 3, N(m_trig), m_trig},
   {1, 4, N(m_sym), m_sym}, {0, 1, N(m_more), m_more}, {1, 3, N(m_math), m_math},
 };
 #undef N
 
-enum { RH = 30, LW = 252, CH = 40, CH2 = 60, ST = 16, SBOT = 218 };
+enum { RH = 30, LW = 252, CH = 40, CH2 = 60, BH = 36, ST = 16, SBOT = 218 }; // BH: a wide item's bar
+static int grid_rows(const fm_menu & m) { return (m.n - m.wide + m.cols - 1) / m.cols; } // (without the bar)
 // a card's cell height: lower cells when its rows would cover the status bar (the steps build's
-// calculus card of ten, four rows: 48; the symbols with ', five rows: 38)
+// calculus card: three rows and the bar, 52)
 static int cellh(const fm_menu & m) {
-  const int rows = (m.n + m.cols - 1) / m.cols, h = m.grid == 2 ? CH2 : CH;
-  return rows * h + 10 <= SBOT - ST ? h : (SBOT - ST - 10) / rows;
+  const int rows = grid_rows(m), h = m.grid == 2 ? CH2 : CH, room = SBOT - ST - 10 - (m.wide ? BH : 0);
+  return rows * h <= room ? h : room / rows;
 }
 
 static int px, py, pw, ph, cw; // the card
@@ -117,7 +119,7 @@ static int top, vis = 99, rh = RH; // focus_list: the first row shown, the rows 
 static void geometry(int id, const fm_menu & m) {
   if (m.grid) {
     cw = m.grid == 2 ? (m.cols == 3 ? 100 : 150) : m.cols == 3 ? 76 : 60;
-    pw = m.cols * cw + 10; ph = ((m.n + m.cols - 1) / m.cols) * cellh(m) + 10;
+    pw = m.cols * cw + 10; ph = grid_rows(m) * cellh(m) + (m.wide ? BH : 0) + 10;
   } else { // (a long list: vis rows, scrolled; DeltaCE: rows lower than RH when they would cover the status bar)
     const int rows = m.n < vis ? m.n : vis;
     rh = rows * RH + 10 > SBOT - ST - 2 ? (SBOT - ST - 12) / rows : RH;
@@ -132,7 +134,8 @@ static void geometry(int id, const fm_menu & m) {
 
 // the box of item k (screen coordinates)
 static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & h) {
-  if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
+  if (m.grid && m.wide && k == m.n - 1) { x = px + 5; y = py + 5 + grid_rows(m) * cellh(m); w = m.cols * cw; h = BH; }
+  else if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
   else { x = px + 5; y = py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
 }
 
@@ -147,7 +150,12 @@ static void prepare(const fm_menu & m) {
     const char * t = it.pv ? it.pv : it.text;
     PLV[k] = -1;
     if (!t || (!m.grid && !it.text)) continue; // (a list's symbol column is text)
-    if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) == CH2 ? 36 : 26, MI_F_CALLBOX, PL[k]);
+    // (a card's formula, its pv: products without dots, 2 pi r h; a template: boxes in its calls;
+    // the bar's preview at its left)
+    const int fl = it.pv ? MI_F_IMPLDOT : MI_F_CALLBOX;
+    key_latch(); // (the calculus card takes half a second: a key pressed meanwhile is kept)
+    if (m.grid && m.wide && k == m.n - 1) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, 64, BH - 10, fl, PL[k]);
+    else if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) - 24, fl, PL[k]);
     else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, cellh(m) - 4, MI_F_CALLBOX, PL[k]);
     else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, MI_F_CALLBOX, PL[k]);
   }
@@ -179,14 +187,20 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
   const fm_item & it = m.items[k];
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
-  int on = k == sel, bg = on ? UC_ACC : UC_CARD, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
+  int on = k == sel, bg = on ? UC_ACC : m.grid ? UC_TILE : UC_CARD, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
   ui_clip(x, y, x + w, y + h);
   ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
-    if (on) ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, UC_ACC, UC_CARD);
-    if (m.grid == 2) { // a card: the preview, its label under it (a label alone: centered)
+    ui_rrect(1, x + 2, y + 2, w - 4, h - 4, 6, bg, UC_CARD); // each item on its tile (the selected one blue)
+    if (m.wide && k == m.n - 1) { // the bar: its preview, the label over the hint, a chevron
+      preview(k, it.pv ? it.pv : it.text, x + 10, y + h / 2, 64, fg, bg, 0);
+      ui_draw_text(&ui_tb12, it.label, -1, x + 84, y + 16, ui_ramp(1, fg, bg), 0);
+      if (it.hint) ui_draw_text(&ui_tr10, it.hint, -1, x + 84, y + 29, ui_ramp(1, sub, bg), 0);
+      ui_draw_text(&ui_tb12, ">", -1, x + w - 16, y + h / 2 + 5, ui_ramp(1, sub, bg), 0);
+    }
+    else if (m.grid == 2) { // a card: the preview, its label under it (a label alone: centered)
       int alone = PLV[k] < 0;
-      preview(k, it.pv ? it.pv : it.text, x + 4, y + (h == CH2 ? 23 : 18), w - 8, fg, bg, 1);
+      preview(k, it.pv ? it.pv : it.text, x + 4, y + (h - 14) / 2, w - 8, fg, bg, 1);
       if (it.label) {
         const ui_face * f = alone ? (on ? &ui_tb12 : &ui_tr12) : on ? &ui_tb10 : &ui_tr10;
         int lw = ui_text_width(f, it.label, -1);
@@ -307,8 +321,10 @@ static int fk_kh(int k) {
 // the keys of an open card: arrows, 1-9 and EXE pick (the item, >= 0), EXIT/AC cancel (-1); fk:
 // the menu keys; a long list scrolls. The arrows wrap around, as in the TI's menus: in a grid,
 // left of the first item of a row is its last one (right: the reverse), up from the top row is
-// the bottom of the column (down: the reverse); in a list, up from the top is the bottom.
+// the bottom of the column (down: the reverse); in a list, up from the top is the bottom. A wide
+// item's bar is a row of its own under the grid: up and down come back to the column they left.
 static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
+  static int wcol = 1; // the column the bar was entered from
   for (;;) {
     int k;
     GetKey(&k);
@@ -316,18 +332,24 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) return -1;
     int f = fk ? fk(k) : 1, n = m.n, c = m.grid ? m.cols : 1, ns = sel;
     if (f != 1) return f;
-    if (m.grid) {
-      const int r0 = sel - sel % c, r1 = r0 + c - 1 < n - 1 ? r0 + c - 1 : n - 1; // the row
+    if (m.grid && m.wide && sel == n - 1) { // the bar: left and right stay
+      const int gn = n - 1, col = wcol < c ? wcol : 0, last = (gn - 1) / c * c + col;
+      if (k == KEY_CTRL_UP) ns = last < gn ? last : gn - 1;
+      if (k == KEY_CTRL_DOWN) ns = col < gn ? col : 0;
+    }
+    else if (m.grid) {
+      const int gn = n - m.wide, r0 = sel - sel % c, r1 = r0 + c - 1 < gn - 1 ? r0 + c - 1 : gn - 1; // the row
       if (k == KEY_CTRL_LEFT) ns = sel > r0 ? sel - 1 : r1;
       if (k == KEY_CTRL_RIGHT) ns = sel < r1 ? sel + 1 : r0;
-      if (k == KEY_CTRL_UP) ns = sel >= c ? sel - c : sel + (n - 1 - sel) / c * c;
-      if (k == KEY_CTRL_DOWN) ns = sel + c < n ? sel + c : sel % c;
+      if (k == KEY_CTRL_UP) ns = sel >= c ? sel - c : m.wide ? n - 1 : sel + (gn - 1 - sel) / c * c;
+      if (k == KEY_CTRL_DOWN) ns = sel + c < gn ? sel + c : m.wide ? n - 1 : sel % c;
+      if (ns == n - 1 && m.wide) wcol = sel % c;
     } else {
       if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
       if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
     }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
-    if (k == KEY_CHAR_0 && n == 10) return 9; // (the steps build's calculus card: its tenth item)
+    if (k == KEY_CHAR_0 && m.wide) return n - 1; // (the bar: the steps build's Applications)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
       int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
