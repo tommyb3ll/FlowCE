@@ -26,6 +26,12 @@ step by step, the way a worked example in your textbook does.
 **[Install it from the FlowCE page](https://tommyb3ll.github.io/FlowCE/)**: plug in the calculator,
 pick a version, click Install, and follow the short calculator prompts.
 
+## New in FlowCE 2.1
+
+**Faster.** Menus open in about half the time, everyday problems answer 25 to 45% sooner, the
+steps pages scroll twice as fast, and the probability page keeps up with the arrows. The
+answers are the same as 2.0's.
+
 ## New in FlowCE 2.0
 
 <table>
@@ -66,7 +72,7 @@ pick a version, click Install, and follow the short calculator prompts.
 
 ## Two versions
 
-| | **FlowCE** 2.0 | **FlowCE Python** 1.9.1 |
+| | **FlowCE** 2.1 | **FlowCE Python** 1.9.1 |
 |---|---|---|
 | Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
 | Graphs | the graph screen: key points, pan and zoom, conics, parametric, polar, slope fields | the classic graph, trace, table |
@@ -236,7 +242,7 @@ rules (some tests, like the ACT, don't allow one).
 
 ## Building
 
-FlowCE 2.0 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
+FlowCE 2.1 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
 plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac` submodule).
 `tools/dev/build.sh en-steps-v15` builds it in WSL from the working tree (`APPLANG=en STEPS=1`;
 `tools/dev/wsl_build_v15.sh` links the app and cuts it into the AppIns appvars installed by the
