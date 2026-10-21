@@ -197,7 +197,14 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
     int th = osz >= 26 ? 32 : osz >= 17 ? 24 : 18; // stroke width, 1/16 px
     switch (o.code) {
     case MI_TEXT: draw_text(o, s, lv, ox, oy, r); break;
-    case MI_DOT: { int d = osz >= 17 ? 3 : 2; ui_rrect(bank, ox + w / 2 - d / 2, oy + h / 2 - d / 2, d, d, d / 2, ink, bg); } break;
+    case MI_DOT: { // 2 px; from 24 px, 3 px with soft corners (a full 3 px square looked heavy)
+      const int d = osz >= 24 ? 3 : 2, x0 = ox + w / 2 - d / 2, y0 = oy + h / 2 - d / 2;
+      if (d == 2) ui_rrect(bank, x0, y0, 2, 2, 1, ink, bg);
+      else {
+        ui_fill(x0 + 1, y0, 1, 3, r[3]); ui_fill(x0, y0 + 1, 3, 1, r[3]);
+        ui_fill(x0, y0, 1, 1, r[1]); ui_fill(x0 + 2, y0, 1, 1, r[1]); ui_fill(x0, y0 + 2, 1, 1, r[1]); ui_fill(x0 + 2, y0 + 2, 1, 1, r[1]);
+      }
+    } break;
     case MI_HLINE: ui_fill(ox, oy, w, h, r[3]); break;
     case MI_SQRT: { // tick, heavy down stroke, up stroke, overbar (the prototype's shape)
       int rw = m.rad * osz / sz, b = oy + h - 1, t16 = oy * 16 + m.bar * 8, bh = osz * 16;
