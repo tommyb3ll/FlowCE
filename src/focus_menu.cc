@@ -81,7 +81,6 @@ static const fm_item m_more[] = {
 #ifdef FLOWCE_STEPS
   {0, 0, 0, "Statistics", "data, fits", FA_STATS}, // (DeltaCE: focus_stats.cc)
   {0, 0, 0, "Probability", "curves, tests", FA_PROB}, // (DeltaCE: focus_stats.cc)
-  {0, 0, 0, "Practice", "problems", FA_PRACTICE}, // (DeltaCE: focus_practice.cc)
 #endif
   {0, 0, 0, "File", "sessions", FA_FILE},
   {0, 0, 0, "Clear history", 0, FA_CLEAR},
@@ -114,7 +113,7 @@ static int cellh(const fm_menu & m) {
 }
 
 static int px, py, pw, ph, cw; // the card
-// a list with formulas (the algebra card, practice topics, fits): the card's width, its labels at
+// a list with formulas (the algebra card, the fits, the graph's points): the card's width, its labels at
 // the right; its rows taller (a fraction, d/dx)
 static int formulas(const fm_menu & m) { for (int k = 0; k < m.n; ++k) if (m.items[k].text) return 1; return 0; }
 static int hdr;                // focus_list: the title's height at the top of the card

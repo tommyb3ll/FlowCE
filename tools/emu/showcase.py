@@ -77,10 +77,9 @@ SCENES = {
     'graph_param':    [('p', 'plotparam([cos(3t),sin(2t)],t)'), ('w', 5000)],
     'graph_polar':    [('p', 'plotpolar(1+2cos(theta),theta)'), ('w', 5000)],
     'graph_field':    [('p', 'plotode(x-y,[0,1])'), ('w', 6000)],
-    # DeltaCE 2.0: probability (more menu, 6), practice (7), the new steps
+    # DeltaCE 2.0: probability (more menu, 6), the new steps
     'prob_normal':    [('k', '{graph}6'), ('w', 2500), ('k', '100{enter}15{enter}{window}{window}130{enter}'), ('w', 3000)],
     'prob_ttest':     [('k', '{graph}6'), ('w', 2500), ('k', '{trace}'), ('w', 1000), ('k', '4'), ('w', 4000)],
-    'practice':       [('k', '{graph}7'), ('w', 1500), ('k', '5'), ('w', 3000), ('k', '{enter}'), ('w', 800), ('k', '9x^2+2x-5{enter}'), ('w', 3000)],  # (the same problem each run: the emulator is deterministic)
     'steps_system':   [('p', 'solve([2x+3y=12,x-y=1],[x,y])'), ('k', '{enter}'), ('w', 6000)],
     'steps_log':      [('p', 'solve(log(x)+log(x-3)=1,x)'), ('k', '{enter}'), ('w', 8000)],
     'steps_trig':     [('p', 'solve(2cos(x)+sqrt(3)=0,x)'), ('k', '{enter}'), ('w', 8000), ('k', '{down}{down}{down}'), ('w', 1500)],

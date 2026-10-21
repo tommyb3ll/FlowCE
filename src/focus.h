@@ -69,7 +69,6 @@ void focus_tab_card(int c0, int c1);      // the card over the next open tab: it
 int focus_card_list(int col, const char * word, const char * const * maths, const char * const * labels, const char * const * hints, int n, int sel);
 void focus_graph_points(const float * x, const float * y, int n); // (DeltaCE) data points the next graph draws with its curves (a copy; n = 0: none)
 void focus_stats();                     // (DeltaCE) statistics: data, a column's statistics, fitted curves (focus_stats.cc)
-void focus_practice();                  // (DeltaCE) practice: problems by topic, the answer checked, its steps (focus_practice.cc)
 void focus_prob();                      // (DeltaCE) probability: distributions, inverses, one-sample intervals and tests (focus_stats.cc)
 int focus_graph_input(const char * in); // (DeltaCE) plot, plotparam, plotpolar, plotfield, plotode: the graph screen (focus_graph.cc); 0: not a plot, -1: one it cannot draw
 void focus_tab(int i, int on, int bank); // the standard layer's tab of F-key i (on: its menu is open)
@@ -82,7 +81,7 @@ int focus_chip(int bank, int x, int cy, const char * w, const char * k, int on, 
 // focus_menu.cc: F1-F5 and the math key open a popover over the dimmed stage. Returns FA_NONE
 // (closed), FA_INSERT with the template to insert (*text, then the caret back *back chars), or
 // an action for the console.
-enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_PRACTICE, FA_APPS, FA_RUN };
+enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_APPS, FA_RUN };
 // FA_RUN: *text is a calculation to run (an application's form, the calculus card's Applications),
 // which took the line typed when the menu opened (focus_form_line, set by the console)
 extern const char * focus_form_line;

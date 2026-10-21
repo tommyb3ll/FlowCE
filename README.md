@@ -67,7 +67,7 @@ curves and bounds in words, with worked steps. Under each answer, `▶` offers w
 | ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) |
 | the graph screen, key points | `analyze(f)` | statistics: a fitted line |
 
-The algebra steps, the graph screen, `analyze`, statistics, probability and practice come from
+The algebra steps, the graph screen, `analyze`, statistics and probability come from
 [DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into FlowCE.
 
 Not every problem has steps yet: when no textbook method explains the answer, it says so. If a step
@@ -182,7 +182,7 @@ rules (some tests, like the ACT, don't allow one).
 | `clear` | erases the line; on an empty line, the answer |
 | ON or `clear` while computing | stops the calculation |
 | *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table (FlowCE 2.0: arrows pan, `+` `−` zoom, F1 trace, F3 key points and tools, F4 table) |
-| *more* → Statistics, Probability, Practice | data and fitted curves, distributions and tests, practice problems (FlowCE 2.0) |
+| *more* → Statistics, Probability | data and fitted curves, distributions and tests (FlowCE 2.0) |
 | `mode` | settings (*Simplify answers* on or off), shortcuts, about |
 | `2nd quit` | quit (your session is kept) |
 
@@ -207,7 +207,7 @@ by Bernard Parisse.
 
 - **Math engine:** Giac, by Bernard Parisse and contributors (Institut Fourier, Université
   Grenoble Alpes).
-- **Algebra steps, the graph screen, analyze, statistics, probability and practice** (FlowCE
+- **Algebra steps, the graph screen, analyze, statistics and probability** (FlowCE
   2.0): from [DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by
   Gabriel, merged back into FlowCE with its history.
 - **Console interface:** adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith,
