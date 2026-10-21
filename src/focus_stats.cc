@@ -364,9 +364,7 @@ static NOINL void paint_fit(const fitr & o) {
     int x = 12;
     x += text(&ui_tb10, FIT_NAME[o.m], x, Y0 + 20, UC_ACC, UC_BG) + 8;
     math(("y=" + std::string(FIT_FORM[o.m])).c_str(), x, Y0 + 20, 12, 200, UC_SUB, UC_BG);
-    // the card: the curve's equation, large; its decimals under it
-    ui_rframe(0, 8, Y0 + 30, UI_W - 16, 84, 8, UC_LINE, UC_BG);
-    ui_rrect(0, 8, Y0 + 38, 3, 68, 1, UC_ACC, UC_BG);
+    // the curve's equation, large; its decimals under it (no card, as FlowCE's answers)
     math(eq.c_str(), UI_W / 2, ap.empty() ? Y0 + 80 : Y0 + 72, 2, UI_W - 40, UC_INK, UC_BG, 1);
     if (!ap.empty()) { // its decimals, "≈" before them
       const int w = math(ap.c_str(), UI_W / 2 + 8, Y0 + 103, 10, UI_W - 70, UC_SUB, UC_BG, 1);
@@ -701,9 +699,8 @@ static NOINL int pchip(int i, int x, int y) { // field i, its box's top at y: it
   char v[24];
   if (on && editing) strcpy(v, edb); else sig4(v, *PF[i].v);
   const int tw = ui_text_width(&ui_tb12, v, -1), bw = tw + 14 > 30 ? tw + 14 : 30;
-  ui_rrect(0, x + w, y, bw, 19, 5, on ? UC_ACCSOFT : UC_BG, UC_BG);
-  ui_rframe(0, x + w, y, bw, 19, 5, on ? UC_ACC : UC_LINE, UC_BG);
-  text(&ui_tb12, v, x + w + bw / 2, y + 14, on ? UC_ACC : UC_INK, on ? UC_ACCSOFT : UC_BG, 1);
+  ui_rrect(0, x + w, y, bw, 19, 5, on ? UC_ACCSOFT : UC_TILE, UC_BG); // (a soft tile, as the forms' fields)
+  text(&ui_tb12, v, x + w + bw / 2, y + 14, on ? UC_ACC : UC_INK, on ? UC_ACCSOFT : UC_TILE, 1);
   if (on && editing) ui_fill(x + w + bw / 2 + tw / 2 + 1, y + 4, 2, 11, col(UC_ACC));
   return w + bw + 10;
 }

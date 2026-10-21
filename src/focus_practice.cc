@@ -241,7 +241,6 @@ static NOINL void paint() {
     else {
       const bool ok = state == 1;
       ui_rrect(0, 10, Y0 + 120, UI_W - 20, SBOT - Y0 - 128, 8, ok ? UC_ACCSOFT : UC_CARD, UC_BG);
-      ui_rrect(0, 10, Y0 + 128, 3, SBOT - Y0 - 144, 1, ok ? UC_ACC : UC_RED, ok ? UC_ACCSOFT : UC_CARD);
       ui_draw_text(&ui_tb12, ok ? "Right!" : state == 2 ? "Not quite" : "The answer", -1, 22, Y0 + 140, ui_ramp(0, ok ? UC_ACC : UC_RED, ok ? UC_ACCSOFT : UC_CARD), 0);
       const int bg = ok ? UC_ACCSOFT : UC_CARD;
       for (int k = 0; k < 2; ++k) { // yours, then the right one (labeled)
