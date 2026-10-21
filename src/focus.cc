@@ -342,12 +342,15 @@ static char * WB;                    // the lines, one after the other
 static const char * wl_src;          // the result wrapped (Line str), its hash
 static unsigned wl_hash;
 static int wl_n, wl_lv, wl_w, wl_h;  // lines, level, widest line, height of a line
+static int wl_a, wl_d;               // the lines' largest ascent and descent (a line's baseline: wl_a down)
 static short wl_at[WL];              // line k: WB + wl_at[k]
 static mi_layout * WLL;              // (one layout for all the measures: less code)
 __attribute__((noinline)) static int mwidth(const char * s, int n, int lv, int & h) {
   if (!WLL) WLL = new mi_layout;
   mi_build(s, n, -1, ui_math_metrics(lv, MI_F_IMPLDOT), *WLL);
   if (WLL->asc + WLL->desc > h) h = WLL->asc + WLL->desc;
+  if (WLL->asc > wl_a) wl_a = WLL->asc;
+  if (WLL->desc > wl_d) wl_d = WLL->desc;
   return WLL->width;
 }
 __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh, int lvmax) {
@@ -370,6 +373,7 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   if (!(WB = (char *)malloc(n + WL + 1))) return 0;
   for (int lv = 3; lv < lvmax; ++lv) { // larger than the single line's level
     int lh = 0, gap = 2 * ui_math_metrics(lv, MI_F_IMPLDOT).opgap + 2, lines = 0, k = 0, w = 0, p = 0;
+    wl_a = wl_d = 0;
     for (int j = 0; j < nc; ++j) // each term's width (its sign drawn as binary)
       tw[j] = (short)(mwidth(r + cut[j], cut[j + 1] - cut[j], lv, lh) + (j ? gap : 0));
     while (k < nc && lines < WL) {
@@ -382,12 +386,12 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
       WB[p++] = 0;
       k = j;
     }
-    if (k < nc || lines * (lh + 4) > maxh) continue;
+    if (k < nc || lines * (wl_a + wl_d + 4) > maxh) continue;
     for (k = 0; k < lines; ++k) { // the real widths
       int x = mwidth(WB + wl_at[k], strlen(WB + wl_at[k]), lv, lh);
       if (x > w) w = x;
     }
-    if (w <= maxw) { wl_n = lines; wl_lv = lv; wl_w = w; wl_h = lh + 4; return wl_n; }
+    if (w <= maxw) { wl_n = lines; wl_lv = lv; wl_w = w; wl_h = wl_a + wl_d + 4; return wl_n; }
   }
   return 0;
 }
@@ -534,7 +538,7 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
       int cw = anti ? ui_text_width(&ui_mu24, "+ ", -1) + ui_text_width(&ui_mi24, "C", -1) + 6 : 0;
       int x = (UI_W - c.w - cw) / 2, base = top + (bot - top - (c.a + c.d)) / 2 + c.a;
       if ((c.w > (anti ? RW - 36 : RW) || c.lv >= 5) && wrapped(r, anti ? RW - 36 : RW, bot - top, c.w > (anti ? RW - 36 : RW) ? UI_NSIZES : c.lv)) { // on several lines
-        int bx = (UI_W - wl_w) / 2, b0 = top + (bot - top - wl_n * wl_h) / 2 + wl_h - 6;
+        int bx = (UI_W - wl_w) / 2, b0 = top + (bot - top - wl_n * wl_h) / 2 + wl_a + 2; // (deep fractions of the last line reached the chips)
         for (int k = 0; k < wl_n; ++k) {
           const char * t = WB + wl_at[k];
           fitc lc = fitted(t, wl_lv, 600, 200, MI_F_IMPLDOT);
