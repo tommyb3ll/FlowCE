@@ -32,6 +32,7 @@ int focus_act_select(int k);            // selects action k of the row (-1: none
 const mi_metrics & focus_metrics();     // metrics of the edit line as drawn (caret moves)
 int focus_result_line();                // the output line F4 cycles (selected, or shown large); -1
 void focus_repaint(int y0, int y1);     // repaints stage rows [y0, y1) from the model
+void focus_repaint_over(int y0, int y1, void (*over)(int, int)); // the same, over(b, e) drawing a card over each band [b, e) before it shows
 int focus_hist_line(int dir);           // history by calculations: the line for up/down/left/right
 // a card over the dimmed stage: a title, n choices; returns the index chosen, -1 if cancelled
 int focus_choose(const char * title, const char * const * labels, int n);
@@ -79,7 +80,10 @@ void focus_icon(int ic, int x, int cy, int bank, int c, int bg); // the prototyp
 // focus_menu.cc: F1-F5 and the math key open a popover over the dimmed stage. Returns FA_NONE
 // (closed), FA_INSERT with the template to insert (*text, then the caret back *back chars), or
 // an action for the console.
-enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_PRACTICE, FA_APPS };
+enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_PRACTICE, FA_APPS, FA_RUN };
+// FA_RUN: *text is a calculation to run (an application's form, the calculus card's Applications),
+// which took the line typed when the menu opened (focus_form_line, set by the console)
+extern const char * focus_form_line;
 void focus_toggle_theme();             // Paper <-> Night, at once (the palette), saved in the appvar FocusUI
 int focus_popover(int key, const char ** text, int * back);
 

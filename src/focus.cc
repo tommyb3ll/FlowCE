@@ -943,18 +943,20 @@ static void stage_paint(int y0, int y1) { // rows [y0, y1) of the stage, in the 
   ui_noclip();
 }
 
+static void (*stage_over)(int, int); // (focus_repaint_over) a card drawn over each band
 static void stage_rows(int y0, int y1) { // repaints rows [y0, y1) through the strip
   if (y0 < ST) y0 = ST;
   if (y1 > SBOT) y1 = SBOT;
   if (y0 >= y1) return;
   int rows = ui_band_open(64);
-  if (!rows) { stage_paint(y0, y1); return; } // no memory: directly
+  if (!rows) { stage_paint(y0, y1); if (stage_over) stage_over(y0, y1); return; } // no memory: directly
   for (int b = y0; b < y1; b += rows) {
     int e = b + rows < y1 ? b + rows : y1;
     ui_band_begin(b, e);
     unsigned char ph = focus_phase;
     focus_phase = 30;
     stage_paint(b, e);
+    if (stage_over) stage_over(b, e);
     focus_phase = 31;
     ui_band_end();
     focus_phase = ph;
@@ -1173,6 +1175,7 @@ int focus_hist_line(int dir) {
 }
 
 void focus_repaint(int y0, int y1) { stage_rows(y0, y1); ui_band_close(); }
+void focus_repaint_over(int y0, int y1, void (*over)(int, int)) { stage_over = over; focus_repaint(y0, y1); stage_over = 0; }
 void focus_bar_redraw() { bar_draw(bar_keyflag, 1); }
 void focus_bar_reset() { bar_draw(0, 1); }
 int focus_screen() { return screen_is_ours(); }

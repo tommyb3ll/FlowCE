@@ -80,9 +80,10 @@ const ui_theme ui_theme_night = {{
   {12, 15, 20}, {100, 165, 255}, {134, 145, 158}, {38, 46, 58}, {33, 41, 53}, {16, 21, 28}},
   {0, 0, 0}, 50};
 
-// bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest: the scene's
-// screens need more ramps (the graph 23) than popovers (9)
-enum { BANK0 = 82, MAXR = (BANK0 - UC_COUNT) / 2, MAXR1 = (128 - BANK0 - UC_COUNT) / 2 };
+// bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest. Ramps shown at
+// once (2.0, counted on the emulator): the scene's screens 14 at most (the action row; history and
+// search 12, the graph 9), the cards 11 (an application's form; the graph's table 10): 23 and 17
+enum { BANK0 = 70, MAXR = (BANK0 - UC_COUNT) / 2, MAXR1 = (128 - BANK0 - UC_COUNT) / 2 };
 static const ui_theme * TH = &ui_theme_paper;
 static int dimmed;
 static unsigned char rfg[2][MAXR], rbg[2][MAXR], nr[2];
@@ -210,7 +211,7 @@ static int disc_level(int q, const int lim[3]) {
   return q < lim[0] ? 3 : q < lim[1] ? 2 : q < lim[2] ? 1 : 0;
 }
 // corners of a rounded rectangle: pixels of the r x r corner boxes by distance to the arc
-// (24-bit integers only: r <= 60)
+// (24-bit integers only: r <= 60); ring 1: the 1 px arc, 2: the box but the disc (ui_fillet)
 static void corners(int x, int y, int w, int h, int r, const unsigned char * ramp, int ring) {
   int R = r * 8, lim[3], lim1[3];
   disc_limits(R, lim);
@@ -226,7 +227,8 @@ static void corners(int x, int y, int w, int h, int r, const unsigned char * ram
       int ey = py * 8 + 4 - cy8, ex = bx * 8 + 4 - cx8, d2 = ex * ex + ey * ey, step = 16 * ex + 64;
       for (int px = bx; px < bx + r; ++px) {
         // a 1 px ring is the disc of radius r minus the disc of radius r - 1
-        int lv = ring ? disc_level(d2, lim) - disc_level(d2, lim1) : disc_level(d2, lim);
+        int lv = ring == 1 ? disc_level(d2, lim) - disc_level(d2, lim1) : disc_level(d2, lim);
+        if (ring == 2) lv = 3 - lv;
         put(row, px, lv, ramp);
         d2 += step; step += 128; // d2 = ex^2 + ey^2, ex += 8 per pixel
       }
@@ -255,19 +257,15 @@ void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg) {
 }
 
 void ui_fillet(int bank, int x, int y, int r, int q, int c, int bg) {
-  const unsigned char * ramp = ui_ramp(bank, c, bg);
-  int lim[3];
-  disc_limits(r * 8, lim);
-  const int cx8 = (q & 1 ? x + r : x) * 8, cy8 = (q & 2 ? y + r : y) * 8;
-  for (int py = y; py < y + r; ++py) {
-    if (py < ui_cy0 || py >= ui_cy1) continue;
-    unsigned char * row = ui_fb + py * UI_W;
-    const int ey = py * 8 + 4 - cy8;
-    for (int px = x; px < x + r; ++px) {
-      const int ex = px * 8 + 4 - cx8;
-      put(row, px, 3 - disc_level(ex * ex + ey * ey, lim), ramp); // the disc's complement
-    }
-  }
+  // the box is a corner box of a 2r x 2r square whose corner arc is centered at its corner q (the
+  // other boxes clipped away)
+  const int c0 = ui_cx0, c1 = ui_cx1, r0 = ui_cy0, r1 = ui_cy1;
+  if (x > ui_cx0) ui_cx0 = x;
+  if (x + r < ui_cx1) ui_cx1 = x + r;
+  if (y > ui_cy0) ui_cy0 = y;
+  if (y + r < ui_cy1) ui_cy1 = y + r;
+  corners(q & 1 ? x : x - r, q & 2 ? y : y - r, 2 * r, 2 * r, r, ui_ramp(bank, c, bg), 2);
+  ui_cx0 = c0; ui_cx1 = c1; ui_cy0 = r0; ui_cy1 = r1;
 }
 
 // A thick anti-aliased segment by spans: along its major axis (rows for a steep segment, columns

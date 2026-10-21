@@ -2624,7 +2624,21 @@ int Console_GetKey(){
     if (focus_on && (key==KEY_CTRL_F1 || key==KEY_CTRL_F2 || key==KEY_CTRL_F3 || key==KEY_CTRL_F5 || key==KEY_CTRL_SYMB
                      || (key==KEY_CTRL_F4 && focus_result_line()<0))){
       const char * text=0; int back=0;
+#ifdef FLOWCE_STEPS
+      focus_form_line=Current_Line==Last_Line && Edit_Line?(const char *)Edit_Line:0;
+#endif
       int a=focus_popover(key,&text,&back);
+#ifdef FLOWCE_STEPS
+      focus_form_line=0;
+      if (a==FA_RUN){ // an application's form: its call on the edit line, run
+        for (int g=0;Current_Line<Last_Line && g<1000;++g)
+          Console_MoveCursor(CURSOR_DOWN);
+        Console_Clear_EditLine();
+        Console_Input((const Char *)text);
+        console_prepare_input();
+        return Console_NewLine(LINE_TYPE_INPUT,1);
+      }
+#endif
       if (a==FA_INSERT){
         for (int g=0;Current_Line<Last_Line && g<1000;++g) // a template goes to the edit line
           Console_MoveCursor(CURSOR_DOWN);

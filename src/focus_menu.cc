@@ -12,6 +12,7 @@
 #include "ui_font.h"
 #include "ui_fontdata.h"
 #include "ui_math.h"
+#include "mathedit.h"
 
 extern "C" void GetKey(int * key); // k_csdk.c
 const char * console_fkey_label(int layer, int k); // console.cc: an F-key's label (layer 0, 2nd, alpha)
@@ -50,13 +51,13 @@ static const fm_item m_calc[] = {
 #ifdef FLOWCE_STEPS
 // the calculus card's applications (steps.cc): each card shows its integral; a, b left empty: where
 // the curves meet
-static const fm_item m_apps[] = {
-  {"area(,,,)", 4, "integrate(f-g,x,a,b)", "Area between curves", 0, 0},
-  {"volume(,,,,y=0)", 8, "pi*integrate(R^2-r^2,x,a,b)", "Disks / washers", 0, 0},
-  {"volume(,,,,x=0)", 8, "2*pi*integrate(r*h,x,a,b)", "Shells", 0, 0},
-  {"arclength(,,)", 3, "integrate(sqrt(1+(dy/dx)^2),x,a,b)", "Arc length", 0, 0},
-  {"surfacearea(,,,y=0)", 7, "integrate(2*pi*r,s)", "Surface area", 0, 0},
-  {"average(,,)", 3, "1/(b-a)*integrate(f,x,a,b)", "Average value", 0, 0},
+static const fm_item m_apps[] = { // (each opens its form: app_form)
+  {0, 0, "integrate(f-g,x,a,b)", "Area between curves", 0, 0},
+  {0, 0, "pi*integrate(R^2-r^2,x,a,b)", "Disks / washers", 0, 0},
+  {0, 0, "2*pi*integrate(r*h,x,a,b)", "Shells", 0, 0},
+  {0, 0, "integrate(sqrt(1+(dy/dx)^2),x,a,b)", "Arc length", 0, 0},
+  {0, 0, "integrate(2*pi*r,s)", "Surface area", 0, 0},
+  {0, 0, "1/(b-a)*integrate(f,x,a,b)", "Average value", 0, 0},
 };
 #endif
 static const fm_item m_trig[] = {
@@ -236,6 +237,12 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
   ui_noclip();
 }
 
+// the card: a shadow (dimmed, bank 0), the white card, a hairline inside its edge
+static void card_bg() {
+  ui_rrect(0, px + 1, py + 3, pw, ph, 8, UC_SHADOW, UC_BG);
+  ui_rrect(1, px, py, pw, ph, 8, UC_CARD, UC_DIM);
+  ui_rframe(1, px + 1, py + 1, pw - 2, ph - 2, 7, UC_LINE, UC_CARD);
+}
 // paints rows [y0, y1) of the card (and its shadow) over what the screen shows
 static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
   int rows = ui_band_open(48);
@@ -243,10 +250,8 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
     int e = rows && b + rows < y1 ? b + rows : y1;
     if (rows) { ui_band_begin(b, e); ui_band_load(); }
     else ui_clip(0, b, UI_W, e);
-    if (all) { // the card: a shadow (dimmed, bank 0), the white card, a hairline inside its edge
-      ui_rrect(0, px + 1, py + 3, pw, ph, 8, UC_SHADOW, UC_BG);
-      ui_rrect(1, px, py, pw, ph, 8, UC_CARD, UC_DIM);
-      ui_rframe(1, px + 1, py + 1, pw - 2, ph - 2, 7, UC_LINE, UC_CARD);
+    if (all) {
+      card_bg();
       if (hdr) {
         int tw = ui_text_width(&ui_tb12, title, -1);
         ui_draw_text(&ui_tb12, title, -1, px + (pw - tw) / 2, py + 22, ui_ramp(1, UC_INK, UC_CARD), 0);
@@ -281,27 +286,35 @@ static void tab_text(int i, const char * w, int fg);
 // opens card m (its geometry set): the scene dims at once, tab col of the bar is drawn open
 // (layer 0: its icon and word; 2nd, alpha: its text label), the card is painted
 static const char * tab_word_; // (DeltaCE) the open tab's word instead of the console's (the graph's menus)
+// (DeltaCE) tab col drawn open, joined to the card: the card rises out of its key
+static void card_tab(int col, int layer) {
+  int band = ui_band_open(32) >= 32;
+  if (band) { ui_band_begin(SBOT - 8, UI_H); ui_band_load(); }
+  focus_tab_card(px, px + pw);
+  if (tab_word_) tab_text(col, tab_word_, UC_ACC);
+  else if (!layer) focus_tab(col, 1, 1);
+  else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : UC_GREEN);
+  focus_tab_card(0, 0);
+  ui_noclip();
+  if (band) ui_band_end();
+}
 static void open_card(const fm_menu & m, int col, int layer, int sel) {
   ui_dim(1);
   paint_rows(m, py, col < 5 ? SBOT : py + ph + 4, sel, 1);
-  if (col < 5) { // (DeltaCE) its tab, joined to the card: the card rises out of its key
-    int band = ui_band_open(32) >= 32;
-    if (band) { ui_band_begin(SBOT - 8, UI_H); ui_band_load(); }
-    focus_tab_card(px, px + pw);
-    if (tab_word_) tab_text(col, tab_word_, UC_ACC);
-    else if (!layer) focus_tab(col, 1, 1);
-    else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : UC_GREEN);
-    focus_tab_card(0, 0);
-    ui_noclip();
-    if (band) ui_band_end();
-  }
+  if (col < 5) card_tab(col, layer);
   ui_band_close();
 }
 // closes the card: the scene comes back; under it, the stage is repainted (repaint) unless a
 // view owns the screen (the graph redraws itself); bar0: the bar's plain layer
+#ifdef FLOWCE_STEPS
+static char af_nest; // a card opened from an application's form: it repaints what the card covered
+#endif
 static void close_card(int bar0, int repaint) {
   delete[] PL;
   PL = 0;
+#ifdef FLOWCE_STEPS
+  if (af_nest) return;
+#endif
   ui_dim(0);
   if (focus_view || !repaint) return;
   focus_repaint(py - 2, py + ph + 6);
@@ -747,6 +760,257 @@ const char * focus_units(int idx) {
 }
 #endif
 
+#ifdef FLOWCE_STEPS
+// ------------------------------------------------------------------ the applications' forms
+// An application picked on the calculus card's Applications opens its form in the card's place:
+// a field per input, typed and drawn as on the edit line (mathedit.h, mathinput.h), its label on
+// its left (between y =), the hint of the field typed under them. enter: the next field; on the
+// last, the call (area(f,g,a,b)...) for the console to run. clear: empties a field; on an empty
+// one, the applications' card again. The values stay for the next form (the volume of the region
+// whose area was just found); a line typed before the menu goes in the first field.
+const char * focus_form_line;
+enum { AF_F, AF_G, AF_A, AF_B, AF_X, AF_W = 64, AF_TOP = 28, AF_RH = 28, AF_BOT = 22 };
+static char af_val[5][AF_W];     // the curve, the other curve, the bounds, the axis
+static signed char af_last = -1; // the application the axis was typed for (each has its own)
+static const char * af_err;      // why enter could not compute (the field to fill is selected)
+struct af_field { char role; const char * word, * var, * empty, * hint; }; // empty: an empty field's meaning (0: needed)
+// field c of an application: 1 2 its curves, a b its bounds (empty: where the curves meet), c f its
+// curve, A B its bounds, y x its axis (empty: y = 0, x = 0)
+static const af_field & af_field_of(char c) {
+  static const char codes[] = "12abcfAByx";
+  static const af_field F[] = {
+    {AF_F, "between", "y", 0, "a curve, in x"},
+    {AF_G, "and", "y", "0: the x-axis", "the other curve"},
+    {AF_A, "from", "x", "where they meet", "where the region starts"},
+    {AF_B, "to", "x", "where they meet", "where it ends"},
+    {AF_F, "curve", "y", 0, "the curve, in x"},
+    {AF_F, 0, "f(x)", 0, "the function, in x"},
+    {AF_A, "from", "x", 0, "where it starts"},
+    {AF_B, "to", "x", 0, "where it ends"},
+    {AF_X, "around", 0, "y = 0: the x-axis", "the axis: y = c, or x = c"},
+    {AF_X, "around", 0, "x = 0: the y-axis", "the axis: x = c, or y = c"},
+  };
+  return F[strchr(codes, c) - codes];
+}
+static const char * const AF_SPEC[6] = {"12ab", "12aby", "12abx", "cAB", "cABy", "fAB"}; // m_apps' order
+static const char * const AF_NAME[6] = {"area(", "volume(", "volume(", "arclength(", "surfacearea(", "average("};
+
+// application k's call from its fields; 0 (*bad: the field to fill first, af_err why) if one is missing
+static const char * af_call(int k, int * bad) {
+  static char c[16 + 5 * AF_W];
+  const char * sp = AF_SPEC[k];
+  const bool a = af_val[AF_A][0], b = af_val[AF_B][0];
+  for (int i = 0; sp[i]; ++i) { // needed, or a bound without the other
+    const af_field & f = af_field_of(sp[i]);
+    if (!af_val[f.role][0] && (!f.empty || (f.role == AF_A && b) || (f.role == AF_B && a))) {
+      *bad = i;
+      af_err = f.empty ? "this one too, or neither" : "fill this in first";
+      return 0;
+    }
+  }
+  strcpy(c, AF_NAME[k]);
+  strcat(c, af_val[AF_F]);
+  if (strchr(sp, '2') && (af_val[AF_G][0] || !a)) { // one curve and no bounds: with the x-axis
+    strcat(c, ",");
+    strcat(c, af_val[AF_G][0] ? af_val[AF_G] : "0");
+  }
+  if (a) { strcat(c, ","); strcat(c, af_val[AF_A]); strcat(c, ","); strcat(c, af_val[AF_B]); }
+  if (const char * x = strpbrk(sp, "xy")) { // the axis: c alone is y = c (x = c for shells)
+    strcat(c, *x == 'x' ? ",x=" : ",y=");
+    const char * v = af_val[AF_X];
+    if (strchr(v, '=')) c[strlen(c) - 2] = 0;
+    strcat(c, *v ? v : "0");
+  }
+  strcat(c, ")");
+  return c;
+}
+
+// key typed in field s at *p (m: the metrics it is drawn with), as on the edit line (console.cc):
+// its 2D keys, ^ and sin( with their parentheses, deleting by structure. 0: not an editing key
+static int af_edit(char * s, int * p, int key, const mi_metrics & m) {
+  const int len = strlen(s), q = *p;
+  if (key == KEY_CTRL_LEFT || key == KEY_CTRL_RIGHT) { *p = mi_move(s, len, q, key == KEY_CTRL_RIGHT, m); return 1; }
+  if (key == KEY_CTRL_DEL) {
+    int depth = 0, from, to;
+    for (int i = 0; i < q - 1; ++i) depth += s[i] == '(' ? 1 : s[i] == ')' ? -1 : 0;
+    if (q && s[q - 1] == ')' && depth > 0) { *p = q - 1; return 1; } // sin(x)| -> sin(x|)
+    if (me_backspace(s, p)) return 1;
+    if (q >= 2 && q < len && (s[q - 2] == '/' || s[q - 2] == '^') && s[q - 1] == '(' && s[q] == ')') { from = q - 2; to = q + 1; }
+    else if (q && s[q - 1] == '/') { from = q - 1; to = q; }
+    else if (q && q < len && s[q - 1] == '(' && s[q] == ')' && !(q >= 2 && namec(s[q - 2]))) { from = q - 1; to = q + 1; }
+    else { from = to = q; *p = mi_backspace(s, len, q, from, to, m); }
+    if (to > from) { memmove(s + from, s + to, len - to + 1); *p = from; }
+    return 1;
+  }
+  if (key == '\t') key = KEY_CHAR_RECIP; // (the CE's x^-1 key)
+  if (key == KEY_CHAR_PMINUS) key = '-';
+  const int mk = key == KEY_CHAR_SQUARE ? ME_SQUARE : key == KEY_CHAR_RECIP ? ME_RECIP : key > 0 && key < 128 && strchr("/(),=<>+-[]{}", key) ? key : 0;
+  if (mk && me_key(s, AF_W, p, mk)) return 1;
+  char t[24];
+  const char * w = key >= ' ' && key < 127 ? 0 : keytostring(key, 0, false);
+  if (w ? strlen(w) > 20 : key < ' ' || key >= 127) return 0;
+  if (w) strcpy(t, w); else { t[0] = (char)key; t[1] = 0; }
+  int n = strlen(t), in = n; // in: the caret after the text
+  if (!strcmp(t, "^")) { strcpy(t, "^()"); n = 3; in = 2; }
+  else if (n > 1 && t[n - 1] == '(') { t[n++] = ')'; t[n] = 0; }
+  if (len + n >= AF_W) return 1;
+  memmove(s + *p + n, s + *p, len - *p + 1);
+  memcpy(s + *p, t, n);
+  *p += in;
+  return 1;
+}
+
+static mi_layout AFL[5]; // the fields laid out
+static signed char AFV[5], af_k, af_sel; // (af_k, af_sel: the form shown, its field typed)
+static void af_layout(const char * sp, int i, int caret) {
+  const char * s = af_val[af_field_of(sp[i]).role];
+  AFV[i] = (signed char)ui_math_fit(s, strlen(s), caret, 4, 2 * (pw - 122), AF_RH - 8, MI_F_CALLBOX, AFL[i]);
+}
+// the form's rows [b, e) in the band being drawn (all: with the card)
+static void af_band(int b, int e, int all) {
+  const int k = af_k, sel = af_sel;
+  const char * sp = AF_SPEC[k];
+  const int n = strlen(sp), fx = px + 100, fw = pw - 110, hy = py + ph - AF_BOT;
+  if (e <= py) return;
+  if (all) { // the card, the application's name
+    card_bg();
+    ui_draw_text(&ui_tb12, m_apps[k].label, -1, px + 12, py + 20, ui_ramp(1, UC_INK, UC_CARD), 0);
+  }
+  for (int i = 0; i < n; ++i) { // a field: its label, right-aligned (the word, the variable in math), its box
+    const int y = py + AF_TOP + i * AF_RH, by = y + AF_RH / 2 + 4, on = i == sel, bg = on ? UC_ACCSOFT : UC_TILE;
+    if (y >= e || y + AF_RH <= b) continue;
+    const af_field & f = af_field_of(sp[i]);
+    const char * s = af_val[f.role];
+    ui_clip(px + 4, y, px + pw - 4, y + AF_RH);
+    ui_fill(px + 4, y, pw - 8, AF_RH, ui_col(1, UC_CARD));
+    int lx = fx - 8;
+    if (f.var) { // (= apart: alone after it, the layout's = shows an empty box)
+      mi_layout V;
+      const int lv = ui_math_fit(f.var, strlen(f.var), -1, 4, 60, 20, 0, V);
+      lx -= ui_text_width(&ui_mu17, "=", -1);
+      ui_draw_text(&ui_mu17, "=", -1, lx, by, ui_ramp(1, UC_INK, UC_CARD), 0);
+      lx -= V.width + 4;
+      ui_math_draw(V, f.var, lv, lx, by, 1, UC_INK, UC_CARD, UC_ACC);
+      lx -= 6;
+    }
+    if (f.word) ui_draw_text(&ui_tr12, f.word, -1, lx - ui_text_width(&ui_tr12, f.word, -1), by, ui_ramp(1, UC_SUB, UC_CARD), 0);
+    ui_rrect(1, fx, y + 2, fw, AF_RH - 4, 6, bg, UC_CARD);
+    ui_clip(fx + 3, y + 2, fx + fw - 3, y + AF_RH - 2);
+    if (*s) {
+      const mi_layout & L = AFL[i];
+      int x = fx + 8;
+      if (on && x + L.cx > fx + fw - 10) x = fx + fw - 10 - L.cx; // (long: scrolled to the caret)
+      const int base = y + AF_RH / 2 - (L.asc + L.desc) / 2 + L.asc;
+      ui_math_draw(L, s, AFV[i], x, base, 1, UC_INK, bg, UC_ACC);
+      if (on) ui_math_caret(L, x, base, 1, UC_ACC);
+    } else {
+      if (f.empty) ui_draw_text(&ui_tr10, f.empty, -1, fx + 13, by - 1, ui_ramp(1, UC_SUB, bg), 0);
+      if (on) ui_fill(fx + 8, y + 7, 2, AF_RH - 14, ui_col(1, UC_ACC));
+    }
+    ui_noclip();
+  }
+  if (hy < e && hy + AF_BOT > b) { // the field's hint (or why enter could not compute), what enter does
+    ui_clip(px + 4, hy, px + pw - 4, hy + AF_BOT - 3);
+    ui_fill(px + 4, hy, pw - 8, AF_BOT - 3, ui_col(1, UC_CARD));
+    ui_draw_text(&ui_tr10, af_err ? af_err : af_field_of(sp[sel]).hint, -1, px + 12, hy + 12, ui_ramp(1, af_err ? UC_RED : UC_SUB, UC_CARD), 0);
+    const char * w = sel < n - 1 ? "next" : "compute";
+    const int kw = ui_text_width(&ui_tb10, "enter", -1), ww = ui_text_width(&ui_tr10, w, -1);
+    ui_draw_text(&ui_tr10, w, -1, px + pw - 16 - kw - ww, hy + 12, ui_ramp(1, UC_SUB, UC_CARD), 0);
+    ui_draw_text(&ui_tb10, "enter", -1, px + pw - 12 - kw, hy + 12, ui_ramp(1, UC_ACC, UC_CARD), 0);
+    ui_noclip();
+  }
+}
+static void af_over(int b, int e) { af_band(b, e, 1); } // (over the stage repainted under a card)
+// rows [y0, y1) of the form (all: with the card)
+static void af_paint(int y0, int y1, int all) {
+  const int rows = ui_band_open(48);
+  for (int b = y0; b < y1; b += rows ? rows : y1 - y0) {
+    const int e = rows && b + rows < y1 ? b + rows : y1;
+    if (rows) { ui_band_begin(b, e); ui_band_load(); }
+    else ui_clip(0, b, UI_W, e);
+    af_band(b, e, all);
+    if (rows) ui_band_end();
+    ui_noclip();
+  }
+}
+
+// application k's form over the dimmed scene, in the place of the applications' card (its top
+// oy): the call to run, 0 when closed. F3, F4 and math open their cards over it: what they insert
+// goes in the field (sec, abs, a template)
+static const char * app_form(int k, int oy) {
+  if (k != af_last) af_val[AF_X][0] = 0;
+  af_last = (signed char)k;
+  if (focus_form_line && *focus_form_line && strlen(focus_form_line) < AF_W) strcpy(af_val[AF_F], focus_form_line);
+  focus_form_line = 0;
+  const char * sp = AF_SPEC[k];
+  const int n = strlen(sp);
+  int caret[5];
+  for (int i = 0; i < n; ++i) caret[i] = strlen(af_val[af_field_of(sp[i]).role]);
+  af_k = (signed char)k;
+  af_sel = 0;
+  pw = 310; ph = AF_TOP + n * AF_RH + AF_BOT; px = 1; py = SBOT - ph;
+  if (py > oy) focus_repaint(oy - 2, py); // (the applications' card was taller)
+  for (int i = 0; i < n; ++i) af_layout(sp, i, i ? -1 : caret[0]);
+  af_err = 0;
+  af_paint(py, SBOT, 1);
+  card_tab(1, 0);
+  for (;;) {
+    int key, sel = af_sel;
+    GetKey(&key);
+    if (key == KEY_CTRL_SHIFT || key == KEY_CTRL_ALPHA) continue;
+    char * s = af_val[af_field_of(sp[sel]).role];
+    const int os = sel, oe = af_err != 0;
+    const mi_metrics & m = ui_math_metrics(AFV[sel], MI_F_CALLBOX);
+    af_err = 0;
+    if (key == KEY_CTRL_EXE || key == KEY_CTRL_OK) {
+      if (sel < n - 1) ++sel;
+      else if (const char * c = af_call(k, &sel)) return c;
+    }
+    else if (key == KEY_CTRL_EXIT || key == KEY_CTRL_AC) {
+      if (!*s) return 0;
+      *s = 0;
+      caret[sel] = 0;
+    }
+    else if (key == KEY_CTRL_QUIT) return 0;
+    else if (key == KEY_CTRL_UP || key == KEY_CTRL_DOWN) { // in a fraction, else to the field above or below
+      const int up = key == KEY_CTRL_UP, q = mi_move(s, strlen(s), caret[sel], up ? 2 : 3, m);
+      if (q >= 0) caret[sel] = q;
+      else if (up ? sel > 0 : sel < n - 1) sel += up ? -1 : 1;
+    }
+    else if (key == KEY_CTRL_F3 || key == KEY_CTRL_F4 || key == KEY_CTRL_SYMB) {
+      const int x0 = px, y0 = py, w0 = pw, h0 = ph;
+      const char * t = 0;
+      int back = 0;
+      af_nest = 1;
+      const int a = focus_popover(key, &t, &back);
+      af_nest = 0;
+      const int top = py < y0 ? py : y0, len = strlen(s), tl = t ? strlen(t) : 0;
+      px = x0; py = y0; pw = w0; ph = h0;
+      if (a == FA_INSERT && tl && len + tl < AF_W) {
+        memmove(s + caret[sel] + tl, s + caret[sel], len - caret[sel] + 1);
+        memcpy(s + caret[sel], t, tl);
+        caret[sel] += tl - back;
+      }
+      af_layout(sp, sel, caret[sel]);
+      focus_repaint_over(top - 2, SBOT, af_over); // the stage under the card, the form over it
+      focus_bar_redraw();
+      card_tab(1, 0);
+      continue;
+    }
+    else if (!af_edit(s, &caret[sel], key, m)) continue;
+    af_sel = (signed char)sel;
+    af_layout(sp, sel, caret[sel]);
+    const int y = py + AF_TOP + sel * AF_RH, hy = py + ph - AF_BOT;
+    af_paint(y, y + AF_RH, 0);
+    if (os != sel) {
+      af_layout(sp, os, -1);
+      af_paint(py + AF_TOP + os * AF_RH, py + AF_TOP + (os + 1) * AF_RH, 0);
+    }
+    if (os != sel || oe || af_err) af_paint(hy, hy + AF_BOT, 0);
+  }
+}
+#endif
+
 static signed char pop_last[6], sub_last; // (DeltaCE) each menu opens on the item picked last (sub_last: the applications' card)
 int focus_popover(int key, const char ** text, int * back) {
   int id = key == KEY_CTRL_SYMB ? 5 : key - KEY_CTRL_F1;
@@ -767,7 +1031,19 @@ int focus_popover(int key, const char ** text, int * back) {
       else { *text = it.text; *back = it.back; res = FA_INSERT; }
     }
 #ifdef FLOWCE_STEPS
-    if (res == FA_APPS) { // the applications' card in its place, the scene still dimmed: only the
+    if (sub == &M_APPS && r >= 0) { // an application: its form in the card's place; closed, the
+      delete[] PL;                  // applications' card again
+      PL = 0;
+      if ((*text = app_form(r, py))) {
+        close_card(0, 1);
+        return FA_RUN;
+      }
+      const int fy = py;
+      geometry(id, *sub);
+      if (py > fy) focus_repaint(fy - 2, py);
+      continue;
+    }
+    if (res == FA_APPS && !af_nest) { // the applications' card in its place, the scene still dimmed: only the
       const int oy = py;  // strip the calculus card showed above it is repainted (the stage under
       delete[] PL;        // it all was, 0.2 s: keys typed meanwhile were lost)
       PL = 0;
