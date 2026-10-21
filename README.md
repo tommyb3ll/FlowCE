@@ -26,20 +26,11 @@ step by step, the way a worked example in your textbook does.
 **[Install it from the FlowCE page](https://tommyb3ll.github.io/FlowCE/)**: plug in the calculator,
 pick a version, click Install, and follow the short calculator prompts.
 
-## New in FlowCE 2.2
+## What's new
 
-**Themes you can tell apart on the calculator.** Sand, Mint, Rose, Arctic, Ember, Grape and Forest
-have stronger colors: cream, mint, blush, blue slate, brown, plum and green. Their old shades were
-so close that the calculator's screen showed several of them alike. The new ones were picked on a
-TI-84 Plus CE; text is as readable as before, and Paper and Night are unchanged.
-
-## New in FlowCE 2.1
-
-**Faster.** Menus open in about half the time, everyday problems answer 25 to 45% sooner, the
-steps pages scroll twice as fast, and the probability page keeps up with the arrows. The
-answers are the same as 2.0's.
-
-## New in FlowCE 2.0
+- **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE.
+- **2.1:** faster: menus open in about half the time, everyday problems answer 25 to 45% sooner.
+- **2.0:** steps for algebra, Calculus → Applications, a real graph screen, nine themes, and more:
 
 <table>
   <tr>
