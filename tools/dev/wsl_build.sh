@@ -11,7 +11,7 @@ mkdir -p "$OUT" "$LOG"
 G() { git -c safe.directory='*' "$@"; }
 
 if [ ! -d "$SRC/.git" ]; then G clone -q "$WIN" "$SRC"; fi
-G -C "$SRC" fetch -q "$WIN" +refs/devbuild/snapshot:refs/devbuild/snapshot || exit 1
+G -C "$SRC" fetch -q --no-recurse-submodules "$WIN" +refs/devbuild/snapshot:refs/devbuild/snapshot || exit 1
 G -C "$SRC" checkout -qf "$SUPER" || exit 1
 if [ ! -e "$SRC/src/giac/.git" ]; then G -C "$SRC" -c protocol.file.allow=always submodule update -q --init; fi
 G -C "$SRC/src/giac" fetch -q "$WIN/.git/modules/src/giac" +refs/devbuild/snapshot:refs/devbuild/snapshot || exit 1
