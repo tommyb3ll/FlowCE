@@ -42,10 +42,11 @@ unsigned ui_strip_size(void);        // its bytes while it can be released (the 
 // UC_BLUE: the 2nd layer's labels and chip, blue as the 2nd key (UC_GREEN: alpha, as its key);
 // DeltaCE's accent is teal
 // (DeltaCE) UC_HEAD the status bar, teal (UC_HEADINK its text, UC_HEADSUB its quieter text); the
-// F-key bar's hairlines UC_BARLINE; UC_TILE an item's tile on a menu card (the grid cards)
+// F-key bar's hairlines UC_BARLINE; UC_TILE an item's tile on a menu card (the grid cards);
+// UC_DIMBAR the F-key bar as dimmed (for the edges of an open tab drawn over the dimmed bar)
 enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC_BAR, UC_BARINK,
        UC_GREEN, UC_SHADOW, UC_WHITE, UC_RED, UC_PURPLE, UC_ORANGE, UC_BLUE, UC_DIM,
-       UC_HEAD, UC_HEADINK, UC_HEADSUB, UC_BARLINE, UC_TILE, UC_COUNT };
+       UC_HEAD, UC_HEADINK, UC_HEADSUB, UC_BARLINE, UC_TILE, UC_DIMBAR, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
 extern const ui_theme ui_theme_paper, ui_theme_night;
 
@@ -60,6 +61,10 @@ void ui_fill(int x, int y, int w, int h, unsigned char idx);
 void ui_rrect(int bank, int x, int y, int w, int h, int r, int c, int bg);
 // 1 px rounded outline in color c over background bg
 void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg);
+// the inner corner where two edges of a shape meet (an open tab under its card): the r x r box at
+// x, y in color c over bg, but for the quarter disc of radius r centered at its corner q (0 top
+// left, 1 top right, 2 bottom left, 3 bottom right), anti-aliased as ui_rrect's corners
+void ui_fillet(int bank, int x, int y, int r, int q, int c, int bg);
 // anti-aliased thick segment / polyline; coordinates and thickness in 1/16 pixel
 void ui_seg16(int ax, int ay, int bx, int by, int th, const unsigned char * ramp);
 void ui_poly16(const int * xy, int n, int th, const unsigned char * ramp);

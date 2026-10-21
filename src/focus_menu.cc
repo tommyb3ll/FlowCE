@@ -286,12 +286,12 @@ static void open_card(const fm_menu & m, int col, int layer, int sel) {
   paint_rows(m, py, col < 5 ? SBOT : py + ph + 4, sel, 1);
   if (col < 5) { // (DeltaCE) its tab, joined to the card: the card rises out of its key
     int band = ui_band_open(32) >= 32;
-    if (band) { ui_band_begin(SBOT - 4, UI_H); ui_band_load(); }
+    if (band) { ui_band_begin(SBOT - 8, UI_H); ui_band_load(); }
+    focus_tab_card(px, px + pw);
     if (tab_word_) tab_text(col, tab_word_, UC_ACC);
     else if (!layer) focus_tab(col, 1, 1);
     else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : UC_GREEN);
-    ui_clip(0, SBOT - 4, UI_W, UI_H);
-    ui_fill(32 + 64 * col - 29, SBOT - 3, 58, 4, ui_col(1, UC_CARD)); // (the card's edge over the tab: gone)
+    focus_tab_card(0, 0);
     ui_noclip();
     if (band) ui_band_end();
   }

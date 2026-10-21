@@ -788,13 +788,48 @@ static int forms_key(); // F4 shows forms (a result is selected, or shown large)
 static const char * const tab_word[5] = {"algebra", "calculus", "trig", "symbols", "more"};
 static const unsigned char tab_icon[5] = {IC_X2, IC_INT, IC_WAVE, IC_PI, IC_MORE};
 
-// (DeltaCE) an open tab: a card's color, its sides and bottom framed, joined to the card above
+// (DeltaCE) an open tab: the card above it (focus_tab_card) and the tab are one shape, their rim
+// and hairline going around both, rounded inward where they meet; at the card's side the card's
+// corner is square and its side runs down into the tab. Without a card, a box on the bar.
+static int tab_c0, tab_c1; // the card's columns [c0, c1); c1 <= c0: none
+void focus_tab_card(int c0, int c1) { tab_c0 = c0; tab_c1 = c1; }
 void focus_tab_open_box(int i) {
-  const int cx = 32 + 64 * i;
-  ui_clip(cx - 32, SBOT - 4, cx + 32, UI_H);
-  ui_fill(cx - 32, SBOT + 1, 64, MB - 1, ui_col(1, UC_BAR));
-  ui_rrect(1, cx - 30, SBOT - 8, 60, MB + 6, 6, UC_CARD, UC_BAR);
-  ui_rframe(1, cx - 30, SBOT - 8, 60, MB + 6, 6, UC_LINE, UC_CARD);
+  enum { RF = 4 }; // the inner corners' radius
+  const int cx = 32 + 64 * i, y1 = UI_H - 1; // the tab: rows [SBOT, y1)
+  const unsigned char W = ui_col(1, UC_CARD), L = ui_col(1, UC_LINE);
+  int x0 = cx - 32, x1 = cx + 32;
+  ui_clip(0, SBOT + 1, UI_W, UI_H);
+  ui_fill(cx - 32, SBOT + 1, 64, MB - 1, ui_col(0, UC_BAR)); // its key's place, dimmed as the bar
+  if (tab_c1 <= tab_c0) {
+    ui_rrect(1, x0 + 1, SBOT + 2, 62, y1 - SBOT - 2, 6, UC_CARD, UC_DIMBAR);
+    ui_rframe(1, x0 + 2, SBOT + 3, 60, y1 - SBOT - 4, 5, UC_LINE, UC_CARD);
+    ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
+    return;
+  }
+  const int fl = x0 < tab_c0 + 8 + RF, fr = x1 > tab_c1 - 8 - RF; // at the card's side
+  if (fl) x0 = tab_c0;
+  if (fr) x1 = tab_c1;
+  ui_clip(0, SBOT, UI_W, UI_H);
+  ui_rrect(1, x0, SBOT - 12, x1 - x0, y1 - SBOT + 12, 6, UC_CARD, UC_DIMBAR);
+  ui_clip(0, SBOT + RF, UI_W, UI_H);
+  ui_rframe(1, x0 + 1, SBOT - 12, x1 - x0 - 2, y1 - SBOT + 11, 5, UC_LINE, UC_CARD);
+  ui_clip(0, SBOT - 8, UI_W, UI_H);
+  const int a = fl ? x0 + 2 : x0 - RF, b = fr ? x1 - 2 : x1 + RF;
+  ui_fill(a, SBOT - 2, b - a, 2, W); // the card's hairline over the opening
+  for (int s = 0; s < 2; ++s) { // its left side, its right side
+    const int e = s ? x1 : x0;
+    if (s ? fr : fl) { // the card's corner made square, its rim and hairline going on down
+      const int c = s ? e - 5 : e, d = s ? e - 8 : e;
+      ui_fill(c, SBOT - 8, 5, 8, W); ui_fill(d, SBOT - 5, 8, 5, W);
+      ui_fill(s ? e - 2 : e + 1, SBOT - 8, 1, 8 + RF, L);
+    } else { // the inner corner: the bar's corner rounded, the hairline's arc around it
+      ui_fillet(1, s ? e : e - RF, SBOT, RF, s ? 3 : 2, UC_CARD, UC_DIMBAR);
+      const int fx = s ? e - 2 : e + 2 - 2 * (RF + 2); // the arc: a frame's corner, the rest clipped away
+      ui_clip(s ? e - 2 : e - RF, SBOT - 2, s ? e + RF : e + 2, SBOT + RF);
+      ui_rframe(1, fx, SBOT - 2, 2 * (RF + 2), 2 * (RF + 2), RF + 2, UC_LINE, UC_CARD);
+      ui_clip(0, SBOT - 8, UI_W, UI_H);
+    }
+  }
   ui_clip(cx - 32, SBOT + 1, cx + 32, UI_H);
 }
 // the tab of F-key i in the standard layer; on: its popover is open (drawn bright, bank 1)
@@ -807,7 +842,7 @@ void focus_tab(int i, int on, int bank) {
     ui_fill(cx - 32, SBOT + 1, 64, MB - 1, ui_col(bank, UC_BAR));
   }
   const ui_face * f = on ? &ui_tb10 : &ui_tr10;
-  int bg = on ? UC_CARD : UC_BAR, lw = ui_text_width(f, w, -1), x0 = cx - (16 + lw) / 2;
+  int bg = on ? UC_CARD : UC_BAR, lw = ui_text_width(f, w, -1), x0 = cx - (16 + lw) / 2 - on; // (on: the ink centered in the tab)
   focus_icon(fm ? IC_FORMS : tab_icon[i], x0 + 7, by - 4, bank, UC_ACC, bg);
   ui_draw_text(f, w, -1, x0 + 16, by, ui_ramp(bank, on ? UC_ACC : UC_BARINK, bg), 0);
   ui_noclip();

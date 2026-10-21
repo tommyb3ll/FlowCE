@@ -70,14 +70,14 @@ const ui_theme ui_theme_paper = {{
   {247, 248, 250}, {17, 20, 25}, {108, 117, 129}, {219, 224, 231}, {36, 92, 204}, {226, 234, 250},
   {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {78, 86, 98}, {39, 140, 74}, {208, 214, 222},
   {255, 255, 255}, {199, 68, 64}, {112, 72, 184}, {226, 118, 24}, {36, 92, 204}, {247, 248, 250},
-  {247, 248, 250}, {36, 92, 204}, {108, 117, 129}, {219, 224, 231}, {236, 240, 246}},
+  {247, 248, 250}, {36, 92, 204}, {108, 117, 129}, {219, 224, 231}, {236, 240, 246}, {255, 255, 255}},
   {30, 36, 46}, 36};
 // Night: the prototype's dark theme (UC_WHITE, text on a colored chip: dark here)
 const ui_theme ui_theme_night = {{
   {12, 15, 20}, {234, 238, 243}, {134, 145, 158}, {38, 46, 58}, {100, 165, 255}, {24, 40, 64},
   {7, 11, 17}, {22, 28, 36}, {16, 21, 28}, {150, 160, 173}, {86, 200, 130}, {4, 6, 9},
   {7, 11, 17}, {255, 112, 102}, {182, 146, 255}, {255, 170, 82}, {100, 165, 255}, {12, 15, 20},
-  {12, 15, 20}, {100, 165, 255}, {134, 145, 158}, {38, 46, 58}, {33, 41, 53}},
+  {12, 15, 20}, {100, 165, 255}, {134, 145, 158}, {38, 46, 58}, {33, 41, 53}, {16, 21, 28}},
   {0, 0, 0}, 50};
 
 // bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest: the scene's
@@ -95,9 +95,10 @@ static unsigned short rgb565(int r, int g, int b) {
   return (unsigned short)(((r & 0xf8) << 7) | ((g & 0xf8) << 2) | (b >> 3));
 }
 // slot s of bank: base color s < UC_COUNT, else mid (s - UC_COUNT) & 1 of ramp (s - UC_COUNT) / 2
-static void base_rgb(int s, int * c) { // a theme color; UC_DIM: the background dimmed
-  const unsigned char * a = TH->rgb[s == UC_DIM ? UC_BG : s];
-  for (int i = 0; i < 3; ++i) c[i] = a[i] + (s == UC_DIM ? ((TH->dim_to[i] - a[i]) * TH->dim_pct) / 100 : 0);
+static void base_rgb(int s, int * c) { // a theme color; UC_DIM, UC_DIMBAR: the background, the bar dimmed
+  const int dim = s == UC_DIM || s == UC_DIMBAR;
+  const unsigned char * a = TH->rgb[s == UC_DIM ? UC_BG : s == UC_DIMBAR ? UC_BAR : s];
+  for (int i = 0; i < 3; ++i) c[i] = a[i] + (dim ? ((TH->dim_to[i] - a[i]) * TH->dim_pct) / 100 : 0);
 }
 static void slot_rgb(int bank, int s, int * c) {
   if (s < UC_COUNT) base_rgb(s, c);
@@ -251,6 +252,22 @@ void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg) {
   ui_fill(x + r, y, w - 2 * r, 1, k); ui_fill(x + r, y + h - 1, w - 2 * r, 1, k);
   ui_fill(x, y + r, 1, h - 2 * r, k); ui_fill(x + w - 1, y + r, 1, h - 2 * r, k);
   corners(x, y, w, h, r, ramp, 1);
+}
+
+void ui_fillet(int bank, int x, int y, int r, int q, int c, int bg) {
+  const unsigned char * ramp = ui_ramp(bank, c, bg);
+  int lim[3];
+  disc_limits(r * 8, lim);
+  const int cx8 = (q & 1 ? x + r : x) * 8, cy8 = (q & 2 ? y + r : y) * 8;
+  for (int py = y; py < y + r; ++py) {
+    if (py < ui_cy0 || py >= ui_cy1) continue;
+    unsigned char * row = ui_fb + py * UI_W;
+    const int ey = py * 8 + 4 - cy8;
+    for (int px = x; px < x + r; ++px) {
+      const int ex = px * 8 + 4 - cx8;
+      put(row, px, 3 - disc_level(ex * ex + ey * ey, lim), ramp); // the disc's complement
+    }
+  }
 }
 
 // A thick anti-aliased segment by spans: along its major axis (rows for a steep segment, columns

@@ -64,6 +64,7 @@ void focus_status_view(const char * s, int chip); // the same; chip: the 2nd/alp
 void focus_bar_editor(const char * const * labels, int keyflag); // the program editor's bar: its words, or 2nd/alpha
 void focus_tab_open(int i, const char * label); // tab i drawn open (bright) while its menu's card is shown
 void focus_tab_open_box(int i);           // (DeltaCE) tab i's open shape, joined to the card above
+void focus_tab_card(int c0, int c1);      // the card over the next open tab: its columns [c0, c1) (0, 0: none)
 int focus_card_list(int col, const char * word, const char * const * maths, const char * const * labels, const char * const * hints, int n, int sel);
 void focus_graph_points(const float * x, const float * y, int n); // (DeltaCE) data points the next graph draws with its curves (a copy; n = 0: none)
 void focus_stats();                     // (DeltaCE) statistics: data, a column's statistics, fitted curves (focus_stats.cc)
