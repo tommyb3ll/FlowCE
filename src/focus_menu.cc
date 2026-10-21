@@ -158,7 +158,7 @@ static void prepare(const fm_menu & m) {
     if (m.grid && m.wide && k == m.n - 1) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, 64, BH - 10, fl, PL[k]);
     else if (m.grid == 2) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 12, cellh(m) - 24, fl, PL[k]);
     else if (m.grid) PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 3, cw - 8, cellh(m) - 4, MI_F_CALLBOX, PL[k]);
-    else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, MI_F_CALLBOX, PL[k]);
+    else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, 100, RH - 2, fl, PL[k]);
   }
 }
 // item k's preview, centered vertically at ymid; centered in w if center, else from x
@@ -651,7 +651,9 @@ int focus_card_list(int col, const char * word, const char * const * maths, cons
   if (n <= 0) return -1;
   fm_item * it = (fm_item *)malloc(n * sizeof(fm_item));
   if (!it) return -1;
-  for (int k = 0; k < n; ++k) { it[k].text = maths ? maths[k] : 0; it[k].back = 0; it[k].pv = 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0; }
+  for (int k = 0; k < n; ++k) { // (the math as formulas: a x + b, x^3 sin(x), without product dots)
+    it[k].text = it[k].pv = maths ? maths[k] : 0; it[k].back = 0; it[k].label = labels[k]; it[k].hint = hints ? hints[k] : 0; it[k].act = 0;
+  }
   const fm_menu m = {0, 1, (char)(n > 60 ? 60 : n), it};
   vis = 6; top = sel >= vis ? sel - vis + 1 : 0; hdr = 0; rh = RH;
   tab_word_ = word;

@@ -39,7 +39,7 @@ static NOINL void math(const char * s, int x, int base, int maxlv, int w, int fg
 
 // ---------------------------------------------------------------- the problems
 enum { K_VALUES, K_PAIR, K_DERIV, K_ANTI, K_FACTOR }; // how an answer is checked
-static const char * const TOPIC[8] = {"Linear equations", "Quadratics", "Systems", "Exponents and logs",
+static const char * const TOPIC[8] = {"Linear equations", "Quadratics", "Systems", "Exponents, logs",
                                       "Derivatives", "Integrals", "Factoring", "Trig equations"};
 static const char * const TPREV[8] = {"3x+5=11", "x^2-5x+6=0", "[2x+y=5,x-y=1]", "2^(x+1)=16",
                                       "diff(x^3*sin(x),x)", "integrate(2x*cos(x^2),x)", "x^2+5x+6", "2*sin(x)=1"};
