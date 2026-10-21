@@ -11,7 +11,7 @@
 
 // nominal glyph width (every glyph without wf; spacing units with wf); ascent above / descent
 // below the baseline (pixels)
-struct mi_font { short adv, asc, desc; };
+struct mi_font { short adv, asc, desc, ax; }; // ax: the math axis above the baseline (the middle of +)
 // styles of text: upright, italic (variable names), symbol literal ("pi" "oo" "lim" "d" "e" "="
 // "S" = sigma, "\x1e" = arrow: one glyph each, except lim)
 enum { MI_UP, MI_IT, MI_SYM };

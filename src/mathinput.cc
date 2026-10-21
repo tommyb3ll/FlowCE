@@ -846,7 +846,8 @@ static void place(int n, int x, int y, int dp, int sm) {
     for (p = d.a + 1; p <= c; ++p) { xx += h; P(p, xx, y, sm, dp); } // leading blanks
     if (c < d.b) {
       int gx = xx + (k == K_OP ? M->opgap : 0);
-      if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.asc / 4 - 1, h + 2, 2, c, 1, 0); }
+      // (the product's dot on the math axis, as high as the middle of +: lower, it read as a decimal point)
+      if (k == K_DOT) { if (!hidedot(n)) op(MI_DOT, sm, gx, y - f.ax - 1, h + 2, 3, c, 1, 0); }
       else {
         int st = style(n, k), sy = k == K_PI || k == K_INF || k == K_THETA;
         const char * dn = sy ? 0 : dname(n);

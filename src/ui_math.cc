@@ -79,6 +79,11 @@ WFN(0) WFN(1) WFN(2) WFN(3) WFN(4) WFN(5) WFN(6) WFN(7)
 static const mi_wfn WF[UI_NSIZES] = {wf0, wf1, wf2, wf3, wf4, wf5, wf6, wf7};
 
 static mi_metrics (*MET)[UI_NSIZES]; // heap: KhiCAS's static data must fit pixelShadow (8400 B)
+// a face's math axis: rows above the baseline to the middle of its + (where the product's dot goes)
+static short axis(const ui_face * f) {
+  const ui_glyph * g = ui_glyph_of(f, '+');
+  return (short)(g ? -g->oy - (g->h - 1) / 2 : f->asc / 4);
+}
 static int met_ready;
 
 const mi_metrics & ui_math_metrics(int lv, int flags) {
@@ -90,8 +95,8 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
       for (int l = 0; l < UI_NSIZES; ++l) {
         mi_metrics & m = MET[k][l];
         int s = ui_math_sizes[l], ss = ui_math_sizes[script(l)];
-        m.big.adv = (short)rnd(s, 50); m.big.asc = MU[l]->asc; m.big.desc = MU[l]->desc;
-        m.small.adv = (short)rnd(ss, 50); m.small.asc = MU[script(l)]->asc; m.small.desc = MU[script(l)]->desc;
+        m.big.adv = (short)rnd(s, 50); m.big.asc = MU[l]->asc; m.big.desc = MU[l]->desc; m.big.ax = axis(MU[l]);
+        m.small.adv = (short)rnd(ss, 50); m.small.asc = MU[script(l)]->asc; m.small.desc = MU[script(l)]->desc; m.small.ax = axis(MU[script(l)]);
         m.opgap = (short)rnd(s, 22);
         m.wf = WF[l];
         m.bar = (short)(s >= 26 ? 2 : 1);
@@ -192,7 +197,7 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
     int th = osz >= 26 ? 32 : osz >= 17 ? 24 : 18; // stroke width, 1/16 px
     switch (o.code) {
     case MI_TEXT: draw_text(o, s, lv, ox, oy, r); break;
-    case MI_DOT: { int d = osz >= 24 ? 3 : 2; ui_rrect(bank, ox + w / 2 - d / 2, oy + h / 2 - d / 2, d, d, d / 2, ink, bg); } break;
+    case MI_DOT: { int d = osz >= 17 ? 3 : 2; ui_rrect(bank, ox + w / 2 - d / 2, oy + h / 2 - d / 2, d, d, d / 2, ink, bg); } break;
     case MI_HLINE: ui_fill(ox, oy, w, h, r[3]); break;
     case MI_SQRT: { // tick, heavy down stroke, up stroke, overbar (the prototype's shape)
       int rw = m.rad * osz / sz, b = oy + h - 1, t16 = oy * 16 + m.bar * 8, bh = osz * 16;
