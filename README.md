@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="docs/flowce_light.gif" width="48%" alt="FlowCE in the Paper theme: a definite integral, a series, other forms and a graph">
-  <img src="docs/flowce_steps.gif" width="48%" alt="FlowCE Steps: an antiderivative, then enter for its steps: integration by parts, down to the answer">
+  <img src="docs/flowce_steps.gif" width="48%" alt="FlowCE: an antiderivative, then enter for its steps: integration by parts, down to the answer">
 </p>
 
 FlowCE is a computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2. It gives
@@ -27,60 +27,52 @@ pick a version, click Install, and follow the short calculator prompts.
 
 ## Two versions
 
-| | **FlowCE** | **FlowCE Steps** (beta) |
+| | **FlowCE** 2.0 | **FlowCE Python** 1.9.1 |
 |---|---|---|
-| Version | 1.9, stable | 2.0 beta 3 |
-| Step-by-step solutions | | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) |
-| Graphs | classic graph, trace, table | a new graph screen: exact key points, pan and zoom, circles, polar, slope fields |
-| Applications menu | | area, volumes, arc length, surface area, average value |
-| Statistics and probability | | data, regressions, distributions, tests |
-| Programs (Python syntax, editor) | yes | no |
-| Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta3/FlowCE-steps.b84) |
+| Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
+| Graphs | a graph screen: exact key points, pan and zoom, circles, polar, slope fields | the classic graph, trace, table |
+| Applications menu | area, volumes, arc length, surface area, average value | |
+| Statistics and probability | data, regressions, distributions, tests | |
+| Programs (Python syntax, the program editor) | | yes |
+| Download | [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84) | [`FlowCE-python.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE-python.b84) |
 
-Both have the shared features below. Install one version at a time.
+FlowCE is the one for class; FlowCE Python is for writing programs. Both have the shared features
+below. Install one at a time.
 
-## Steps (beta)
+## Steps
 
-After a derivative, an integral, a limit, a sum or a Taylor polynomial, press `enter`: FlowCE
-shows how to get the answer, the way a worked example in a textbook does. Each step says what it
-does and the rule it uses (integration by parts, the chain rule, L'Hôpital's rule, partial
-fractions, the ratio test...); a part worked out on the side, like the integral left after
-integrating by parts, gets its own steps. `▲` and `▼` move from step to step.
-
-**New in beta 3:** steps for algebra (linear and quadratic equations, factoring, rational and
-radical equations, systems, exponential, log and trig equations, inequalities, absolute values,
-polynomial division), a new graph screen, `analyze(f)`, statistics, probability and practice
-problems, a row of next steps under each answer, and `y'` in the symbols menu. These come from
-[DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into
-FlowCE. [Release notes](https://github.com/tommyb3ll/FlowCE/releases/tag/v2.0-beta3).
+After an answer, press `enter`: FlowCE shows how to get it, the way a worked example in a textbook
+does. Derivatives, integrals, limits, sums and Taylor series, and in algebra linear and quadratic
+equations (by the formula), factoring, rational and radical equations, systems, exponential, log
+and trig equations, inequalities, absolute values and polynomial division. Each step says what it
+does and the rule it uses (integration by parts, the chain rule, L'Hôpital's rule, the
+quadratic formula, elimination...); a part worked out on the side gets its own steps. `▲` and
+`▼` move from step to step.
 
 | | | |
 |:-:|:-:|:-:|
-| ![Steps for a quadratic equation: the quadratic formula](docs/screenshots/steps_quadratic.png) | ![Steps for a system of equations: elimination](docs/screenshots/steps_system.png) | ![Steps for an inequality: a number tested in each interval](docs/screenshots/steps_ineq.png) |
-| a quadratic, by the formula | a system, by elimination | an inequality |
-| ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![The row of actions under an answer](docs/screenshots/action_row.png) | ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) |
-| the graph screen, key points | `▶`: what to do next | `analyze(f)` |
-| ![An ellipse and a line](docs/screenshots/graph_conic.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) | ![A normal distribution, a tail shaded](docs/screenshots/prob_normal.png) |
-| equations in x and y | statistics: a fitted line | probability |
+| ![Steps for the integral of x sin x: integration by parts](docs/screenshots/steps_parts.png) | ![Steps for a quadratic equation: the quadratic formula](docs/screenshots/steps_quadratic.png) | ![Steps for a limit: L'Hôpital's rule](docs/screenshots/steps_limit.png) |
+| integration by parts | a quadratic, by the formula | a limit, L'Hôpital's rule |
+| ![Steps for a system of equations: elimination](docs/screenshots/steps_system.png) | ![Steps for a telescoping sum: partial fractions](docs/screenshots/steps_sum.png) | ![Steps for an inequality: a number tested in each interval](docs/screenshots/steps_ineq.png) |
+| a system, by elimination | a sum, partial fractions | an inequality |
 
-**Since beta 2:** **Calculus → Applications** (the `0` key on the calculus menu) for area between
-curves, volumes by washers or shells, arc length, surface area and average value, with labeled
-input boxes and worked steps.
-
-| ![Applications of calculus menu](docs/screenshots/menu_apps.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) |
-|:-:|:-:|
-| Calculus → Applications | find crossings, then compute the area |
+**Calculus → Applications** (the `0` key on the calculus menu): area between curves, volumes by
+washers or shells, arc length, surface area and average value, with labeled input boxes and worked
+steps. Under each answer, `▶` offers what to do next: factor, solve = 0, graph, the derivative...
 
 | | | |
 |:-:|:-:|:-:|
-| ![Steps for the integral of x sin x: integration by parts](docs/screenshots/steps_parts.png) | ![Steps for a limit: L'Hôpital's rule](docs/screenshots/steps_limit.png) | ![Steps for a telescoping sum: partial fractions](docs/screenshots/steps_sum.png) |
-| integration by parts | a limit, L'Hôpital's rule | a sum, partial fractions |
-| ![Steps for a derivative: the product rule](docs/screenshots/steps_deriv.png) | ![Steps for a Taylor polynomial](docs/screenshots/steps_taylor.png) | ![The answer with the steps hint](docs/screenshots/steps_hint.png) |
-| a derivative, the product rule | a Taylor polynomial | `enter` after an answer |
+| ![Applications of calculus menu](docs/screenshots/menu_apps.png) | ![Area between curves, with steps](docs/screenshots/apps_area_steps.png) | ![The row of actions under an answer](docs/screenshots/action_row.png) |
+| Calculus → Applications | find crossings, then the area | `▶`: what to do next |
+| ![The graph screen: key points of x³ − 3x](docs/screenshots/graph_points.png) | ![analyze: domain, intercepts, asymptotes](docs/screenshots/analyze.png) | ![A line fitted to data](docs/screenshots/stats_fit.png) |
+| the graph screen, key points | `analyze(f)` | statistics: a fitted line |
 
-Not every problem has steps yet: when no textbook method explains the answer, it says so. It's a
-beta: if a step looks wrong, please [open an issue](https://github.com/tommyb3ll/FlowCE/issues/new/choose)
-with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
+The algebra steps, the graph screen, `analyze`, statistics, probability and practice come from
+[DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by Gabriel, merged back into FlowCE.
+
+Not every problem has steps yet: when no textbook method explains the answer, it says so. If a step
+looks wrong, please [open an issue](https://github.com/tommyb3ll/FlowCE/issues/new/choose) with
+what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/viewtopic.php?t=21437).
 
 ## Highlights
 
@@ -129,7 +121,7 @@ with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/f
 ## Install
 
 **[The FlowCE page](https://tommyb3ll.github.io/FlowCE/#install) selects the installer for your OS.** Open it in Chrome
-or Edge with the calculator plugged in, pick FlowCE or FlowCE Steps, and click Install: it checks
+or Edge with the calculator plugged in, pick FlowCE or FlowCE Python, and click Install: it checks
 the calculator, erases its archive (after you agree), sends FlowCE and opens the installer. Press
 `enter` once on the calculator: it installs and restarts by itself. On Windows it needs
 [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw) 6.1 or
@@ -152,7 +144,7 @@ rules (some tests, like the ACT, don't allow one).
 1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
    `1:All Memory...` → `2:Reset`.
 2. **Send the bundle:** download [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
-   or [`FlowCE-steps.b84`](https://github.com/tommyb3ll/FlowCE/releases/download/v2.0-beta2/FlowCE-steps.b84),
+   or [`FlowCE-python.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE-python.b84),
    drag it onto the calculator in TI Connect CE and send it.
 3. **Run the installer:** `prgm` → `enter` → `enter` opens the arTIfiCE shell; `enter` starts
    INST and `enter` again installs. It counts down to 0; don't touch the calculator.
@@ -176,20 +168,20 @@ rules (some tests, like the ACT, don't allow one).
 |---|---|
 | F1 to F5 | menus: algebra, calculus, trig, symbols, more (with `2nd` or `alpha`: more menus) |
 | F1 / F2 action after typing | applies to what you typed: `x^2−1` then Factor is `factor(x^2−1)` (on an empty line: the last answer) |
-| `enter` after an answer | its steps (FlowCE Steps: calculus, equations, inequalities, factoring, divisions) |
-| `▶` after an answer | the row of next steps (FlowCE Steps): `◀` `▶` move, `enter` does it |
-| F4 on the steps page | another method, when there is one (FlowCE Steps: long or synthetic division) |
+| `enter` after an answer | its steps (calculus, equations, inequalities, factoring, divisions) |
+| `▶` after an answer | the row of next steps: `◀` `▶` move, `enter` does it |
+| F4 on the steps page | another method, when there is one (long or synthetic division) |
 | `math` | templates: fraction, root, integrals, derivative, limit, sum |
 | ▲ / ▼ | history / search every command |
-| F4 on an answer | its other forms (FlowCE Steps: on an antiderivative, its derivative as a check) |
+| F4 on an answer | its other forms (on an antiderivative, its derivative as a check) |
 | `(-)` | a minus sign; `2nd (-)` is the last answer (Ans) |
 | `+` `−` `×` `÷` `^` `x²` first | works on the last answer, as on a TI (`× 2` is Ans·2) |
 | `2nd enter` | the last input again (ENTRY); press again for the one before |
 | `sto→` | stores a value: `5 → b` |
 | `clear` | erases the line; on an empty line, the answer |
 | ON or `clear` while computing | stops the calculation |
-| *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table (FlowCE Steps: arrows pan, `+` `−` zoom, F1 trace, F3 key points and tools, F4 table) |
-| *more* → Statistics, Probability, Practice | FlowCE Steps: data and fitted curves, distributions and tests, practice problems |
+| *more* → Graph | graphs the line or the answer; in the graph: F2 window and curve study, `2nd graph` table (FlowCE 2.0: arrows pan, `+` `−` zoom, F1 trace, F3 key points and tools, F4 table) |
+| *more* → Statistics, Probability, Practice | data and fitted curves, distributions and tests, practice problems (FlowCE 2.0) |
 | `mode` | settings (*Simplify answers* on or off), shortcuts, about |
 | `2nd quit` | quit (your session is kept) |
 
@@ -215,7 +207,7 @@ by Bernard Parisse.
 - **Math engine:** Giac, by Bernard Parisse and contributors (Institut Fourier, Université
   Grenoble Alpes).
 - **Algebra steps, the graph screen, analyze, statistics, probability and practice** (FlowCE
-  Steps, from 2.0 beta 3): from [DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by
+  2.0): from [DeltaCE](https://github.com/bupfff/DeltaCE), a fork of FlowCE by
   Gabriel, merged back into FlowCE with its history.
 - **Console interface:** adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith,
   Nemhardy and LePhenixNoir.

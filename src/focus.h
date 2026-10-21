@@ -9,7 +9,7 @@ extern "C" {
 #endif
 #define focus_on 1 // the console is drawn by focus.cc (a constant: the classic screen's paths compile away)
 #ifdef FLOWCE_STEPS
-#define FLOWCE_VERSION "2.0b3" // the step-by-step build, in beta
+#define FLOWCE_VERSION "2.0" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
 #else
 #define FLOWCE_VERSION "1.9.1" // in the status bar and on the start screen: bump it at each release
 #endif
