@@ -86,7 +86,8 @@ enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_
 // FA_RUN: *text is a calculation to run (an application's form, the calculus card's Applications),
 // which took the line typed when the menu opened (focus_form_line, set by the console)
 extern const char * focus_form_line;
-void focus_toggle_theme();             // Paper <-> Night, at once (the palette), saved in the appvar FocusUI
+int focus_theme();                     // the theme (of ui_themes, ui_gfx.h)
+void focus_set_theme(int i);           // theme i at once (the palette), saved in the appvar FocusUI
 int focus_popover(int key, const char ** text, int * back);
 
 // focus_catalog.cc: the command search. query: initial text (the word before the caret), may be

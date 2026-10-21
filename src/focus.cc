@@ -38,7 +38,7 @@ const char * console_fkey_label(int layer, int k); // console.cc: F-key label (l
 
 // timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
 extern "C" { volatile unsigned char focus_phase; }
-static const ui_theme * theme = &ui_theme_paper; // Paper or Night (focus_toggle_theme)
+static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 
 enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
        IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292 };
@@ -1081,7 +1081,7 @@ void focus_disp(int mode) {
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;
   (void)mode; // KhiCAS asks for full redraws on most cursor moves: what changed is computed here
-  ui_set_theme(theme); // cheap; repairs entries 128-255 if anything reset the palette
+  ui_set_theme(ui_themes[theme_i]); // cheap; repairs entries 128-255 if anything reset the palette
   int ours = PM.ll == Last_Line && screen_is_ours();
   if (ours && !PM.hist && hm != HM_RESULT && console_caret() >= 0 && nonempty && console_edit2d()) {
     // typing: only the expression changed (the entries above did not move; after a result shown
@@ -1187,16 +1187,18 @@ int focus_view;
 void focus_invalidate() { PM.ll = -1; }
 
 void focus_init() {
-  const char * t = read_file("FocusUI"); // the theme chosen last
-  theme = t && t[0] == 'N' ? &ui_theme_night : &ui_theme_paper;
-  ui_set_theme(theme);
+  const char * t = read_file("FocusUI"); // the theme chosen last: its digit (P or N before 2.0)
+  theme_i = !t ? 0 : t[0] == 'N' ? 1 : t[0] > '0' && t[0] < '0' + UI_NTHEMES ? t[0] - '0' : 0;
+  ui_set_theme(ui_themes[theme_i]);
   read_battery();
 }
 // every Focus pixel is a palette entry: the new theme shows at once, without a redraw
-void focus_toggle_theme() {
-  theme = theme == &ui_theme_night ? &ui_theme_paper : &ui_theme_night;
-  ui_set_theme(theme);
-  write_file("FocusUI", theme == &ui_theme_night ? "N" : "P", 2);
+int focus_theme() { return theme_i; }
+void focus_set_theme(int i) {
+  theme_i = i;
+  ui_set_theme(ui_themes[i]);
+  const char d[2] = {(char)('0' + i), 0};
+  write_file("FocusUI", d, 2);
 }
 extern "C" void focus_idle(void) { // getkey, after a few idle seconds
   if (!focus_on) return;

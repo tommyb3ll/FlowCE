@@ -101,8 +101,8 @@ def run_scene(state, outdir, name, steps):
         e.run(800)
         e.wait_idle(timeout=5000)
         for st in steps:
-            if st[0] == 'night':  # more menu, item 3: Paper or Night
-                e.type('{graph}3')
+            if st[0] == 'night':  # more menu, item 3: Themes, then 2: Night
+                e.type('{graph}32')
                 e.run(1500)
             elif st[0] == 'p':
                 e.paste(st[1])

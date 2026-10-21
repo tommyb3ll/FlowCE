@@ -49,6 +49,10 @@ enum { UC_BG, UC_INK, UC_SUB, UC_LINE, UC_ACC, UC_ACCSOFT, UC_ONACC, UC_CARD, UC
        UC_HEAD, UC_HEADINK, UC_HEADSUB, UC_BARLINE, UC_TILE, UC_DIMBAR, UC_COUNT };
 typedef struct { unsigned char rgb[UC_COUNT][3]; unsigned char dim_to[3], dim_pct; } ui_theme;
 extern const ui_theme ui_theme_paper, ui_theme_night;
+#define UI_NTHEMES 9
+extern const ui_theme * const ui_themes[UI_NTHEMES]; // more > Themes, in its grid's order
+extern const char * const ui_theme_names[UI_NTHEMES];
+const ui_theme * ui_theme_now(void);
 
 void ui_set_theme(const ui_theme * t);      // (re)writes every palette entry in use
 unsigned char ui_col(int bank, int c);      // palette index of color c in bank 0/1
@@ -59,6 +63,12 @@ void ui_restore_os_palette(void);            // not needed today: KhiCAS uses 0-
 void ui_fill(int x, int y, int w, int h, unsigned char idx);
 // rounded rectangle filled with color c over background bg (anti-aliased corners)
 void ui_rrect(int bank, int x, int y, int w, int h, int r, int c, int bg);
+void ui_rrect_r(int x, int y, int w, int h, int r, const unsigned char * ramp); // the same with a ramp of one's own
+// Entries 0-127 are KhiCAS's own screens', none of them shown with the Focus UI: a card may borrow
+// entries 32-127 for colors outside the theme (the themes' samples), given back by ui_borrow_end
+void ui_borrow(int i, const unsigned char * rgb);
+void ui_borrow_mix(int i, const unsigned char * a, const unsigned char * b, int t); // a, t/3 of the way to b
+void ui_borrow_end(void);
 // 1 px rounded outline in color c over background bg
 void ui_rframe(int bank, int x, int y, int w, int h, int r, int c, int bg);
 // the inner corner where two edges of a shape meet (an open tab under its card): the r x r box at

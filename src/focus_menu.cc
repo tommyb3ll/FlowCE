@@ -76,7 +76,7 @@ static const fm_item m_sym[] = { // what the keypad has no key for, or hides beh
 static const fm_item m_more[] = {
   {0, 0, 0, "Graph", "line or answer", FA_GRAPH},
   {0, 0, 0, "All commands", "search", FA_CATALOG},
-  {0, 0, 0, "Paper or Night", "theme", FA_THEME},
+  {0, 0, 0, "Themes", "colors", FA_THEME},
   {0, 0, 0, "Other plots", "kinds", FA_PLOT},
 #ifdef FLOWCE_STEPS
   {0, 0, 0, "Statistics", "data, fits", FA_STATS}, // (DeltaCE: focus_stats.cc)
@@ -1059,6 +1059,96 @@ static const char * app_form(int k, int oy) {
 }
 #endif
 
+// ------------------------------------------------------------------ the themes
+// more > Themes: the themes as a grid in the more card's place, each tile in its own colors
+// (palette entries lent by KhiCAS's screens: ui_borrow): its name, four of its colors; the one
+// selected shows at once, on the whole screen. enter or its digit keeps it, clear the one before.
+enum { TW = 100, THH = 54 };
+static void theme_inks() { // the tiles' lent entries; their corners on the card of the theme shown
+  const unsigned char * card = ui_theme_now()->rgb[UC_CARD];
+  static const unsigned char dot[4] = {UC_ACC, UC_RED, UC_ORANGE, UC_GREEN};
+  for (int k = 0; k < UI_NTHEMES; ++k) {
+    const ui_theme & t = *ui_themes[k];
+    const int b = 32 + 10 * k;
+    ui_borrow(b, t.rgb[UC_BG]);
+    ui_borrow_mix(b + 1, card, t.rgb[UC_BG], 1); ui_borrow_mix(b + 2, card, t.rgb[UC_BG], 2);
+    ui_borrow_mix(b + 3, t.rgb[UC_BG], t.rgb[UC_INK], 1); ui_borrow_mix(b + 4, t.rgb[UC_BG], t.rgb[UC_INK], 2);
+    ui_borrow(b + 5, t.rgb[UC_INK]);
+    for (int j = 0; j < 4; ++j) ui_borrow(b + 6 + j, t.rgb[dot[j]]);
+  }
+}
+static void theme_tile(int k, int on) {
+  const int x = px + 5 + k % 3 * TW, y = py + 5 + k / 3 * THH, b = 32 + 10 * k;
+  const unsigned char fill[4] = {ui_col(1, UC_CARD), (unsigned char)(b + 1), (unsigned char)(b + 2), (unsigned char)b};
+  const unsigned char ink[4] = {(unsigned char)b, (unsigned char)(b + 3), (unsigned char)(b + 4), (unsigned char)(b + 5)};
+  ui_clip(x, y, x + TW, y + THH);
+  ui_fill(x, y, TW, THH, ui_col(1, UC_CARD));
+  ui_rrect_r(x + 3, y + 3, TW - 6, THH - 6, 7, fill);
+  ui_rframe(1, x + 3, y + 3, TW - 6, THH - 6, 7, on ? UC_ACC : UC_LINE, UC_CARD);
+  if (on) ui_rframe(1, x + 2, y + 2, TW - 4, THH - 4, 8, UC_ACC, UC_CARD); // (the one shown: 2 px)
+  ui_draw_text(&ui_tb12, ui_theme_names[k], -1, x + 13, y + 24, ink, 0);
+  for (int j = 0; j < 4; ++j) { // accent, red, orange, green: 7 px squares, their corners cut
+    const int dx = x + 13 + 12 * j, dy = y + 32;
+    ui_fill(dx + 1, dy, 5, 7, (unsigned char)(b + 6 + j));
+    ui_fill(dx, dy + 1, 7, 5, (unsigned char)(b + 6 + j));
+  }
+  ui_noclip();
+}
+static void theme_paint(int sel, int y0, int y1, int all) { // rows [y0, y1): the card (all), its tiles
+  const int rows = ui_band_open(48);
+  for (int b = y0; b < y1; b += rows ? rows : y1 - y0) {
+    const int e = rows && b + rows < y1 ? b + rows : y1;
+    if (rows) { ui_band_begin(b, e); ui_band_load(); }
+    else ui_clip(0, b, UI_W, e);
+    if (all) card_bg();
+    for (int k = 0; k < UI_NTHEMES; ++k) {
+      const int y = py + 5 + k / 3 * THH;
+      if (y < e && y + THH > b) theme_tile(k, k == sel);
+    }
+    if (rows) ui_band_end();
+    ui_noclip();
+    key_latch();
+  }
+}
+// the grid on tab id, in the place of the card shown there (its top oy)
+static void theme_card(int id, int oy) {
+  const int k0 = focus_theme();
+  int sel = k0;
+  pw = 3 * TW + 10; ph = 3 * THH + 10;
+  px = 32 + 64 * id - pw / 2;
+  if (px < 1) px = 1;
+  if (px > UI_W - pw - 1) px = UI_W - pw - 1;
+  py = SBOT - ph;
+  if (py > oy) focus_repaint(oy - 2, py);
+  theme_inks();
+  theme_paint(sel, py, SBOT, 1);
+  card_tab(id, 0);
+  for (;;) {
+    int key;
+    GetKey(&key);
+    if (key == KEY_CTRL_SHIFT || key == KEY_CTRL_ALPHA) continue;
+    int ns = sel, done = 0;
+    if (key == KEY_CTRL_EXIT || key == KEY_CTRL_AC || key == KEY_CTRL_F5 || key == KEY_CTRL_QUIT) { ns = k0; done = 1; }
+    else if (key == KEY_CTRL_EXE || key == KEY_CTRL_OK) done = 2;
+    else if (key >= KEY_CHAR_1 && key < KEY_CHAR_1 + UI_NTHEMES) { ns = key - KEY_CHAR_1; done = 2; }
+    else if (key == KEY_CTRL_LEFT) ns = sel % 3 ? sel - 1 : sel + 2;
+    else if (key == KEY_CTRL_RIGHT) ns = sel % 3 < 2 ? sel + 1 : sel - 2;
+    else if (key == KEY_CTRL_UP) ns = sel >= 3 ? sel - 3 : sel + 6;
+    else if (key == KEY_CTRL_DOWN) ns = sel < 6 ? sel + 3 : sel - 6;
+    if (ns != sel) { // that theme at once, everywhere (the tiles' corners on its card)
+      ui_set_theme(ui_themes[ns]);
+      theme_inks();
+      const int o = py + 5 + sel / 3 * THH, n = py + 5 + ns / 3 * THH;
+      sel = ns;
+      if (!done) { theme_paint(sel, o, o + THH, 0); if (n != o) theme_paint(sel, n, n + THH, 0); }
+    }
+    if (done) {
+      if (done == 2) focus_set_theme(sel); // (kept: saved)
+      return;
+    }
+  }
+}
+
 static signed char pop_last[6], sub_last; // (DeltaCE) each menu opens on the item picked last (sub_last: the applications' card)
 int focus_popover(int key, const char ** text, int * back) {
   int id = key == KEY_CTRL_SYMB ? 5 : key - KEY_CTRL_F1;
@@ -1101,6 +1191,20 @@ int focus_popover(int key, const char ** text, int * back) {
       continue;
     }
 #endif
+    if (res == FA_THEME) { // the themes' grid in the card's place (not over a form: nothing)
+      res = FA_NONE;
+#ifdef FLOWCE_STEPS
+      if (!af_nest)
+#endif
+      {
+        delete[] PL;
+        PL = 0;
+        theme_card(id, py);
+        close_card(0, 1);
+        ui_borrow_end(); // (the tiles gone)
+        return FA_NONE;
+      }
+    }
     // the card's rows are repainted from the stage (not under the command search, which covers
     // the screen at once)
     close_card(0, res != FA_CATALOG);

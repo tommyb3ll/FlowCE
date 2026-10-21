@@ -80,6 +80,54 @@ const ui_theme ui_theme_night = {{
   {12, 15, 20}, {100, 165, 255}, {134, 145, 158}, {38, 46, 58}, {33, 41, 53}, {16, 21, 28}},
   {0, 0, 0}, 50};
 
+// more > Themes: seven more, after well-liked palettes (Solarized, Nord, Gruvbox, Rose Pine Dawn,
+// Dracula), each slot as Paper's or Night's: Sand (cream, burnt orange), Mint (teal), Arctic (slate,
+// frost), Ember (warm dark, orange), Rose (warm cream, rose), Grape (purple), Forest (green)
+static const ui_theme T_sand = {{
+  {253, 246, 227}, {7, 54, 66}, {101, 123, 131}, {232, 224, 203}, {203, 75, 22}, {250, 230, 208},
+  {255, 255, 255}, {255, 251, 240}, {255, 251, 240}, {88, 110, 117}, {133, 153, 0}, {222, 212, 186},
+  {255, 255, 255}, {220, 50, 47}, {108, 113, 196}, {181, 137, 0}, {38, 139, 210}, {253, 246, 227},
+  {253, 246, 227}, {203, 75, 22}, {101, 123, 131}, {232, 224, 203}, {243, 235, 212}, {255, 251, 240}},
+  {0, 43, 54}, 36};
+static const ui_theme T_mint = {{
+  {244, 248, 246}, {16, 32, 26}, {96, 116, 107}, {214, 227, 221}, {13, 128, 112}, {218, 240, 234},
+  {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {70, 92, 83}, {46, 140, 62}, {204, 217, 211},
+  {255, 255, 255}, {196, 64, 72}, {116, 82, 186}, {214, 116, 30}, {40, 100, 200}, {244, 248, 246},
+  {244, 248, 246}, {13, 128, 112}, {96, 116, 107}, {214, 227, 221}, {233, 242, 238}, {255, 255, 255}},
+  {20, 38, 32}, 36};
+static const ui_theme T_arctic = {{
+  {46, 52, 64}, {236, 239, 244}, {170, 180, 197}, {67, 76, 94}, {136, 192, 208}, {59, 80, 94},
+  {36, 41, 51}, {59, 66, 82}, {52, 59, 73}, {170, 180, 197}, {163, 190, 140}, {30, 34, 42},
+  {36, 41, 51}, {191, 97, 106}, {180, 142, 173}, {208, 135, 112}, {129, 161, 193}, {46, 52, 64},
+  {46, 52, 64}, {136, 192, 208}, {170, 180, 197}, {67, 76, 94}, {71, 80, 99}, {52, 59, 73}},
+  {0, 0, 0}, 45};
+static const ui_theme T_ember = {{
+  {40, 40, 40}, {235, 219, 178}, {168, 153, 132}, {80, 73, 69}, {254, 128, 25}, {78, 52, 30},
+  {40, 40, 40}, {50, 48, 47}, {45, 44, 43}, {168, 153, 132}, {184, 187, 38}, {22, 22, 22},
+  {40, 40, 40}, {251, 73, 52}, {211, 134, 155}, {250, 189, 47}, {131, 165, 152}, {40, 40, 40},
+  {40, 40, 40}, {254, 128, 25}, {168, 153, 132}, {80, 73, 69}, {64, 60, 57}, {45, 44, 43}},
+  {0, 0, 0}, 50};
+static const ui_theme T_rose = {{
+  {250, 244, 237}, {70, 64, 104}, {121, 117, 147}, {240, 230, 220}, {180, 99, 122}, {246, 228, 230},
+  {255, 255, 255}, {255, 250, 243}, {255, 250, 243}, {110, 106, 134}, {40, 105, 131}, {230, 218, 206},
+  {255, 255, 255}, {215, 130, 126}, {144, 122, 169}, {234, 157, 52}, {86, 148, 159}, {250, 244, 237},
+  {250, 244, 237}, {180, 99, 122}, {121, 117, 147}, {240, 230, 220}, {246, 236, 226}, {255, 250, 243}},
+  {40, 34, 52}, 36};
+static const ui_theme T_grape = {{
+  {40, 42, 54}, {248, 248, 242}, {150, 160, 205}, {68, 71, 90}, {189, 147, 249}, {66, 56, 98},
+  {40, 42, 54}, {50, 52, 68}, {45, 47, 61}, {150, 160, 205}, {80, 250, 123}, {24, 25, 33},
+  {40, 42, 54}, {255, 85, 85}, {255, 121, 198}, {255, 184, 108}, {139, 233, 253}, {40, 42, 54},
+  {40, 42, 54}, {189, 147, 249}, {150, 160, 205}, {68, 71, 90}, {68, 71, 90}, {45, 47, 61}},
+  {0, 0, 0}, 50};
+static const ui_theme T_forest = {{
+  {17, 25, 21}, {226, 238, 230}, {136, 160, 147}, {44, 60, 52}, {111, 207, 151}, {30, 58, 44},
+  {14, 22, 18}, {26, 37, 31}, {21, 31, 26}, {136, 160, 147}, {158, 206, 106}, {8, 12, 10},
+  {14, 22, 18}, {240, 113, 120}, {187, 154, 247}, {255, 158, 100}, {122, 162, 247}, {17, 25, 21},
+  {17, 25, 21}, {111, 207, 151}, {136, 160, 147}, {44, 60, 52}, {38, 52, 45}, {21, 31, 26}},
+  {0, 0, 0}, 50};
+const ui_theme * const ui_themes[UI_NTHEMES] = {&ui_theme_paper, &ui_theme_night, &T_sand, &T_mint, &T_arctic, &T_ember, &T_rose, &T_grape, &T_forest};
+const char * const ui_theme_names[UI_NTHEMES] = {"Paper", "Night", "Sand", "Mint", "Arctic", "Ember", "Rose", "Grape", "Forest"};
+
 // bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest. Ramps shown at
 // once (2.0, counted on the emulator): the scene's screens 14 at most (the action row; history and
 // search 12, the graph 9), the cards 11 (an application's form; the graph's table 10): 23 and 17
@@ -122,6 +170,24 @@ static void write_bank(int bank) {
 }
 
 void ui_set_theme(const ui_theme * t) { TH = t; write_bank(0); write_bank(1); }
+const ui_theme * ui_theme_now(void) { return TH; }
+// entries 32-127 lent to a card (their colors back at ui_borrow_end)
+static unsigned short lent[96];
+static unsigned char lent_on[96];
+void ui_borrow(int i, const unsigned char * c) {
+  const int k = i - 32;
+  if (k < 0 || k >= 96) return;
+  if (!lent_on[k]) { lent_on[k] = 1; lent[k] = PALETTE[i]; }
+  PALETTE[i] = rgb565(c[0], c[1], c[2]);
+}
+void ui_borrow_mix(int i, const unsigned char * a, const unsigned char * b, int t) {
+  unsigned char c[3];
+  for (int j = 0; j < 3; ++j) c[j] = (unsigned char)(a[j] + (b[j] - a[j]) * t / 3);
+  ui_borrow(i, c);
+}
+void ui_borrow_end(void) {
+  for (int k = 0; k < 96; ++k) if (lent_on[k]) { PALETTE[32 + k] = lent[k]; lent_on[k] = 0; }
+}
 void ui_dim(int on) { if (dimmed != on) { dimmed = on; write_bank(0); } }
 void ui_restore_os_palette(void) {}
 unsigned char ui_col(int bank, int c) { return (unsigned char)(128 + bank * BANK0 + c); }
@@ -236,8 +302,8 @@ static void corners(int x, int y, int w, int h, int r, const unsigned char * ram
   }
 }
 
-void ui_rrect(int bank, int x, int y, int w, int h, int r, int c, int bg) {
-  const unsigned char * ramp = ui_ramp(bank, c, bg);
+void ui_rrect(int bank, int x, int y, int w, int h, int r, int c, int bg) { ui_rrect_r(x, y, w, h, r, ui_ramp(bank, c, bg)); }
+void ui_rrect_r(int x, int y, int w, int h, int r, const unsigned char * ramp) {
   if (r * 2 > h) r = h / 2;
   if (r * 2 > w) r = w / 2;
   ui_fill(x + r, y, w - 2 * r, h, ramp[3]);

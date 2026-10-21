@@ -2660,10 +2660,6 @@ int Console_GetKey(){
         continue;
       }
 #endif
-      if (a==FA_THEME){
-        focus_toggle_theme();
-        continue;
-      }
       if (a==FA_GRAPH){ // graph the line, else the selected or shown answer: plot(...) not typed
         string g;
         if (Current_Line==Last_Line && Edit_Line && Edit_Line[0])

@@ -97,7 +97,8 @@ what you typed, or post on the [Cemetech thread](https://www.cemetech.net/forum/
   zoom, find roots and extrema, and see a table of values.
 - **History and search.** **▲** walks through your past calculations; enter reuses an input or an
   answer. **▼** searches every command, with descriptions and examples.
-- **Paper and Night themes**, switched from the *more* menu.
+- **Nine themes** (*more* → Themes): Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest,
+  each shown on the whole screen as you move to it.
 - **Tested on the calculator itself.** Before a release, about 900 Calc 1–3 problems run on an
   emulated TI-84 Plus CE and their answers are checked against a computer's. A long calculation
   shows *Calculating*, and **ON** stops it; one that runs out of memory stops with a message
