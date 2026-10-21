@@ -1,5 +1,5 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// version picked (files/FlowCE.b84, or files/FlowCE-steps.b84 for the steps build) over WebUSB
+// version picked (files/FlowCE.b84, or files/FlowCE-python.b84 for the Python build) over WebUSB
 // and opens its installer, which then needs one key press on the calculator. Steps and texts:
 // index.html.
 import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile, readAppFile } from './dusb.js';
@@ -21,7 +21,7 @@ const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentDat
 // The versions the page installs, with their version texts (site/build.sh puts them in files/)
 const BUILDS = {
   normal: { file: 'FlowCE.b84', ver: 'version.txt', name: 'FlowCE' },
-  steps: { file: 'FlowCE-steps.b84', ver: 'version-steps.txt', name: 'FlowCE Steps' },
+  python: { file: 'FlowCE-python.b84', ver: 'version-python.txt', name: 'FlowCE Python' },
 };
 const versions = {};      // their version texts once read ('' if the site doesn't have it)
 let build = 'normal';     // the version picked
@@ -605,7 +605,8 @@ function init() {
   document.querySelectorAll('.step').forEach((li, i) => { li.dataset.n = String(i + 1); });
   mark('connect', 'active');
 
-  // the version: picked here, or by a link (?build=steps); one this site doesn't have is off
+  // the version: picked here, or by a link (?build=python; ?build=steps, from the betas: FlowCE);
+  // one this site doesn't have is off
   const radios = document.querySelectorAll('input[name="build"]');
   const want = new URLSearchParams(location.search).get('build');
   if (Object.prototype.hasOwnProperty.call(BUILDS, want)) build = want;

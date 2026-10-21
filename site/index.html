@@ -54,12 +54,12 @@
     <label class="opt">
       <input type="radio" name="build" value="normal" checked>
       <span class="opt-head"><strong>FlowCE</strong> <span class="ver" data-ver="normal"></span></span>
-      <span class="opt-text">The stable version. Exact answers, graphs, and programs in Python syntax.</span>
+      <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs, statistics and the Applications menu.</span>
     </label>
     <label class="opt">
-      <input type="radio" name="build" value="steps">
-      <span class="opt-head"><strong>FlowCE Steps</strong> <span class="badge">beta</span> <span class="ver" data-ver="steps"></span></span>
-      <span class="opt-text">Worked steps for calculus and algebra, a new graph screen, statistics and the Applications menu. No Python syntax.</span>
+      <input type="radio" name="build" value="python">
+      <span class="opt-head"><strong>FlowCE Python</strong> <span class="ver" data-ver="python"></span></span>
+      <span class="opt-text">For programs: Python syntax and the program editor. Exact answers and graphs, no steps.</span>
     </label>
   </div>
 
@@ -142,7 +142,7 @@
       <li>Clear the archive before starting: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
       <li>Follow the <a href="https://yvantt.github.io/arTIfiCE/">official arTIfiCE v3 instructions for OS 5.8.5</a>: install Inequalz, reset RAM, send <code>arTIfiCE.8xp</code> to RAM, open Inequalz's Functions screen, then send <code>INEQUVAR.8xv</code>. After the restart, press <kbd>on</kbd> if the screen stays black.</li>
       <li><kbd>apps</kbd> → <strong>AsmHook2</strong>. Dismiss “Installation successful!” to return to the home screen.</li>
-      <li>Download the version selected above: <a href="files/FlowCE.b84" download>FlowCE</a> or <a href="files/FlowCE-steps.b84" download>FlowCE Steps (beta)</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
+      <li>Download the version selected above: <a href="files/FlowCE.b84" download>FlowCE</a> or <a href="files/FlowCE-python.b84" download>FlowCE Python</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
       <li><kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. Ignore the bundle's program A; it is for older OS versions. Press <kbd>enter</kbd> at the install prompt, then wait for the countdown to finish.</li>
       <li>At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
     </ol>
@@ -169,19 +169,19 @@
 <section id="screens" class="wrap">
   <h2>Screens</h2>
   <div class="gallery">
-    <figure><img src="media/screenshots/steps_parts.png" loading="lazy" width="640" height="480" alt="Steps for the integral of x sin x: integration by parts"><figcaption>steps: integration by parts <span class="badge">beta</span></figcaption></figure>
-    <figure><img src="media/screenshots/steps_quadratic.png" loading="lazy" width="640" height="480" alt="Steps for a quadratic equation: a, b and c, then the quadratic formula"><figcaption>steps: an equation <span class="badge">beta</span></figcaption></figure>
-    <figure><img src="media/screenshots/menu_apps.png" loading="lazy" width="640" height="480" alt="Applications menu: area, washers, shells, arc length, surface area and average value"><figcaption>calculus applications <span class="badge">beta</span></figcaption></figure>
+    <figure><img src="media/screenshots/steps_parts.png" loading="lazy" width="640" height="480" alt="Steps for the integral of x sin x: integration by parts"><figcaption>steps: integration by parts</figcaption></figure>
+    <figure><img src="media/screenshots/steps_quadratic.png" loading="lazy" width="640" height="480" alt="Steps for a quadratic equation: a, b and c, then the quadratic formula"><figcaption>steps: an equation</figcaption></figure>
+    <figure><img src="media/screenshots/menu_apps.png" loading="lazy" width="640" height="480" alt="Applications menu: area, washers, shells, arc length, surface area and average value"><figcaption>calculus applications</figcaption></figure>
     <figure><img src="media/screenshots/basel.png" loading="lazy" width="640" height="480" alt="The sum of 1 over n squared equals pi squared over 6"><figcaption>exact answers: π²/6</figcaption></figure>
-    <figure><img src="media/screenshots/apps_area_steps.png" loading="lazy" width="640" height="480" alt="Worked steps finding where two curves meet before computing their enclosed area"><figcaption>area between curves <span class="badge">beta</span></figcaption></figure>
-    <figure><img src="media/screenshots/graph_points.png" loading="lazy" width="640" height="480" alt="The graph of x cubed minus 3x with its key points labeled"><figcaption>graphs: key points <span class="badge">beta</span></figcaption></figure>
+    <figure><img src="media/screenshots/apps_area_steps.png" loading="lazy" width="640" height="480" alt="Worked steps finding where two curves meet before computing their enclosed area"><figcaption>area between curves</figcaption></figure>
+    <figure><img src="media/screenshots/graph_points.png" loading="lazy" width="640" height="480" alt="The graph of x cubed minus 3x with its key points labeled"><figcaption>graphs: key points</figcaption></figure>
   </div>
   <ul class="tips">
     <li><kbd>F1</kbd>–<kbd>F5</kbd> menus</li>
     <li><kbd>▲</kbd> history</li>
     <li><kbd>▼</kbd> search commands</li>
     <li><kbd>F4</kbd> other forms</li>
-    <li><kbd>enter</kbd> after an answer: its steps (Steps)</li>
+    <li><kbd>enter</kbd> after an answer: its steps</li>
     <li><kbd>on</kbd> stops a calculation</li>
   </ul>
 </section>

@@ -1,9 +1,9 @@
 name: Web page
 
 # Publishes the FlowCE page (site/) on GitHub Pages, with the latest release's FlowCE.b84 for its
-# web installer, and the steps build: FlowCE-steps.b84 from the newest release that has one (a
-# beta is a prerelease, which "latest" skips). Runs when the page or its media change, and when a
-# release is published.
+# web installer, and the Python build: FlowCE-python.b84 from the newest release that has one (its
+# version from that release's notes, "FlowCE Python 1.9.1", else the release's tag). Runs when the
+# page or its media change, and when a release is published.
 # A release's run cannot deploy itself: it runs on the tag, and the github-pages environment only
 # takes main. So it starts this workflow on main instead (workflow_dispatch), which deploys.
 on:
@@ -39,17 +39,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble the page with the latest release and the steps build
+      - name: Assemble the page with the latest release and the Python build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern FlowCE.b84 --dir "$RUNNER_TEMP"
-          steps=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq '[.[] | select((.draft | not) and any(.assets[]; .name == "FlowCE-steps.b84"))][0].tag_name // empty')
-          if [ -n "$steps" ]; then
-            mkdir -p "$RUNNER_TEMP/steps"
-            gh release download "$steps" --repo "$GITHUB_REPOSITORY" --pattern FlowCE-steps.b84 --dir "$RUNNER_TEMP/steps"
-            bash site/build.sh "$RUNNER_TEMP/FlowCE.b84" "$tag" "$RUNNER_TEMP/steps/FlowCE-steps.b84" "$steps"
+          sel='[.[] | select((.draft | not) and any(.assets[]; .name == "FlowCE-python.b84"))][0]'
+          py=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "$sel.tag_name // empty")
+          if [ -n "$py" ]; then
+            mkdir -p "$RUNNER_TEMP/python"
+            gh release download "$py" --repo "$GITHUB_REPOSITORY" --pattern FlowCE-python.b84 --dir "$RUNNER_TEMP/python"
+            pyver=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "$sel.body // empty" | grep -o -m1 'FlowCE Python v\?[0-9][0-9.]*[0-9]' | grep -o '[0-9][0-9.]*[0-9]' || true)
+            bash site/build.sh "$RUNNER_TEMP/FlowCE.b84" "$tag" "$RUNNER_TEMP/python/FlowCE-python.b84" "${pyver:+v$pyver}"
           else
             bash site/build.sh "$RUNNER_TEMP/FlowCE.b84" "$tag"
           fi
