@@ -154,11 +154,39 @@ static int lroom(const fm_menu & m, int k) {
   const int w = pw - (m.n > vis ? 18 : 10), lw = it.label ? ui_text_width(&ui_tr12, it.label, -1) + 18 : 0;
   return w - 40 - lw > 40 ? w - 40 - lw : 40;
 }
-// the previews of the open menu, laid out once (empty arguments drawn as boxes)
+// the previews of the open menu, laid out once (empty arguments drawn as boxes); PLV: their levels
+// (a list's items: 60 at most; 16 overran into the next variables with the graph's points)
 static mi_layout * PL;
-static signed char PLV[16];
-static void prepare(const fm_menu & m) {
+static signed char PLV[60];
+// The fixed menus' previews (the F-keys' cards, the applications'), kept once laid out: laying them
+// out again took a third of the calculus card's opening. Given back when the heap runs out.
+struct kept { mi_layout * L; short w, h; signed char lv[16]; };
+enum { NKEPT = 7 };
+static kept * KP[NKEPT];
+static void drop_pl() { // PL let go (kept ones stay)
+  for (int c = 0; c < NKEPT; ++c) if (PL && KP[c] && PL == KP[c]->L) { PL = 0; return; }
   delete[] PL;
+  PL = 0;
+}
+extern "C" int focus_menu_release(void) { // (allocator_custom.c) the kept previews not in use
+  int r = 0;
+  for (int c = 0; c < NKEPT; ++c)
+    if (KP[c] && KP[c]->L != PL) { delete[] KP[c]->L; delete KP[c]; KP[c] = 0; r = 1; }
+  return r;
+}
+static void prepare(const fm_menu & m);
+static void prepare_kept(const fm_menu & m, int c) { // menu c's previews: kept, or laid out and kept
+  kept * k = KP[c];
+  const short h = (short)(m.grid ? 0 : rh); // (a list's previews fit its rows; a grid's, its cells)
+  if (k && k->w == pw && k->h == h) { drop_pl(); PL = k->L; memcpy(PLV, k->lv, sizeof k->lv); return; }
+  if (k) { if (PL == k->L) PL = 0; delete[] k->L; delete k; KP[c] = 0; }
+  prepare(m);
+  if (m.n > 16 || !PL || !(k = new kept)) return;
+  k->L = PL; k->w = (short)pw; k->h = h; memcpy(k->lv, PLV, sizeof k->lv);
+  KP[c] = k;
+}
+static void prepare(const fm_menu & m) {
+  drop_pl();
   PL = new mi_layout[m.n];
   for (int k = 0; k < m.n; ++k) {
     const fm_item & it = m.items[k];
@@ -196,6 +224,28 @@ static void prepare(const fm_menu & m) {
       ++lv;
     }
 }
+// getkey at the console, idle (no card open): the next fixed menu's previews laid out and kept, so
+// even its first opening is quick (laying them out was a third of the calculus card's 0.46 s); a key
+// pressed meanwhile is kept (prepare latches keys) and read right after
+extern "C" void focus_warm(void) {
+  static signed char next;
+#ifdef FLOWCE_STEPS
+  enum { NW = 7 };
+#else
+  enum { NW = 6 };
+#endif
+  while (next < NW && KP[next]) ++next;
+  if (next >= NW || (int)(size_t)malloc(0xffffff) < 40 * 1024) return; // (the heap short: the screen's strip would go)
+  const int c = next++;
+#ifdef FLOWCE_STEPS
+  const fm_menu & m = c < 6 ? MENUS[c] : M_APPS;
+#else
+  const fm_menu & m = MENUS[c];
+#endif
+  geometry(c < 6 ? c : 1, m);
+  prepare_kept(m, c);
+  drop_pl();
+}
 // item k's preview, centered vertically at ymid; centered in w if center, else from x
 static void preview(int k, const char * t, int x, int ymid, int w, int ink, int bg, int center) {
   if (PLV[k] < 0) return;
@@ -219,13 +269,14 @@ static void sym_text(const char * s, int cx, int cy, int fg, int bg) {
   ui_draw_text(f, s, -1, cx - ui_text_width(f, s, -1) / 2, cy - (t + b) / 2, ui_ramp(1, fg, bg), 0);
 }
 
+static char fresh; // paint_rows: the card was just painted under the items (their boxes are the card's color)
 static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int sel) {
   const fm_item & it = m.items[k];
   int x, y, w, h;
   item_box(m, k, x, y, w, h);
   int on = k == sel, bg = on ? UC_ACC : UC_TILE, fg = on ? UC_ONACC : UC_INK, sub = on ? UC_ONACC : UC_SUB;
   ui_clip(x, y, x + w, y + h);
-  ui_fill(x, y, w, h, ui_col(1, UC_CARD));
+  if (!fresh) ui_fill(x, y, w, h, ui_col(1, UC_CARD));
   if (m.grid) {
     ui_rrect(1, x + 2, y + 2, w - 4, h - 4, 6, bg, UC_CARD); // each item on its tile (the selected one blue)
     if (m.wide && k == m.n - 1) { // the bar: its preview, the label over the hint, a chevron
@@ -275,15 +326,36 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
 
 // the card: a shadow (dimmed, bank 0), the white card, a hairline inside its edge
 static void card_bg() {
+  // the shadow where the card leaves it showing, along its right and bottom edges (all of it was
+  // filled, then covered by the card)
+  const int c0 = ui_cx0, r0 = ui_cy0, c1 = ui_cx1, r1 = ui_cy1;
+  ui_clip(c0 > px + pw - 8 ? c0 : px + pw - 8, r0, c1, r1);
   ui_rrect(0, px + 1, py + 3, pw, ph, 8, UC_SHADOW, UC_BG);
+  ui_clip(c0, r0 > py + ph - 8 ? r0 : py + ph - 8, c1, r1);
+  ui_rrect(0, px + 1, py + 3, pw, ph, 8, UC_SHADOW, UC_BG);
+  ui_cx0 = c0; ui_cy0 = r0; ui_cx1 = c1; ui_cy1 = r1;
   ui_rrect(1, px, py, pw, ph, 8, UC_CARD, UC_DIM);
   ui_rframe(1, px + 1, py + 1, pw - 2, ph - 2, 7, UC_LINE, UC_CARD);
 }
 // paints rows [y0, y1) of the card (and its shadow) over what the screen shows
+// a band's end at an item's edge, the last one up to e (an item split between two bands was
+// painted twice), else e
+static int snap(const fm_menu & m, int b, int e) {
+  int best = 0;
+  for (int k = 0; k < m.n; ++k) {
+    if (!m.grid && (k < top || k >= top + vis)) continue;
+    int x, y, w, h;
+    item_box(m, k, x, y, w, h);
+    if (y > b + 8 && y <= e && y > best) best = y;
+    if (y + h > b + 8 && y + h <= e && y + h > best) best = y + h;
+  }
+  return best ? best : e;
+}
 static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
   int rows = ui_band_open(48);
-  for (int b = y0; b < y1; b += rows ? rows : y1 - y0) {
-    int e = rows && b + rows < y1 ? b + rows : y1;
+  fresh = (char)all;
+  for (int b = y0, e; b < y1; b = e) {
+    e = rows && b + rows < y1 ? snap(m, b, b + rows) : y1;
     if (rows) { ui_band_begin(b, e); ui_band_load(); }
     else ui_clip(0, b, UI_W, e);
     if (all) {
@@ -346,8 +418,7 @@ static void open_card(const fm_menu & m, int col, int layer, int sel) {
 static char af_nest; // a card opened from an application's form: it repaints what the card covered
 #endif
 static void close_card(int bar0, int repaint) {
-  delete[] PL;
-  PL = 0;
+  drop_pl();
 #ifdef FLOWCE_STEPS
   if (af_nest) return;
 #endif
@@ -1185,7 +1256,7 @@ int focus_popover(int key, const char ** text, int * back) {
     const fm_menu & m = sub ? *sub : MENUS[id];
     const int sel = sub ? sub_last : pop_last[id] < m.n ? pop_last[id] : 0;
     geometry(id, m);
-    prepare(m);
+    prepare_kept(m, sub ? 6 : id);
     open_card(m, id, 0, sel);
     cur = id;
     int r = run_keys(m, sel, fk_pop), res = FA_NONE;
@@ -1197,8 +1268,7 @@ int focus_popover(int key, const char ** text, int * back) {
     }
 #ifdef FLOWCE_STEPS
     if (sub == &M_APPS && r >= 0) { // an application: its form in the card's place; closed, the
-      delete[] PL;                  // applications' card again
-      PL = 0;
+      drop_pl();                  // applications' card again
       if ((*text = app_form(r, py))) {
         close_card(0, 1);
         return FA_RUN;
@@ -1210,8 +1280,7 @@ int focus_popover(int key, const char ** text, int * back) {
     }
     if (res == FA_APPS && !af_nest) { // the applications' card in its place, the scene still dimmed: only the
       const int oy = py;  // strip the calculus card showed above it is repainted (the stage under
-      delete[] PL;        // it all was, 0.2 s: keys typed meanwhile were lost)
-      PL = 0;
+      drop_pl();        // it all was, 0.2 s: keys typed meanwhile were lost)
       sub = &M_APPS;
       geometry(id, *sub);
       if (py > oy) focus_repaint(oy - 2, py);
@@ -1224,8 +1293,7 @@ int focus_popover(int key, const char ** text, int * back) {
       if (!af_nest)
 #endif
       {
-        delete[] PL;
-        PL = 0;
+        drop_pl();
         theme_card(id, py);
         close_card(0, 1);
         ui_borrow_end(); // (the tiles gone)

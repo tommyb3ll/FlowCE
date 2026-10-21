@@ -112,6 +112,7 @@ void oom_interrupt(void);
 void _custom_free(void* ptr);
 // Before that, the screen strip (ui_gfx.c, 20 KB) is freed for the calculation, which goes on.
 int ui_strip_release(void);
+int focus_menu_release(void); // focus_menu.cc: the menus' previews kept (a few KB), when not shown
 unsigned ui_strip_size(void);
 
 void* _custom_malloc(size_t alloc_size)
@@ -208,7 +209,7 @@ void* _custom_malloc(size_t alloc_size)
             (heap2_ptr + size < heap2_ptr) ||
             (heap2_ptr + size >= (uintptr_t)heap2_ptrend)
         ) {
-            if (ui_strip_release())
+            if (ui_strip_release() || focus_menu_release())
                 return _custom_malloc(alloc_size);
             if (oom_reserve && alloc_size <= OOM_RESERVE - 16) {
                 void* res = oom_reserve;

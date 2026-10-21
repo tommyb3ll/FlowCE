@@ -673,36 +673,68 @@ static NOINL float pstep(float r) {
   while (s * 6 > r * 10) s /= 10; // (s about r/6 .. r/0.6)
   return s * 5 < r ? s * 2 < r / 3 ? s * 5 : s * 2 : s;
 }
+// (discrete) the bars over [px0, px1]: their heights into PH (the curve's array, unused then), the
+// shaded ones flagged 0x4000; worked out when the values change, not per band of a repaint
+static int pk0, pk1;
+static NOINL void pbars() {
+  pk0 = (int)ceilf(px0); pk1 = (int)floorf(px1);
+  if (pk1 - pk0 > PCOLS) pk1 = pk0 + PCOLS;
+  float m = 0;
+  for (int k = pk0; k <= pk1; ++k) { const float v = p_pdf(pd, pq[pd], k); if (v > m) m = v; }
+  for (int k = pk0; k <= pk1; ++k) {
+    const int h = m > 0 ? (int)(p_pdf(pd, pq[pd], k) / m * (PB_ - PT_ - 4)) : 0;
+    PH[k - pk0] = (short)((h > 0 ? h : 0) | (pshaded(k) ? 0x4000 : 0));
+  }
+}
+// the plot's parts in the band b..e (rows): a repaint draws each part once, not once per band
 static NOINL void paint_plot(int b, int e) {
   const bool disc = p_discrete(ptest >= 0 ? (ptest < 2 ? PD_NORM : PD_T) : pd);
-  if (disc) { // bars: one per whole number in the range
-    const int k0 = (int)ceilf(px0), k1 = (int)floorf(px1);
-    const int bw = (PR_ - PL_) / (k1 - k0 + 1);
-    float m = 0;
-    for (int k = k0; k <= k1; ++k) { const float v = p_pdf(pd, pq[pd], k); if (v > m) m = v; }
-    for (int k = k0; k <= k1; ++k) {
-      const int h = m > 0 ? (int)(p_pdf(pd, pq[pd], k) / m * (PB_ - PT_ - 4)) : 0, x = pxof(k) - bw / 2;
-      if (x + bw < 0 || h <= 0) continue;
-      ui_fill(x, PB_ - h, bw > 2 ? bw - 1 : 1, h, col(pshaded(k) ? UC_ACC : UC_LINE));
+  if (disc) { // bars: one per whole number in the range (at whole-pixel places: integer arithmetic)
+    const int p0 = (int)px0, rng = (int)(px1 - px0) > 0 ? (int)(px1 - px0) : 1, bw = (PR_ - PL_) / (pk1 - pk0 + 1);
+    for (int k = pk0; k <= pk1 && b < PB_; ++k) {
+      const int h = PH[k - pk0] & 0x3fff, x = PL_ + (k - p0) * (PR_ - PL_) / rng - bw / 2;
+      if (x + bw < 0 || h <= 0 || PB_ - h >= e) continue;
+      ui_fill(x, PB_ - h, bw > 2 ? bw - 1 : 1, h, col(PH[k - pk0] & 0x4000 ? UC_ACC : UC_LINE));
     }
-  } else {
-    for (int x = PL_; x < PR_; ++x) { // the area under the curve where shaded, column by column up to its middle
+  } else if (b < PB_ + 2 && e > PT_ - 6) {
+    // the area under the curve where shaded, column by column up to its middle: the shaded
+    // intervals as columns once (a float per column was 5% of a key)
+    int sl[2], sr[2];
+    const float k = (PR_ - PL_) / (px1 - px0);
+    for (int i = 0; i < NS && i < 2; ++i) {
+      const float a = (SL[i] - 1e-6f - px0) * k + PL_ - 0.5f, z = (SR[i] + 1e-6f - px0) * k + PL_ - 0.5f;
+      sl[i] = a < PL_ ? PL_ : a > PR_ ? PR_ + 1 : (int)ceilf(a);
+      sr[i] = z > PR_ ? PR_ : z < PL_ ? PL_ - 1 : (int)floorf(z);
+    }
+    for (int x = PL_; x < PR_; ++x) {
+      bool sh = false;
+      for (int i = 0; i < NS && i < 2; ++i) sh = sh || (x >= sl[i] && x <= sr[i]);
+      if (!sh) continue;
       const int h = ph_at(x) >> 4;
-      if (h > 0 && pshaded(px0 + (px1 - px0) * (x + 0.5f - PL_) / (PR_ - PL_))) ui_fill(x, PB_ - h, 1, h, col(UC_ACCSOFT));
+      if (h > 0) ui_fill(x, PB_ - h, 1, h, col(UC_ACCSOFT));
     }
-    for (int c = 0; c < PCOLS; ++c) // (heights to 1/16 px: no steps where the slope changes)
-      ui_seg16((PL_ + 2 * c) * 16, PB_ * 16 - PH[c], (PL_ + 2 * c + 2) * 16, PB_ * 16 - PH[c + 1], 24, ramp(UC_ACC, UC_BG));
+    const unsigned char * r = ramp(UC_ACC, UC_BG);
+    const int lo = (b - 2) * 16, hi = (e + 2) * 16;
+    for (int c = 0; c < PCOLS; ++c) { // (heights to 1/16 px: no steps where the slope changes)
+      const int y0 = PB_ * 16 - PH[c], y1 = PB_ * 16 - PH[c + 1];
+      if ((y0 < lo && y1 < lo) || (y0 > hi && y1 > hi)) continue; // (outside the band)
+      ui_seg16((PL_ + 2 * c) * 16, y0, (PL_ + 2 * c + 2) * 16, y1, 24, r);
+    }
   }
+  if (b > PB_ + 20 || e <= PT_ - 6) return; // (the marks and labels: from the curve's top to under the axis)
   ui_fill(PL_ - 4, PB_, PR_ - PL_ + 8, 1, col(UC_INK));
   int mx[2];
+  const bool lab = e > PB_ && b < PB_ + 20; // (the numbers under the axis in this band)
   for (int i = 0; i < NM; ++i) { // the marks: a line from under the axis up to the curve (its middle), the value under it
     mx[i] = pxof(MK[i]);
     if (mx[i] < PL_ - 2 || mx[i] > PR_ + 2) continue;
     const int h = disc ? 4 : ph_at(mx[i]) >> 4;
     ui_fill(mx[i], PB_ - h, 1, h + 4, col(UC_ACC));
+    if (!lab) continue;
     char v[16]; sig4(v, MK[i]);
     num(v, mx[i], PB_ + 15, 5, UC_ACC, UC_BG, 1);
   }
+  if (!lab) return;
   const float st = pstep(px1 - px0); // the labels between them
   for (float t = ceilf(px0 / st) * st; t <= px1 + st * 1e-3f; t += st) {
     const int x = pxof(t);
@@ -713,7 +745,6 @@ static NOINL void paint_plot(int b, int e) {
     char v[16]; sig4(v, fabsf(t) < st * 1e-3f ? 0 : t);
     num(v, x, PB_ + 15, 6, UC_SUB, UC_BG, 1);
   }
-  (void)b; (void)e;
 }
 static NOINL int pchip(int i, int x, int y) { // field i, its box's top at y: its width
   const bool on = i == psel;
@@ -729,27 +760,37 @@ static NOINL int pchip(int i, int x, int y) { // field i, its box's top at y: it
   if (on && editing) ui_fill(x + w + bw / 2 + tw / 2 + 1, y + 4, 2, 11, col(UC_ACC));
   return w + bw + 10;
 }
-static NOINL void paint_prob() {
+// the page's rows [y0, y1) (all of it, or the fields' rows only: a selection moved, a digit typed),
+// each part drawn in the bands it touches; the result laid out once
+enum { PTOP1 = Y0 + 24, PBOT0 = Y0 + 150, PBOT1 = Y0 + 176 }; // the fields' rows: [Y0, PTOP1), [PBOT0, PBOT1)
+static NOINL void paint_prob(int y0 = Y0, int y1 = SBOT) {
   pfields();
+  mi_layout L;
+  const int rb = SBOT - 8, rlv = y1 > rb - 28 ? ui_math_fit(pres, strlen(pres), -1, 4, UI_W - 24, 60, MI_F_IMPLDOT, L) : 0;
   const int rows = ui_band_open(48);
-  for (int b = Y0; b < SBOT; b += rows ? rows : SBOT - Y0) {
-    const int e = rows && b + rows < SBOT ? b + rows : SBOT;
+  const int np = ptest >= 0 ? pn : pd == PD_NORM || pd == PD_BIN ? 2 : 1; // (the parameters on top, the region below)
+  for (int b = y0; b < y1; b += rows ? rows : y1 - y0) {
+    const int e = rows && b + rows < y1 ? b + rows : y1;
     if (rows) ui_band_begin(b, e); else ui_clip(0, b, UI_W, e);
-    ui_fill(0, Y0, UI_W, SBOT - Y0, col(UC_BG));
-    int x = 12, i = 0;
-    if (ptest < 0) x += text(&ui_tb12, PNAME[pd], x, Y0 + 18, UC_ACC, UC_BG) + 12;
-    const int np = ptest >= 0 || pd == PD_NORM || pd == PD_BIN ? 2 : 1; // (the parameters on top, the region below)
-    for (; i < (ptest >= 0 ? pn : np); ++i) x += pchip(i, x, Y0 + 4);
-    paint_plot(b, e);
-    x = 12;
-    for (; i < pn; ++i) x += pchip(i, x, Y0 + 154);
-    if (*pnote) { // (\x01x, \x02p: x-bar, p-hat)
-      const int nx = ptest >= 0 ? 12 : x + 4, m = *pnote < 3, w = mixed(&ui_tr10, pnote + m, nx, Y0 + 167, UC_SUB, UC_BG);
-      if (m) { const int lw = ui_text_width(&ui_tr10, pnote + 1, 1); ui_fill(nx + (*pnote == 2 ? lw / 2 - 1 : 0), Y0 + 156 - (*pnote == 2), *pnote == 2 ? 3 : lw, 1, col(UC_SUB)); if (*pnote == 2) { ui_fill(nx + lw / 2 - 2, Y0 + 156, 1, 1, col(UC_SUB)); ui_fill(nx + lw / 2 + 2, Y0 + 156, 1, 1, col(UC_SUB)); } }
-      (void)w;
+    ui_fill(0, b, UI_W, e - b, col(UC_BG));
+    if (b < PTOP1) {
+      int x = 12;
+      if (ptest < 0) x += text(&ui_tb12, PNAME[pd], x, Y0 + 18, UC_ACC, UC_BG) + 12;
+      for (int i = 0; i < np; ++i) x += pchip(i, x, Y0 + 4);
     }
-    if (emsg) text(&ui_tb10, emsg, UI_W - 12, Y0 + 167, UC_RED, UC_BG, 2);
-    math(pres, UI_W / 2, SBOT - 8, 4, UI_W - 24, UC_INK, UC_BG, 1);
+    paint_plot(b, e);
+    if (b < PBOT1 && e > PBOT0) {
+      int x = 12;
+      for (int i = np; i < pn; ++i) x += pchip(i, x, Y0 + 154);
+      if (*pnote) { // (\x01x, \x02p: x-bar, p-hat)
+        const int nx = ptest >= 0 ? 12 : x + 4, m = *pnote < 3;
+        mixed(&ui_tr10, pnote + m, nx, Y0 + 167, UC_SUB, UC_BG);
+        if (m) { const int lw = ui_text_width(&ui_tr10, pnote + 1, 1); ui_fill(nx + (*pnote == 2 ? lw / 2 - 1 : 0), Y0 + 156 - (*pnote == 2), *pnote == 2 ? 3 : lw, 1, col(UC_SUB)); if (*pnote == 2) { ui_fill(nx + lw / 2 - 2, Y0 + 156, 1, 1, col(UC_SUB)); ui_fill(nx + lw / 2 + 2, Y0 + 156, 1, 1, col(UC_SUB)); } }
+      }
+      if (emsg) text(&ui_tb10, emsg, UI_W - 12, Y0 + 167, UC_RED, UC_BG, 2);
+    }
+    if (y1 > rb - 28 && e > rb - L.asc && b < rb + L.desc)
+      ui_math_draw(L, pres, rlv, UI_W / 2 - L.width / 2, rb, 0, UC_INK, UC_BG, UC_ACC);
     if (rows) ui_band_end();
   }
   ui_band_close();
@@ -768,7 +809,7 @@ static NOINL float ptail_p(int d, const float * q, float s) {
 static NOINL void pcompute() {
   *pres = *pnote = 0;
   NS = 1; NM = 0;
-  for (int i = 0; i < pn; ++i) if (!pvalid(*PF[i].v, PF[i].kind)) { strcpy(pres, "?"); emsg = "Check the values"; px0 = -4; px1 = 4; NS = 0; pcurve(PD_NORM, pq[PD_NORM]); return; }
+  for (int i = 0; i < pn; ++i) if (!pvalid(*PF[i].v, PF[i].kind)) { strcpy(pres, "?"); emsg = "Check the values"; px0 = -4; px1 = 4; NS = 0; pcurve(PD_NORM, pq[PD_NORM]); pk0 = 0; pk1 = -1; return; }
   if (ptest >= 0) { // the standard normal or t(n-1), the statistic's tails or the critical values' middle
     const float * v = tv[ptest];
     static float q[2];
@@ -848,6 +889,7 @@ static NOINL void pcompute() {
     }
   }
   if (!disc) pcurve(pd, q);
+  else pbars();
 }
 static NOINL void ptabs() {
   static const char * const REG[4] = {"a\xe2\x89\xa4X\xe2\x89\xa4" "b", "X\xe2\x89\xa4x", "X\xe2\x89\xa5x", "X=k"}, * const INV[3] = {"left", "right", "middle"};
@@ -866,14 +908,35 @@ static NOINL bool pcommit() { // the value typed into the field selected
   editing = 0; edn = 0;
   return true;
 }
+// the inputs pcompute last worked on: it runs again only when they change (each key, an arrow too,
+// computed the probabilities and the curve again and repainted the whole page: 0.3 to 0.4 s)
+struct psig { signed char t, d, tl, inv, ta, n; float v[6]; };
+static psig plast;
+static const char * pcmsg; // pcompute's message for them
+static NOINL bool pchanged() {
+  psig s;
+  memset(&s, 0, sizeof s);
+  s.t = (signed char)ptest; s.d = (signed char)pd; s.tl = (signed char)ptail; s.inv = (signed char)pinv; s.ta = (signed char)talt; s.n = (signed char)pn;
+  for (int i = 0; i < pn && i < 6; ++i) s.v[i] = *PF[i].v;
+  if (!memcmp(&s, &plast, sizeof s)) return false;
+  plast = s;
+  return true;
+}
 static NOINL void ploop() { // the distribution screen or a test's: keys until back
+  bool full = true; // the whole page (else the fields' rows only: the selection moved, a digit typed)
   for (;;) {
     pfields();
     if (psel >= pn) psel = pn - 1;
-    if (!editing) pcompute();
-    focus_status_label(ptest >= 0 ? (ptest < 2 ? "TEST  1-proportion z" : "TEST  1-sample t") : "PROBABILITY");
-    ptabs();
-    paint_prob();
+    if (!editing) {
+      if (pchanged()) { pcompute(); pcmsg = emsg; full = true; }
+      else if (!emsg) emsg = pcmsg;
+    }
+    if (full) {
+      focus_status_label(ptest >= 0 ? (ptest < 2 ? "TEST  1-proportion z" : "TEST  1-sample t") : "PROBABILITY");
+      ptabs();
+      paint_prob();
+    } else { paint_prob(Y0, PTOP1); paint_prob(PBOT0, PBOT1); }
+    full = false;
     const int key = key_();
     emsg = 0;
     if (const int ch = typed(key)) {
@@ -900,6 +963,7 @@ static NOINL void ploop() { // the distribution screen or a test's: keys until b
       }
       continue;
     }
+    full = true; // (the keys below: a card over the page, the tabs, the region)
     if (key == KEY_CTRL_F1) {
       static const char * const hint[PD_N] = {"\xce\xbc, \xcf\x83", "df", "df", "n, p", "\xce\xbb"};
       const int c = focus_card_list(0, "dist", 0, PNAME, hint, PD_N, pd); // (on its key's tab, F1)

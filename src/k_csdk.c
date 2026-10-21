@@ -148,6 +148,7 @@ void dbgprint(int i){
 
 // getkey polls (test harness: tools/emu waits for this counter to move = ready for the next key)
 volatile unsigned getkey_polls;
+volatile char getkey_console; // the console's own wait (Console_GetKey): work ahead is allowed then (focus_warm)
 static char lcd_off; // turned off by getkey (2nd ON, or idle): the next ON turns the screen on
 // Keys read while drawing (key_waiting, key_latch), returned in order by the next getkeys: drawing
 // that checks between steps loses no key (os_GetCSC only sees a key still down when it is called).
@@ -213,6 +214,8 @@ int getkey(int allow_suspend){
           display_time();
         if ((j&0x1ff)==0x1ff)
           focus_idle();
+        else if ((j&0x1f)==0x1f && getkey_console)
+          focus_warm();
         i=key_n?key_pop():os_GetCSC();
         ++getkey_polls;
       }

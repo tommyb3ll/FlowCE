@@ -872,15 +872,22 @@ static void bar_draw(int keyflag, int force) {
   }
   sig[k] = 0;
   if (!force && !strcmp(sig, bar_sig)) { focus_phase = ph; return; }
+  // the plain layer where only the forms tab changed (an answer came or went): that tab alone, over
+  // the bar as it is (the five tabs and their icons were a tenth of an enter)
+  const int one = !force && !layer && bar_sig[0] == '0' && bar_sig[1] && !bar_sig[2];
   strcpy(bar_sig, sig);
   focus_phase = 11;
   int band = ui_band_open(MB) >= MB; // no blank frame when the labels change
-  if (band) ui_band_begin(SBOT, UI_H);
+  if (band) { ui_band_begin(SBOT, UI_H); if (one) ui_band_load(); }
   ui_clip(0, SBOT, UI_W, UI_H);
-  ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
-  ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
-  if (!layer) for (int i = 0; i < 5; ++i) focus_tab(i, 0, 0);
-  else {
+  if (one) focus_tab(3, 0, 0);
+  else if (!layer) {
+    ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
+    ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
+    for (int i = 0; i < 5; ++i) focus_tab(i, 0, 0);
+  } else {
+    ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
+    ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
     int fg = layer == 1 ? UC_BLUE : UC_GREEN;
     for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
   }
@@ -1121,7 +1128,9 @@ void focus_disp(int mode) {
   stage_rows(ST, SBOT);
   ui_band_close();
   focus_phase = 8;
-  bar_draw(bar_keyflag, 1);
+  // the bar drawn again where it changed, unless a page covered the screen (they invalidate it) or
+  // KhiCAS drew there (a new answer only: the forms tab)
+  bar_draw(bar_keyflag, PM.ll < 0 || !screen_is_ours());
   PM = M;
   focus_phase = 0;
 }
