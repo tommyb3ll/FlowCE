@@ -44,7 +44,7 @@ u24 = lambda b, i=0: b[i] | b[i + 1] << 8 | b[i + 2] << 16
 CALLS = {0xCD, 0xC4, 0xCC, 0xD4, 0xDC, 0xE4, 0xEC, 0xF4, 0xFC}
 off = None
 self_n, incl_n, n, ms, span, osms = {}, {}, 0, [], [], []
-who_n = {}
+who_n, os_who = {}, {}
 
 
 app_lo = min(a for a, _ in syms if a >= 0x100000)  # below: the OS's entry points (_boot_..., _os_...)
@@ -113,7 +113,10 @@ for rep in range(R):
                 print(f'  t={t} {f} polls={c}', flush=True)
             if idle(f):  # getkey waits (sleep), polling every 10 ms: done when it stays so through two polls
                 if f == '(OS)':  # (the OS's helpers too: divisions, multiplications called by the app)
-                    os_t.append(t)
+                    sp = int(re.search(r'sp=([0-9A-F]+)', r).group(1), 16)
+                    b = e.peek(sp, 24)  # the app's call into it: the first return address into the app
+                    who = next((fn_of(u24(b, i)) for i in range(0, 22) if app_lo <= u24(b, i) - off < code_hi), '?')
+                    os_t.append((t, who))
                 quiet += IV
                 incs += c != last
                 last = c
@@ -148,7 +151,10 @@ for rep in range(R):
         ms.append(busy)
         # span: the first to the last sample in the app's code (OS calls inside it included); os: those
         span.append(lastb - first + IV if first is not None else 0)
-        osms.append(IV * sum(1 for x in os_t if first is not None and first <= x <= lastb))
+        osms.append(IV * sum(1 for x, _ in os_t if first is not None and first <= x <= lastb))
+        for x, w in os_t:
+            if first is not None and first <= x <= lastb:
+                os_who[w] = os_who.get(w, 0) + 1
     finally:
         e.close()
 
@@ -163,7 +169,7 @@ def dem(names):
 
 
 print(f'{key} after {setup}: {R} runs, busy {ms} ms; {n} samples every {IV} ms (offset {off}); span {span} ms, os {osms} ms')
-for title, d in (('self (running)', self_n), ('inclusive (on the stack)', incl_n)) + ((('callers of ' + str(WHO), who_n),) if WHO else ()):
+for title, d in (('self (running)', self_n), ('inclusive (on the stack)', incl_n), ('OS helpers called from (in the span)', os_who)) + ((('callers of ' + str(WHO), who_n),) if WHO else ()):
     top_n = sorted(d.items(), key=lambda x: -x[1])[:TOP]
     print(f'--- {title}')
     for (name, c), dn in zip(top_n, dem([x[0] for x in top_n])):

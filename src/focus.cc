@@ -58,6 +58,28 @@ enum { NFC = 72 }; // history lines + the hero: a miss costs 1-3 mi_build
 static fitc * FC;
 static int fcn;
 static unsigned shash(const char * s) { unsigned h = 5381; while (*s) h = h * 33 + (unsigned char)*s++; return h; }
+// built layouts of the last strings drawn: a banded repaint draws an entry once per band
+enum { NLC = 16 }; // a screen of entries (input and result) plus the hero
+struct lckey { const char * p; unsigned hash; signed char lv; char flags; };
+static lckey LCK[NLC];
+static mi_layout * LCL; // heap (new[]: no static constructors in KhiCAS)
+static int lcn;
+static mi_layout & lc_slot(const char * s, unsigned h, int lv, int flags) { // (the oldest one)
+  if (!LCL) LCL = new mi_layout[NLC];
+  int i = lcn;
+  lcn = (lcn + 1) % NLC;
+  LCK[i].p = s; LCK[i].hash = h; LCK[i].lv = (signed char)lv; LCK[i].flags = (char)flags;
+  return LCL[i];
+}
+static const mi_layout & layout_of(const char * s, int lv, int flags) {
+  unsigned h = shash(s);
+  if (LCL)
+    for (int i = 0; i < NLC; ++i)
+      if (LCK[i].p == s && LCK[i].hash == h && LCK[i].lv == lv && LCK[i].flags == flags) return LCL[i];
+  mi_layout & L = lc_slot(s, h, lv, flags);
+  mi_build(s, strlen(s), -1, ui_math_metrics(lv, flags), L);
+  return L;
+}
 static fitc fitted(const char * s, int maxlv, int maxw, int maxh, int flags) {
   unsigned h = shash(s);
   if (!FC) FC = (fitc *)calloc(NFC, sizeof(fitc));
@@ -72,24 +94,10 @@ static fitc fitted(const char * s, int maxlv, int maxw, int maxh, int flags) {
   c.lv = (signed char)ui_math_fit(s, strlen(s), -1, maxlv, maxw, maxh, flags, L);
   c.p = s; c.hash = h; c.maxlv = (signed char)maxlv; c.maxw = (short)maxw; c.maxh = (short)maxh;
   c.flags = (short)flags; c.w = L.width; c.a = L.asc; c.d = L.desc;
+  // the layout kept for drawing it (built again there: one mi_build more per new entry)
+  mi_layout & K = lc_slot(s, h, c.lv, flags);
+  K.ops.swap(L.ops); K.width = L.width; K.asc = L.asc; K.desc = L.desc; K.cx = L.cx; K.cy = L.cy; K.ch = L.ch;
   return c;
-}
-// built layouts of the last strings drawn: a banded repaint draws an entry once per band
-enum { NLC = 16 }; // a screen of entries (input and result) plus the hero
-struct lckey { const char * p; unsigned hash; signed char lv; char flags; };
-static lckey LCK[NLC];
-static mi_layout * LCL; // heap (new[]: no static constructors in KhiCAS)
-static int lcn;
-static const mi_layout & layout_of(const char * s, int lv, int flags) {
-  unsigned h = shash(s);
-  if (!LCL) LCL = new mi_layout[NLC];
-  for (int i = 0; i < NLC; ++i)
-    if (LCK[i].p == s && LCK[i].hash == h && LCK[i].lv == lv && LCK[i].flags == flags) return LCL[i];
-  int i = lcn;
-  lcn = (lcn + 1) % NLC;
-  mi_build(s, strlen(s), -1, ui_math_metrics(lv, flags), LCL[i]);
-  LCK[i].p = s; LCK[i].hash = h; LCK[i].lv = (signed char)lv; LCK[i].flags = (char)flags;
-  return LCL[i];
 }
 static void draw_math(const char * s, const fitc & c, int x, int base, int ink, int bg, int flags) {
   ui_math_draw(layout_of(s, c.lv, flags), s, c.lv, x, base, 0, ink, bg, UC_ACC);

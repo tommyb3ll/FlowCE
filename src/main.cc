@@ -1270,8 +1270,10 @@ void do_run(const char * s){
     }
     else {
       answer_after(g,actx,msg,graw);
+      focus_phase=87;
       if (focus_on && msg.empty() && !giac::interrupted) // ("diverges": g is not shown)
         result_approx(g);
+      focus_phase=88;
       if (giac::interrupted || giac::ctrl_c){ // ON while simplifying: giac's "Stopped by user
         msg=oom_hit?"Out of memory":giac::stack_hit?"Too many recursion levels":"Interrupted"; // interruption" texts were in the result
         g=0;

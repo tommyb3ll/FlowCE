@@ -4,6 +4,9 @@
 // the step is shown. The methods share helpers: a rewritten integrand (via), a substitution (sub).
 #if defined FLOWCE_STEPS || defined HOSTGIAC
 #include "steps.h"
+#ifdef TICE
+extern "C" volatile unsigned char focus_phase; // focus.cc: timing probe (tools/emu/phases.py)
+#endif
 #include <string.h>
 using namespace giac;
 #define NOINL __attribute__((noinline))
@@ -341,8 +344,28 @@ gen steps_math(const step_t & s,GIAC_CONTEXT){
   // by parts: u and v, unless the variable is one of them (after a substitution u): p and q
   bool uv=s.v.type==_IDNT && (!strcmp(s.v._IDNTptr->id_name,"u") || !strcmp(s.v._IDNTptr->id_name,"v"));
   gen U(identificateur(uv?"p":"u")),W(identificateur(uv?"q":"v"));
-  gen r=subst(gen(RULES[3*s.rule+2],contextptr),*phm_,makevecteur(s.a,s.b,s.c,s.v,dname(s.v),dname(s.a),U,W,dname(U),dname(W)),true,contextptr);
+#ifdef TICE
+  focus_phase=135;
+#endif
+  const gen tpl(RULES[3*s.rule+2],contextptr);
+#ifdef TICE
+  focus_phase=136;
+#endif
+  // the values of the template's own names only (subst is simultaneous: the others did nothing, and
+  // dA printed the step's whole expression, ~40 ms a step on the calculator with the rest)
+  const char * T=RULES[3*s.rule+2];
+  vecteur from,to;
+  for (int k=0;k<10;++k){
+    const gen & p=(*phm_)[k];
+    if (p.type!=_IDNT || !strstr(T,p._IDNTptr->id_name)) continue;
+    from.push_back(p);
+    to.push_back(k==0?s.a:k==1?s.b:k==2?s.c:k==3?s.v:k==4?dname(s.v):k==5?dname(s.a):k==6?U:k==7?W:k==8?dname(U):dname(W));
+  }
+  gen r=subst(tpl,from,to,true,contextptr);
   if (s.rel && r.is_symb_of_sommet(at_equal)) r=symbolic(*relop(s.rel),r._SYMBptr->feuille); // (DeltaCE: x < 4)
+#ifdef TICE
+  focus_phase=137;
+#endif
   return s.rule>=R_ADIST?r:mergek(r); // (an equation's line: 4*1*6 as substituted, not 24)
 }
 

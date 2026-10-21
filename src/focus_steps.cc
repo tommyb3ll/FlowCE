@@ -18,6 +18,7 @@
 #include "ui_font.h"
 #include "ui_fontdata.h"
 #include "ui_math.h"
+extern "C" volatile unsigned char focus_phase; // focus.cc: timing probe (tools/emu/phases.py: 130 the steps, 131 their layout, 132 laid out)
 #include "steps.h"
 #include "answer.h"
 #include "analyze.h"
@@ -525,8 +526,10 @@ static __attribute__((noinline)) void lay_steps(const char * head, const std::ve
   for (unsigned i = 0; i < nv; ++i) {
     const int d = v[i].depth < 7 ? v[i].depth : 7;
     const char * title = steps_title(v[i]);
+    focus_phase = 133;
     const std::string tb = steps_table(v[i], contextptr); // (DeltaCE: a synthetic division's table)
     std::string t = tb.empty() ? steps_math(v[i], contextptr).print(contextptr) : tb;
+    focus_phase = 134;
     if (oom_hit) break;
     char * s = dup(t.c_str(), t.size());
     if (!s) break;
@@ -744,7 +747,9 @@ static __attribute__((noinline)) const char * build(const char * in, const char 
       waiting(head.c_str());
       giac::control_c_hook = focus_busy_tick;
       quiet(1);
+      focus_phase = 130;
       ok = steps_of(g, v, contextptr);
+      focus_phase = 131;
       quiet(0);
     }
   }
@@ -773,6 +778,7 @@ static __attribute__((noinline)) const char * build(const char * in, const char 
     else if (ans && steps_answer(v, sa)) // (DeltaCE: a division typed, quotient plus remainder over the divisor)
       ans = (a2 = sa.print(contextptr)).c_str();
     lay_steps(head.c_str(), v, ans, c == 1);
+    focus_phase = 132;
     if (oom_hit) { giac::ctrl_c = giac::interrupted = false; why = NP ? 0 : "Out of memory"; }
   }
   focus_busy(0);

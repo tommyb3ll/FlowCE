@@ -722,6 +722,68 @@ static __attribute__((noinline)) giac::gen keep_factored(const giac::gen & g){
 // (sin(x)^2+cos(x)^2 -> 1). History: simplify under a time budget (interrupted through
 // control_c) exited the app on diff(sqrt(x^2+1),x) and reset the calculator after 80 s on
 // cos(pi/12); KhiCAS must never interrupt giac on its own.
+// g's numerator and denominator from one fxnd (_numer and _denom are each a fxnd of all of g; of a
+// vector, each of its elements)
+static void num_den(const giac::gen & g,giac::gen & n,giac::gen & d){
+  using namespace giac;
+  const gen nd=g.type==_VECT?gen(0):_fxnd(g,contextptr);
+  if (nd.type==_VECT && nd._VECTptr->size()==2){ n=nd._VECTptr->front(); d=nd._VECTptr->back(); }
+  else if (g.type==_VECT){ n=_numer(g,contextptr); d=_denom(g,contextptr); }
+  else n=d=nd;
+}
+// A polynomial's tree: whole numbers and fractions, names, under +, *, - and powers to a positive
+// integer. Steps that cannot change such an answer are skipped for it (its denominator is a number;
+// with a free name, evalf gives no number: 15 ms each, on every answer like x^3-3x).
+static bool poly_like(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_INT_ || g.type==_ZINT || g.type==_IDNT)
+    return true;
+  if (g.type==_FRAC)
+    return (g._FRACptr->num.type==_INT_ || g._FRACptr->num.type==_ZINT) && (g._FRACptr->den.type==_INT_ || g._FRACptr->den.type==_ZINT);
+  if (g.type!=_SYMB)
+    return false;
+  const gen & f=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_neg)
+    return poly_like(f);
+  if (g._SYMBptr->sommet==at_pow)
+    return f.type==_VECT && f._VECTptr->size()==2 && f._VECTptr->back().type==_INT_ && f._VECTptr->back().val>0 && poly_like(f._VECTptr->front());
+  if (g._SYMBptr->sommet!=at_plus && g._SYMBptr->sommet!=at_prod)
+    return false;
+  if (f.type!=_VECT)
+    return poly_like(f);
+  for (const_iterateur it=f._VECTptr->begin();it!=f._VECTptr->end();++it)
+    if (!poly_like(*it))
+      return false;
+  return true;
+}
+// a name in g that has no value (not pi, infinity, undef, euler_gamma)
+static bool free_name(const giac::gen & g){
+  using namespace giac;
+  if (g.type==_IDNT)
+    return !(g==cst_pi) && !(g==cst_euler_gamma) && !is_inf(g) && !is_undef(g) && eval(g,1,contextptr)==g;
+  if (g.type==_SYMB)
+    return free_name(g._SYMBptr->feuille);
+  if (g.type==_VECT)
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it)
+      if (free_name(*it))
+        return true;
+  return false;
+}
+// contains(g,the name n), without parsing n each time (names compare by their text)
+static bool has_name(const giac::gen & g,const char * n){
+  using namespace giac;
+  if (g.type==_IDNT)
+    return !strcmp(g._IDNTptr->id_name,n);
+  if (g.type==_SYMB)
+    return has_name(g._SYMBptr->feuille,n);
+  if (g.type==_FRAC)
+    return has_name(g._FRACptr->num,n) || has_name(g._FRACptr->den,n);
+  if (g.type==_VECT)
+    for (const_iterateur it=g._VECTptr->begin();it!=g._VECTptr->end();++it)
+      if (has_name(*it,n))
+        return true;
+  return false;
+}
 // normal() of g when it has one radical, a square root (the trig substitution answers it shortens):
 // with several roots (x^(1/6), x^(1/4), sqrt(x)) normal builds an algebraic extension for each
 // and took 15 s on the PC (hours on the calculator) for the derivative of x^(1/6)-7x^(1/4)+3sqrt(x),
@@ -853,14 +915,15 @@ static __attribute__((noinline)) giac::gen auto_simplify(const giac::gen & g){
   // giac's simplify took 5.8 s of the 6.4 s of d/dx sin(x)/x (on any small trig answer): trig
   // answers now get ratnormal and the cheap sin^2+cos^2=1 rewrite below
   const bool trig=false;
-  focus_phase=100; // (the phases of these steps, for tools/emu: 100-106 here, 110-111 in answer_after)
+  focus_phase=100; // (the phases of these steps, for tools/emu: 100-109 here, 110-116 in answer_after)
   gen s=combine_numbers(ratnormal(g,contextptr));
   trace_step("ratnormal",s);
-  if (!trig && g.type==_SYMB && radicals(s)>=0){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2x+1)
+  if (!trig && g.type==_SYMB && !poly_like(s) && radicals(s)>=0){ // factored denominator: 1/(x+1)^2, not 1/(x^2+2x+1)
     focus_phase=101;
-    gen d=_denom(s,contextptr);
+    gen n,d;
+    num_den(s,n,d);
     if (d.type==_SYMB){ // (not sqrfree: giac's drops a factor without the main variable, x*ln(x)^2 was x)
-      gen n=_numer(s,contextptr),f=_factor(d,contextptr);
+      const gen f=_factor(d,contextptr);
       if (!is_undef(f) && f.type!=_STRNG)
         s=is_one(n)?symb_inv(f):symb_prod(n,symb_inv(f));
     }
@@ -868,6 +931,7 @@ static __attribute__((noinline)) giac::gen auto_simplify(const giac::gen & g){
   trace_step("factored denominator",s);
   if (is_undef(s) || s.type==_STRNG || taille(s,1000)>taille(g,1000)) // not if bigger: pi*(x+1) stays;
     s=g;                                                                // same size: 3*x^2*e^(3x), not x^2*3*e^(3x)
+  focus_phase=107;
   if (!trig && !xcas::has_radical(g) && (trig_power(g) || trig_power(s))){ // (s: cos(x)*cos(x) is cos(x)^2)
     // trig of a variable: in sin and cos, with sin^2+cos^2=1 (cheap, unlike simplify):
     // d/dx ln(sec(x)+tan(x)) is 1/cos(x), not (1+tan(x)^2+sin(x)/cos(x)^2)/(1/cos(x)+tan(x))
@@ -887,6 +951,7 @@ static __attribute__((noinline)) giac::gen auto_simplify(const giac::gen & g){
       }
     }
   }
+  focus_phase=108;
   if (!trig && xcas::has_radical(s) && !lidnt(s).empty()){ // a trig substitution: normal gives
     focus_phase=106;
     const gen n=safe_normal(s);                           // -sqrt(4-x^2)/(4*x) for
@@ -894,6 +959,7 @@ static __attribute__((noinline)) giac::gen auto_simplify(const giac::gen & g){
       s=n;
     trace_step("normal",n);
   }
+  focus_phase=109;
   if (!trig && xcas::has_radical(s)){ // after a u-substitution: (p/u)*u^(3/2), not p*sqrt(u)
     const gen m=xcas::merge_sqrt(s,contextptr);
     if (!(m==s))
@@ -1207,7 +1273,8 @@ static int bq_shape(const giac::gen & g){
 static __attribute__((noinline)) giac::gen biquad(const giac::gen & f,const giac::gen & x){
   using namespace giac;
   if (x.type!=_IDNT || bq_shape(f)!=1) return 0;
-  const gen n=_numer(f,contextptr),d=_denom(f,contextptr);
+  gen n,d;
+  num_den(f,n,d);
   const vecteur ld=lidnt(d),ln_=lidnt(n);
   if (ld.size()!=1 || ld[0]!=x || ln_.size()>1 || (ln_.size() && ln_[0]!=x)) return 0;
   const gen cd=_coeff(makesequence(d,x),contextptr),cn=_coeff(makesequence(n,x),contextptr);
@@ -1657,7 +1724,8 @@ static giac::gen known_sum(const giac::gen & g,std::string & msg){
   }
   const vecteur lv=lvar(R);
   const bool rational=lv.size()==1 && lv.front()==n;
-  const gen P=_numer(R,contextptr),Q=_denom(R,contextptr);
+  gen P,Q;
+  num_den(R,P,Q);
   const gen dp=_degree(makesequence(P,n),contextptr),dq=_degree(makesequence(Q,n),contextptr);
   if (rational && dp.type==_INT_ && dq.type==_INT_){
     const int p=dq.val-dp.val;
@@ -2001,6 +2069,8 @@ void result_approx(const giac::gen & g){
     return;
   if (g.type==_CPLX && (g._CPLXptr->type==_INT_ || g._CPLXptr->type==_ZINT) && ((g._CPLXptr+1)->type==_INT_ || (g._CPLXptr+1)->type==_ZINT))
     return; // 5+5i: nothing to add
+  if (poly_like(g) && free_name(g)) // (no number: x^3-3x)
+    return;
   const gen a=evalf(g,1,contextptr);
   if (a.type!=_DOUBLE_ && a.type!=_CPLX)
     return;
@@ -2692,7 +2762,8 @@ static giac::gen long_division(const giac::gen & g){
   const vecteur lv=lvar(g);
   if (lv.size()!=1 || lv.front().type!=_IDNT)
     return undef;
-  gen n=_numer(g,contextptr),d=_denom(g,contextptr);
+  gen n,d;
+  num_den(g,n,d);
   if (lidnt(d).empty() && g.is_symb_of_sommet(at_prod) && g._SYMBptr->feuille.type==_VECT){ // numer and denom cancel:
     gen up=1,down=1; // (x^4-16)/(x+2) as written, not x^3-2x^2+4x-8 over 1
     for (const_iterateur it=g._SYMBptr->feuille._VECTptr->begin();it!=g._SYMBptr->feuille._VECTptr->end();++it){
@@ -3410,7 +3481,8 @@ static __attribute__((noinline)) giac::gen drop_constants(const giac::gen & g,co
     const gen h=k?safe_normal(g):g;
     if (is_undef(h) || h.type==_STRNG)
       continue;
-    const gen n=_numer(h,contextptr),d=_denom(h,contextptr);
+    gen n,d;
+    num_den(h,n,d);
     if (!n.is_symb_of_sommet(at_plus) || n._SYMBptr->feuille.type!=_VECT || is_zero(d))
       continue;
     const vecteur & t=*n._SYMBptr->feuille._VECTptr;
@@ -3921,11 +3993,13 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
 #endif
   if (a.autosimp && !a.tabled){
     g=auto_simplify(g);
+    focus_phase=112;
     g=collect_rational(power_sums(g)); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
   }
+  focus_phase=113;
   trace_step("auto_simplify",g);
   if (g.type==_SYMB && taille(g,200)<200){
-    if (contains(g,gen("c_0",contextptr)) && !g.is_symb_of_sommet(at_plus)){ // desolve's constants
+    if (has_name(g,"c_0") && !g.is_symb_of_sommet(at_plus)){ // desolve's constants
       const gen e=expand(g,contextptr);
       if (!is_undef(e) && e.type!=_STRNG)
         g=e;
@@ -3945,6 +4019,7 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
       }
     }
   }
+  focus_phase=114;
   if (a.autosimp && !a.tabled && g.type==_SYMB && taille(g,200)<200){
     focus_phase=110;
     g=textbook_powers(normal_args(g));
@@ -3953,8 +4028,11 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   if (a.ivar.type==_IDNT && !a.tabled){
     focus_phase=111;
     g=drop_constants(map_nodes(g,ln_conjugate,a.ivar),a.ivar);
+    focus_phase=117;
     if (contains(g,at_exp) && top_sum(_numer(g,contextptr))){ // e^x(sin(x)+cos(x))/2, not
+      focus_phase=118;
       const gen fg=form_op(FORM_FACT,g);                       // (e^x*cos(x)+e^x*sin(x))/2
+      focus_phase=119;
       if (!is_undef(fg) && fg.type!=_STRNG && taille(fg,400)<taille(g,400) && !xcas::has_radical(fg))
         g=fg;
     }
@@ -3969,15 +4047,17 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     g=sec_only(g);
   if (!is_undef(rs) && taille(rs,200)<=taille(g,200)+4)
     g=rs;
-  if (a.simp && g.type==_SYMB && !contains(g,at_sum) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
+  if (a.simp && g.type==_SYMB && !contains(g,at_sum) && !(poly_like(g) && free_name(g)) && evalf(g,1,contextptr).type==_DOUBLE_){ // a number (not a sum giac
     // left: evalf would sum it), its terms collected:
     const gen m=map_nodes(g,ln_power,0),e=radicals(m)==1?normal(m,contextptr):ratnormal(m,contextptr); // 12ln(2)-6ln(4)+3: 3; subst's
     if (!is_undef(e) && e.type!=_STRNG && plus_terms(e)<plus_terms(g) && taille(e,400)<=taille(g,400))
       g=e; // (2523-4*29*sqrt(29)-5046+348*sqrt(29)+2339)/16 is (29sqrt(29)-23)/2
   }
+  focus_phase=115;
   graw=g; // (the long-polynomial check of answer_print expands it: expand ignores a built division)
   if (!a.tabled && (g.type==_SYMB || g.type==_VECT) && taille(g,200)<200)
     g=map_nodes(g,frac_root,0); // (81/16)^(1/4): 3/2
+  focus_phase=116;
   if (g.type==_SYMB && taille(g,200)<200 && !contains(g,at_order_size)) // (series: as is)
     g=positive_first(g);
   trace_step("positive_first",g);
