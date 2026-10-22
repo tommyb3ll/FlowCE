@@ -55,7 +55,11 @@ static gen * EQ_;          // each typed one as F(x, y) = 0 (y-f(x) for a functi
 static float * DAT_;       // (DeltaCE) data points drawn with the curves (focus_stats.cc: the points
 static int DATN_;          // a curve was fitted to): their x, then their y (by x); how many
 static int tpi;            // the point traced (tf == NF: the points)
+#ifdef FLOWCE_TILOOK // (the OS's: Y1 blue, Y2 red, then magenta, orange)
+static const unsigned char COLS[NGRP] = {UC_BLUE, UC_RED, UC_PURPLE, UC_ORANGE};
+#else
 static const unsigned char COLS[NGRP] = {UC_ACC, UC_RED, UC_PURPLE, UC_ORANGE};
+#endif
 static inline unsigned char col(int i) { return COLS[GRP[i] & 3]; }
 
 static NOINL bool emit(prog & p, int op, float c, int fn, int d) {
