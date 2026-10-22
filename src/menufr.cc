@@ -1283,6 +1283,9 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
     menu.height = 12;
     while(1) {
       //drawRectangle(0,18,LCD_WIDTH_PX,LCD_HEIGHT_PX-18,_WHITE);
+#ifdef FLOWCE_KHICAS
+      if (!focus_on || menu.numitems>60) // (the Focus list below has the Focus bar)
+#endif
       Printmini(0,C58,(
                        category==CAT_CATEGORY_ALL?(lang?"   input   |  exemple1  |  exemple2  |           |   aide cmd     ":"   input   |  example1  |  example2  |           |   cmd help    "):(lang?"   input   | exemple1 | exemple2 |    cmds    |  aide cmd    ":"   input   | example1 | example2 |    cmds    |  cmd help   ")
                        ),MINI_REV);

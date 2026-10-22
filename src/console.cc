@@ -828,7 +828,11 @@ static __attribute__((noinline)) int focus_confirm(const char * msg1,const char 
     if (lab[k][0]>='a' && lab[k][0]<='z')
       lab[k][0]+='A'-'a';
   }
+#ifdef FLOWCE_KHICAS
+  const int r=focus_confirm_card(msg1,L,strcmp(lab[0],lab[1])?2:1); // "F1 or F5: ok": one choice (KhiCAS's F1, F5 pick them too)
+#else
   const int r=focus_list(msg1,L,strcmp(lab[0],lab[1])?2:1,0); // "F1 or F5: ok": one choice
+#endif
   return r<0?(acexit?-1:KEY_CTRL_F5):r?KEY_CTRL_F5:KEY_CTRL_F1;
 }
 
@@ -3785,6 +3789,13 @@ const char * console_menu(int key,Char* cfg_,int active_app){
     //If starting by 'F' followed by the right number, start filling the structure.
     if (temp[0] == 'F' && temp[1]==(key-KEY_CTRL_F1)+'1'){
       matched = 1;
+#ifdef FLOWCE_KHICAS
+      if (cfg_!=original_cfg){ // an application's menu (the sheet's): its name on the open tab
+        static char word[12];
+        strncpy(word,temp[2]==' '?temp+3:temp+2,sizeof(word)-1);
+        focus_fmenu_word=word;
+      }
+#endif
       continue;
     }
     if (temp[0] == 'F' && temp[1]!=(key-KEY_CTRL_F1)+'0'){

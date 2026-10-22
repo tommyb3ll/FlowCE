@@ -5,6 +5,9 @@
 #include "textGUI.h"
 #include "console.h"
 #include "focus.h"
+#include "ui_gfx.h"
+#include "ui_font.h"
+#include "ui_fontdata.h"
 #include "main.h"
 #include <ti/vars.h>
 #include <cstring>
@@ -1322,6 +1325,108 @@ void drawAtom(uint8_t id) {
   os_draw_string_small(6+2+atomsdefs[id].x*C17, -18+c6+4-delta+atomsdefs[id].y* C17, _BLACK, fill, atomsdefs[id].symbol);
 }
 
+#ifdef FLOWCE_KHICAS
+  // KhiCAS + Flow: the table in the Focus look. Each family's tint, and its text's and corners'
+  // shades, in palette entries lent for the table (32 + 5 f ... + 4); the chosen element on the
+  // accent; its card in the table's empty corner (its symbol large, nucleons over protons at its
+  // left, its name, mass and electronegativity); its family under the table; on the bar what enter
+  // and the letters insert (F1-F5 insert the same). Drawn in bands.
+  int periodic_table(const char * & name,const char * & symbol,char * protons,char * nucleons,char * mass,char * electroneg){
+    static const unsigned char fam[11][3]={{255,140,40},{235,200,40},{240,120,100},{215,100,165},{215,105,105},{110,150,140},
+                                           {60,175,130},{40,185,200},{80,185,60},{90,130,240},{150,150,150}};
+    static const char * const famname[11]={"alkali metal","alkaline earth metal","lanthanide","actinide","transition metal",
+                                           "post-transition metal","metalloid","halogen","reactive nonmetal","noble gas","unknown"};
+    static const char * const keys[5]={"all","protons","nucleons","mass","khi"};
+    constexpr const int N=sizeof(atomsdefs)/sizeof(AtomDef),P=17,TS=16,X0=7,Y0=21,ST=FOCUS_SB,SBOT=UI_H-FOCUS_MB;
+    const ui_theme * th=ui_theme_now();
+    const unsigned char * bg=th->rgb[UC_BG],* ink=th->rgb[UC_INK];
+    unsigned char tr[11][4],cr[11][4]; // per family: its text's ramp over its tile, its tile's corners'
+    for (int f=0;f<11;++f){
+      const int e=32+5*f;
+      unsigned char t[3];
+      for (int j=0;j<3;++j) t[j]=(unsigned char)(fam[f][j]+(bg[j]-fam[f][j])*2/3); // (soft: 2/3 of the way to the background)
+      ui_borrow(e,t);
+      ui_borrow_mix(e+1,t,ink,1); ui_borrow_mix(e+2,t,ink,2);
+      ui_borrow_mix(e+3,bg,t,1); ui_borrow_mix(e+4,bg,t,2);
+      tr[f][0]=(unsigned char)e; tr[f][1]=(unsigned char)(e+1); tr[f][2]=(unsigned char)(e+2); tr[f][3]=ui_col(0,UC_INK);
+      cr[f][0]=ui_col(0,UC_BG); cr[f][1]=(unsigned char)(e+3); cr[f][2]=(unsigned char)(e+4); cr[f][3]=(unsigned char)e;
+    }
+    focus_status_label("PERIODIC TABLE");
+    int cursor_pos=0,res=-1;
+    while (res<0){
+      const AtomDef & a=atomsdefs[cursor_pos];
+      sprintf(protons,"%i",a.num);
+      sprintf(nucleons,"%i",a.neutrons+a.num);
+      sprintf(mass,"M:%f",a.mass);
+      sprintf(electroneg,"khi:%f",a.electroneg);
+      symbol=a.symbol;
+      name=a.name;
+      char ms[24],ks[24];
+      sprintf(ms,"mass %f",a.mass);
+      if (a.electroneg>=0) sprintf(ks,"khi %f",a.electroneg); else strcpy(ks,"khi -");
+      for (char * s : {ms,ks}) // (no trailing zeros: the CE's %g prints as %f)
+        if (char * d=strchr(s,'.')){
+          char * e=s+strlen(s);
+          while (e>d+1 && e[-1]=='0') --e;
+          *(e==d+1?d:e)=0;
+        }
+      focus_bar_tabs(keys,-1);
+      const int rows=ui_band_open(48);
+      for (int b=ST;b<SBOT;b+=rows?rows:SBOT-ST){
+        const int e=rows && b+rows<SBOT?b+rows:SBOT;
+        if (rows) ui_band_begin(b,e);
+        else ui_clip(0,b,UI_W,e);
+        ui_fill(0,ST,UI_W,SBOT-ST,ui_col(0,UC_BG));
+        for (int i=0;i<N;++i){
+          const AtomDef & d=atomsdefs[i];
+          const int x=X0+d.x*P,y=Y0+d.y*P+(d.y>=7?4:0),f=d.type<11?d.type:10,on=i==cursor_pos;
+          if (on) ui_rrect(0,x,y,TS,TS,3,UC_ACC,UC_BG);
+          else ui_rrect_r(x,y,TS,TS,3,cr[f]);
+          const int w=ui_text_width(&ui_tr10,d.symbol,-1);
+          ui_draw_text(&ui_tr10,d.symbol,-1,x+(TS-w)/2,y+12,on?ui_ramp(0,UC_ONACC,UC_ACC):tr[f],0);
+        }
+        // the chosen one's card, in the corner the table leaves empty (columns 2-11, rows 0-2)
+        const int sw=ui_text_width(&ui_mi34,a.symbol,-1),nw=ui_text_width(&ui_tr10,nucleons,-1);
+        const int sx=X0+2*P+6+nw+3;
+        ui_draw_text(&ui_tr10,nucleons,-1,sx-3-ui_text_width(&ui_tr10,nucleons,-1),Y0+19,ui_ramp(0,UC_SUB,UC_BG),0);
+        ui_draw_text(&ui_tr10,protons,-1,sx-3-ui_text_width(&ui_tr10,protons,-1),Y0+42,ui_ramp(0,UC_SUB,UC_BG),0);
+        ui_draw_text(&ui_mi34,a.symbol,-1,sx,Y0+40,ui_ramp(0,UC_INK,UC_BG),0);
+        const int tx=sx+sw+10;
+        const ui_face * nf=ui_text_width(&ui_tb12,a.name,-1)<=X0+12*P-tx?&ui_tb12:&ui_tr12;
+        ui_draw_text(nf,a.name,-1,tx,Y0+14,ui_ramp(0,UC_INK,UC_BG),0);
+        ui_draw_text(&ui_tr10,ms,-1,tx,Y0+30,ui_ramp(0,UC_SUB,UC_BG),0);
+        ui_draw_text(&ui_tr10,ks,-1,tx,Y0+44,ui_ramp(0,UC_SUB,UC_BG),0);
+        // its family, under the table: a tile of its tint, its name
+        const int f=a.type<11?a.type:10,fy=Y0+9*P+14;
+        ui_rrect_r(X0+2,fy-10,12,12,3,cr[f]);
+        ui_draw_text(&ui_tr12,famname[f],-1,X0+20,fy,ui_ramp(0,UC_SUB,UC_BG),0);
+        if (rows) ui_band_end();
+      }
+      ui_noclip();
+      int key;
+      GetKey(&key);
+      if (key==KEY_SHUTDOWN) res=key;
+      else if (key==KEY_CTRL_EXIT || key==KEY_CTRL_AC) res=0;
+      else if (key==KEY_CTRL_EXE || key==KEY_CTRL_OK || key==KEY_CTRL_F1) res=1|4|8|16|32;
+      else if (key=='s' || key==KEY_CHAR_5) res=2;
+      else if (key=='p' || key==KEY_CHAR_LPAR || key==KEY_CTRL_F2) res=4;
+      else if (key=='n' || key==KEY_CHAR_8 || key==KEY_CTRL_F3) res=8;
+      else if (key=='m' || key==KEY_CHAR_7 || key==KEY_CTRL_F4) res=16;
+      else if (key=='e' || key==KEY_CHAR_COMMA || key==KEY_CTRL_F5) res=32;
+      else if (key==KEY_CTRL_LEFT){ if (cursor_pos>0) --cursor_pos; }
+      else if (key==KEY_CTRL_RIGHT){ if (cursor_pos<N-1) ++cursor_pos; }
+      else if (key==KEY_CTRL_UP || key==KEY_CTRL_DOWN){ // the element above (below) in its column
+        const int cx=atomsdefs[cursor_pos].x,cy=atomsdefs[cursor_pos].y+(key==KEY_CTRL_UP?-1:1);
+        for (int i=0;i<N;++i)
+          if (atomsdefs[i].x==cx && atomsdefs[i].y==cy){ cursor_pos=i; break; }
+      }
+    }
+    ui_borrow_end();
+    focus_status_label(0);
+    focus_invalidate();
+    return res;
+  }
+#else
   int periodic_table(const char * & name,const char * & symbol,char * protons,char * nucleons,char * mass,char * electroneg){
     bool partial_draw=false,redraw=true;
     int cursor_pos=0;
@@ -1423,5 +1528,6 @@ void drawAtom(uint8_t id) {
       }
     } // end endless for
   } // end periodic_table
+#endif
 
 #endif

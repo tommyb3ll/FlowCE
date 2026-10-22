@@ -61,6 +61,8 @@ int focus_hist_line(int dir);           // history by calculations: the line for
 int focus_choose(const char * title, const char * const * labels, int n);
 // the same with KhiCAS's confirm keys: yk (F1 or F5) picks the first choice, the other one cancels
 int focus_choose_keys(const char * title, const char * const * labels, int n, int yk);
+// KhiCAS's confirm(): F1 picks the first choice, F5 the second (or the only one)
+int focus_confirm_card(const char * title, const char * const * labels, int n);
 // a list card under a title (0: none) for KhiCAS's own menus (doMenu); a long list scrolls.
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
 // syms: a column of symbols before the labels (==, %: the program editor's menus), drawn large
@@ -72,6 +74,9 @@ void focus_note(const char * title, const char * text); // a message card; the c
 // About, Shortcuts: a text to read; fk: F1-F5 close it too. Returns the key that closed it
 int focus_text(const char * title, const char * text, int fk = 0);
 void focus_splash(int first);           // the start screen (first: tips, "press any key")
+// KhiCAS + Flow: KhiCAS's debugger's screen: lines[n] ("12:instruction") around the current one (cur),
+// the watched variables watch[nw]; its keys on the bar
+void focus_debug(const char * const * lines, int n, int cur, const char * const * watch, int nw);
 // the graph's table of values: head[ncol], cells row by row, hint on the last line
 void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint);
 // focus_prompt(title, label, std::string & s, numeric): a value prompt (KhiCAS's inputline) as
@@ -79,6 +84,7 @@ void focus_table(const char * const * head, int ncol, const char * const * cells
 // KhiCAS's F-key menus (console_menu) as cards: idx = key - F1 after console_menu's renumbering.
 // Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
 int focus_fmenu(int idx, const char * const * entries, int n);
+extern const char * focus_fmenu_word; // KhiCAS + Flow: the next focus_fmenu's tab word (an application's menu), 0: the console's
 // DeltaCE's units menu (alpha F4, menu idx): a category, then a unit; the text to type, 0 if none
 const char * focus_units(int idx);
 int focus_screen();                     // 1 if the screen shows the Focus console (popovers can dim it)

@@ -472,6 +472,7 @@ static void tab_text(int i, const char * w, int fg);
 // opens card m (its geometry set): the scene dims at once, tab col of the bar is drawn open
 // (layer 0: its icon and word; 2nd, alpha: its text label), the card is painted
 static const char * tab_word_; // (DeltaCE) the open tab's word instead of the console's (the graph's menus)
+const char * focus_fmenu_word;
 // (DeltaCE) tab col drawn open, joined to the card: the card rises out of its key
 static void card_tab(int col, int layer) {
   int band = ui_band_open(32) >= 32;
@@ -636,6 +637,11 @@ int focus_choose_keys(const char * t, const char * const * labels, int n, int yk
   choose_yk = yk;
   return list_card(t, labels, n, 0, 0, 0, fk_yes);
 }
+static int fk_f1f5(int k) { return k == KEY_CTRL_F1 ? 0 : k == KEY_CTRL_F5 ? -3 : 1; } // (run_keys: 1 is "not a key of mine")
+int focus_confirm_card(const char * t, const char * const * labels, int n) {
+  const int r = list_card(t, labels, n, 0, 0, 0, fk_f1f5);
+  return r == -3 ? n - 1 : r;
+}
 
 // a message card (KhiCAS's print_msg12): title t, text s (cut to the card), over the screen as
 // it is; the caller reads the key, the next focus_disp repaints everything
@@ -656,6 +662,40 @@ void focus_note(const char * t, const char * s) {
   if (s && *s) ui_draw_text(&ui_tr12, s, fit(&ui_tr12, s, w - 24), x + 12, y + 50, ui_ramp(1, UC_SUB, UC_CARD), 0);
   focus_invalidate();
 }
+
+#ifdef FLOWCE_KHICAS
+// KhiCAS's debugger in the Focus look: the program's lines (their numbers at the left) around the
+// current one, on the accent; the watched variables under a hairline; next, step in, continue, kill
+// on the bar. Drawn in bands; the console is repainted whole once the program is done.
+void focus_debug(const char * const * lines, int n, int cur, const char * const * watch, int nw) {
+  static const char * const keys[5] = {"next", "step in", "continue", "kill", ""};
+  enum { LY = ST + 4, LH = 19, WH = 17 };
+  const int wy = LY + n * LH + 10;
+  focus_bar_tabs(keys, -1);
+  int rows = ui_band_open(48);
+  for (int b = ST; b < SBOT; b += rows ? rows : SBOT - ST) {
+    int e = rows && b + rows < SBOT ? b + rows : SBOT;
+    if (rows) ui_band_begin(b, e);
+    else ui_clip(0, b, UI_W, e);
+    ui_fill(0, ST, UI_W, SBOT - ST, ui_col(0, UC_BG));
+    for (int k = 0; k < n; ++k) {
+      const int y = LY + k * LH, on = k == cur, bg = on ? UC_ACC : UC_BG;
+      const char * l = lines[k], * c = strchr(l, ':');
+      const int nl = c ? c - l : 0;
+      if (on) ui_rrect(0, 4, y, UI_W - 8, LH - 1, 6, UC_ACC, UC_BG);
+      if (nl) ui_draw_text(&ui_tr12, l, nl, 30 - ui_text_width(&ui_tr12, l, nl), y + 14, ui_ramp(0, on ? UC_ONACC : UC_SUB, bg), 0);
+      const char * t = c ? c + 1 : l;
+      ui_draw_text(&ui_tr12, t, fit(&ui_tr12, t, UI_W - 46), 38, y + 14, ui_ramp(0, on ? UC_ONACC : UC_INK, bg), 0);
+    }
+    ui_fill(12, wy - 6, UI_W - 24, 1, ui_col(0, UC_LINE));
+    for (int k = 0; k < nw && wy + (k + 1) * WH <= SBOT; ++k)
+      ui_draw_text(&ui_tr12, watch[k], fit(&ui_tr12, watch[k], UI_W - 24), 12, wy + 13 + k * WH, ui_ramp(0, UC_INK, UC_BG), 0);
+    if (rows) ui_band_end();
+  }
+  ui_noclip();
+  focus_invalidate();
+}
+#endif
 
 // the graph's table of values in the Focus look: a header row (head[ncol]), nrow rows of cells
 // (row by row), alternate rows shaded, the keys on the last line. Drawn in bands (no flicker).
@@ -796,7 +836,7 @@ void focus_splash(int first) {
   }
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 #ifdef FLOWCE_KHICAS
-  static const char * const cr[] = {"UI enhancements by Tommy Bell",
+  static const char * const cr[] = {"UI by Tommy Bell",
                                     "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
 #else
   static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
@@ -816,7 +856,7 @@ void focus_splash(int first) {
   static const unsigned char lcol[NL] = {UC_INK, UC_INK, UC_INK, UC_INK, UC_ACC, UC_ACC};
 #endif
 #ifdef FLOWCE_KHICAS
-  const char * tag = "by Bernard Parisse"; // (KhiCAS's author, under its name)
+  const char * tag = "computer algebra system by Bernard Parisse"; // (what KhiCAS is, and its author)
   enum { NT = 6 }; // KhiCAS: typed behind a cursor, before + Flow flows in
 #else
   enum { NT = 0 };
@@ -1123,11 +1163,12 @@ int focus_fmenu(int idx, const char * const * e, int n) {
     if (px > UI_W - pw - 1) px = UI_W - pw - 1;
     py = SBOT - ph;
     prepare(m);
+    tab_word_ = focus_fmenu_word; // (an application's menu: its own name)
     open_card(m, col, idx / 5, 0);
     cur = idx;
     const int res = run_keys(m, 0, fk_kh);
     close_card(1, 1);
-    up_list = 0; rh = RH;
+    up_list = 0; rh = RH; tab_word_ = focus_fmenu_word = 0;
     return res;
   }
 #endif
