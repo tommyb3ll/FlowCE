@@ -47,9 +47,9 @@ extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
 #ifdef FLOWCE_KHICAS
-enum { TOP_KH = 1, GT = 13 }; // KhiCAS + Flow: results as giac prints them (no "+ C"); GT: the edit line's text row
+enum { TOP_KH = 1, GT = 13, NMSG = 6 }; // KhiCAS + Flow: results as giac prints them (no "+ C"); GT: the edit line's text row; NMSG: notes shown
 #else
-enum { TOP_KH = 0, GT = 0 };
+enum { TOP_KH = 0, GT = 0, NMSG = 2 };
 #endif
 #ifdef FLOWCE_KHICAS
 #define HIST2D focus_hist2d
@@ -226,7 +226,7 @@ static void scan() {
     if (e.in >= 0 && !HIST2D) e.inh = 16; // (a text line)
     else if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY); e.inh = c.a + c.d; }
     for (int l = e.m0; l >= 0 && l < e.out; ++l)
-      if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
+      if (Line[l].type != LINE_TYPE_CONT && e.msgs < NMSG) ++e.msgs;
     if (e.out >= 0) {
       const char * s = shown(Line[e.out].str);
       if (!HIST2D) e.outh = 16;
@@ -332,10 +332,11 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
     b += e.inh;
   }
   b += 5;
-  for (int l = e.m0, n = 0; l >= 0 && l < e.out && n < 2; ++l)
+  for (int l = e.m0, n = 0; l >= 0 && l < e.out && n < NMSG; ++l)
     if (Line[l].type != LINE_TYPE_CONT) {
       b += 11;
-      ui_text(&ui_tr9, Line[l].str, UI_W - 12, b - 2, UC_SUB, bg, 2);
+      if (TOP_KH) ui_text(&ui_tr9, Line[l].str, 12, b - 2, UC_SUB, bg, 0); // (KhiCAS: notes from the left, all of them)
+      else ui_text(&ui_tr9, Line[l].str, UI_W - 12, b - 2, UC_SUB, bg, 2);
       ++n;
     }
   if (e.out >= 0) {

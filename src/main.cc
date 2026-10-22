@@ -1295,7 +1295,7 @@ void do_run(const char * s){
     if (!contextptr)
       contextptr=new giac::context;
     focus_phase=80; // evaluation phases, for tools/emu (80 parse ... 89 shown)
-    const int defn=simple_definition(buf);
+    const int defn=KHICAS_ON?0:simple_definition(buf); // (KhiCAS shows giac's notes on definitions)
     stdostream * savelog=giac::logptr(contextptr);
     if (defn)
       giac::logptr(0,contextptr);
@@ -1324,7 +1324,9 @@ void do_run(const char * s){
     focus_busy(1); // "Calculating" after 0.4 s, from giac's checks of the ON key
     giac::control_c_hook=focus_busy_tick;
 #ifdef FLOWCE_KHICAS
-    answer_before(g,actx,buf,false); // (KhiCAS: x=a stores, nothing else rewritten)
+    g=giac::equaltosto(g,contextptr); // KhiCAS's: x=a stores, nothing else rewritten
+    g=giac::add_autosimplify(g,contextptr);
+    actx.tabled=false;
 #else
     answer_before(g,actx,buf,focus_on);
 #endif

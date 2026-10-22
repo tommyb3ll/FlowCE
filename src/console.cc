@@ -108,6 +108,33 @@ static bool console_input2d();
 static const mi_metrics & edit_metrics();
 static void console_set_caret(int p);
 #ifdef FLOWCE_KHICAS
+// KhiCAS's accept (its 2D editor's): integrate(f,x,,) and sum(f,k,,) without their empty bounds,
+// series(f,x,,,...) at 0 and order 5, an empty cell or element of [...] 0; s edited in place
+static void khicas_accept(char * s){
+  static const char * const drop[]={"integrate(","sum("};
+  for (int d=0;d<2;++d)
+    for (char * p=strstr(s,drop[d]);p;p=strstr(p+1,drop[d])){
+      int depth=0,commas=0; char * q=p+strlen(drop[d]);
+      for (;*q && (depth || *q!=')');++q){ if (*q=='(' || *q=='[') ++depth; else if (*q==')' || *q==']') --depth; else if (!depth && *q==',') ++commas; }
+      if (*q==')' && commas==3 && q[-1]==',' && q[-2]==',') memmove(q-2,q,strlen(q)+1); // f,x,, -> f,x
+    }
+  for (char * p=strstr(s,"series(");p;p=strstr(p+1,"series(")){
+    char * q=p+7; int depth=0,commas=0;
+    for (;*q && (depth || *q!=')');++q){
+      if (*q=='(' || *q=='[') ++depth; else if (*q==')' || *q==']') --depth;
+      else if (!depth && *q==',' && (++commas==2 || commas==3) && (q[1]==',' || q[1]==')') && strlen(s)+2<EDIT_LINE_MAX){
+        memmove(q+2,q+1,strlen(q+1)+1); q[1]=commas==2?'0':'5';
+      }
+    }
+  }
+  int br=0; // [ , , ]: empty cells 0
+  for (char * q=s;*q;++q){
+    if (*q=='[') ++br; else if (*q==']') --br;
+    if (br>0 && (*q=='[' || *q==',') && (q[1]==',' || (q[1]==']' && *q==',')) && strlen(s)+1<EDIT_LINE_MAX){ // ([] stays empty)
+      memmove(q+2,q+1,strlen(q+1)+1); q[1]='0';
+    }
+  }
+}
 // KhiCAS + Flow: Bernard's selection editing on the edit line (MODE): [sel_a,sel_b) selected
 static int sel_a=-1,sel_b=-1;
 std::string console_eval_part(const char * s); // main.cc
@@ -1963,6 +1990,22 @@ const char * trig(){
   static int console_input_call(const char * s){
     char buf[64];
     const int l=strlen(s);
+#ifdef FLOWCE_KHICAS
+    { // KhiCAS's templates (its 2D editor's): the variable filled in, the caret where it puts it
+      static const char * const tpl[][2]={{"integrate(","integrate(,x,,)\015"},{"sum(","sum(,k,,)\007"},{"limit(","limit(,x,)\011"},
+                                          {"diff(","diff(,x)\005"},{"surd(","surd(,)\006"},{"series(","series(,x,,,polynom)\012"},{"matrix(","[[,],[,]]\002"}};
+      for (unsigned i=0;i<sizeof(tpl)/sizeof(tpl[0]);++i)
+        if (!strcmp(s,tpl[i][0])){
+          const char * t=tpl[i][1];
+          const int tl=strlen(t)-1; // (its last byte: the caret)
+          memcpy(buf,t,tl); buf[tl]=0;
+          const int r=Console_Input((const Char *)buf);
+          for (int b=tl-(unsigned char)t[tl];b>0;--b)
+            Console_MoveCursor(CURSOR_LEFT);
+          return r;
+        }
+    }
+#endif
     int c=l,n=focus_call_template(s,buf,sizeof(buf),&c);
     if (!n){
       if (l>60)
@@ -3426,7 +3469,12 @@ int Console_GetKey(){
           continue;
         }
 #endif
+#ifdef FLOWCE_KHICAS
+        if (Edit_Line && !console_python_mode()) khicas_accept((char *)Edit_Line);
+        const int slot=-1; // (KhiCAS evaluates what is left: giac says what is wrong)
+#else
         const int slot=Edit_Line?console_empty_slot((const char *)Edit_Line):-1;
+#endif
         if (slot>=0 && !console_python_mode()){
           const int sc=slot>COL_DISP_MAX-1?slot-(COL_DISP_MAX-1):0;
           Line[Current_Line].start_col=sc;
