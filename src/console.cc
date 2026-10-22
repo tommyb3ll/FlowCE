@@ -2666,6 +2666,31 @@ int Console_GetKey(){
     if (key==KEY_CTRL_SHIFT || key==KEY_CTRL_ALPHA)
       continue;
 #ifdef FLOWCE_KHICAS
+    { // KhiCAS's undo (alpha X,T,theta,n): the edit line before the last key that changed it, its caret
+      // there (again: redo; after enter: the line evaluated)
+      static char * cur, * und;
+      static int curc, undc;
+      const char * e=Current_Line==Last_Line && Edit_Line?(const char *)Edit_Line:0;
+      if (e && (!cur || strcmp(cur,e))){ // (the last key changed it)
+        char * t=(char *)malloc(strlen(e)+1);
+        if (t){
+          strcpy(t,e);
+          free(und); und=cur; undc=curc;
+          cur=t; curc=Current_Col;
+        }
+      }
+      if (key==KEY_CTRL_UNDO){
+        if (e && und){
+          Console_Clear_EditLine();
+          Console_Input((const Char *)und);
+          console_set_caret(undc);
+          char * t=cur; cur=und; und=t;
+          const int tc=curc; curc=undc; undc=tc;
+          Console_Disp(1);
+        }
+        continue;
+      }
+    }
     // Bernard's selection (his 2D editor's MODE): arrows choose a part of the line, a menu's command
     // takes it as argument, enter or F5 evaluates it in place; MODE, clear or exit leave
     if (key==KEY_CTRL_SETUP && sel_a<0 && Current_Line==Last_Line && Edit_Line && Edit_Line[0] && console_edit2d()){
