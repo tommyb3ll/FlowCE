@@ -790,25 +790,39 @@ void focus_splash(int first) {
                                     "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
   for (int k = 0; k < 2; ++k)
     ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
-  const char * name = "FlowCE", * tag = "calculus on your TI-84 Plus CE"; // (the upright math faces have no capitals)
-  const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2;
+  // the name's letters: their face and color (the upright math faces have no capitals; the italic
+  // ones no +)
+#ifdef FLOWCE_KHICAS
+  static const char name[] = "KhiCAS + Flow"; // KhiCAS in ink, + gray, Flow in the accent
+  enum { NL = 13 };
+  static const unsigned char lcol[NL] = {UC_INK, UC_INK, UC_INK, UC_INK, UC_INK, UC_INK, UC_SUB, UC_SUB, UC_SUB, UC_ACC, UC_ACC, UC_ACC, UC_ACC};
+#else
+  static const char name[] = "FlowCE";
+  enum { NL = 6 };
+  static const unsigned char lcol[NL] = {UC_INK, UC_INK, UC_INK, UC_INK, UC_ACC, UC_ACC};
+#endif
+  const char * tag = "calculus on your TI-84 Plus CE";
+  const ui_face * lf[NL];
+  int w = 0;
+  for (int i = 0; i < NL; ++i) { lf[i] = name[i] == '+' ? &ui_mu34 : &ui_mi34; w += ui_text_width(lf[i], name + i, 1) + (name[i] == ' ' ? 9 : 0); }
+  const int x0 = (UI_W - w) / 2;
   const int tx = (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2;
   static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
   const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
   const ui_theme * th = ui_theme_now();
   const unsigned char * bg = th->rgb[UC_BG];
-  unsigned char rp[7][4]; // the letters' ramps, then the tag line's (lent entries, the background at first)
-  int lx[6];
-  for (int i = 0; i < 7; ++i) {
+  unsigned char rp[NL + 1][4]; // the letters' ramps, then the tag line's (lent entries, the background at first)
+  int lx[NL];
+  for (int i = 0; i <= NL; ++i) {
     rp[i][0] = ui_col(0, UC_BG);
     for (int s = 1; s <= 3; ++s) rp[i][s] = (unsigned char)(32 + 3 * i + s - 1);
     splash_shade(32 + 3 * i, bg, bg, 0);
   }
-  for (int i = 0; i < 6; ++i) {
-    lx[i] = x0 + ui_text_width(&ui_mi34, name, i);
-    ui_draw_text(&ui_mi34, name + i, 1, lx[i], y, rp[i], 0);
+  for (int i = 0, x = x0; i < NL; ++i) {
+    lx[i] = x;
+    x += ui_draw_text(lf[i], name + i, 1, x, y, rp[i], 0) + (name[i] == ' ' ? 9 : 0);
   }
-  ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, rp[6], 0);
+  ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, rp[NL], 0);
   // the curve 0-700 ms (smoothstep from 0.12: moving at once, fast, slow); a letter from 12 px
   // before the curve's end reaches it to 36 px after; the tag line 600-900 ms
   int skip = animated && first != 2, drawn = 0, t = 0;
@@ -820,16 +834,15 @@ void focus_splash(int first) {
     const int pts = 1 + p * (np - 1) / 1000, pen = wx + 4 * (pts - 1);
     for (; drawn + 1 < pts; ++drawn)
       ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
-    for (int i = 0; i < 7; ++i) {
-      int a = i < 6 ? (pen - lx[i] + 12) * 256 / 48 : (t - 600) * 256 / 300;
+    for (int i = 0; i <= NL; ++i) {
+      int a = i < NL ? (pen - lx[i] + 12) * 256 / 48 : (t - 600) * 256 / 300;
       a = a < 0 ? 0 : a > 256 ? 256 : a;
-      splash_shade(32 + 3 * i, th->rgb[i < 4 ? UC_INK : i < 6 ? UC_ACC : UC_SUB], bg, a);
+      splash_shade(32 + 3 * i, th->rgb[i < NL ? lcol[i] : UC_SUB], bg, a);
     }
     if (!skip && key_waiting()) { skip = 1; key_discard(); }
   }
   // the same text in the theme's own shades (the same colors), the lent entries given back
-  ui_draw_text(&ui_mi34, name, 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
-  ui_draw_text(&ui_mi34, name + 4, 2, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
+  for (int i = 0; i < NL; ++i) ui_draw_text(lf[i], name + i, 1, lx[i], y, ui_ramp(0, lcol[i], UC_BG), 0);
   ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
   ui_borrow_end();
   if (first == 1) { // (the console shows its keys once past this screen)
