@@ -648,7 +648,7 @@ const catalogFunc completeCatfr[] = { // list of all functions (including some n
   {"odesolve(f(t,y),[t,y],[t0,y0],t1)", nullptr, "Solution approchee d'equation differentielle y'=f(t,y) et y(t0)=y0, valeur en t1 (ajouter curve pour les valeurs intermediaires de y)", "sin(t*y),[t,y],[0,1],2", "0..pi,(t,v)->{[-v[1],v[0]]},[0,1]", CAT_CATEGORY_SOLVE},
 #endif
   {"partfrac(p,x)", nullptr, "Decomposition en elements simples. Raccourci p=>+", "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA},
-#if defined WITH_PLOT || defined FLOWCE_STEPS
+#if defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS
   {"plot(expr,x)", nullptr, "Graphe de fonction.", "ln(x),x=0..5", "1/x,x=1..5,xstep=1", CAT_CATEGORY_PLOT},
   //{"plotarea(expr,x=a..b,[n,meth])", 0, "Aire sous la courbe selon une methode d'integration.", "1/x,x=1..3,2,trapeze", 0, CAT_CATEGORY_PLOT},
   {"plotfield(f(t,y), [t=tmin..tmax,y=ymin..ymax])", nullptr, "Champ des tangentes de y'=f(t,y), optionnellement graphe avec arg. optionnel plotode=[t0,y0]", "sin(t*y), [t=-3..3,y=-3..3]", "5*[-y,x], [x=-1..1,y=-1..1]", CAT_CATEGORY_PLOT},
@@ -1027,7 +1027,7 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"odesolve(f(t,y),[t,y],[t0,y0],t1)", nullptr, D("Approx. solution of differential equation y'=f(t,y) and y(t0)=y0, value for t=t1 (add curve to get intermediate values of y)"), "sin(t*y),[t,y],[0,1],2", "0..pi,(t,v)->{[-v[1],v[0]]},[0,1]", CAT_CATEGORY_SOLVE},
 #endif
   {"partfrac(p,x)", nullptr, D("Partial fraction expansion. Shortcut p=>+"), "1/(x^4-1)", nullptr, CAT_CATEGORY_ALGEBRA},
-#if defined WITH_PLOT || defined FLOWCE_STEPS // (DeltaCE: its graph screen draws these)
+#if defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (DeltaCE: its graph screen draws these)
   {"plot(expr,x)", nullptr, D("Graph of y = f(x), a list of up to 4, or equations in x and y"), "ln(x),x,0,5", "[x^2+y^2=25,y=x+1]", CAT_CATEGORY_PLOT},
   {"plotfield(f(x,y))", nullptr, D("Slope field of y' = f(x,y); F3 points: solutions through points"), "x-y", "-x/y,[x=-3..3,y=-3..3]", CAT_CATEGORY_PLOT},
   {"plotode(f(x,y),[x0,y0])", nullptr, D("Slope field of y' = f(x,y) and the solution through (x0,y0)"), "x*y,[0,1]", "y-x,[x=-4..4,y],[0,1]", CAT_CATEGORY_PLOT},
@@ -1136,7 +1136,7 @@ std::string insert_string(int index){
 int showCatalog(char* insertText,int preselect,int menupos) {
   // returns 0 on failure (user exit) and 1 on success (user chose a option)
 #ifdef WITH_UNITS
-#if defined WITH_PLOT || defined FLOWCE_STEPS
+#if defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS
   MenuItem menuitems[CAT_CATEGORY_PLOT+1];
   menuitems[CAT_CATEGORY_PLOT].text = (char*)((lang==1)?"Courbes, points":"Graphs");
 #else

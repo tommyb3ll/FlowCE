@@ -3766,7 +3766,7 @@ int Console_Init()
   return CONSOLE_SUCCEEDED;
 }
 
-#if defined WITH_PLOT || defined FLOWCE_STEPS // (DeltaCE: F3's plots, its graph screen's)
+#if defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (DeltaCE: F3's plots, its graph screen's)
 
 #ifdef FRANCAIS
   constexpr const char conf_standard[] = "F1 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2  calcul\n'\ndiff(\nintegrate(\nlimit(\ntabvar(\nseries(\nsolve(\ndesolve(\n=\nF3   graphes  \nplot(\nplotparam(\nplotpolar(\nplotfield(\nplotode(\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
