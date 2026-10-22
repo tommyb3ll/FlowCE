@@ -416,15 +416,23 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
 }
 #else
 static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel, int selout) {
-  int bg = sel ? UC_ACCSOFT : UC_BG;
+#ifdef FLOWCE_KHICAS
+  // as KhiCAS: the inputs in ink as the answers, nothing between the entries; the selected line (the
+  // input or the answer) alone on a soft box in the accent's frame (sy, sh)
+  const int bg = UC_BG, ibg = sel && !selout ? UC_ACCSOFT : bg, obg = sel && selout ? UC_ACCSOFT : bg, ic = UC_INK, oc = UC_INK;
+  const int sy = selout ? y + 7 + e.inh + 5 + e.msgs * 11 - 4 : y + 3, sh = (selout ? e.outh : e.inh) + 8;
+  if (sel) ui_rrect(0, 5, sy, UI_W - 10, sh, 7, UC_ACCSOFT, UC_BG);
+#else
+  const int bg = sel ? UC_ACCSOFT : UC_BG, ibg = bg, obg = bg, ic = sel && !selout ? UC_ACC : UC_SUB, oc = sel && selout ? UC_ACC : UC_INK;
   if (sel) ui_rrect(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACCSOFT, UC_BG);
+#endif
   int b = y + 7;
   if (e.in >= 0 && !HIST2D) { // KhiCAS's text history: the line as typed
-    ui_text(&ui_tr12, Line[e.in].str, 12, b + 12, sel && !selout ? UC_ACC : UC_SUB, bg, 0);
+    ui_text(&ui_tr12, Line[e.in].str, 12, b + 12, ic, ibg, 0);
     b += e.inh;
   } else if (e.in >= 0) {
     fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY);
-    draw_math(Line[e.in].str, c, 12, b + c.a, sel && !selout ? UC_ACC : UC_SUB, bg, MI_F_TIDY);
+    draw_math(Line[e.in].str, c, 12, b + c.a, ic, ibg, MI_F_TIDY);
     b += e.inh;
   }
   b += 5;
@@ -437,19 +445,23 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
     }
   if (e.out >= 0) {
     const char * s = shown(Line[e.out].str);
-    if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, sel && selout ? UC_ACC : UC_INK, bg, 2); // (as giac prints it)
+    if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, oc, obg, 2); // (as giac prints it)
     else if (TOP_KH && matrix_grid(s, b, 120, W_OUT, OUT_LV, UI_W - 12, 1)) ;
 #ifdef FLOWCE_KHICAS
-    else if (const unsigned char * tp = thumb_of(e)) thumb_draw(tp, UI_W - 12 - TH_W, b + 2, sel && selout ? UC_ACC : UC_INK);
-    else if (!is_text(s) && fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).w > W_OUT && wrap_draw(s, b, UI_W - 12, sel && selout ? UC_ACC : UC_INK, bg)) ;
+    else if (const unsigned char * tp = thumb_of(e)) thumb_draw(tp, UI_W - 12 - TH_W, b + 2, oc);
+    else if (!is_text(s) && fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).w > W_OUT && wrap_draw(s, b, UI_W - 12, oc, obg)) ;
 #endif
     else {
       int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
-      draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
+      draw_result(e, UI_W - 12, b + a, oc, obg);
     }
   }
+#ifdef FLOWCE_KHICAS
+  if (sel) ui_rframe(0, 5, sy, UI_W - 10, sh, 7, UC_ACC, UC_BG);
+#else
   if (sel) ui_rframe(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACC, UC_BG);
   else ui_fill(12, y + e.h - 1, UI_W - 24, 1, col(UC_LINE));
+#endif
 }
 #endif
 
@@ -487,7 +499,7 @@ enum { HELP_H = 32 };    // ... at the bottom of the hero
 // KhiCAS's 2D editor, as KhiCAS + Flow shows the edit line while it has text: a panel at the bottom,
 // KPT over the expression (its hairline), KPB under it (the line's text); the panel's top for layout
 // L (kh_moved: not where it was laid out, the history moves)
-enum { KPT = 8, KPB = 22 };
+enum { KPT = 8, KPB = 26 };
 static char kh_moved;
 static int kh_top(const mi_layout & L) { const int t = SBOT - (L.asc + L.desc + KPT + KPB); return t < ST ? ST : t; }
 #endif
@@ -779,6 +791,7 @@ static void ti_cursor(int x, int top, int h) {
   ui_draw_glyph(&ui_mu20, cp, x, top + h, ramp(UC_INK, UC_BG), 1);
 }
 #endif
+static void spaced_text(const ui_face * f, const char * s, int x, int base, const unsigned char * rp, int sp);
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
@@ -812,9 +825,10 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 #ifdef FLOWCE_KHICAS
     { // KhiCAS's 2D editor's panel: a hairline over it (as between the history's entries), the line's
       // text along its bottom as typed, with its parentheses (its end when too long)
+      // (12 px, a pixel between the letters: smaller, they touched)
       ui_fill(12, y0, UI_W - 24, 1, col(UC_LINE));
-      const int n = strlen(s), w = ui_text_width(&ui_tr10, s, n);
-      ui_draw_text(&ui_tr10, s, n, w > UI_W - 2 * HX ? UI_W - HX - w : HX, SBOT - 7, ramp(UC_INK, UC_BG), 0);
+      const int n = strlen(s), w = ui_text_width(&ui_tr12, s, n) + n;
+      spaced_text(&ui_tr12, s, w > UI_W - 2 * HX ? UI_W - HX - w : HX, SBOT - 8, ramp(UC_INK, UC_BG), 1);
     }
 #else
     if (GT) { // as KhiCAS's 2D editor: the line's giac text under it, small (its end when too long)
