@@ -12,6 +12,9 @@ CEDEV15="${CEDEV15:-/home/bell/cedev15/x/CEdev}"
 SRC="$KB/src15"; [ "${VARIANT#*tilook}" != "$VARIANT" ] && SRC="$KB/src15ti" # (objects of its own)
 [ "${VARIANT#*khicas}" != "$VARIANT" ] && SRC="$KB/src15kh"
 OUT="$KB/out/$VARIANT"; LOG="$KB/logs"
+if [ -n "${NIGHTLY:-}" ]; then # (variant-nightly: the nightly toolchain, its own objects and outputs)
+  CEDEV15="${CEDEVN:-/home/bell/cedev-nightly-20261014/CEdev}"; SRC="${SRC}n"; OUT="$OUT-nightly"
+fi
 BU="$CEDEV15/binutils/bin"
 export PATH="$CEDEV15/bin:$PATH"
 mkdir -p "$OUT" "$LOG"
@@ -35,19 +38,21 @@ case "$VARIANT" in
 esac
 if [ "$(cat obj/.variant 2>/dev/null)" != "$VARIANT" ]; then rm -rf obj bin; mkdir -p obj; echo "$VARIANT" > obj/.variant; fi
 
-# the fasmg link's settings are replaced: the toolchain's app linker script, and the heap bounds
+LV="$VARIANT${NIGHTLY:+-nightly}" # (the log's name)
+# the fasmg link's settings are replaced: the toolchain's app linker script (v15 forces it for an
+# application, the nightly takes it only if none is set: app_tools/makefile's is fasmg's), the heap bounds
 # of the custom allocator under the names that script gives them
 LDX="--defsym=___heapbot=___heap_low --defsym=___heaptop=___heap_high"
 t0=$(date +%s)
-: > "$LOG/build_$VARIANT.log"
+: > "$LOG/build_$LV.log"
 # the catalog's English descriptions, packed from menufr.cc's D("...") (DeltaCE's tools/catpack.py;
 # the header is rewritten only when they changed)
-python3 tools/catpack.py src/menufr.cc src/catalog_text.h >> "$LOG/build_$VARIANT.log" || { echo "[build] tools/catpack.py failed"; exit 1; }
+python3 tools/catpack.py src/menufr.cc src/catalog_text.h >> "$LOG/build_$LV.log" || { echo "[build] tools/catpack.py failed"; exit 1; }
 PAD=0 # 0xFF bytes after the code (a last AppIns under 1 KB: below)
 link() { # <load address>
   rm -f bin/DEMO.obj
-  make -j"$(nproc)" $ARGS APPLICATION=YES EXTRA_LDFLAGS="$LDX" OUTPUT_MAP=YES STRIP_CMD=: LOAD_ADDR="$1" bin/DEMO.obj >> "$LOG/build_$VARIANT.log" 2>&1 \
-    || { echo "[build] FAILED - last errors:"; grep -E "error|undefined" "$LOG/build_$VARIANT.log" | head -20; exit 1; }
+  make -j"$(nproc)" $ARGS APPLICATION=YES LINKER_SCRIPT="$CEDEV15/meta/linker_script_app.ld" EXTRA_LDFLAGS="$LDX" OUTPUT_MAP=YES STRIP_CMD=: LOAD_ADDR="$1" bin/DEMO.obj >> "$LOG/build_$LV.log" 2>&1 \
+    || { echo "[build] FAILED - last errors:"; grep -E "error|undefined" "$LOG/build_$LV.log" | head -20; exit 1; }
   "$BU/z80-none-elf-objcopy" -O binary bin/DEMO.obj bin/body.bin
   [ "$PAD" = 0 ] || head -c "$PAD" /dev/zero | LC_ALL=C tr '\0' '\377' >> bin/body.bin
 }
@@ -86,7 +91,7 @@ rm -f "$OUT"/AppIns*.8xv
 echo "__flowce_line_size = 00000E" >> bin/DEMO.map
 cp bin/AppIns*.8xv bin/_DEMO.bin bin/DEMO.map "$OUT"/
 echo "$SUPER $GIAC" > "$OUT/SNAPSHOT"
-echo "[build] OK in $((t1-t0))s: _DEMO.bin=$size B ($(( (size+65535)/65536 )) flash pages), $(ls "$OUT"/AppIns*.8xv | wc -l) AppIns, warnings=$(grep -c 'warning:' "$LOG/build_$VARIANT.log") -> $OUT"
+echo "[build] OK in $((t1-t0))s: _DEMO.bin=$size B ($(( (size+65535)/65536 )) flash pages), $(ls "$OUT"/AppIns*.8xv | wc -l) AppIns, warnings=$(grep -c 'warning:' "$LOG/build_$LV.log") -> $OUT"
 max=$((0x2AFFFD))
 if [ "$size" -gt "$max" ]; then echo "[build] TOO BIG: $size B > $max B (43 flash pages): INST will fail"; exit 3; fi
 if [ "$last" -lt 1024 ]; then echo "[build] the last AppIns holds $last B (< 1 KB) even padded: INST stops on it"; exit 3; fi

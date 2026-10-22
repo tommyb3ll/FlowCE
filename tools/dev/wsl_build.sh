@@ -4,6 +4,7 @@
 set -uo pipefail
 WIN="$1"; VARIANT="$2"; SUPER="$3"; GIAC="$4"
 case "$VARIANT" in *-v15) exec bash "$(dirname "$0")/wsl_build_v15.sh" "$@" ;; esac  # CE toolchain v15
+case "$VARIANT" in *-v15-nightly) exec env NIGHTLY=1 bash "$(dirname "$0")/wsl_build_v15.sh" "$1" "${VARIANT%-nightly}" "$3" "$4" ;; esac  # the nightly toolchain
 KB="${KB:-/home/bell/khicas-review-build}"
 SRC="$KB/src"; OUT="$KB/out/$VARIANT"; LOG="$KB/logs"
 export PATH="$KB/CEdev/bin:$PATH"
