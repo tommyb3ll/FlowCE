@@ -839,8 +839,11 @@ static void status_draw(int force) {
 #ifdef FLOWCE_TILOOK
   } else strcpy(buf, os_get_angle_unit() ? "NORMAL EXACT RADIAN MP" : "NORMAL EXACT DEGREE MP");
 #elif defined(FLOWCE_KHICAS)
-  } else strcpy(buf, os_get_angle_unit() ? (console_python_mode() ? "RAD    PYTHON" : "RAD    XCAS")
-                                         : (console_python_mode() ? "DEG    PYTHON" : "DEG    XCAS"));
+  } else { // KhiCAS's: the session's name, the angle, the syntax
+    strncpy(buf, session_filename, 9); buf[9] = 0;
+    strcat(buf, os_get_angle_unit() ? "  RAD  " : "  DEG  ");
+    strcat(buf, console_python_mode() ? "PY" : "CAS");
+  }
 #else
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
 #endif
