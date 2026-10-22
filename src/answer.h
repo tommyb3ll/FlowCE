@@ -88,6 +88,10 @@ void answer_forms_start(answer_forms & F,const std::string & orig,bool number);
 // is called before a form is computed (the status line: computing...).
 int answer_forms_next(answer_forms & F,int k,const std::string & cur,void (*busy)());
 
+// (KhiCAS + Flow) a definite integral of a hard radicand (sqrt(1+x^4), arc lengths) made numeric,
+// as FlowCE does before eval, in an algebraic input; g itself otherwise
+giac::gen answer_numeric_integrals(const giac::gen & g);
+
 // F4's forms are printed the same way
 giac::gen positive_first(const giac::gen & g);
 void textbook(std::string & str);

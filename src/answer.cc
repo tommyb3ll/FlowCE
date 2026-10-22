@@ -2043,6 +2043,26 @@ static giac::gen numeric_hard_integrals(const giac::gen & g){
   }
   return sym1(&g._SYMBptr->sommet,numeric_hard_integrals(a));
 }
+#ifdef FLOWCE_KHICAS
+// (KhiCAS + Flow) that alone, for an algebraic input (+ - * / powers and roots of numbers and
+// letters, integrals): giac does trig ones exactly (sqrt(1+cos(x)) from 0 to pi: 2*sqrt(2)), and
+// computes the elliptic ones for minutes without an answer
+static bool algebraic(const giac::gen & e){
+  using namespace giac;
+  if (e.type==_VECT){
+    for (const_iterateur it=e._VECTptr->begin();it!=e._VECTptr->end();++it)
+      if (!algebraic(*it))
+        return false;
+    return true;
+  }
+  if (e.type!=_SYMB)
+    return true;
+  const unary_function_ptr & u=e._SYMBptr->sommet;
+  return (u==at_plus || u==at_prod || u==at_neg || u==at_inv || u==at_pow || u==at_sqrt || u==at_division || u==at_binary_minus
+          || u==at_integrate || u==at_int) && algebraic(e._SYMBptr->feuille);
+}
+giac::gen answer_numeric_integrals(const giac::gen & g){ return algebraic(g)?numeric_hard_integrals(g):g; }
+#endif
 
 // An equation typed alone (x^2-4=0, 2x+1=5, sin(x)=1/2) is solved for its only unknown, as an
 // online calculator does; x=5 or f(x)=... never get here (equaltosto stores, the input pre-pass

@@ -1369,6 +1369,8 @@ void do_run(const char * s){
 #ifdef FLOWCE_KHICAS
     g=giac::equaltosto(g,contextptr); // KhiCAS's: x=a stores, nothing else rewritten
     const giac::gen gin=g;
+    if (giac::contains(gin,giac::at_integrate) || giac::contains(gin,giac::at_int))
+      g=answer_numeric_integrals(g); // (no elementary antiderivative: numerically at once, as FlowCE)
     g=giac::add_autosimplify(g,contextptr);
     actx.tabled=false;
 #else
