@@ -110,11 +110,9 @@ static int word_color(const char * w, bool py) {
   const int c = find_color(w);
   return c == _BLUE ? UC_ACC : c == 24844 ? UC_PURPLE : c == _GREEN ? UC_ORANGE : UC_INK;
 }
-// the color of each byte of s: keywords in the accent color, commands purple, numbers and
-// constants orange, strings green, comments gray, the rest ink
-static __attribute__((noinline)) void colorize(const std::string & s, unsigned char * c, bool py) {
-  const int n = s.size();
-  const char * p = s.c_str();
+// the color of each byte of p (n of them): keywords in the accent color, commands purple, numbers
+// and constants orange, strings green, comments gray, the rest ink (KhiCAS + Flow's command line too)
+__attribute__((noinline)) void focus_colorize(const char * p, int n, unsigned char * c, bool py) {
   for (int i = 0; i < n;) {
     const unsigned char ch = p[i];
     int j = i + 1, k = UC_INK;
@@ -194,7 +192,7 @@ static void paint(textArea * t, int l0, int l1, bool all) {
     const int nr = wrap(v[i].s, rs);
     unsigned char * c = new unsigned char[v[i].s.size() + 1];
     if (!c) break;
-    colorize(v[i].s, c, PY(t));
+    focus_colorize(v[i].s.c_str(), v[i].s.size(), c, PY(t));
     for (int k = 0; k < nr; ++k) {
       const int sr = g + k - top;
       if (sr < 0 || sr >= NV) continue;

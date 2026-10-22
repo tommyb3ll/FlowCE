@@ -33,6 +33,9 @@ void focus_blink(void); // getkey at the console, twice a second: the TI look's 
 extern bool focus_hist2d;
 #ifdef FLOWCE_KHICAS
 extern bool focus_text_arrows;          // Config: left and right by character in the text line (off: through the 2D)
+bool focus_line1d();                    // KhiCAS + Flow, Config, 2D history off: the edit line is text (KhiCAS's command line)
+void focus_set_hist2d(bool on);         // KhiCAS + Flow's Config: 2D history (kept with the theme)
+void focus_colorize(const char * p, int n, unsigned char * c, bool py); // focus_edit.cc: the colors of code's bytes
 void focus_set_text_arrows(bool on);    // (kept with the theme)
 #endif
 // KhiCAS + Flow's graph thumbnails: the graph on the screen, small (malloc'ed, 0 if none), then

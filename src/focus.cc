@@ -62,6 +62,9 @@ enum { TOP_KH = 0, GT = 0, NMSG = 2 };
 #else
 #define HIST2D 1
 #endif
+#ifdef FLOWCE_KHICAS
+bool focus_line1d() { return !focus_hist2d; }
+#endif
 
 #ifdef FLOWCE_TILOOK
 // the TI-84 look: the OS's status bar (30 rows), quiet F-key labels (13); one text size, the large
@@ -85,6 +88,46 @@ static char smsg[40];      // status bar message
 
 static unsigned char col(int c) { return ui_col(0, c); }
 static const unsigned char * ramp(int fg, int bg) { return ui_ramp(0, fg, bg); }
+#ifdef FLOWCE_KHICAS
+// KhiCAS's command line (Config, 2D history off, as KhiCAS's plain command-line entry): the text in
+// KhiCAS's colors (focus_edit.cc's: keywords in the accent, commands purple, numbers orange, strings
+// green), a pixel between the letters (as the text line under the 2D), wrapped at the screen's width
+enum { L1X = 12, L1W = UI_W - 2 * L1X, L1H = 16, L1MAX = 12, L1C = 400 };
+static unsigned char l1c[L1C]; // the colors of a line's bytes (the first L1C)
+static int l1_rows(const char * s, int n, unsigned short * at) { // the rows' first bytes; their number
+  int k = 1, x = 0;
+  at[0] = 0;
+  for (const char * p = s, * e = s + n; p < e;) {
+    const char * q = p;
+    const int w = ui_glyph_of(&ui_tr12, ui_utf8(&q, e)) ? ui_text_width(&ui_tr12, p, q - p) + 1 : 0;
+    if (x + w > L1W && x && k < L1MAX) { at[k++] = (unsigned short)(p - s); x = 0; }
+    x += w; p = q;
+  }
+  return k;
+}
+static int line1d_h(const char * s) { unsigned short at[L1MAX]; return l1_rows(s, strlen(s), at) * L1H + 8; }
+// bytes [a, b) of s from x on baseline base, colored (c: s's colors); the caret before byte caret
+// (-1: none); returns x after them
+static int l1_draw(const char * s, int a, int b, int x, int base, int bg, int caret) {
+  for (const char * p = s + a, * e = s + b; p < e;) {
+    const int i = p - s;
+    if (i == caret) ui_fill(x - 1, base - 11, 2, 14, col(UC_ACC));
+    const unsigned cp = ui_utf8(&p, e);
+    x += ui_draw_glyph(&ui_tr12, cp, x, base, ramp(i < L1C ? l1c[i] : UC_INK, bg), 0) + 1;
+  }
+  if (caret == b) ui_fill(x - 1, base - 11, 2, 14, col(UC_ACC));
+  return x;
+}
+// a history input as text (2D history off): colored as the command line, on one row
+static void line1d_text(const char * s, int base, int bg) {
+  const int n = strlen(s);
+  focus_colorize(s, n < L1C ? n : L1C, l1c, false);
+  ui_clip(0, ui_cy0, UI_W - L1X, ui_cy1);
+  l1_draw(s, 0, n, L1X, base, bg, -1);
+  ui_clip(0, ui_cy0, UI_W, ui_cy1);
+}
+static int l1_shown = -1; // (compute_model) the command line's height laid out
+#endif
 
 // ------------------------------------------------------------------ fitted layouts (cached)
 struct fitc { const char * p; unsigned hash; signed char maxlv, lv; short maxw, maxh, flags, w, a, d; };
@@ -427,8 +470,12 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
   if (sel) ui_rrect(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACCSOFT, UC_BG);
 #endif
   int b = y + 7;
-  if (e.in >= 0 && !HIST2D) { // KhiCAS's text history: the line as typed
+  if (e.in >= 0 && !HIST2D) { // KhiCAS's text history: the line as typed, in its colors
+#ifdef FLOWCE_KHICAS
+    line1d_text(Line[e.in].str, b + 12, ibg); (void)ic;
+#else
     ui_text(&ui_tr12, Line[e.in].str, 12, b + 12, ic, ibg, 0);
+#endif
     b += e.inh;
   } else if (e.in >= 0) {
     fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY);
@@ -464,6 +511,7 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
 #endif
 }
 #endif
+
 
 // ------------------------------------------------------------------ hero (the edit line)
 // a small up or down triangle centered at x, cy (the arrow keys)
@@ -791,6 +839,19 @@ static void ti_cursor(int x, int top, int h) {
   ui_draw_glyph(&ui_mu20, cp, x, top + h, ramp(UC_INK, UC_BG), 1);
 }
 #endif
+#ifdef FLOWCE_KHICAS
+// the edit line on KhiCAS's command line (2D history off): its rows from y0, the caret in its row
+static void line1d_paint(const char * s, int y0) {
+  const int n = strlen(s);
+  unsigned short at[L1MAX];
+  const int nr = l1_rows(s, n, at);
+  focus_colorize(s, n < L1C ? n : L1C, l1c, false);
+  for (int r = 0; r < nr; ++r) {
+    const int base = y0 + 16 + r * L1H, e = r + 1 < nr ? at[r + 1] : n;
+    if (in_band(base - 14, base + 5)) l1_draw(s, at[r], e, L1X, base, UC_BG, hcaret >= at[r] && (hcaret < e || r == nr - 1) ? hcaret : -1);
+  }
+}
+#endif
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
@@ -859,7 +920,11 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
       if (*ex) help_line(&ui_tr10, ex, b + 14, UC_INK, "e.g.  ");
     }
   } else if (hm == HM_TEXT) {
+#ifdef FLOWCE_KHICAS
+    line1d_paint(s, y0);
+#else
     ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
+#endif
 #ifndef FOCUS_CONSOLE // (the console's layout shows no answer large)
   } else if (hm == HM_RESULT) {
     const fent & e = E[NE - 1];
@@ -1566,6 +1631,10 @@ static __attribute__((noinline)) void compute_model() {
     // as the OS and KhiCAS: the history, the edit line under it, scrolled up when they do not fit
     int eh = SB == 30 ? 16 : 26;
     if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, SH, MI_F_CALLBOX); eh = c.a + c.d + GT; }
+#ifdef FLOWCE_KHICAS
+    else if (s && *s && focus_line1d()) eh = line1d_h(s);
+    l1_shown = s && *s && focus_line1d() ? eh : -1;
+#endif
     M.scroll = TOP + M.col_h + eh + 2 > SH ? TOP + M.col_h + eh + 2 - SH : 0;
 #ifdef FLOWCE_KHICAS
     if (s && *s && console_edit2d()) { // KhiCAS's 2D editor: a panel at the bottom, the history above it
@@ -1642,6 +1711,16 @@ void focus_disp(int mode) {
       return;
     }
   }
+#ifdef FLOWCE_KHICAS
+  if (ours && !PM.hist && hm == HM_TEXT && console_caret() >= 0 && nonempty && focus_line1d() && line1d_h(es) == l1_shown) {
+    // typing on KhiCAS's command line, its rows as many: only its rows painted again
+    hero_prepare(M.hero_y, SBOT - M.hero_y);
+    stage_rows(M.hero_y, SBOT);
+    ui_band_close();
+    focus_phase = 0;
+    return;
+  }
+#endif
   if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
   compute_model();
   if (ours && M.hist && PM.hist && M.col_n == PM.col_n && M.col_h == PM.col_h) {
@@ -1758,14 +1837,15 @@ void focus_init() {
   theme_i = !t ? 0 : t[0] == 'N' ? 1 : t[0] > '0' && t[0] < '0' + UI_NTHEMES ? t[0] - '0' : 0;
 #ifdef FLOWCE_KHICAS
   focus_text_arrows = t && t[0] && t[1] == 'T';
+  focus_hist2d = !(t && t[0] && t[1] && t[2] == 'L'); // (L: 2D history off, KhiCAS's command line)
 #endif
   ui_set_theme(ui_themes[theme_i]);
   read_battery();
 }
 static void save_ui() {
 #ifdef FLOWCE_KHICAS
-  const char d[3] = {(char)('0' + theme_i), focus_text_arrows ? 'T' : '-', 0};
-  write_file("FocusUI", d, 3);
+  const char d[4] = {(char)('0' + theme_i), focus_text_arrows ? 'T' : '-', focus_hist2d ? '-' : 'L', 0};
+  write_file("FocusUI", d, 4);
 #else
   const char d[2] = {(char)('0' + theme_i), 0};
   write_file("FocusUI", d, 2);
@@ -1781,6 +1861,10 @@ void focus_set_theme(int i) {
 #ifdef FLOWCE_KHICAS
 void focus_set_text_arrows(bool on) {
   focus_text_arrows = on;
+  save_ui();
+}
+void focus_set_hist2d(bool on) {
+  focus_hist2d = on;
   save_ui();
 }
 #endif

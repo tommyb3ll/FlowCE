@@ -974,8 +974,8 @@ void menu_setup(){
         answer_set_simplify(!answer_simplify());
         continue;
       }
-      if (H && smallmenu.selection==2){ // the history drawn again, in 2D or as text
-        focus_hist2d=!focus_hist2d; // (the console is drawn again when the menu closes)
+      if (H && smallmenu.selection==2){ // the history drawn again, in 2D or as text (and the edit line: KhiCAS's command line)
+        focus_set_hist2d(!focus_hist2d); // (the console is drawn again when the menu closes)
         continue;
       }
 #ifdef FLOWCE_KHICAS
@@ -4328,6 +4328,9 @@ static int console_edit_rows(const mi_layout & L){
 }
 
 static bool console_input2d(){
+#ifdef FLOWCE_KHICAS
+  if (focus_line1d()) return false; // (2D history off: KhiCAS's command line, keys as typed)
+#endif
   return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly && !console_python_mode();
 }
 // for focus.cc: label of F-key k (0-4) in layer 0 (plain), 1 (2nd) or 2 (alpha), unpadded
@@ -4346,7 +4349,12 @@ const char * console_fkey_label(int layer,int k){
   return t[(layer<0?0:layer>2?2:layer)*5+(k<0?0:k>4?4:k)];
 }
 // for focus.cc: the edit line is math (not Python); the caret in it (-1: the cursor is in the history)
-bool console_edit2d(){ return Edit_Line && !console_python_mode(); }
+bool console_edit2d(){
+#ifdef FLOWCE_KHICAS
+  if (focus_line1d()) return false;
+#endif
+  return Edit_Line && !console_python_mode();
+}
 int console_caret(){ return Edit_Line && Current_Line==Last_Line && !Line[Last_Line].readonly ? Current_Col : -1; }
 // metrics of the edit line as drawn: the caret moves in 2D on the drawn geometry
 static const mi_metrics & edit_metrics(){ return focus_on ? focus_metrics() : mi_device_metrics; }
