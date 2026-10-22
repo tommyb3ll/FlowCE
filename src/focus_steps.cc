@@ -666,11 +666,25 @@ static void draw_item(const item & it, int y, int bg) { // y: its top on the scr
   const int b = y + it.base, ink = it.kind == K_FORM ? UC_SUB : UC_INK;
   int x = it.x;
   switch (it.kind) {
+#ifdef FLOWCE_TILOOK // the TI-84 look: the home screen's dotted line; a step's label white on black,
+  // as the OS's menu tabs; boxes square
+  case K_LINE: for (int xx = 0; xx + 2 <= it.w; xx += 6) ui_fill(x + xx, y, 2, 2, ui_col(0, UC_INK)); return;
+  case K_LABEL: {
+    const int lw = ui_text_width(&ui_tb9, it.s, -1);
+    ui_fill(x - 2, b - 12, lw + 4, 13, ui_col(0, UC_INK));
+    ui_draw_text(&ui_tb9, it.s, -1, x, b, ui_ramp(0, UC_WHITE, UC_INK), 0);
+  } return;
+#else
   case K_LINE: ui_fill(x, y, it.w, 1, ui_col(0, UC_LINE)); return;
   case K_LABEL: ui_draw_text(&ui_tb9, it.s, -1, x, b, ui_ramp(0, it.num ? UC_SUB : UC_ACC, bg), 0); return;
+#endif
   case K_TITLE: ui_draw_text(&ui_tb12, it.s, -1, x, b, ui_ramp(0, UC_INK, bg), 0); return;
   case K_TEXT: ui_draw_text(&ui_tr12, it.s, -1, x, b, ui_ramp(0, it.num ? UC_INK : UC_SUB, bg), 0); return;
+#ifdef FLOWCE_TILOOK
+  case K_BOX: ui_fill(x, y, it.w, it.h, ui_col(0, UC_ACCSOFT)); return;
+#else
   case K_BOX: ui_rrect(0, x, y, it.w, it.h, 8, UC_ACCSOFT, bg); return;
+#endif
   case K_TABLE: draw_table(it, y, bg); return;
   case K_CHIP: { // (as the console's forms chip)
     ui_rrect(0, x, y, it.w, it.h, 6, UC_ACCSOFT, bg);
@@ -712,7 +726,11 @@ static void paint(int top, int cur) {
     if (rows) ui_band_begin(b, e);
     ui_fill(0, b, UI_W, e - b, ui_col(0, UC_BG));
     ui_clip(0, Y0, UI_W, UI_H);
+#ifdef FLOWCE_TILOOK
+    if (h0 >= 0) ui_fill(X - 8, Y0 + h0 + 5 - top, W + 16, h1 - h0 - 9, ui_col(0, UC_ACCSOFT)); // (square, as the OS's)
+#else
     if (h0 >= 0) ui_rrect(0, X - 8, Y0 + h0 + 5 - top, W + 16, h1 - h0 - 9, 8, UC_ACCSOFT, UC_BG);
+#endif
     for (const item * p = P; p < P + NP; ++p) {
       const int y = Y0 + p->y - top, on = h0 >= 0 && (p->sec == cur || (p->kind == K_LINE && p->sec == cur + 1));
       if (y < e && y + p->h + 4 > b && !(on && p->kind == K_LINE)) draw_item(*p, y, on ? UC_ACCSOFT : UC_BG);

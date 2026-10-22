@@ -80,6 +80,7 @@ static const unsigned char * load(unsigned char c, int large) {
 // (no cache: KhiCAS's static data must fit pixelShadow, and loading a glyph is a 25-byte copy)
 static int width_of(int large, int c) {
   if (c >= 0x100) return large ? 12 : own_sw[c - 0x100];
+  if (!large && c == ' ') return 4; // (its space is 2 wide: words ran together)
   return large ? 12 : load((unsigned char)c, 0)[0];
 }
 
