@@ -88,7 +88,7 @@ rm -f "$OUT"/AppIns*.8xv
 # (v14.2: 1), so the console's struct line (console.h) takes 14 bytes, not 13: told to the tools
 # (tools/emu/cemu.py line_record) as a pseudo-symbol
 "$BU/z80-none-elf-nm" bin/DEMO.obj | awk 'NF==3 {printf "%s = %06X\n", $3, strtonum("0x" $1)}' > bin/DEMO.map
-echo "__flowce_line_size = 00000E" >> bin/DEMO.map
+echo "__flowce_line_size = 00000$([ -n "${NIGHTLY:-}" ] && echo D || echo E)" >> bin/DEMO.map # (the nightly packs short again: 13 B, as v14.2)
 cp bin/AppIns*.8xv bin/_DEMO.bin bin/DEMO.map "$OUT"/
 echo "$SUPER $GIAC" > "$OUT/SNAPSHOT"
 echo "[build] OK in $((t1-t0))s: _DEMO.bin=$size B ($(( (size+65535)/65536 )) flash pages), $(ls "$OUT"/AppIns*.8xv | wc -l) AppIns, warnings=$(grep -c 'warning:' "$LOG/build_$LV.log") -> $OUT"
