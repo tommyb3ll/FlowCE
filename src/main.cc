@@ -1153,11 +1153,8 @@ int restore_session(const char * fname){
     }
     focus_hold=false;
     focus_invalidate();
-    if (loaded){
-      focus_splash_clear();
-      return 1;
-    }
-    return 0;
+    focus_splash_exit(); // (then the console, faded in)
+    return loaded?1:0;
   }
   clear_screen(); // Bdisp_AllClr_VRAM();
   drawRectangle(0,0,LCD_WIDTH_PX,16,COLOR_BLACK);

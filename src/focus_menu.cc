@@ -801,6 +801,128 @@ void focus_splash_clear() {
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 }
+// The start screen's way out into the app (the user's design, 2026-10-22): the name and its line rise,
+// faster and faster, while every color fades into the background ("press any key" goes at once: it
+// was pressed); the wave undraws from its ends to one period, which shrinks and glides down into the
+// trig tab's icon (words on the bar, as KhiCAS + Flow's: to the middle word). Then the console is
+// drawn at the background's color, its bar in entries lent by tab (focus_reveal_bar), and it fades in
+// from the icon: the trig tab, the two beside it, the two at the ends, the rest of the screen with
+// them (focus_fade_in; a word: the wave fades into it). The block moves through the screen's rows
+// (memmove), the wave in a band (drawn whole at each step), the colors through the palette: no
+// flicker. A key ends it at once, and is kept: the console takes it.
+static const signed char exit_wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // (the splash's)
+enum { RV_E = 32, RV_L = 35, RV_N = 20 }; // the wave's entries (its ramp's 1/3, 2/3, all), the bar's by tab (3 levels of RV_N)
+static unsigned char rv_slot[RV_N], rv_n, rv_on, rv_icons; // the scene's colors the bar shows (rv_n); its bar to be revealed; its icons kept
+static int rv_x, rv_y; // where the wave lands: its middle point (px)
+// the wave: points k0-k1 of the start screen's 57, point 24 at (ax, ay), sp apart, amplitude amp, th
+// thick (1/16 px; the start screen's: 64, 112, 28), in the wave's entries (they do not fade)
+static void exit_wave_draw(int ax, int ay, int sp, int amp, int k0, int k1, int th) {
+  static const unsigned char r[4] = {128 + UC_BG, RV_E, RV_E + 1, RV_E + 2};
+  int q[2 * 57];
+  for (int k = k0; k <= k1; ++k) {
+    q[2 * (k - k0)] = ax + (k - 24) * sp;
+    q[2 * (k - k0) + 1] = ay - exit_wave[k & 15] * amp / 112;
+  }
+  ui_poly16(q, k1 - k0 + 1, th, r);
+}
+// the wave landed: the trig tab's icon (a period of 14 px, 4.5 px high, as focus_icon's)
+void focus_wave_landed() { exit_wave_draw(rv_x * 16, rv_y * 16, 14, 72, 16, 32, 22); }
+int focus_revealing() { return rv_on; }
+static int smooth(int u) { u = u < 0 ? 0 : u > 256 ? 256 : u; return u * u / 256 * (768 - 2 * u) / 256; } // (0-256: slow, fast, slow)
+static int ease_out(int u) { u = u < 0 ? 0 : u > 256 ? 256 : u; return u * (512 - u) / 256; }
+void focus_splash_exit() {
+  enum { Y = 100, TOP = 64, BOT = Y + 34, WY = Y + 46, T = 420, TT = 340 }; // (the splash's rows: the name and its line, the wave; ms)
+  ui_noclip();
+  ui_fill(0, WY + 14, UI_W, 36, ui_col(0, UC_BG)); // ("press any key")
+  const ui_theme * th = ui_theme_now();
+  for (int s = 1; s <= 3; ++s) ui_borrow_mix(RV_E - 1 + s, th->rgb[UC_BG], th->rgb[UC_ACC], s);
+  focus_wave_spot(rv_x, rv_y);
+  const long t0 = (long)(clock)();
+  int moved = 0, bx0 = 0, bx1 = 0, by0 = 0, by1 = 0; // (the wave's box drawn last)
+  for (bool last = false; !last;) {
+    int t = (int)(((long)(clock)() - t0) * 1000 / 32768);
+    if (t >= T || key_waiting()) t = T, last = true;
+    // the wave: its ends undrawn to points 16-32 (0-250 ms), shrunk to the icon and moved there (80-420)
+    const int q = smooth(t * 256 / 250), p = smooth((t - 80) * 256 / (T - 80));
+    const int k0 = 16 * q / 256, k1 = 56 - 24 * q / 256, sp = 64 - 50 * p / 256, amp = 112 - 40 * p / 256, wt = 28 - 6 * p / 256;
+    const int ax = 144 * 16 + (rv_x - 144) * 16 * p / 256, ay = WY * 16 + (rv_y - WY) * 16 * p / 256;
+    const int nx0 = (ax + (k0 - 24) * sp) / 16 - 2, nx1 = (ax + (k1 - 24) * sp) / 16 + 3, ny0 = (ay - amp - wt) / 16 - 1, ny1 = (ay + amp + wt) / 16 + 2;
+    const int x0 = bx1 > bx0 && bx0 < nx0 ? bx0 : nx0, x1 = bx1 > nx1 ? bx1 : nx1, y0 = by1 > by0 && by0 < ny0 ? by0 : ny0, y1 = by1 > ny1 ? by1 : ny1;
+    const int band = ui_band_open(64) >= y1 - y0; // (the old box and the new one, drawn whole)
+    if (band) { ui_band_begin(y0, y1); ui_band_load(); }
+    ui_fill(x0, y0, x1 - x0, y1 - y0, ui_col(0, UC_BG));
+    exit_wave_draw(ax, ay, sp, amp, k0, k1, wt);
+    if (band) { ui_scan_clear(2 * y0 - y1, y1); ui_band_end(); }
+    bx0 = nx0; bx1 = nx1; by0 = ny0; by1 = ny1;
+    // the name and its line: risen u^2 of 110 px (faster and faster), faded into the background
+    const int u = t >= TT ? 256 : t * 256 / TT, d = 110 * u / 256 * u / 256, dy = d - moved;
+    if (dy > 0) {
+      const int top = TOP - moved, src = top < dy ? dy : top, dst = src - dy, n = BOT - moved - src;
+      ui_scan_clear(dst - (BOT - TOP), BOT - moved);
+      if (n > 0) memmove(ui_fb + dst * UI_W, ui_fb + src * UI_W, n * UI_W);
+      int fy = BOT - moved - dy, fh = dy; // (where the block's bottom was)
+      if (fy < 0) { fh += fy; fy = 0; }
+      if (fh > 0) ui_fill(0, fy, UI_W, fh, ui_col(0, UC_BG));
+      moved = d;
+    }
+    ui_fade(256 - u);
+  }
+  ui_fade(0); // (every color the background's but the wave's)
+  ui_fill(0, 0, UI_W, SBOT, ui_col(0, UC_BG)); // (unseen; the bar's rows: the console's bar is drawn whole, in a band)
+  rv_on = 1; rv_n = 0;
+}
+// the bar, as just drawn in its band: its colors in entries lent by tab, the background's color for
+// now (focus_fade_in brings them in); icons: the trig tab's icon in the wave's entries (it is the wave)
+void focus_reveal_bar(int icons) {
+  unsigned char jx[128]; // a scene entry's place among the bar's, + 1 (0: none yet)
+  memset(jx, 0, sizeof jx);
+  const unsigned char * ic = icons ? ui_ramp(0, UC_ACC, UC_BAR) : 0; // (the icons' colors)
+  const unsigned short bg = ui_slot16(UC_BG);
+  rv_icons = (unsigned char)icons;
+  rv_n = 0;
+  for (int y = SBOT; y < UI_H; ++y) {
+    unsigned char * p = ui_fb + y * UI_W;
+    for (int x = 0; x < UI_W; ++x) {
+      const int c = p[x];
+      if (c < 128) continue;
+      const int lv = x < 64 || x >= 256 ? 2 : x < 128 || x >= 192;
+      if (!lv && ic && (c == ic[1] || c == ic[2] || c == ic[3])) { p[x] = (unsigned char)(c == ic[1] ? RV_E : c == ic[2] ? RV_E + 1 : RV_E + 2); continue; }
+      int j = jx[c - 128];
+      if (!j) {
+        if (rv_n == RV_N) continue; // (more colors than entries: the rest fades with the screen)
+        rv_slot[rv_n] = (unsigned char)(c - 128);
+        jx[c - 128] = (unsigned char)(j = ++rv_n);
+        for (int l = 0; l < 3; ++l) ui_lend16(RV_L + l * RV_N + j - 1, bg);
+      }
+      p[x] = (unsigned char)(RV_L + lv * RV_N + j - 1);
+    }
+  }
+}
+// the console, drawn at the background's color after focus_splash_exit, faded in from the trig tab:
+// that tab 0-160 ms, the two beside it 70-230, the two at the ends 140-300 (lent entries), the rest of
+// the screen 60-360 (ui_fade), each fast, then settling. The bar is drawn again in its own entries
+// (the same colors), the lent ones given back.
+void focus_fade_in() {
+  const unsigned short bg = ui_slot16(UC_BG), bar = ui_slot16(UC_BAR), acc = ui_slot16(UC_ACC);
+  const long t0 = (long)(clock)();
+  for (int t = 0; t < 360;) {
+    t = (int)(((long)(clock)() - t0) * 1000 / 32768);
+    if (t > 360 || key_waiting()) t = 360;
+    for (int lv = 2; lv >= 0; --lv) {
+      const int f = ease_out((t - 70 * lv) * 256 / 160);
+      for (int j = 0; j < rv_n; ++j) ui_lend16(RV_L + lv * RV_N + j, ui_mix16(bg, ui_slot16(rv_slot[j]), f));
+      if (!lv && rv_on) { // the wave: the icon over its tab coming in; a word's: into the bar's color
+        const unsigned short b = ui_mix16(bg, bar, f), a = rv_icons ? acc : ui_mix16(acc, bar, f);
+        ui_lend16(RV_E, ui_mix16(b, a, 85)); ui_lend16(RV_E + 1, ui_mix16(b, a, 171)); ui_lend16(RV_E + 2, a);
+      }
+    }
+    ui_fade(ease_out((t - 60) * 256 / 300));
+  }
+  ui_fade(256);
+  if (rv_on) { rv_on = 0; focus_bar_redraw(); }
+  rv_n = 0;
+  ui_borrow_end();
+}
 // a lent ramp (entries e, e+1, e+2: 1/3, 2/3, all of fg over bg) a/256 of the way from bg
 static void splash_shade(int e, const unsigned char * fg, const unsigned char * bg, int a) {
   for (int s = 1; s <= 3; ++s) {

@@ -29,6 +29,7 @@ int ui_band_open(int maxrows);       // allocates the strip (fewer rows when mem
 void ui_band_close(void);            // frees it
 void ui_band_begin(int y0, int y1);  // screen rows [y0, y1), at most the strip's rows
 void ui_band_load(void);             // starts the band from the screen's pixels (draw over them)
+void ui_scan_clear(int y0, int y1);          // waits while the LCD reads rows [y0, y1) (no tear: at most a frame)
 void ui_band_end(void);              // copies the band to the screen
 // The strip is the first memory a calculation gets when the heap runs out (allocator_custom.c):
 int ui_strip_release(void);          // frees it unless a band is being drawn (1: done); the screen
@@ -58,6 +59,11 @@ void ui_set_theme(const ui_theme * t);      // (re)writes every palette entry in
 unsigned char ui_col(int bank, int c);      // palette index of color c in bank 0/1
 const unsigned char * ui_ramp(int bank, int fg, int bg); // allocated on first use
 void ui_dim(int on);                         // darken / restore the scene bank
+void ui_fade(int t);                         // the scene's colors t/256 of the way from its background (256: as they are); it holds
+int ui_fading(void);                         // a fade holds (below 256)
+unsigned short ui_mix16(unsigned short a, unsigned short b, int t); // LCD colors (1555): t/256 of the way from a to b
+unsigned short ui_slot16(int s);             // the scene's color s (1555; s: a UC_* or a ramp's entry - 128)
+void ui_lend16(int i, unsigned short c);     // entry i (32-127) lent, color c (1555); back at ui_borrow_end
 void ui_restore_os_palette(void);            // not needed today: KhiCAS uses 0-127 only
 
 void ui_fill(int x, int y, int w, int h, unsigned char idx);

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "ui_gfx.h"
 #ifdef TICE
+#include <time.h>
 #include <sys/lcd.h>
 #define PALETTE ((unsigned short *)lcd_Palette)
 #define FB ((unsigned char *)lcd_Ram)
@@ -57,6 +58,23 @@ void ui_band_begin(int y0, int y1) {
   ui_noclip();
 }
 void ui_band_load(void) { memcpy(strip, FB + band_y0 * UI_W, (band_y1 - band_y0) * UI_W); }
+// The LCD reads the screen's memory row after row, 60 times a second, as the panel shows it: rows
+// rewritten while it reads them show half old, half new for a frame (a tear; the emulator's panel
+// shows it too). ui_scan_clear waits while it reads rows [y0, y1) (at most 20 ms): a block written
+// top down then, as fast as it reads, is not caught (y0: the block's top less its height in rows).
+void ui_scan_clear(int y0, int y1) {
+#ifdef TICE
+  const unsigned char * a = FB + (y0 < 2 ? 0 : y0 - 2) * UI_W, * b = FB + (y1 + 2) * UI_W;
+  const unsigned long t0 = (unsigned long)clock();
+  for (;;) {
+    const unsigned char * p = *(const unsigned char * volatile *)0xE3002C; // (lcd_UpCurr: the address it reads)
+    if (p < FB || p >= FB + UI_W * UI_H) p = FB; // (between frames: row 0 next)
+    if (p < a || p >= b || (unsigned long)clock() - t0 > 655) return;
+  }
+#else
+  (void)y0; (void)y1;
+#endif
+}
 void ui_band_end(void) {
   memcpy(FB + band_y0 * UI_W, strip, (band_y1 - band_y0) * UI_W);
   ui_fb = FB; band_y0 = 0; band_y1 = UI_H;
@@ -184,6 +202,18 @@ static void slot_rgb(int bank, int s, int * c) {
 // copy them in (working them out, divisions are helper calls, took ~10 ms each time: on every
 // display update, and when a card opened or closed)
 static unsigned short pal0[2][BANK0], pal1[128 - BANK0];
+// the scene's colors fade/256 of the way from its background to themselves (256: as they are; the
+// start screen's way out and the console's way in). It holds until changed: slots written meanwhile
+// (new ramps) and ui_set_theme's repairs take it too.
+static int fade = 256;
+static unsigned short mix16(unsigned short a, unsigned short c, int t) { // t/256 of the way from a to c
+  const int ar = a >> 10 & 31, ag = a >> 5 & 31, ab = a & 31;
+  const int r = ar + (((c >> 10 & 31) - ar) * t >> 8), g = ag + (((c >> 5 & 31) - ag) * t >> 8), bl = ab + (((c & 31) - ab) * t >> 8);
+  return (unsigned short)((c & 0x8000) | r << 10 | g << 5 | bl);
+}
+static unsigned short faded(unsigned short c) { return fade >= 256 ? c : mix16(pal0[0][UC_BG], c, fade); }
+unsigned short ui_mix16(unsigned short a, unsigned short b, int t) { return mix16(a, b, t); }
+unsigned short ui_slot16(int s) { return pal0[dimmed][s]; }
 static void write_slot(int bank, int s) {
   int c[3];
   slot_rgb(bank, s, c);
@@ -191,7 +221,7 @@ static void write_slot(int bank, int s) {
     pal0[0][s] = rgb565(c[0], c[1], c[2]);
     for (int i = 0; i < 3; ++i) c[i] += ((TH->dim_to[i] - c[i]) * TH->dim_pct) / 100;
     pal0[1][s] = rgb565(c[0], c[1], c[2]);
-    PALETTE[128 + s] = pal0[dimmed][s];
+    PALETTE[128 + s] = faded(pal0[dimmed][s]);
   } else PALETTE[128 + BANK0 + s] = pal1[s] = rgb565(c[0], c[1], c[2]);
 }
 static void write_bank(int bank) {
@@ -202,7 +232,8 @@ static void write_bank(int bank) {
 void ui_set_theme(const ui_theme * t) {
   static const ui_theme * done;
   if (t == done) {
-    memcpy((void *)&PALETTE[128], pal0[dimmed], 2 * (UC_COUNT + 2 * nr[0]));
+    if (fade < 256) ui_fade(fade);
+    else memcpy((void *)&PALETTE[128], pal0[dimmed], 2 * (UC_COUNT + 2 * nr[0]));
     memcpy((void *)&PALETTE[128 + BANK0], pal1, 2 * (UC_COUNT + 2 * nr[1]));
     return;
   }
@@ -210,15 +241,21 @@ void ui_set_theme(const ui_theme * t) {
   write_bank(0); write_bank(1);
 }
 const ui_theme * ui_theme_now(void) { return TH; }
+void ui_fade(int t) {
+  fade = t < 0 ? 0 : t > 256 ? 256 : t;
+  for (int s = 0; s < UC_COUNT + 2 * nr[0]; ++s) PALETTE[128 + s] = faded(pal0[dimmed][s]);
+}
+int ui_fading(void) { return fade < 256; }
 // entries 32-127 lent to a card (their colors back at ui_borrow_end)
 static unsigned short lent[96];
 static unsigned char lent_on[96];
-void ui_borrow(int i, const unsigned char * c) {
+void ui_lend16(int i, unsigned short c) {
   const int k = i - 32;
   if (k < 0 || k >= 96) return;
   if (!lent_on[k]) { lent_on[k] = 1; lent[k] = PALETTE[i]; }
-  PALETTE[i] = rgb565(c[0], c[1], c[2]);
+  PALETTE[i] = c;
 }
+void ui_borrow(int i, const unsigned char * c) { ui_lend16(i, rgb565(c[0], c[1], c[2])); }
 void ui_borrow_mix(int i, const unsigned char * a, const unsigned char * b, int t) {
   unsigned char c[3];
   for (int j = 0; j < 3; ++j) c[j] = (unsigned char)(a[j] + (b[j] - a[j]) * t / 3);

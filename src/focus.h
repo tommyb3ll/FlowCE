@@ -98,6 +98,12 @@ void focus_bar_redraw();                // repaints the F-key bar
 void focus_bar_reset();                 // repaints the F-key bar, plain layer
 void focus_invalidate();                // the next focus_disp repaints everything (after a full-screen view)
 void focus_splash_clear();              // the start screen erased, before the first console paint
+void focus_splash_exit();               // the start screen's way out (then the console fades in)
+void focus_fade_in();                   // focus_disp: the console faded in after focus_splash_exit
+void focus_wave_spot(int & x, int & y); // where the start screen's wave lands: the trig tab's icon (px)
+int focus_revealing();                  // the console's bar is to be revealed (after focus_splash_exit)
+void focus_wave_landed();               // bar_draw: the wave where it landed (under a word)
+void focus_reveal_bar(int icons);       // bar_draw: the bar just drawn (band) in lent entries by tab
 extern bool focus_hold;                 // no console painting (the start screen while the session loads)
 void focus_status_label(const char * s); // a view's label in the status bar ("COMMANDS"); 0: the console's
 void focus_status_view(const char * s, int chip); // the same; chip: the 2nd/alpha chip stays (the program editor)

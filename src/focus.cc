@@ -1343,14 +1343,33 @@ static void bar_draw(int keyflag, int force) {
     ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
     ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
     int fg = layer == 1 ? UC_BLUE : layer ? UC_GREEN : UC_BARINK;
-    for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + LB, fg, UC_BAR, 1);
+    for (int i = 0; i < 5; ++i) {
+      if (i == 2 && focus_revealing()) focus_wave_landed(); // (the start screen's wave: it fades into the word)
+      ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + LB, fg, UC_BAR, 1);
+    }
   }
   ui_noclip();
-  if (band) ui_band_end();
+  if (band) {
+#ifdef FLOWCE_TILOOK
+    if (focus_revealing()) focus_reveal_bar(0);
+#else
+    if (focus_revealing()) focus_reveal_bar(!words); // (after the start screen: the bar comes in from the trig tab)
+#endif
+    ui_band_end();
+  }
   ui_band_close();
   focus_phase = ph;
 }
 void focus_bar(int keyflag) { bar_draw(keyflag, 0); }
+// where the start screen's wave lands (focus_splash_exit): the trig tab's icon; words on the bar (KhiCAS
+// + Flow, the TI look): the middle
+void focus_wave_spot(int & x, int & y) {
+#if defined FLOWCE_KHICAS || defined FLOWCE_TILOOK
+  x = 160; y = SBOT + LB - 4;
+#else
+  x = 160 - (16 + ui_text_width(&ui_tr10, tab_word[2], -1)) / 2 + 7; y = SBOT + 11; // (focus_tab's icon)
+#endif
+}
 
 // the bar as 5 text tabs (the command search's categories), tab on drawn as an open menu's tab
 void focus_bar_tabs(const char * const * labels, int on) {
@@ -1658,6 +1677,7 @@ void focus_disp(int mode) {
   bar_draw(bar_keyflag, PM.ll < 0 || !screen_is_ours());
   PM = M;
   focus_phase = 0;
+  if (ui_fading()) focus_fade_in(); // (after the start screen: drawn at the background's color)
 }
 
 // the last answer is the current one: shown large (TI look: just computed, the edit line empty,
@@ -1774,7 +1794,7 @@ extern "C" void focus_idle(void) { // getkey, after a few idle seconds
 extern "C" void focus_wake(void) {
   if (!focus_on) return;
   focus_splash(2);
-  focus_splash_clear();
+  focus_splash_exit();
   focus_invalidate();
   bar_keyflag = GetSetupSetting(0x14); // (2nd ON left the 2nd layer up: the keys as they are now)
   focus_disp(0);
