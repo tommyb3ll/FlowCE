@@ -38,7 +38,7 @@ int find_color(const char * s);
 int check_program(const std::vector<textElement> & v,int python,std::string & msg);
 int focus_prompt(const char * title, const char * label, std::string & s, bool numeric);
 
-enum { ST = 16, SBOT = 218, MAXRW = 24, ED_LEAVE = 1000 };
+enum { ST = FOCUS_SB, SBOT = UI_H - FOCUS_MB, MAXRW = 24, ED_LEAVE = 1000 };
 static const ui_face * F;         // the code's face: tr12, tr10 when small (mode key)
 static int RH, BASE, IW, SPW, NV, GW, X0, XR;
 static unsigned char WT[96];      // advances of ASCII 32-127 in F

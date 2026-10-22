@@ -31,7 +31,7 @@ static __attribute__((noinline)) int key_() { int k; GetKey(&k); giac::ctrl_c = 
 int focus_prompt(const char * title, const char * label, std::string & s, bool numeric); // focus_menu.cc
 static void plot_points(const char * f); // (below)
 
-enum { SB = 16, MB = 22, SBOT = UI_H - MB, Y0 = SB, HH = 24, RH = 18, NV = 8, FY = Y0 + HH + NV * RH, MAXN = 99,
+enum { SB = FOCUS_SB, MB = FOCUS_MB, SBOT = UI_H - MB, Y0 = SB, HH = 24, RH = 18, NV = 8, FY = Y0 + HH + NV * RH, MAXN = 99,
        CW0 = 34, CW1 = 177 };
 static const int CX[3] = {CW0, CW1, UI_W}; // the columns' right edges: row numbers, x, y
 

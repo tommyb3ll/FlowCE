@@ -103,7 +103,7 @@ static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
 };
 #undef N
 
-enum { RH = 30, LW = 252, CH = 40, CH2 = 60, BH = 36, ST = 16, SBOT = 218 }; // BH: a wide item's bar
+enum { RH = 30, LW = 252, CH = 40, CH2 = 60, BH = 36, ST = FOCUS_SB, SBOT = UI_H - FOCUS_MB }; // BH: a wide item's bar
 static int grid_rows(const fm_menu & m) { return (m.n - m.wide + m.cols - 1) / m.cols; } // (without the bar)
 // a card's cell height: lower cells when its rows would cover the status bar (the steps build's
 // calculus card: three rows and the bar, 52)

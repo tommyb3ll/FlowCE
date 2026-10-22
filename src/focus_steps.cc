@@ -272,7 +272,7 @@ int focus_steps_able(const char * s, const char * ans) {
 // The page: items laid out once (page coordinates: y from the top of the page), drawn in bands.
 // Labels, names and rules at the margin X; the math in groups (an equation and the lines going
 // on with it, the working of a step), each centered as a block.
-enum { Y0 = 18, X = 14, XR = 306, W = XR - X, LVMIN = 6, LVWRAP = 5 };
+enum { Y0 = FOCUS_SB + 2, X = 14, XR = 306, W = XR - X, LVMIN = 6, LVWRAP = 5 };
 enum { K_HEAD, K_LINE, K_LABEL, K_TITLE, K_FORM, K_WORK, K_EQ, K_BOX, K_ANS, K_TEXT, K_MATH, K_TABLE, K_CHIP };
 // (K_TEXT: a text of the analysis, num 0 gray (a label, " or "), 1 ink; K_MATH: its math beside a label;
 // K_TABLE: a synthetic division's table, steps_table's text; K_CHIP: the method, F4 the next one)

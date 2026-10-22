@@ -22,7 +22,7 @@
 // 63 a row, 64 footer, 65 tabs, 66 updating; 0 waiting for a key
 extern "C" volatile unsigned char focus_phase;
 
-enum { ST = 16, SBOT = 218, CY = 18, CH = 22, LT = 43, RH = 19, ROWS = 7, LB = LT + ROWS * RH,
+enum { ST = FOCUS_SB, SBOT = UI_H - FOCUS_MB, CY = ST + 2, CH = 22, LT = ST + 27, RH = 19, ROWS = ST > 16 ? 6 : 7, LB = LT + ROWS * RH,
        FL = LB + 2, SY = FL + 13, EY = SY + 3, EH = SBOT - EY, DX = 104, QMAX = 15, SEL = 0x4000 };
 
 // the search, on the heap while it is open (KhiCAS's static data is nearly full)

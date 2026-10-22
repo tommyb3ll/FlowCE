@@ -528,6 +528,9 @@ static int slot(int n, int i) { // i-th slot content of a 2D construct (hidden p
   return 0;
 }
 static int sfont(int k, int i, int sm) { // font of slot i (must match the sl() calls in cons)
+#ifdef FLOWCE_TILOOK
+  if (k == K_FRAC || (k == K_DIFF && i == 1)) return 1; // (MathPrint: fractions in the small font)
+#endif
   if (k == K_POW || k == K_EXP || (k == K_SURD && i == 1) || (k == K_DEFINT && i >= 2) ||
       ((k == K_SUM || k == K_LIM || k == K_SER) && i >= 1)) return 1;
   return sm;

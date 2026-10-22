@@ -8,6 +8,13 @@
 extern "C" {
 #endif
 #define focus_on 1 // the console is drawn by focus.cc (a constant: the classic screen's paths compile away)
+#ifdef FLOWCE_TILOOK
+#define FOCUS_SB 30 // rows of the status bar (the TI-84 look: the OS's) and of the F-key bar
+#define FOCUS_MB 13
+#else
+#define FOCUS_SB 16
+#define FOCUS_MB 22
+#endif
 #ifdef FLOWCE_STEPS
 #define FLOWCE_VERSION "2.2.4" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
 #else

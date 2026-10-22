@@ -159,7 +159,11 @@ static unsigned char ridx[2][MAXR][4];
 // (graphic.c writes 565 values for KhiCAS's own 0-127: fine for its saturated cube colors,
 // visibly wrong for the mid grays of anti-aliasing.)
 static unsigned short rgb565(int r, int g, int b) {
+#ifdef FLOWCE_TILOOK // the x bit is green's 6th bit: the OS's white and grays exactly
+  return (unsigned short)(((g & 4) << 13) | ((r & 0xf8) << 7) | ((g & 0xf8) << 2) | (b >> 3));
+#else
   return (unsigned short)(((r & 0xf8) << 7) | ((g & 0xf8) << 2) | (b >> 3));
+#endif
 }
 // slot s of bank: base color s < UC_COUNT, else mid (s - UC_COUNT) & 1 of ramp (s - UC_COUNT) / 2
 static void base_rgb(int s, int * c) { // a theme color; UC_DIM, UC_DIMBAR: the background, the bar dimmed

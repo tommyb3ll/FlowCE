@@ -197,7 +197,7 @@ static NOINL float run_prog(const prog & p, const gen & g, float x, float yv = 0
 static NOINL float val(int i, float x) { return fin(VX[i]) ? NAN : run_prog(P_[i], F_[i], x); } // f_i at x (a vertical line: none)
 
 // ---------------------------------------------------------------- the view
-enum { GT = 16, GB = 218, GH = GB - GT, BAR_H = UI_H - GB };
+enum { GT = FOCUS_SB, GB = UI_H - FOCUS_MB, GH = GB - GT, BAR_H = UI_H - GB };
 static float vx0, vx1, vy0, vy1;          // the window
 static float w0;                          // its width when the graph opened: zoomed in from it, dots
 // (the frame: frame below)
