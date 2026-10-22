@@ -3866,7 +3866,7 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   if (!selfref)
     g=equaltosto(g,contextptr);
   const gen unknown=equation_unknown(g);
-  if (unknown.type==_IDNT)
+  if (focus && unknown.type==_IDNT) // (an equation alone is solved: not in KhiCAS's reading)
     g=sym2(at_solve,g,unknown);
   a.var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
   a.vars=0;      // solve(eqs,[x,y]): x=2, y=1

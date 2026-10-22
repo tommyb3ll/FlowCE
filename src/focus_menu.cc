@@ -477,8 +477,12 @@ static void card_tab(int col, int layer) {
   if (band) { ui_band_begin(SBOT - 8, UI_H); ui_band_load(); }
   focus_tab_card(px, px + pw);
   if (tab_word_) tab_text(col, tab_word_, UC_ACC);
+#ifdef FLOWCE_KHICAS
+  else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : layer ? UC_GREEN : UC_ACC); // (KhiCAS: words)
+#else
   else if (!layer) focus_tab(col, 1, 1);
   else tab_text(col, console_fkey_label(layer, col), layer == 1 ? UC_BLUE : UC_GREEN);
+#endif
   focus_tab_card(0, 0);
   ui_noclip();
   if (band) ui_band_end();
@@ -980,7 +984,11 @@ int focus_fmenu(int idx, const char * const * e, int n) {
     }
   }
   fm_menu m = {2, 3, (char)n, it};
+#ifdef FLOWCE_KHICAS
+  int col = idx < 15 ? idx % 5 : 5; // (KhiCAS: the plain F-keys open these menus too)
+#else
   int col = idx < 5 ? 4 : idx < 15 ? idx % 5 : 5;
+#endif
   geometry(col, m);
   prepare(m);
   open_card(m, col, idx / 5, 0);

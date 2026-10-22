@@ -15,6 +15,9 @@ extern "C" {
 #define FOCUS_SB 16
 #define FOCUS_MB 22
 #endif
+#if defined(FLOWCE_TILOOK) || defined(FLOWCE_KHICAS)
+#define FOCUS_CONSOLE 1 // the console's layout: the history from the top, the edit line under it, no answer shown large
+#endif
 #ifdef FLOWCE_STEPS
 #define FLOWCE_VERSION "2.2.4" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
 #else

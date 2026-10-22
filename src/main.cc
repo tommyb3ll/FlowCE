@@ -1219,7 +1219,9 @@ void do_run(const char * s){
         buf[i]=c;
     }
   }
+#ifndef FLOWCE_KHICAS // (KhiCAS reads the input as giac does)
   answer_prepass(buf,cap,focus_on); // 2sinx -> 2*sin(x), f(x)=... -> f(x):=..., log10 (answer.cc)
+#endif
   S=strlen(buf);
   if (S==3 && buf[0]=='[' && buf[2]==']' && buf[1]>='A' && buf[1]<='I'){
     string mats=get_timatrix(buf[1]-'A');
@@ -1288,7 +1290,7 @@ void do_run(const char * s){
       dconsole_mode=0;
     giac::gen g(buf,contextptr);
     focus_phase=90; // (parsed; 91: the graph's check done)
-#ifdef FLOWCE_STEPS
+#if defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (plot(...): FlowCE's graph screen)
     int graphed=focus_on?focus_graph_input(buf):0;
     focus_phase=91;
     if (graphed){ // plot(...): DeltaCE's graph screen (focus_graph.cc)
@@ -1304,7 +1306,11 @@ void do_run(const char * s){
     answer_ctx actx; // the steps around eval are in answer.cc (the host tests run them too)
     focus_busy(1); // "Calculating" after 0.4 s, from giac's checks of the ON key
     giac::control_c_hook=focus_busy_tick;
+#ifdef FLOWCE_KHICAS
+    answer_before(g,actx,buf,false); // (KhiCAS: x=a stores, nothing else rewritten)
+#else
     answer_before(g,actx,buf,focus_on);
+#endif
     if (actx.tabled)
       eval_stopped=0;
     else {

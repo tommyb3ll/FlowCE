@@ -22,6 +22,7 @@
 extern "C" int os_get_angle_unit();
 extern "C" int os_key_flags();      // k_csdk.c: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
 bool console_edit2d();              // console.cc: the edit line is math (not Python)
+extern "C" bool console_python_mode(); // main.cc: Python syntax (KhiCAS build's status bar)
 int console_caret();                // console.cc: caret index in the edit line, -1 if in the history
 extern const char * console_form_name; // main.cc: the form F4 last gave (console_form_of)
 bool console_form_check(const char * s); // main.cc: s shows the check of an antiderivative (no + C)
@@ -44,10 +45,15 @@ static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 // the TI-84 look: the OS's status bar (30 rows), quiet F-key labels (13); one text size, the large
 // font (MathPrint's scripts and fractions: the small one); the history from TOP rows under the bar
 enum { SB = 30, MB = 13, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
-       IN_LV = 3, OUT_LV = 3, HERO_LV = 3, W_IN = 310, W_OUT = 311, IN_MAXH = 64, TOP = 5 };
+       IN_LV = 3, OUT_LV = 3, HERO_LV = 3, W_IN = 310, W_OUT = 311, IN_MAXH = 64, TOP = 5, HX = 2 };
+#elif defined(FLOWCE_KHICAS)
+// KhiCAS's console in FlowCE's look: the history from the top (inputs left, results right, one
+// size), the edit line under it (HX: its left edge)
+enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
+       IN_LV = 4, OUT_LV = 4, HERO_LV = 3, W_IN = 296, W_OUT = 296, IN_MAXH = 64, TOP = 2, HX = 12 };
 #else
 enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
-       IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292, IN_MAXH = 34, TOP = 0 };
+       IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292, IN_MAXH = 34, TOP = 0, HX = 12 };
 #endif
 
 static int hero_last;      // the last result is shown large (until edited or cleared)
@@ -206,7 +212,7 @@ static void scan() {
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
     if (e.out >= 0) {
       const char * s = shown(Line[e.out].str);
-      if (is_text(s)) e.outh = TOP ? 16 : 13;
+      if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
       else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
     }
 #ifdef FLOWCE_TILOOK
@@ -350,9 +356,10 @@ static int hb_y0, hb_y1; // HM_MATH: the rows it covers (ink overhang included)
 static int help_e = -1;  // HM_MATH: the command the caret is in (catalog entry), for the help lines
 enum { HELP_H = 32 };    // ... at the bottom of the hero
 
-#ifdef FLOWCE_TILOOK
-// as the OS: the edit line at the left, its top on the row under the history; empty arguments are
-// boxes; no help lines, no answer shown large (the answers stay in the history)
+#ifdef FOCUS_CONSOLE
+// as the OS's home screen and KhiCAS's console: the edit line at the left, its top on the row
+// under the history; empty arguments are boxes; no help lines, no answer shown large (the answers
+// stay in the history)
 static void hero_prepare(int y0, int h) {
   hy0 = y0; hh = h;
   act_y = 0; act_sel = -1; act_n = 0; help_e = -1;
@@ -362,12 +369,12 @@ static void hero_prepare(int y0, int h) {
     if (!HL) HL = new mi_layout;
     mi_layout & L = *HL;
     focus_phase = 2;
-    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 310, SH, MI_F_CALLBOX, L);
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, W_IN, SH, MI_F_CALLBOX, L);
     focus_phase = 3;
-    hx = 2; hbase = y0 + L.asc;
-    if (L.width > 310) { // caret kept in view
+    hx = HX; hbase = y0 + L.asc;
+    if (L.width > W_IN) { // caret kept in view
       hx = UI_W / 2 - L.cx;
-      if (hx > 2) hx = 2;
+      if (hx > HX) hx = HX;
       if (hx + L.width < UI_W - 8) hx = UI_W - 8 - L.width;
     }
     hb_y0 = y0; hb_y1 = hbase + L.desc + 2;
@@ -709,6 +716,10 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 #ifdef FLOWCE_TILOOK
     ti_cursor(2, y0, 16); // as the OS's empty home screen: the cursor alone
     return;
+#elif defined(FLOWCE_KHICAS)
+    ui_fill(HX, y0 + 3, 2, 20, col(UC_ACC)); // KhiCAS's empty edit line: the caret alone
+    (void)h;
+    return;
 #endif
     int m = y0 + h / 2 - 2, b = m + 20;
     // the prompt on the empty console only: not under the history, nor when a calculation starts
@@ -724,10 +735,10 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 }
 
 static void hero_peek_paint(int y) { // history mode: the edit line, small, at the bottom
-#ifdef FLOWCE_TILOOK
-  { // (no key hints: the OS has none)
+#ifdef FOCUS_CONSOLE
+  { // (under the history, no key hints)
     const char * s = (const char *)Console_GetEditLine();
-    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, 310, 40, MI_F_CALLBOX); draw_math(s, c, 2, y + 6 + c.a, UC_INK, UC_BG, MI_F_CALLBOX); }
+    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, 40, MI_F_CALLBOX); draw_math(s, c, HX, y + 6 + c.a, UC_INK, UC_BG, MI_F_CALLBOX); }
     return;
   }
 #endif
@@ -813,6 +824,9 @@ static void status_draw(int force) {
     buf[k++] = '0' + t % 10; buf[k] = 0;
 #ifdef FLOWCE_TILOOK
   } else strcpy(buf, os_get_angle_unit() ? "NORMAL EXACT RADIAN MP" : "NORMAL EXACT DEGREE MP");
+#elif defined(FLOWCE_KHICAS)
+  } else strcpy(buf, os_get_angle_unit() ? (console_python_mode() ? "RAD    PYTHON" : "RAD    XCAS")
+                                         : (console_python_mode() ? "DEG    PYTHON" : "DEG    XCAS"));
 #else
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
 #endif
@@ -1029,7 +1043,12 @@ static void bar_draw(int keyflag, int force) {
   char lab[5][20], sig[sizeof(bar_sig)];
   int k = 0;
   sig[k++] = '0' + layer;
-  if (!layer) sig[k++] = '0' + forms_key();
+#ifdef FLOWCE_KHICAS
+  const int words = 1; // KhiCAS: every layer's labels are its menus' names
+#else
+  const int words = layer;
+#endif
+  if (!words) sig[k++] = '0' + forms_key();
   else for (int i = 0; i < 5; ++i) { // labels without the padding of the classic bar
     const char * p = console_fkey_label(layer, i);
     while (*p == ' ') ++p;
@@ -1050,14 +1069,14 @@ static void bar_draw(int keyflag, int force) {
   if (band) { ui_band_begin(SBOT, UI_H); if (one) ui_band_load(); }
   ui_clip(0, SBOT, UI_W, UI_H);
   if (one) focus_tab(3, 0, 0);
-  else if (!layer) {
+  else if (!words) {
     ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
     ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
     for (int i = 0; i < 5; ++i) focus_tab(i, 0, 0);
   } else {
     ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
     ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
-    int fg = layer == 1 ? UC_BLUE : UC_GREEN;
+    int fg = layer == 1 ? UC_BLUE : layer ? UC_GREEN : UC_BARINK;
     for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + LB, fg, UC_BAR, 1);
   }
   ui_noclip();
@@ -1226,8 +1245,8 @@ static __attribute__((noinline)) void compute_model() {
     int top = 0;
     for (int k = 0; k < M.sel; ++k) top += E[k].h;
     int bot = top + E[M.sel].h, view = SH - PEEK;
-#ifdef FLOWCE_TILOOK
-    // as the OS: the screen stays as it was; it scrolls only to show the entry selected
+#ifdef FOCUS_CONSOLE
+    // as the OS and KhiCAS: the screen stays as it was; it scrolls only to show the entry selected
     if (!PM.hist) hscroll = PM.scroll;
     if (top < hscroll) hscroll = top;
     if (TOP + bot > hscroll + SH) hscroll = TOP + bot - SH;
@@ -1242,10 +1261,10 @@ static __attribute__((noinline)) void compute_model() {
 #endif
     M.scroll = hscroll;
   } else {
-#ifdef FLOWCE_TILOOK
-    // as the OS: the history, the edit line under it, scrolled up when they do not fit
-    int eh = 16;
-    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, 310, SH, MI_F_CALLBOX); eh = c.a + c.d; }
+#ifdef FOCUS_CONSOLE
+    // as the OS and KhiCAS: the history, the edit line under it, scrolled up when they do not fit
+    int eh = SB == 30 ? 16 : 26;
+    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, SH, MI_F_CALLBOX); eh = c.a + c.d; }
     M.scroll = TOP + M.col_h + eh + 2 > SH ? TOP + M.col_h + eh + 2 - SH : 0;
 #else
     M.scroll = M.col_n ? M.col_h - (E[M.col_n - 1].outh + 12) : 0;
@@ -1342,7 +1361,7 @@ void focus_disp(int mode) {
 // the last answer is the current one: shown large (TI look: just computed, the edit line empty,
 // as the OS keeps it in the history), enter opens its steps, F4 cycles its forms
 static int fresh() {
-#ifdef FLOWCE_TILOOK
+#ifdef FOCUS_CONSOLE
   const char * s = (const char *)Console_GetEditLine();
   return hero_last && NE && E[NE - 1].out >= 0 && (!s || !*s) && console_caret() >= 0;
 #else

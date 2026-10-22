@@ -2616,6 +2616,16 @@ int Console_GetKey(){
 #endif
     // Focus: F1-F3, F5 and the math key open popovers (focus_menu.cc); F4 cycles the forms of a
     // result (selected, or shown large), else opens the symbols
+#ifdef FLOWCE_KHICAS
+    // KhiCAS: F1-F3 its command menus, F4 the character table, F5 its File menu (below, as the
+    // other F-keys: Console_FMenu); MATH its catalog by category, with help and examples
+    if (key==KEY_CTRL_SYMB){
+      char buf[512];
+      if (!showCatalog(buf,0,0))
+        buf[0]=0;
+      return Console_Input((const Char*)buf);
+    }
+#else
     if (focus_on && key==KEY_CTRL_F4 && Current_Line==Last_Line && focus_result_line()>=0){
 #ifdef WITH_EQW
       console_cycle_form(focus_result_line());
@@ -2713,8 +2723,17 @@ int Console_GetKey(){
       }
       key=KEY_CTRL_F5; // File: KhiCAS's menu, below
     }
+#endif
     // the CATALOG key (2nd 0): the command search. Handled here rather than in keytostring,
     // which the script editor and inputline share (their screens are not Focus ones)
+#ifdef FLOWCE_KHICAS
+    if (key==KEY_CTRL_CATALOG){ // KhiCAS: its catalog, all the commands
+      char buf[512];
+      if (!showCatalog(buf,1,0))
+        buf[0]=0;
+      return Console_Input((const Char*)buf);
+    }
+#endif
     if (focus_on && key==KEY_CTRL_CATALOG){
       console_search("",0);
       return CONSOLE_SUCCEEDED;
@@ -2744,14 +2763,18 @@ int Console_GetKey(){
     // steps out of a group or wraps what is left of it, ] } step over theirs; , = < > leave a
     // denominator or an exponent first; x² and x⁻¹ insert ^(2) and ^(-1) (an exponent that can
     // be extended).
+#ifndef FLOWCE_KHICAS // (KhiCAS: the x^-1 key completes the name before the cursor)
     if (focus_on && key=='\t') // the TI-84 CE's x^-1 key (the French model's exact/decimal key: a tab)
       key=KEY_CHAR_RECIP;
+#endif
     // TI: an operator first on an empty line works on the last answer (*2: Ans*2; the (-) key is
     // a minus sign)
+#ifndef FLOWCE_KHICAS // (KhiCAS: an operator first is just typed)
     if (focus_on && Current_Line==Last_Line && Edit_Line && !Edit_Line[0] && focus_result_line()>=0 &&
         (key==KEY_CHAR_PLUS || key==KEY_CHAR_MINUS || key==KEY_CHAR_MULT || key==KEY_CHAR_DIV || key==KEY_CHAR_POW ||
          key==KEY_CHAR_SQUARE || key==KEY_CHAR_RECIP || key==KEY_CHAR_STORE))
       Console_Input((const Char *)"ans()");
+#endif
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||
@@ -4044,7 +4067,11 @@ static bool console_input2d(){
 const char * console_fkey_label(int layer,int k){
   char * const t[15]={menu_f1,menu_f2,menu_f3,menu_f4,menu_f5,menu_f6,menu_f7,menu_f8,menu_f9,menu_f10,
                       menu_f11,menu_f12,menu_f13,menu_f14,menu_f15}; // not static (see LOG: startup hang)
+#ifdef FLOWCE_KHICAS
+  if (layer==0 && k==3) return "chartab"; // (KhiCAS: F4 is the character table)
+#else
   if (layer==0 && k==3) return (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT)?"forms":"chartab";
+#endif
   if (layer==0 && k==4) return lang?"Fichier":"File";
   return t[(layer<0?0:layer>2?2:layer)*5+(k<0?0:k>4?4:k)];
 }

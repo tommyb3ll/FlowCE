@@ -13,7 +13,7 @@
 // Fast: each function is compiled to a small program over floats (giac's evalf took 0.4-0.8 s a
 // redraw on the calculator). A frame is about 0.5 s; while a key is held, 0.1 to 0.2 s (every 3rd
 // column, lines without anti-aliasing; a view moved by whole pixels reuses the rows it had).
-#ifdef FLOWCE_STEPS
+#if defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (the KhiCAS-like build: its graph screen too)
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -1577,7 +1577,14 @@ static NOINL void pmore_menu() {
 static NOINL void more_menu(int & nfun) {
   static const char * const lab[] = {"Tangent line here", "Area under the curve", "Graph f' too", "Analyze f(x)", "Point coordinates", "Grid"};
   const char * hint[6] = {tang ? "on" : "off", 0, 0, "the report", coords ? "on" : "off", grid ? "on" : "off"};
+#ifdef FLOWCE_STEPS
   const int c = focus_card_list(4, "more", 0, lab, hint, 6, 0);
+#else // (the KhiCAS-like build has no analysis page: its item is left out)
+  static const char * const lab5[] = {"Tangent line here", "Area under the curve", "Graph f' too", "Point coordinates", "Grid"};
+  const char * hint5[5] = {hint[0], hint[1], hint[2], hint[4], hint[5]};
+  int c = focus_card_list(4, "more", 0, lab5, hint5, 5, 0);
+  if (c >= 3) ++c;
+#endif
   if (c == 0) {
     tang = !tang; // (drawn at the trace point, its equation in the readout: paint)
     if (tang && !mode) { mode = 1; tx = (vx0 + vx1) / 2; }
@@ -1602,10 +1609,12 @@ static NOINL void more_menu(int & nfun) {
     lev = 0;
     kpt_clear();
   }
+#ifdef FLOWCE_STEPS
   if (c == 3) { // the analysis' report (its screen), then the graph again
     std::string s = F_[tf].print(contextptr);
     focus_analyze(s.c_str());
   }
+#endif
   if (c == 4) coords = !coords;
   if (c == 5) grid = !grid;
 }

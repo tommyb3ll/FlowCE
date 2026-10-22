@@ -7,7 +7,7 @@
 // periodic (the families of solutions, all_trig_solutions, listed there), else -2 pi to 2 pi. On a
 // window, a factor mixing x with sin(x), or sin with cos, is solved numerically (numroots: giac took
 // 14 to 100 s on the calculator), its zeros written k pi/12 when they are exactly.
-#if defined FLOWCE_STEPS || defined HOSTGIAC
+#if defined FLOWCE_STEPS || defined HOSTGIAC || defined FLOWCE_KHICAS // (the graph's key points)
 #include "analyze.h"
 #include <string.h>
 using namespace giac;

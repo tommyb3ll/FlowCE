@@ -10,6 +10,7 @@ WIN="$1"; VARIANT="$2"; SUPER="$3"; GIAC="$4"
 KB="${KB:-/home/bell/khicas-review-build}"
 CEDEV15="${CEDEV15:-/home/bell/cedev15/x/CEdev}"
 SRC="$KB/src15"; [ "${VARIANT#*tilook}" != "$VARIANT" ] && SRC="$KB/src15ti" # (objects of its own)
+[ "${VARIANT#*khicas}" != "$VARIANT" ] && SRC="$KB/src15kh"
 OUT="$KB/out/$VARIANT"; LOG="$KB/logs"
 BU="$CEDEV15/binutils/bin"
 export PATH="$CEDEV15/bin:$PATH"
@@ -29,6 +30,7 @@ case "$VARIANT" in
   en-steps-v15) ARGS="APPLANG=en STEPS=1" ;;
   en-units-v15) ARGS="APPLANG=en UNITS=1" ;;
   en-steps-tilook-v15) ARGS="APPLANG=en STEPS=1 TILOOK=1" ;;
+  en-khicas-v15) ARGS="APPLANG=en KHICAS=1" ;;
   *) echo "unknown variant $VARIANT"; exit 2 ;;
 esac
 if [ "$(cat obj/.variant 2>/dev/null)" != "$VARIANT" ]; then rm -rf obj bin; mkdir -p obj; echo "$VARIANT" > obj/.variant; fi

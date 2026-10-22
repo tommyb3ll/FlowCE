@@ -11,12 +11,14 @@
 # UNITS=1 (physical units instead of Python syntax, see below)
 # STEPS=1 (step-by-step solutions instead of Python syntax: neither Python nor units)
 # TILOOK=1 (the TI-84 look: the interface drawn like the TI-84 Plus CE's own, with its fonts)
+# KHICAS=1 (with STEPS=0: KhiCAS's arrangement, menus, keys and applications, drawn in FlowCE's look)
 
 APPLANG ?= en
 VARIANT ?= normal
 UNITS ?= 0
 STEPS ?= 0
 TILOOK ?= 0
+KHICAS ?= 0
 
 # This fork drops the spreadsheet (WITH_SHEET) and the periodic table (WITH_PERIODIC): about
 # 160 KB of flash for the input/display work (user's choice, 2026-10-05), and the variation tables
@@ -38,6 +40,11 @@ endif
 # screen draws the data (2026-10-18)
 ifeq ($(STEPS),1)
     FEATURE_DEFS += -DFLOWCE_STEPS -DWITH_STATS
+else ifeq ($(KHICAS),1)
+    # KhiCAS's applications back: the spreadsheet and its statistics, the variation tables, units
+    # and constants, the periodic table; FlowCE's graph screen (focus_graph.cc) replaces KhiCAS's
+    # plot viewer (WITH_PLOT, 146 KB): it is what makes them fit
+    FEATURE_DEFS += -DWITH_EDITOR -DWITH_SHEET -DWITH_TABVAR -DWITH_UNITS -DWITH_PERIODIC
 else
     FEATURE_DEFS += -DWITH_EDITOR -DWITH_PLOT # (DeltaCE, the steps build: no script editor, 17 KB, 2026-10-17)
 endif
@@ -46,8 +53,15 @@ endif
 # bar, MathPrint), its text drawn with the OS's fonts read at runtime (src/ui_font_ti.c) instead
 # of the Focus fonts (ui_fontdata.c, ~65 KB). C files see it too (CFLAGS).
 ifeq ($(TILOOK),1)
-    TILOOK_DEF = -DFLOWCE_TILOOK
-    FEATURE_DEFS += $(TILOOK_DEF)
+    VARIANT_DEFS += -DFLOWCE_TILOOK
+    FEATURE_DEFS += -DFLOWCE_TILOOK
+endif
+# The KhiCAS-like build (2026-10-22): the Python build arranged as Bernard Parisse's KhiCAS (its
+# console, F-key menus, catalog, keys, spreadsheet, tables of variations, units, periodic table),
+# drawn in FlowCE's look, with FlowCE's graph screen
+ifeq ($(KHICAS),1)
+    VARIANT_DEFS += -DFLOWCE_KHICAS
+    FEATURE_DEFS += -DFLOWCE_KHICAS
 endif
 
 ifeq ($(APPLANG),fr)
@@ -68,7 +82,7 @@ NAME = DEMO
 COMPRESSED = NO
 ARCHIVED = NO
 
-CFLAGS = -Wall -Wextra -Oz -DMP_16BIT -DTICE -Isrc/tommath -Wno-unused-command-line-argument $(LANG_DEF) $(TILOOK_DEF)
+CFLAGS = -Wall -Wextra -Oz -DMP_16BIT -DTICE -Isrc/tommath -Wno-unused-command-line-argument $(LANG_DEF) $(VARIANT_DEFS)
 CXXFLAGS = -std=c++14 -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Oz -Iustl -Isrc/tommath -DMP_16BIT -DTICE -DFLOWCE -DHAVE_CONFIG_H -DXLIGHT -DCOMPILE_FOR_STABILITY \
     -Wno-unknown-pragmas -Wno-unneeded-internal-declaration -Wno-sign-compare -Wno-unused-function -Wno-unused-parameter \
     -Wno-unused-variable -Wno-unused-but-set-variable -Wno-deprecated-register -Wno-reorder-ctor -Wno-inline-new-delete \
