@@ -2587,7 +2587,7 @@ int Console_GetKey(){
     ck_getkey((int *)&key);
     getkey_console=0;
     if (key==KEY_CTRL_QUIT
-#if !defined WITH_PLOT && !defined FLOWCE_STEPS // (DeltaCE: F1 is a menu, not save and quit)
+#if !defined WITH_PLOT && !defined FLOWCE_STEPS && !defined FLOWCE_KHICAS // (DeltaCE, KhiCAS-like: F1 is a menu, not save and quit)
         || key==KEY_CTRL_F1
 #endif
         )
