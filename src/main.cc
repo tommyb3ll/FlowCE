@@ -546,6 +546,43 @@ static void stack_floor(){
 
 void do_eval(giac::gen & g);
 #ifdef FLOWCE_KHICAS
+// KhiCAS + Flow: KhiCAS has no answer to gin (giac's result g): an integral left as typed, solve's
+// error (solve(x^2=0.5,x): "Bad Argument Value")
+static bool khicas_unanswered(const giac::gen & gin,const giac::gen & g){
+  using namespace giac;
+  if (gin.is_symb_of_sommet(at_integrate) || gin.is_symb_of_sommet(at_int))
+    return contains(g,at_integrate) || contains(g,at_int);
+  if (gin.is_symb_of_sommet(at_solve))
+    return g.type==_STRNG || (g.type==_VECT && g._VECTptr->size()==1 && g._VECTptr->front().type==_STRNG);
+  return false;
+}
+// there, what a KhiCAS user would type next: a definite integral numerically (x=a+(b-a)sin(pi t/2)^2:
+// its dx vanishes at both ends and cancels an endpoint singularity), an equation with decimals
+// solved exactly, its solutions as decimals; g replaced when that answers
+static void khicas_fallback(const giac::gen & gin,giac::gen & g){
+  using namespace giac;
+  if (gin._SYMBptr->feuille.type!=_VECT)
+    return;
+  const vecteur & v=*gin._SYMBptr->feuille._VECTptr;
+  gen f;
+  if (gin.is_symb_of_sommet(at_solve)){
+    if (v.size()!=2 || !has_num_coeff(v[0]))
+      return;
+    f=symbolic(at_evalf,symbolic(at_solve,makesequence(exact(v[0],contextptr),v[1])));
+  }
+  else {
+    if (v.size()!=4 || v[1].type!=_IDNT)
+      return;
+    const gen lo=evalf(v[2],1,contextptr),hi=evalf(v[3],1,contextptr),t=gen("t__n",contextptr);
+    if (lo.type!=_DOUBLE_ || hi.type!=_DOUBLE_)
+      return;
+    const gen x=lo+(hi-lo)*pow(symbolic(at_sin,cst_pi*t/2),2),dx=(hi-lo)*cst_pi/2*symbolic(at_sin,cst_pi*t);
+    f=symbolic(at_integrate,makesequence(subst(v[0],v[1],x,false,contextptr)*dx,t,gen(0.0),gen(1.0)));
+  }
+  do_eval(f);
+  if (!eval_stopped && !khicas_unanswered(gin,f))
+    g=f;
+}
 // KhiCAS + Flow's selection: a part of the edit line evaluated in place (its 2D editor's eval)
 std::string console_eval_part(const char * s){
   giac::gen g(s,contextptr);
@@ -1325,6 +1362,7 @@ void do_run(const char * s){
     giac::control_c_hook=focus_busy_tick;
 #ifdef FLOWCE_KHICAS
     g=giac::equaltosto(g,contextptr); // KhiCAS's: x=a stores, nothing else rewritten
+    const giac::gen gin=g;
     g=giac::add_autosimplify(g,contextptr);
     actx.tabled=false;
 #else
@@ -1345,6 +1383,8 @@ void do_run(const char * s){
     }
     else {
 #ifdef FLOWCE_KHICAS // (KhiCAS + Flow: the result as giac gives it, as in KhiCAS)
+      if (khicas_unanswered(gin,g))
+        khicas_fallback(gin,g);
       graw=g;
 #else
       answer_after(g,actx,msg,graw);
