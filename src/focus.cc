@@ -1395,11 +1395,16 @@ void focus_disp(int mode) {
     // large, the first key takes the full path: that entry goes back into the column)
     int was_math = hm == HM_MATH, oy0 = hb_y0, oy1 = hb_y1;
     hero_prepare(M.hero_y, SBOT - M.hero_y);
-    if (was_math) stage_rows(oy0 < hb_y0 ? oy0 : hb_y0, oy1 > hb_y1 ? oy1 : hb_y1);
-    else stage_rows(M.hero_y, SBOT);
-    ui_band_close();
-    focus_phase = 0;
-    return;
+#ifdef FOCUS_CONSOLE
+    if (hb_y1 <= SBOT || M.hero_y <= ST) // (taller than the room left: the history scrolls up, below)
+#endif
+    {
+      if (was_math) stage_rows(oy0 < hb_y0 ? oy0 : hb_y0, oy1 > hb_y1 ? oy1 : hb_y1);
+      else stage_rows(M.hero_y, SBOT);
+      ui_band_close();
+      focus_phase = 0;
+      return;
+    }
   }
   if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
   compute_model();

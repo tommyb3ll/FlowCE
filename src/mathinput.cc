@@ -594,6 +594,8 @@ static void cons(int n, int x, int y, int sm) {
     }
 #endif
     int g = GAP, b = BAR;
+#ifndef FLOWCE_KHICAS // (KhiCAS + Flow: stacked, as KhiCAS draws it; RIGHT at the end of its denominator
+                      // stops after it, still in the exponent, as in KhiCAS)
     if (sm && M->wf) { // proportional fonts: a fraction in an exponent is inline, a/b; a sum in
       const int sw = lw("/", 1, sm), q = lw("(", 1, sm), pa = needp(sn[0]) ? q : 0, pb = needp(sn[1]) ? q : 0;
       if (pa) { dtext("(", 1, sm, 0, 0); dtext(")", 1, sm, pa + A.w, 0); } // parentheses: 1/(N+1), not 1/N+1
@@ -606,6 +608,7 @@ static void cons(int n, int x, int y, int sm) {
       cw = t + 2 * pb + B.w;
       break;
     }
+#endif
     cw = mx(A.w, B.w) + 2 * g;
     dec(MI_HLINE, sm, 0, -ax, cw, b);
     sl(0, (cw - A.w) / 2, -ax - g - A.ds, sm);
