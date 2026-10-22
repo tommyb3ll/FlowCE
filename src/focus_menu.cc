@@ -788,8 +788,13 @@ void focus_splash(int first) {
     return;
   }
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
+#ifdef FLOWCE_KHICAS
+  static const char * const cr[] = {"UI enhancements by Tommy Bell",
+                                    "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
+#else
   static const char * const cr[] = {"by Tommy Bell, based on KhiCAS by Bernard Parisse",
                                     "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
+#endif
   for (int k = 0; k < 2; ++k)
     ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
   // the name's letters: their face and color (the upright math faces have no capitals; the italic
@@ -804,8 +809,10 @@ void focus_splash(int first) {
   static const unsigned char lcol[NL] = {UC_INK, UC_INK, UC_INK, UC_INK, UC_ACC, UC_ACC};
 #endif
 #ifdef FLOWCE_KHICAS
-  const char * tag = "computer algebra on your TI-84 Plus CE"; // (KhiCAS: more than calculus)
+  const char * tag = "by Bernard Parisse"; // (KhiCAS's author, under its name)
+  enum { NT = 6 }; // KhiCAS: typed behind a cursor, before + Flow flows in
 #else
+  enum { NT = 0 };
   const char * tag = "calculus on your TI-84 Plus CE";
 #endif
   const ui_face * lf[NL];
@@ -826,13 +833,37 @@ void focus_splash(int first) {
   }
   for (int i = 0, x = x0; i < NL; ++i) {
     lx[i] = x;
-    x += ui_draw_text(lf[i], name + i, 1, x, y, rp[i], 0) + (name[i] == ' ' ? 9 : 0);
+    const int a = ui_text_width(lf[i], name + i, 1);
+    if (i >= NT) ui_draw_text(lf[i], name + i, 1, x, y, rp[i], 0); // (KhiCAS's letters: drawn as typed)
+    x += a + (name[i] == ' ' ? 9 : 0);
   }
   ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, rp[NL], 0);
   // the curve 0-700 ms (smoothstep from 0.12: moving at once, fast, slow); a letter from 12 px
   // before the curve's end reaches it to 36 px after; the tag line 600-900 ms
   int skip = animated && first != 2, drawn = 0, t = 0;
   animated = true;
+  if (NT && !skip) { // KhiCAS typed on an old computer's terminal: a letter every 80 ms behind a block
+    // cursor, the cursor held after it a moment (each step: the cursor's box cleared, the letter
+    // before it drawn again for its italic overhang, the new letter, the cursor after it)
+    const unsigned char * ink = ui_ramp(0, UC_INK, UC_BG);
+    const int cy = y - 25, ch = 29, cw = 13;
+    const long c0 = (long)(clock)();
+    int i = 0;
+    for (;; ++i) {
+      if (i) {
+        ui_fill(lx[i - 1] + 2, cy, cw, ch, ui_col(0, UC_BG));
+        if (i > 1) ui_draw_text(lf[i - 2], name + i - 2, 1, lx[i - 2], y, ink, 0);
+        ui_draw_text(lf[i - 1], name + i - 1, 1, lx[i - 1], y, ink, 0);
+      }
+      ui_fill(lx[i] + 2, cy, cw, ch, ui_col(0, UC_INK));
+      const long due = c0 + (long)(i + 2) * 2621 + (i == NT ? 6554 : 0); // (the cursor alone 160 ms; 80 ms a letter; 200 ms after the last)
+      while (!skip && (long)(clock)() < due)
+        if (key_waiting()) { skip = 1; key_discard(); }
+      if (skip || i == NT) break;
+    }
+    ui_fill(lx[i] + 2, cy, cw, ch, ui_col(0, UC_BG)); // (the cursor gone: + Flow flows in)
+    for (int k = 0; k < NL; ++k) ui_draw_text(lf[k], name + k, 1, lx[k], y, k < NT ? ink : rp[k], 0); // (+ Flow still the background)
+  }
   const long t0 = (long)(clock)(); // 32768 Hz ((clock): giac's first.h makes clock() 0)
   while (t < 900) {
     t = skip ? 900 : (int)(((long)(clock)() - t0) * 1000 / 32768);
