@@ -973,17 +973,20 @@ int restore_session(const char * fname){
     starting=false;
     focus_splash(0);
     const string filename(remove_path(remove_extension(fname)));
-    focus_hold=true; // the start screen stays until the session is in (no half-drawn console)
+    focus_hold=true; // the start screen stays until the session is in (no half-drawn console, no status line)
     const bool loaded=load_console_state_smem((filename+".xw").c_str());
+    focus_status_msg(0); // the loader's "Loading session.xw" or "Evaluating vars" goes (no session: nothing else clears it)
+    if (!loaded){ // first start: tips, any key, the start screen still held
+      focus_splash(1);
+      int key;
+      ck_getkey(&key);
+    }
     focus_hold=false;
     focus_invalidate();
     if (loaded){
       focus_splash_clear();
       return 1;
     }
-    focus_splash(1); // first start: tips, any key
-    int key;
-    ck_getkey(&key);
     return 0;
   }
   clear_screen(); // Bdisp_AllClr_VRAM();

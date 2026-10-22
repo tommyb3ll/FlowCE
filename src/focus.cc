@@ -665,7 +665,7 @@ static void read_battery() {
 }
 
 static void status_draw(int force) {
-  if (!focus_on) return;
+  if (!focus_on || focus_hold) return; // (the start screen: no status line over it, the idle redraw included)
   unsigned char ph = focus_phase;
   focus_phase = 12;
   char buf[sizeof(stat_l)];
@@ -733,7 +733,7 @@ extern "C" void focus_status_msg(const char * msg) {
   else { strncpy(m, msg, sizeof(m) - 1); m[sizeof(m) - 1] = 0; }
   if (!strcmp(m, smsg)) return;
   strcpy(smsg, m);
-  if (!focus_hold) status_draw(0); // (the start screen, the session loading: no status line over it)
+  status_draw(0);
 }
 
 // The standard layer is the prototype's: an icon and a word per key (algebra, calculus, trig,
