@@ -801,7 +801,11 @@ void focus_splash(int first) {
   enum { NL = 6 };
   static const unsigned char lcol[NL] = {UC_INK, UC_INK, UC_INK, UC_INK, UC_ACC, UC_ACC};
 #endif
+#ifdef FLOWCE_KHICAS
+  const char * tag = "computer algebra on your TI-84 Plus CE"; // (KhiCAS: more than calculus)
+#else
   const char * tag = "calculus on your TI-84 Plus CE";
+#endif
   const ui_face * lf[NL];
   int w = 0;
   for (int i = 0; i < NL; ++i) { lf[i] = name[i] == '+' ? &ui_mu34 : &ui_mi34; w += ui_text_width(lf[i], name + i, 1) + (name[i] == ' ' ? 9 : 0); }
