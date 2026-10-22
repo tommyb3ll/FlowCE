@@ -361,7 +361,10 @@ void vGL_Initialize() {
   //dbg_printf("vgl_init addr=%x lcd_Palette=%x w=%i h=%i\n",ti8bpp_screen, lcd_Palette,VIR_LCD_PIX_W,VIR_LCD_PIX_H);
 
   //lcd_Palette[0xFF] = 0xFFFF; // white also
-  boot_ClearVRAM();
+  // the screen's half of VRAM only (boot_ClearVRAM cleared it all): the other half is the
+  // allocator's (allocator_custom.c), and the C++ constructors run before main allocate there
+  // already (the C runtime's atexit record of focus_menu.cc's AFL: wiped, 2nd quit called 0xFFFFFF)
+  memset(ti8bpp_screen, 255, VIR_LCD_PIX_H * VIR_LCD_PIX_W);
 
   // lcd_BacklightLevel=minBrightness;
   for (int r=0;r<4;r++){

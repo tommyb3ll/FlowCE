@@ -115,6 +115,15 @@ int ui_strip_release(void);
 int focus_menu_release(void); // focus_menu.cc: the menus' previews kept (a few KB), when not shown
 unsigned ui_strip_size(void);
 
+// The stack's area when the OS's RAM has no room for it (main.cc stack_reserve): the start of the
+// low heap, taken before anything is allocated there (allocations go to VRAM's half first)
+void* stack_block(size_t n)
+{
+    void* r = (void*)heap2_ptr;
+    heap2_ptr += n;
+    return r;
+}
+
 void* _custom_malloc(size_t alloc_size)
 {
     // dbg_printf("[malloc] %zu bytes\n", alloc_size);

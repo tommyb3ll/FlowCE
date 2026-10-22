@@ -483,14 +483,59 @@ void oom_rearm(){ // (focus_steps.cc too)
 extern "C" { extern volatile unsigned char focus_phase; } // focus.cc: the phase probe
 static int eval_stopped; // the last do_eval: 1 interrupted (ON), 2 out of memory, 3 the stack floor
 
-// The stack (main: 0xD2A800) grows down over the OS's free RAM, which starts after the RAM
-// variables: giac stops 16 KB above them ("Too many recursion levels") instead of overwriting
-// them (f(x):=1+x*integrate(f(t^2),t,-1,1) then f(3) did); at least 24 KB of stack are kept.
-// The deepest calculations measured use 9 KB (tools/emu/stackprobe.py).
+// The stack: an area reserved from the OS's user memory (userMem, 0xD1A881, where the OS keeps
+// the RAM variables) as a program's space is: inserted there, its size in asm_prgm_size, which
+// the C runtime deletes on exit; the variables move after it meanwhile. 65,407 B when the RAM
+// has room (its top at 0xD2A800, as in KhiCAS), less when it is fuller (8 KB stay free for the
+// session), and with less than 32 KB free, 24 KB of FlowCE's own memory (allocator_custom.c): it
+// always starts, with no message. KhiCAS used 0xD2A800 down without reserving it: with ~60 KB of
+// RAM variables (programs, lists, saved sessions) the stack and the variables overwrote each other
+// and the calculator reset ("Validating OS..."). giac stops above the area's bottom with "Too many
+// recursion levels" (f(x):=1+x*integrate(f(t^2),t,-1,1) then f(3)): 16 KB above it in an area of
+// 40 KB or more, as before (at least 24 KB for giac), else 4 KB. The deepest calculations measured
+// use 9 KB (tools/emu/stackprobe.py), FlowCE's screens 7 KB.
+static const size_t stack_full=0xD2A800-0xD1A881; // 65,407 B
+static size_t stack_bottom;
+extern "C" {
+  volatile size_t flowce_stack_size __attribute__((used)); // (read by the assembly below and main's)
+  volatile size_t flowce_stack_top __attribute__((used));
+  void * stack_block(size_t n); // allocator_custom.c
+}
+static void stack_reserve(){
+  volatile size_t & asm_prgm_size=*(volatile size_t *)0xD0118C;
+  void * fr;
+  const size_t free=os_MemChk(&fr);
+  size_t n=free>=stack_full+8192?stack_full:free>8192?free-8192:0;
+  if (!asm_prgm_size && n>=24576){
+    flowce_stack_size=n;
+    __asm__ volatile("push af\n\t" // (saved here rather than declared clobbered: the compiler takes only 16-bit names)
+                     "push bc\n\t"
+                     "push de\n\t"
+                     "push hl\n\t"
+                     "push ix\n\t"
+                     "push iy\n\t"
+                     "ld iy, 0xD00080\n\t" // (the OS's flags)
+                     "ld hl, (_flowce_stack_size)\n\t" // InsertMem: hl bytes at de
+                     "ld de, 0xD1A881\n\t"
+                     "call 0x020514\n\t"
+                     "pop iy\n\t"
+                     "pop ix\n\t"
+                     "pop hl\n\t"
+                     "pop de\n\t"
+                     "pop bc\n\t"
+                     "pop af"
+                     ::: "memory");
+    asm_prgm_size=n;
+    stack_bottom=0xD1A881;
+  }
+  else { // (or userMem already holds a program's space)
+    n=24576;
+    stack_bottom=(size_t)stack_block(n);
+  }
+  flowce_stack_top=stack_bottom+n;
+}
 static void stack_floor(){
-  void * fr; os_MemChk(&fr);
-  size_t f=(size_t)fr+16384;
-  giac::stack_floor=f<0xD2A800-24576?f:0xD2A800-24576;
+  giac::stack_floor=stack_bottom+(flowce_stack_top-stack_bottom>=40960?16384:4096);
   giac::stack_hit=false;
 }
 
@@ -1422,8 +1467,15 @@ void load_khicas_vars(const char * BUF){
 }  
 
 
+// The C runtime's atexit list (crt0: exit calls it, then gives the calculator back to the OS).
+// Emptied before leaving: the destructors of static objects are not needed then, and would run
+// after the screen and the stack are given back. (Up to 2.2.3 a record of the list was wiped at
+// the start, graphic.c: 2nd quit called 0xFFFFFF and the calculator restarted.)
+extern "C" void * _atexit_functions;
+
 void stop(const char * s)
 {
+  _atexit_functions=0;
   python_free();
 #if KHICAS_STACK
 #if __clang_major__ >= 19 // CE toolchain v15: GNU as
@@ -1566,13 +1618,14 @@ int main(){
   if (pcmain<appstart || pcmain>=0x3b0000)
     return 1;
 #if KHICAS_STACK
+  stack_reserve();
 #if __clang_major__ >= 19 // CE toolchain v15: GNU as
-  asm("ld  (0xD19888), sp\n\t"
-      "ld  sp, 0xD2A800");
+  asm volatile("ld  (0xD19888), sp\n\t"
+               "ld  sp, (_flowce_stack_top)" ::: "memory");
 #else
   asm("assume	adl = 1\n\t"
       "ld  ($D19888), sp\n\t"
-      "ld  sp, $D2a800\n\t"
+      "ld  sp, (_flowce_stack_top)\n\t"
       :        /* output */
       :  /* input */
       : /* clobbered registers */
@@ -1603,6 +1656,7 @@ int main(){
   oom_rearm();
   stack_floor();
   main1();
+  _atexit_functions=0; // (stop)
   python_free();
   sdk_end();
 #if KHICAS_STACK
