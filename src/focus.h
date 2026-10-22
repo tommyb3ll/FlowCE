@@ -59,6 +59,8 @@ void focus_repaint_over(int y0, int y1, void (*over)(int, int)); // the same, ov
 int focus_hist_line(int dir);           // history by calculations: the line for up/down/left/right
 // a card over the dimmed stage: a title, n choices; returns the index chosen, -1 if cancelled
 int focus_choose(const char * title, const char * const * labels, int n);
+// the same with KhiCAS's confirm keys: yk (F1 or F5) picks the first choice, the other one cancels
+int focus_choose_keys(const char * title, const char * const * labels, int n, int yk);
 // a list card under a title (0: none) for KhiCAS's own menus (doMenu); a long list scrolls.
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
 // syms: a column of symbols before the labels (==, %: the program editor's menus), drawn large
@@ -67,7 +69,8 @@ int focus_list(const char * title, const char * const * labels, int n, int sel, 
 // or -10 - i for F(i+1) of any layer, *at the item then selected
 int focus_list_keys(const char * title, const char * const * labels, int n, int sel, const char * const * keys, int * at);
 void focus_note(const char * title, const char * text); // a message card; the caller reads the key
-void focus_text(const char * title, const char * text); // About, Shortcuts: a text to read
+// About, Shortcuts: a text to read; fk: F1-F5 close it too. Returns the key that closed it
+int focus_text(const char * title, const char * text, int fk = 0);
 void focus_splash(int first);           // the start screen (first: tips, "press any key")
 // the graph's table of values: head[ncol], cells row by row, hint on the last line
 void focus_table(const char * const * head, int ncol, const char * const * cells, int nrow, const char * hint);

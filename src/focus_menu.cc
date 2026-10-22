@@ -630,6 +630,12 @@ static int list_card(const char * t, const char * const * labels, int n, int sel
 }
 
 int focus_choose(const char * t, const char * const * labels, int n) { return focus_list(t, labels, n, 0, 0); }
+static int choose_yk;
+static int fk_yes(int k) { return k == choose_yk ? 0 : k == KEY_CTRL_F1 || k == KEY_CTRL_F5 ? -1 : 1; }
+int focus_choose_keys(const char * t, const char * const * labels, int n, int yk) {
+  choose_yk = yk;
+  return list_card(t, labels, n, 0, 0, 0, fk_yes);
+}
 
 // a message card (KhiCAS's print_msg12): title t, text s (cut to the card), over the screen as
 // it is; the caller reads the key, the next focus_disp repaints everything
@@ -701,9 +707,9 @@ void focus_table(const char * const * head, int ncol, const char * const * cells
 }
 
 // a text to read (About, Shortcuts): t in the status bar, s word-wrapped (\n: a new paragraph,
-// a line starting with a word ending in ':' bold), up/down scroll, EXIT/EXE close. The caller
-// repaints the console afterwards.
-void focus_text(const char * t, const char * s) {
+// a line starting with a word ending in ':' bold), up/down scroll, EXIT/EXE close (fk: F1-F5 too,
+// any layer). The caller repaints the console afterwards. Returns the key that closed it.
+int focus_text(const char * t, const char * s, int fk) {
   enum { LMAX = 120, LH = 17, W = 296, Y0 = 20 };
   static short ls[LMAX], ll[LMAX];
   int n = 0, i = 0;
@@ -716,7 +722,7 @@ void focus_text(const char * t, const char * s) {
     if (s[i] == ' ' || s[i] == '\n') ++i;
   }
   const int vis = (UI_H - Y0 - 4) / LH;
-  int top = 0;
+  int top = 0, key;
   focus_status_label(t);
   for (;;) {
     int rows = ui_band_open(48);
@@ -736,9 +742,9 @@ void focus_text(const char * t, const char * s) {
       }
       if (rows) ui_band_end();
     }
-    int key;
     GetKey(&key);
     if (key == KEY_CTRL_EXIT || key == KEY_CTRL_AC || key == KEY_CTRL_EXE || key == KEY_CTRL_OK) break;
+    if (fk && key >= KEY_CTRL_F1 && key <= KEY_CTRL_F15) break;
     if (key == KEY_CTRL_DOWN && top + vis < n) ++top;
     if (key == KEY_CTRL_UP && top) --top;
     if (key == KEY_CTRL_RIGHT) top = top + 2 * vis < n ? top + vis : n > vis ? n - vis : 0;
@@ -746,6 +752,7 @@ void focus_text(const char * t, const char * s) {
   }
   focus_status_label(0);
   focus_invalidate();
+  return key;
 }
 
 // the start screen goes before the console is painted (in strips, top down: the rest of the start
@@ -842,7 +849,7 @@ void focus_splash(int first) {
   // before the curve's end reaches it to 36 px after; the tag line 600-900 ms
   int skip = animated && first != 2, drawn = 0, t = 0;
   animated = true;
-  if (NT && !skip) { // KhiCAS typed on an old computer's terminal: a letter every 80 ms behind a block
+  if (NT > 0 && !skip) { // KhiCAS typed on an old computer's terminal: a letter every 80 ms behind a block
     // cursor, the cursor held after it a moment (each step: the cursor's box cleared, the letter
     // before it drawn again for its italic overhang, the new letter, the cursor after it)
     const unsigned char * ink = ui_ramp(0, UC_INK, UC_BG);

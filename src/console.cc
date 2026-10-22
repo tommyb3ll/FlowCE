@@ -1683,7 +1683,11 @@ unsigned translate_fkey(unsigned input_key){
 void chk_clearscreen(){
   if (focus_on){ // 2nd clear on an empty line: the card clear asks with (KhiCAS's full screen was shown)
     static const char * const yesno[]={"Clear history","Cancel"};
+#ifdef FLOWCE_KHICAS
+    if (focus_choose_keys("Clear the history?",yesno,2,KEY_CTRL_F5)==0){ // (KhiCAS: F5 erases, F1 cancels)
+#else
     if (focus_choose("Clear the history?",yesno,2)==0){
+#endif
       Console_Init();
       Console_Clear_EditLine();
     }
@@ -3493,7 +3497,11 @@ int Console_GetKey(){
           Console_Clear_EditLine();
         else if (focus_on && focus_clear_hero()) // (DeltaCE) an answer shown large: first it goes up into the history
           ;
+#ifdef FLOWCE_KHICAS
+        else if (focus_on?focus_choose_keys("Clear the history?",console_yesno,2,KEY_CTRL_F1)==0:do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){ // (KhiCAS: F1 clears, F5 cancels)
+#else
         else if (focus_on?focus_choose("Clear the history?",console_yesno,2)==0:do_confirm(lang?"F1: Effacer historique, F5: annuler":"F1: Clear history, F5: Cancel")){
+#endif
           Console_Init();
           Console_Clear_EditLine();
           Console_Disp(1);
@@ -3685,6 +3693,13 @@ int Console_GetKey(){
         if (ti_value_key(key) && console_prev_is_value() && console_python_mode())
           Console_Input((const Char *)"*"); // Python: 2[pi] -> 2*pi; otherwise the pre-pass in do_run
                                             // does it and the input keeps reading 2pi
+#ifdef FLOWCE_KHICAS
+        if (key==KEY_CHAR_PMINUS && focus_on && !Line[Current_Line].readonly){ // (-) right after a number: KhiCAS's _ (a unit: 5_m)
+          const int pos=Console_GetActualPos(Edit_Line,Current_Col);
+          if (pos>0 && ((Edit_Line[pos-1]>='0' && Edit_Line[pos-1]<='9') || Edit_Line[pos-1]=='.'))
+            ptr="_";
+        }
+#endif
         const int pl=strlen(ptr);
         if (console_input2d() && pl<60 && (!strcmp(ptr,"^") || (pl>1 && ptr[pl-1]=='('))){
           char buf[64]; // 2D: ^ -> ^(), sin( -> sin(), the caret inside

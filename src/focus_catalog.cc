@@ -43,6 +43,9 @@ struct cat_state {
 static cat_state * S;
 
 static const char * const TABS[5] = {"all", "algebra", "calculus", "trig", "numbers"};
+#ifdef FLOWCE_KHICAS
+static const char * const KEYS[5] = {"input", "example 1", "example 2", "", "help"}; // (KhiCAS's catalog keys)
+#endif
 static const unsigned char TCAT[4][3] = { // the categories of tabs F2-F5 (menuGUI.h)
   {CAT_CATEGORY_ALGEBRA, CAT_CATEGORY_POLYNOMIAL, CAT_CATEGORY_SOLVE}, {CAT_CATEGORY_CALCULUS, 0, 0},
   {CAT_CATEGORY_TRIG, 0, 0}, {CAT_CATEGORY_ARIT, CAT_CATEGORY_REAL, CAT_CATEGORY_COMPLEXNUM}};
@@ -254,8 +257,8 @@ static void filter(int narrow) {
 // command's arguments (insert text + example + ")"); an example already starting with the
 // command, or for an entry that does not insert a call, is taken whole too. In out (size m), its
 // length; 0 if none.
-static int example_text(const catalogFunc & c, char * out, int m) {
-  const char * e = c.example, * t;
+static int example_text(const catalogFunc & c, char * out, int m, int second = 0) {
+  const char * e = second ? c.example2 : c.example, * t;
   if (!e) return 0;
   int n = insert_text(c, &t), k = 0;
   m -= 2;
@@ -489,6 +492,27 @@ static void update() {
 }
 
 // ------------------------------------------------------------------ the search
+#ifdef FLOWCE_KHICAS
+// KhiCAS's help on a command: its signature, what it does, its examples (F2, F3: they type them);
+// the key that closed it
+static __attribute__((noinline)) int help_page(const catalogFunc & c) {
+  char * h = new char[512], ex[96];
+  int n = 0;
+  const char * part[4] = {c.name, "\n\n", c.desc ? catalog_desc(c.desc) : "", 0};
+  for (int j = 0; part[j]; ++j)
+    for (const char * p = part[j]; *p && n < 280; ) h[n++] = *p++;
+  for (int j = 0; j < 2; ++j)
+    if (example_text(c, ex, sizeof(ex), j)) {
+      const char * p = j ? "\nF3: " : "\n\nF2: ";
+      while (*p) h[n++] = *p++;
+      for (p = ex; *p; ) h[n++] = *p++;
+    }
+  h[n] = 0;
+  const int k = focus_text("Help on command", h, 1);
+  delete[] h;
+  return k;
+}
+#endif
 int focus_catalog(const char * query, char * out, int outsize) {
   S = new cat_state;
   cat_state & s = *S;
@@ -502,7 +526,11 @@ int focus_catalog(const char * query, char * out, int outsize) {
   focus_status_label("COMMANDS");
   lock_alpha(); // plain keys type letters
   focus_phase = 65;
+#ifdef FLOWCE_KHICAS
+  focus_bar_tabs(KEYS, -1);
+#else
   focus_bar_tabs(TABS, 0);
+#endif
   filter(0);
   int res = 0, plain = 0, typed = 0; // typed: the query was edited here (not just the word before the caret)
   for (;;) {
@@ -529,6 +557,33 @@ int focus_catalog(const char * query, char * out, int outsize) {
       }
       break;
     }
+#ifdef FLOWCE_KHICAS
+    // KhiCAS's catalog keys: F5 the command's help (KhiCAS's page: its signature, what it does, its
+    // examples, which F2 and F3 type from there too), F1 types the command, F2 and F3 its examples
+    if (t == 4 && s.ni) {
+      k = help_page(s.C[s.idx[s.sel]]);
+      t = k >= KEY_CTRL_F1 && k <= KEY_CTRL_F5 ? k - KEY_CTRL_F1 : k >= KEY_CTRL_F11 && k <= KEY_CTRL_F15 ? k - KEY_CTRL_F11 : -1;
+      focus_status_label("COMMANDS"); // the search again, all of it
+      focus_bar_tabs(KEYS, -1);
+      s.sn = -1; s.sb = -2; s.sf = -2; s.stop = -100;
+      if (t != 1 && t != 2) continue;
+    }
+    if (t >= 0 && t <= 2) {
+      if (!s.ni) continue;
+      const catalogFunc & c = s.C[s.idx[s.sel]];
+      if (t) { if (!example_text(c, out, outsize, t - 1)) continue; } // (no such example: nothing)
+      else {
+        const char * txt;
+        int n = insert_text(c, &txt);
+        if (n > outsize - 1) n = outsize - 1;
+        memcpy(out, txt, n);
+        out[n] = 0;
+      }
+      res = 1;
+      break;
+    }
+    if (t >= 0) continue; // (F4: no key)
+#endif
     if (ch && s.ql < QMAX) { s.q[s.ql++] = (char)ch; s.q[s.ql] = 0; filter(1); typed = 1; }
     else if (k == KEY_CTRL_DEL) { s.q[--s.ql] = 0; filter(0); typed = 1; }
     else if (t >= 0 && t != s.tab) {
