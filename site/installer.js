@@ -63,6 +63,16 @@ const INST_PATCHES = [
   },
 ];
 
+// a step of an install, counted on the page's visitor counter (GoatCounter, index.html), with the version
+// picked: connect, start, sent (the files are on the calculator), done (Finished), error, download (the
+// TI Connect link). Blocked or absent: nothing.
+function count(what) {
+  try {
+    if (window.goatcounter && window.goatcounter.count)
+      window.goatcounter.count({ path: `${what}-${build}`, title: `${what} (${BUILDS[build].name})`, event: true });
+  } catch (e) { /* (counting never stops an install) */ }
+}
+
 function indexOf(a, pat, from = 0) {
   outer: for (let i = from; i <= a.length - pat.length; i++) {
     for (let j = 0; j < pat.length; j++) if (a[i + j] !== pat[j]) continue outer;
@@ -162,6 +172,7 @@ function friendly(e) {
 
 // The message, and the browser's own words under it (for reports)
 function problem(e) {
+  count('error');
   if (WINDOWS && e && e.code === 'claim') $('win-note').hidden = false;
   const raw = esc(e && e.message || e);
   const f = friendly(e);
@@ -285,6 +296,7 @@ async function connect() {
     await loadBundle();
     await c.ping();
     await check(c);
+    count('connect');
   } catch (e) {
     say('st-connect', problem(e));
   }
@@ -456,6 +468,7 @@ async function continueV3() {
       $('v3-guidance').hidden = true;
       $('btn-finished').hidden = false;
       say('st-install', '<span class="ok">Files sent.</span> Finish on the calculator below.');
+      count('sent');
       say('st-finish', '<kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. ' +
         `At “enter: install app”, press <kbd>enter</kbd>. Wait for ${countdown()} to count down to 0. ` +
         'At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, ' +
@@ -492,6 +505,7 @@ async function proceed(c) {
     await sleep(700);
   }
   say('st-install', `<span class="ok">${BUILDS[build].name} is on the calculator.</span>`);
+  count('sent');
   mark('install', 'done');
   mark('finish', 'active');
   waitingReset = true;
@@ -509,6 +523,7 @@ async function install() {
   if (busy || !calc || !state || state.blocked) return;
   if (v3Stage || waitingReset) return;
   if ((state.needErase || state.route === 'v3') && !$('erase-ok').checked) return;
+  count('start');
   busy = true;
   updateInstall();
   $('btn-connect').disabled = true;
@@ -597,6 +612,7 @@ function finished() {
   v3Stage = null;
   $('btn-finished').hidden = true;
   mark('finish', 'done');
+  count('done');
   $('btn-connect').disabled = busy;
   say('st-finish', `<span class="ok">${BUILDS[build].name} is ready.</span>`);
   updateInstall();
@@ -642,6 +658,7 @@ function init() {
     return;
   }
   $('btn-connect').addEventListener('click', connect);
+  $('dl').addEventListener('click', () => count('download'));
   $('btn-install').addEventListener('click', install);
   $('btn-reconnect').addEventListener('click', reconnectClick);
   $('btn-v3-next').addEventListener('click', continueV3);
