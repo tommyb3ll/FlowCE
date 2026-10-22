@@ -1210,6 +1210,15 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
 #endif
     bool isall=category==CAT_CATEGORY_ALL;
     bool isopt=false;//category==CAT_CATEGORY_OPTIONS;
+#ifdef FLOWCE_KHICAS
+    if (focus_on && isall){ // all the commands (some 470): FlowCE's command search, typed to filter
+      char out[64];
+      if (!focus_catalog(cmdname?cmdname:"",out,sizeof(out)-1) || !out[0])
+        return MENU_RETURN_EXIT;
+      strcpy(insertText,out);
+      return 1;
+    }
+#endif
     int nitems = isall? allcmds:(CAT_COMPLETE_COUNT);//CAT_COMPLETE_COUNT;
     vector<MenuItem> menuitems_v(nitems); // (no variable-length array: the CE toolchain v15 frame bias miscompiles them)
     MenuItem * menuitems=&menuitems_v.front();
@@ -1273,7 +1282,22 @@ int doCatalogMenu(char* insertText, const char* title, int category,const char *
       Printmini(0,C58,(
                        category==CAT_CATEGORY_ALL?(lang?"   input   |  exemple1  |  exemple2  |           |   aide cmd     ":"   input   |  example1  |  example2  |           |   cmd help    "):(lang?"   input   | exemple1 | exemple2 |    cmds    |  aide cmd    ":"   input   | example1 | example2 |    cmds    |  cmd help   ")
                        ),MINI_REV);
+#ifdef FLOWCE_KHICAS
+      int sres;
+      if (focus_on && menu.numitems<=60){ // a FlowCE list, KhiCAS's catalog keys (the bar names them)
+        static const char * const keys[5]={"input","example 1","example 2","cmds","help"};
+        const char * lab[60];
+        for (int i=0;i<menu.numitems;++i) lab[i]=menu.items[i].text;
+        int at=0;
+        const int r=focus_list_keys(title,lab,menu.numitems,menu.selection-1,keys,&at);
+        if (r>=0){ menu.selection=r+1; sres=MENU_RETURN_SELECTION; }
+        else if (r<=-10){ menu.selection=at+1; sres=KEY_CTRL_F1+(-10-r); }
+        else sres=MENU_RETURN_EXIT;
+      }
+      else sres=doMenu(&menu);
+#else
       int sres = doMenu(&menu);
+#endif
       if ((sres==KEY_CTRL_F4 || sres==KEY_CTRL_F9 || sres==KEY_CTRL_F14) && category!=CAT_CATEGORY_ALL){
         break;
       }

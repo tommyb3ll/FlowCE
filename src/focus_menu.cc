@@ -539,6 +539,7 @@ static int fk_kh(int k) {
 // left of the first item of a row is its last one (right: the reverse), up from the top row is
 // the bottom of the column (down: the reverse); in a list, up from the top is the bottom. A wide
 // item's bar is a row of its own under the grid: up and down come back to the column they left.
+static int run_sel; // run_keys: the item selected when a key of fk ended it
 static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
   static int wcol = 1; // the column the bar was entered from
   for (;;) {
@@ -547,7 +548,7 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     if (k == KEY_CTRL_SHIFT || k == KEY_CTRL_ALPHA) continue;
     if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC) return -1;
     int f = fk ? fk(k) : 1, n = m.n, c = m.grid ? m.cols : 1, ns = sel;
-    if (f != 1) return f;
+    if (f != 1) { run_sel = sel; return f; }
     if (m.grid && m.wide && sel == n - 1) { // the bar: left and right stay
       const int gn = n - 1, col = wcol < c ? wcol : 0, last = (gn - 1) / c * c + col;
       if (k == KEY_CTRL_UP) ns = last < gn ? last : gn - 1;
@@ -585,7 +586,25 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
 
 // a list card, centered, under a title (or none): KhiCAS's own menus (doMenu: config, variables,
 // file...) and confirmations. A long list scrolls. Returns the item chosen, -1 if cancelled.
+static int list_card(const char * t, const char * const * labels, int n, int sel, const char * const * hints, const char * const * syms, int (*fk)(int));
 int focus_list(const char * t, const char * const * labels, int n, int sel, const char * const * hints, const char * const * syms) {
+  return list_card(t, labels, n, sel, hints, syms, 0);
+}
+// KhiCAS's catalog keys over a list: F1-F5 of any layer end it with -10 - (0..4)
+static int fk_cat(int k) {
+  static const int fk[15] = {KEY_CTRL_F1, KEY_CTRL_F2, KEY_CTRL_F3, KEY_CTRL_F4, KEY_CTRL_F5, KEY_CTRL_F6, KEY_CTRL_F7, KEY_CTRL_F8,
+                             KEY_CTRL_F9, KEY_CTRL_F10, KEY_CTRL_F11, KEY_CTRL_F12, KEY_CTRL_F13, KEY_CTRL_F14, KEY_CTRL_F15};
+  for (int i = 0; i < 15; ++i) if (k == fk[i]) return -10 - i % 5;
+  return 1;
+}
+int focus_list_keys(const char * t, const char * const * labels, int n, int sel, const char * const * keys, int * at) {
+  if (keys) focus_bar_tabs(keys, -1);
+  run_sel = sel;
+  const int r = list_card(t, labels, n, sel, 0, 0, fk_cat);
+  *at = r >= 0 ? r : run_sel;
+  return r;
+}
+static int list_card(const char * t, const char * const * labels, int n, int sel, const char * const * hints, const char * const * syms, int (*fk)(int)) {
   if (n < 1) return -1;
   if (n > 60) n = 60;
   fm_item * it = new fm_item[n];
@@ -601,7 +620,7 @@ int focus_list(const char * t, const char * const * labels, int n, int sel, cons
   px = (UI_W - pw) / 2; py = ST + (SBOT - ST - ph) / 2;
   PL = 0;
   open_card(m, 5, 0, sel);
-  int res = run_keys(m, sel, 0);
+  int res = run_keys(m, sel, fk);
   hdr = 0; top = 0; vis = 99; rh = RH;
   delete[] it;
   close_card(0, 1);

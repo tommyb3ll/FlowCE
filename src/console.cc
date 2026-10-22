@@ -2726,14 +2726,6 @@ int Console_GetKey(){
 #endif
     // the CATALOG key (2nd 0): the command search. Handled here rather than in keytostring,
     // which the script editor and inputline share (their screens are not Focus ones)
-#ifdef FLOWCE_KHICAS
-    if (key==KEY_CTRL_CATALOG){ // KhiCAS: its catalog, all the commands
-      char buf[512];
-      if (!showCatalog(buf,1,0))
-        buf[0]=0;
-      return Console_Input((const Char*)buf);
-    }
-#endif
     if (focus_on && key==KEY_CTRL_CATALOG){
       console_search("",0);
       return CONSOLE_SUCCEEDED;
@@ -3645,7 +3637,7 @@ const char * Console_Draw_FMenu(int key, struct FMenu* menu,Char * cfg,int activ
   char ** entries = menu->str;
   nb_entries = menu->count;
   if (focus_on && ((active_app==0 && focus_screen()) || (active_app==2 && focus_view))){ // the console or the program editor: a Focus card of the entries
-#ifdef WITH_UNITS
+#if defined WITH_UNITS && !defined FLOWCE_KHICAS
     if (key-KEY_CTRL_F1==13){ // alpha F4: DeltaCE's units menu (KhiCAS's draw menu was there)
       const char * u=focus_units(13);
       if (u && u[0]==1){ console_temperature(u+1); return nullptr; }
@@ -3766,7 +3758,10 @@ int Console_Init()
   return CONSOLE_SUCCEEDED;
 }
 
-#if defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (DeltaCE: F3's plots, its graph screen's)
+#if defined FLOWCE_KHICAS && !defined FRANCAIS // KhiCAS's menus (alpha F1 misc with the periodic table, alpha F4 draw;
+  // F3 the plots FlowCE's graph draws)
+  constexpr const char conf_standard[] = "F1 algebra\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2 calculus\n'\ndiff(\nintegrate(\nlimit(\nseries(\nsolve(\ndesolve(\n=\nF3  plot  \nplot(\nplotparam(\nplotpolar(\nplotfield(\nplotode(\nF5 menu\nreserved\nF6  arithm. \n mod \nirem(\nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reals\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomials\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   lin. alg.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n_\nperiodic_table\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   draw\ndraw_pixel(\ndraw_line(\ndraw_rectangle(\ndraw_polygon(\ndraw_circle(\ndraw_string(\nget_pixel(\nclearscreen();\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";
+#elif defined WITH_PLOT || defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (DeltaCE: F3's plots, its graph screen's)
 
 #ifdef FRANCAIS
   constexpr const char conf_standard[] = "F1 algebre\nsimplify(\nfactor(\npartfrac(\ntcollect(\ntexpand(\nsum(\noo\nproduct(\nF2  calcul\n'\ndiff(\nintegrate(\nlimit(\ntabvar(\nseries(\nsolve(\ndesolve(\n=\nF3   graphes  \nplot(\nplotparam(\nplotpolar(\nplotfield(\nplotode(\nF5 menu\nreserved\nF6  arithm. \nirem(\n mod \nifactor(\ngcd(\nisprime(\nnextprime(\npowmod(\niegcd(\nF7   reels\nexact(\napprox(\nfloor(\nceil(\nround(\nsign(\nmax(\nmin(\nF8 complexes\nabs(\narg(\nre(\nim(\nconj(\ncsolve(\ncfactor(\ncpartfrac(\nF9   polynomes\nproot(\npcoeff(\nquo(\nrem(\ngcd(\negcd(\nresultant(\nF:   alg. lin.\nmatrix(\ndet(\nmatpow(\nranm(\nrref(\ntran(\negvl(\negv(\nF;  misc\n()/()\n_\n!\nrand()\nrandint(\nbinomial(\n and \n or \nF>   units\n=>\nF?   colors\nred\ngreen\nblue\nmagenta\ncyan\nyellow\nwhite\nfilled\nF<   lists\nmakelist(\nrange(\nseq(\nlen(\nappend(\nranv(\nsort(\napply(\n\nF=   program\n:\n&\n#\nhex(\nbin(\nf(x):=\ndebug(\npython(\nF@ mat\n[A]\n[B]\n[C]\n[D]\n[E]\n[F]\n[G]\n[H]";

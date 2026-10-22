@@ -54,6 +54,9 @@ int focus_choose(const char * title, const char * const * labels, int n);
 // sel: the item selected first. Returns the item chosen, -1 if cancelled.
 // syms: a column of symbols before the labels (==, %: the program editor's menus), drawn large
 int focus_list(const char * title, const char * const * labels, int n, int sel, const char * const * hints = 0, const char * const * syms = 0);
+// the same list with KhiCAS's catalog keys (keys: the bar's 5 words): the item chosen, -1 cancelled,
+// or -10 - i for F(i+1) of any layer, *at the item then selected
+int focus_list_keys(const char * title, const char * const * labels, int n, int sel, const char * const * keys, int * at);
 void focus_note(const char * title, const char * text); // a message card; the caller reads the key
 void focus_text(const char * title, const char * text); // About, Shortcuts: a text to read
 void focus_splash(int first);           // the start screen (first: tips, "press any key")
