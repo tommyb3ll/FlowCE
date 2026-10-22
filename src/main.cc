@@ -588,6 +588,9 @@ std::string console_eval_part(const char * s){
   giac::gen g(s,contextptr);
   g=giac::add_autosimplify(g,contextptr);
   do_eval(g);
+  focus_status_msg(0); // ("ON or clear: stop", said during it)
+  if (eval_stopped) // (ON: the part as it was)
+    return s;
   return g.print(contextptr);
 }
 #endif
