@@ -578,6 +578,18 @@ static void cons(int n, int x, int y, int sm) {
   ox = x; oy = y;
   switch (k) {
   case K_FRAC: { // bar at the axis, parts centered, gaps g (classic: 1 px bar, 2 px gaps)
+#ifdef FLOWCE_TILOOK
+    { // as MathPrint: both parts in the small font, centered; a 2-row bar at the axis from 2
+      // columns before the wider part to its end; the numerator's baseline 2 rows over it, the
+      // denominator's cell right under it (the small font's 2 blank rows part them); 4 columns after
+      const int mw = mx(A.w, B.w);
+      dec(MI_HLINE, sm, 2, -f.ax, mw + 2, 2);
+      sl(0, 4 + (mw - A.w) / 2, -f.ax - 2 - A.ds, 1);
+      sl(1, 4 + (mw - B.w) / 2, -f.ax + 2 + B.as, 1);
+      cw = mw + 8;
+      break;
+    }
+#endif
     int g = GAP, b = BAR;
     if (sm && M->wf) { // proportional fonts: a fraction in an exponent is inline, a/b; a sum in
       const int sw = lw("/", 1, sm), q = lw("(", 1, sm), pa = needp(sn[0]) ? q : 0, pb = needp(sn[1]) ? q : 0;
@@ -610,6 +622,18 @@ static void cons(int n, int x, int y, int sm) {
     cw = bw + eg + A.w;
   } break;
   case K_SQRT: case K_SURD: { // sign r px + 1, overbar g px above the content, index overhang t
+#ifdef FLOWCE_TILOOK
+    { // as MathPrint: a hook and a 2-column line (6 columns), 4 columns, the content, 2 more; the
+      // 2-row bar right over the content's cells, the line down to 2 rows under its baseline; an
+      // index (small) over the hook
+      t = k == K_SURD ? mx(0, B.w - 4) : 0;
+      dec(MI_SQRT, sm, t, -ca - 2, A.w + 10, ca + cd + 4);
+      sl(0, t + 10, 0, sm);
+      if (k == K_SURD) sl(1, t + 4 - B.w, -7 - B.ds, 1);
+      cw = t + A.w + 12;
+      break;
+    }
+#endif
     int r = RAD, g = GAP;
     t = k == K_SURD ? mx(0, B.w - r / 2) : 0;
     cw = t + A.w + r + 2;
@@ -628,6 +652,21 @@ static void cons(int n, int x, int y, int sm) {
     int s = ISW, g = GAP, dw = lw("d", 1, sm);
     i = needp(sn[0]);
     ca = mx(ca, B.as); cd = mx(cd, B.ds);
+#ifdef FLOWCE_TILOOK
+    // as MathPrint: the bounds (small) at the sign's right, over and under the content's letters
+    // (its cells' 2 blank rows above them); the sign from the upper bound's letters to the lower's
+    (void)s;
+    u = -ca + 2;
+    if (k == K_DEFINT) {
+      sl(3, 12, u - D.ds, 1);
+      sl(2, 12, cd + 4 + C.as, 1);
+      dec(MI_INTEGRAL, sm, 1, u - D.as + 2, 8, cd + 4 + C.as - (u - D.as + 2));
+      t = 12 + mx(C.w, D.w);
+    } else {
+      dec(MI_INTEGRAL, sm, 1, u - 3, 8, cd - u + 6);
+      t = 11;
+    }
+#else
     dec(MI_INTEGRAL, sm, 0, -ca - g, s, ca + cd + 2 * g);
     t = s + 1;
     if (k == K_DEFINT) { // a at the bottom right, b at the top right, never overlapping
@@ -636,6 +675,7 @@ static void cons(int n, int x, int y, int sm) {
       sl(3, s + 1, mn(-ca - g + D.as, u - 1 - D.ds), 1);
       t += mx(C.w, D.w) + 1;
     }
+#endif
     if (i) { dec(MI_LPAREN, sm, t, -ca, h + 1, ca + cd); t += h + 1; }
     sl(0, t, 0, sm);
     if (i) { dec(MI_RPAREN, sm, t + A.w, -ca, h + 1, ca + cd); t += h + 1; }
@@ -647,6 +687,23 @@ static void cons(int n, int x, int y, int sm) {
   case K_DIFF: { // d/(d x) then f, in parens if it is a sum or a factor follows (d/dx(u) v)
     int g = GAP, b = BAR, dw = lw("d", 1, sm);
     i = needp(sn[0]) || (T[n].nx && T[T[n].nx].k == K_DOT);
+#ifdef FLOWCE_TILOOK
+    { // as MathPrint's d/d: small letters over and under a fraction's bar
+      const int d1 = lw("d", 1, 1);
+      v = d1 + B.w;
+      dec(MI_HLINE, sm, 2, -f.ax, v + 2, 2);
+      dtext("d", 1, 1, 4 + (v - d1) / 2, -f.ax - 2);
+      dtext("d", 1, 1, 4, -f.ax + 2 + M->small.asc);
+      sl(1, 4 + d1, -f.ax + 2 + M->small.asc, 1);
+      t = v + 8;
+      if (i) { dec(MI_LPAREN, sm, t, -ca, h + 1, ca + cd); t += h + 1; }
+      sl(0, t, 0, sm);
+      if (i) dec(MI_RPAREN, sm, t + A.w, -ca, h + 1, ca + cd);
+      cw = t + A.w + (i ? h + 1 : 2);
+      (void)g; (void)b; (void)dw;
+      break;
+    }
+#endif
     u = mx(f.asc, B.as); v = dw + B.w + 2 * g;
     dec(MI_HLINE, sm, 0, -ax, v, b);
     dtext("d", 1, sm, (v - dw) / 2, -ax - g - f.desc);
@@ -659,7 +716,11 @@ static void cons(int n, int x, int y, int sm) {
     cw = t + A.w + (i ? h + 1 : 2);
   } break;
   case K_SUM: { // column: b, sigma, k=a; then f
+#ifdef FLOWCE_TILOOK
+    int sh = sm ? 10 : 14, sw = sm ? 8 : 12, st = -f.ax - sh / 2, bx, bb, ew = lw("=", 1, 1); // (the OS's sigma, as is)
+#else
     int sh = 2 * f.asc, sw = M->wf ? lw("S", 1, sm) : a + 4, st = -ax - sh / 2, bx, bb, ew = lw("=", 1, 1);
+#endif
     u = B.w + ew + C.w; v = mx(sf.asc, mx(B.as, C.as));
     t = mx(sw, mx(u, D.w));
     dec(MI_SIGMA, sm, (t - sw) / 2, st, sw, sh);

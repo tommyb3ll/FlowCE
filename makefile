@@ -10,11 +10,13 @@
 #
 # UNITS=1 (physical units instead of Python syntax, see below)
 # STEPS=1 (step-by-step solutions instead of Python syntax: neither Python nor units)
+# TILOOK=1 (the TI-84 look: the interface drawn like the TI-84 Plus CE's own, with its fonts)
 
 APPLANG ?= en
 VARIANT ?= normal
 UNITS ?= 0
 STEPS ?= 0
+TILOOK ?= 0
 
 # This fork drops the spreadsheet (WITH_SHEET) and the periodic table (WITH_PERIODIC): about
 # 160 KB of flash for the input/display work (user's choice, 2026-10-05), and the variation tables
@@ -40,6 +42,14 @@ else
     FEATURE_DEFS += -DWITH_EDITOR -DWITH_PLOT # (DeltaCE, the steps build: no script editor, 17 KB, 2026-10-17)
 endif
 
+# The TI-84 look (2026-10-22): the interface looks like the calculator's own (home screen, status
+# bar, MathPrint), its text drawn with the OS's fonts read at runtime (src/ui_font_ti.c) instead
+# of the Focus fonts (ui_fontdata.c, ~65 KB). C files see it too (CFLAGS).
+ifeq ($(TILOOK),1)
+    TILOOK_DEF = -DFLOWCE_TILOOK
+    FEATURE_DEFS += $(TILOOK_DEF)
+endif
+
 ifeq ($(APPLANG),fr)
     LANG_DEF = -DFRANCAIS
 else ifneq ($(APPLANG),en)
@@ -58,7 +68,7 @@ NAME = DEMO
 COMPRESSED = NO
 ARCHIVED = NO
 
-CFLAGS = -Wall -Wextra -Oz -DMP_16BIT -DTICE -Isrc/tommath -Wno-unused-command-line-argument $(LANG_DEF)
+CFLAGS = -Wall -Wextra -Oz -DMP_16BIT -DTICE -Isrc/tommath -Wno-unused-command-line-argument $(LANG_DEF) $(TILOOK_DEF)
 CXXFLAGS = -std=c++14 -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Oz -Iustl -Isrc/tommath -DMP_16BIT -DTICE -DFLOWCE -DHAVE_CONFIG_H -DXLIGHT -DCOMPILE_FOR_STABILITY \
     -Wno-unknown-pragmas -Wno-unneeded-internal-declaration -Wno-sign-compare -Wno-unused-function -Wno-unused-parameter \
     -Wno-unused-variable -Wno-unused-but-set-variable -Wno-deprecated-register -Wno-reorder-ctor -Wno-inline-new-delete \
@@ -94,7 +104,7 @@ INLFILE = -mllvm -inline-threshold=-10
 
 # The Focus drawing code works per pixel: compiled for speed (with -Oz, shifts and multiplies
 # become helper calls). Small files: a few KB of flash.
-%ui_font.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
+%ui_font.c.bc %ui_font_ti.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
 
 CPP_EXTENSION = cc
 APP_NAME = FlowCE

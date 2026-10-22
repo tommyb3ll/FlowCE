@@ -64,6 +64,19 @@ void ui_band_end(void) {
   band_busy = 0;
 }
 
+#ifdef FLOWCE_TILOOK
+// the TI-84 look's only theme: the calculator's own colors (white screen, black text and
+// selections, its gray status bar with white text, quiet gray F-key labels), no dimming
+static const ui_theme T_ti = {{
+  {255, 255, 255}, {0, 0, 0}, {81, 85, 81}, {160, 160, 160}, {0, 0, 0}, {222, 222, 222},
+  {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {81, 85, 81}, {0, 158, 0}, {180, 180, 180},
+  {255, 255, 255}, {255, 0, 0}, {255, 0, 255}, {255, 128, 0}, {32, 112, 224}, {255, 255, 255},
+  {81, 85, 81}, {255, 255, 255}, {199, 195, 199}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}},
+  {255, 255, 255}, 0};
+#define TH0 &T_ti // (the starting theme)
+const ui_theme * const ui_themes[UI_NTHEMES] = {TH0, TH0, TH0, TH0, TH0, TH0, TH0, TH0, TH0};
+const char * const ui_theme_names[UI_NTHEMES] = {"TI-84", "TI-84", "TI-84", "TI-84", "TI-84", "TI-84", "TI-84", "TI-84", "TI-84"};
+#else
 // Paper: the prototype's light theme, FlowCE's blue accent; the status bar is the background (its
 // slots UC_HEAD...: DeltaCE's colored bar), the F-key bar white
 const ui_theme ui_theme_paper = {{
@@ -130,12 +143,14 @@ static const ui_theme T_forest = {{
   {0, 0, 0}, 50};
 const ui_theme * const ui_themes[UI_NTHEMES] = {&ui_theme_paper, &ui_theme_night, &T_sand, &T_mint, &T_arctic, &T_ember, &T_rose, &T_grape, &T_forest};
 const char * const ui_theme_names[UI_NTHEMES] = {"Paper", "Night", "Sand", "Mint", "Arctic", "Ember", "Rose", "Grape", "Forest"};
+#define TH0 &ui_theme_paper // (the starting theme)
+#endif
 
 // bank 0 (the scene) is entries 128 to 128 + BANK0 - 1, bank 1 (popovers) the rest. Ramps shown at
 // once (2.0, counted on the emulator): the scene's screens 14 at most (the action row; history and
 // search 12, the graph 9), the cards 11 (an application's form; the graph's table 10): 23 and 17
 enum { BANK0 = 70, MAXR = (BANK0 - UC_COUNT) / 2, MAXR1 = (128 - BANK0 - UC_COUNT) / 2 };
-static const ui_theme * TH = &ui_theme_paper;
+static const ui_theme * TH = TH0;
 static int dimmed;
 static unsigned char rfg[2][MAXR], rbg[2][MAXR], nr[2];
 static unsigned char ridx[2][MAXR][4];

@@ -40,8 +40,15 @@ const char * console_fkey_label(int layer, int k); // console.cc: F-key label (l
 extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 
+#ifdef FLOWCE_TILOOK
+// the TI-84 look: the OS's status bar (30 rows), quiet F-key labels (13); one text size, the large
+// font (MathPrint's scripts and fractions: the small one); the history from TOP rows under the bar
+enum { SB = 30, MB = 13, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
+       IN_LV = 3, OUT_LV = 3, HERO_LV = 3, W_IN = 310, W_OUT = 311, IN_MAXH = 64, TOP = 5 };
+#else
 enum { SB = 16, MB = 22, ST = SB, SBOT = UI_H - MB, SH = SBOT - ST, PEEK = 30, MAXE = 64,
-       IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292 };
+       IN_LV = 5, OUT_LV = 3, HERO_LV = 0, W_IN = 286, W_OUT = 292, IN_MAXH = 34, TOP = 0 };
+#endif
 
 static int hero_last;      // the last result is shown large (until edited or cleared)
 static int hero_lv = HERO_LV;
@@ -194,15 +201,21 @@ static void scan() {
   for (int k = 0; k < NE; ++k) { // geometry
     fent & e = E[k];
     e.inh = 0; e.outh = 0; e.msgs = 0;
-    if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, MI_F_TIDY); e.inh = c.a + c.d; }
+    if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY); e.inh = c.a + c.d; }
     for (int l = e.m0; l >= 0 && l < e.out; ++l)
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
     if (e.out >= 0) {
       const char * s = shown(Line[e.out].str);
-      if (is_text(s)) e.outh = 13;
+      if (is_text(s)) e.outh = TOP ? 16 : 13;
       else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
     }
+#ifdef FLOWCE_TILOOK
+    // as the OS: the input, 4 rows, the answer, 2 rows, its dotted line (2 rows); the next input's
+    // own 2 blank rows above its letters part them
+    e.h = e.inh + 4 + e.msgs * 12 + e.outh + 4;
+#else
     e.h = 7 + e.inh + 5 + e.msgs * 11 + e.outh + 8;
+#endif
   }
 }
 static int entry_of_line(int l) {
@@ -219,10 +232,17 @@ static __attribute__((noinline)) void draw_result(const fent & e, int right, int
     if (s[0] == '/' && s[1] == '/') for (s += 2; *s == ' '; ++s) ;
     int n = strlen(s), cut = 0;
     if (n && s[n - 1] == '"') --n;
-    while (n > 1 && ui_text_width(&ui_tr10, s, n) > 280) { --n; cut = 1; }
-    int w = ui_text_width(&ui_tr10, s, n) + (cut ? ui_text_width(&ui_tr10, "...", 3) : 0);
-    int x = ui_draw_text(&ui_tr10, s, n, right - w, base, ramp(UC_SUB, bg), 0);
-    if (cut) ui_draw_text(&ui_tr10, "...", 3, right - w + x, base, ramp(UC_SUB, bg), 0);
+#ifdef FLOWCE_TILOOK
+    const ui_face * tf = &ui_mu20; // (the OS's large font, black: its "Done")
+    const int tc = UC_INK;
+#else
+    const ui_face * tf = &ui_tr10;
+    const int tc = UC_SUB;
+#endif
+    while (n > 1 && ui_text_width(tf, s, n) > 280) { --n; cut = 1; }
+    int w = ui_text_width(tf, s, n) + (cut ? ui_text_width(tf, "...", 3) : 0);
+    int x = ui_draw_text(tf, s, n, right - w, base, ramp(tc, bg), 0);
+    if (cut) ui_draw_text(tf, "...", 3, right - w + x, base, ramp(tc, bg), 0);
     return;
   }
   fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
@@ -246,6 +266,35 @@ static __attribute__((noinline)) void draw_result(const fent & e, int right, int
   draw_math(s, c, right - cw - c.w, base, ink, bg, MI_F_IMPLDOT);
 }
 
+#ifdef FLOWCE_TILOOK
+// as the OS's home screen: the input at the left, the answer at the right under it, a dotted line
+// (2 rows, 2 columns on, 4 off) under them; the history's selection: a gray bar under its rows
+static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel, int selout) {
+  int b = y;
+  if (e.in >= 0) {
+    fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY);
+    int on = sel && !selout;
+    if (on) ui_fill(0, b, UI_W, e.inh, col(UC_ACCSOFT));
+    draw_math(Line[e.in].str, c, 2, b + c.a, UC_INK, on ? UC_ACCSOFT : UC_BG, MI_F_TIDY);
+    b += e.inh;
+  }
+  b += 4;
+  for (int l = e.m0, n = 0; l >= 0 && l < e.out && n < 2; ++l)
+    if (Line[l].type != LINE_TYPE_CONT) {
+      b += 12;
+      ui_text(&ui_tr9, Line[l].str, 2, b, UC_SUB, UC_BG, 0);
+      ++n;
+    }
+  if (e.out >= 0) {
+    const char * s = shown(Line[e.out].str);
+    int a = is_text(s) ? 16 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a, on = sel && selout;
+    if (on) ui_fill(0, b, UI_W, e.outh, col(UC_ACCSOFT));
+    draw_result(e, 313, b + a, UC_INK, on ? UC_ACCSOFT : UC_BG);
+    b += e.outh + 2;
+    for (int x = 2; x < 316; x += 6) ui_fill(x, b, 2, 2, col(UC_INK));
+  }
+}
+#else
 static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel, int selout) {
   int bg = sel ? UC_ACCSOFT : UC_BG;
   if (sel) ui_rrect(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACCSOFT, UC_BG);
@@ -270,6 +319,7 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
   if (sel) ui_rframe(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACC, UC_BG);
   else ui_fill(12, y + e.h - 1, UI_W - 24, 1, col(UC_LINE));
 }
+#endif
 
 // ------------------------------------------------------------------ hero (the edit line)
 // a small up or down triangle centered at x, cy (the arrow keys)
@@ -300,6 +350,31 @@ static int hb_y0, hb_y1; // HM_MATH: the rows it covers (ink overhang included)
 static int help_e = -1;  // HM_MATH: the command the caret is in (catalog entry), for the help lines
 enum { HELP_H = 32 };    // ... at the bottom of the hero
 
+#ifdef FLOWCE_TILOOK
+// as the OS: the edit line at the left, its top on the row under the history; empty arguments are
+// boxes; no help lines, no answer shown large (the answers stay in the history)
+static void hero_prepare(int y0, int h) {
+  hy0 = y0; hh = h;
+  act_y = 0; act_sel = -1; act_n = 0; help_e = -1;
+  const char * s = (const char *)Console_GetEditLine();
+  hcaret = console_caret();
+  if (s && *s && console_edit2d()) {
+    if (!HL) HL = new mi_layout;
+    mi_layout & L = *HL;
+    focus_phase = 2;
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, 310, SH, MI_F_CALLBOX, L);
+    focus_phase = 3;
+    hx = 2; hbase = y0 + L.asc;
+    if (L.width > 310) { // caret kept in view
+      hx = UI_W / 2 - L.cx;
+      if (hx > 2) hx = 2;
+      if (hx + L.width < UI_W - 8) hx = UI_W - 8 - L.width;
+    }
+    hb_y0 = y0; hb_y1 = hbase + L.desc + 2;
+    hm = HM_MATH;
+  } else hm = s && *s ? HM_TEXT : HM_HINT;
+}
+#else
 static void hero_prepare(int y0, int h) {
   hy0 = y0; hh = h;
   act_y = 0;
@@ -336,6 +411,7 @@ static void hero_prepare(int y0, int h) {
   }
 #endif
 }
+#endif
 // rows [y0, y1) meet the band (the clip) being painted: what is outside is not drawn (a full
 // repaint paints the hero once per band)
 static bool in_band(int y0, int y1) { return y1 > ui_cy0 && y0 < ui_cy1; }
@@ -496,6 +572,20 @@ static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bo
   return 1;
 }
 
+#ifdef FLOWCE_TILOOK
+static int cur_on = 1;      // the cursor's blink phase (focus_blink); on after each key
+static int cur_y0, cur_y1;  // its rows on the screen
+// the OS's cursor: its block glyph (2nd: an arrow in it, alpha: A or a) over the cell at x, on the
+// caret's rows [top, top + h) (a script's: a small block)
+static void ti_cursor(int x, int top, int h) {
+  cur_y0 = top; cur_y1 = top + h;
+  if (!cur_on) return;
+  if (h < 16) { ui_fill(x, top + 2, 8, h - 2, col(UC_INK)); return; }
+  int fl = os_key_flags() & 15;
+  unsigned cp = 0xE000 + ((fl & 1) ? 0xE1 : (fl & 2) ? ((fl & 8) ? 0xE3 : 0xE2) : 0xE0);
+  ui_draw_glyph(&ui_mu20, cp, x, top + h, ramp(UC_INK, UC_BG), 1);
+}
+#endif
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
@@ -503,7 +593,11 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     focus_phase = 4;
     ui_math_draw(*HL, s, hero_lv, hx, hbase, 0, UC_INK, UC_BG, UC_ACC);
     focus_phase = 5;
+#ifdef FLOWCE_TILOOK
+    if (hcaret >= 0) ti_cursor(hx + HL->cx, hbase + HL->cy, HL->ch);
+#else
     if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
+#endif
     if (help_e >= 0) { // the command's description (it names the arguments as the boxes do), an example
       char d[72], ex[72];
       focus_entry_help(help_e, d, sizeof(d), ex, sizeof(ex));
@@ -612,6 +706,10 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     }
 #endif
   } else {
+#ifdef FLOWCE_TILOOK
+    ti_cursor(2, y0, 16); // as the OS's empty home screen: the cursor alone
+    return;
+#endif
     int m = y0 + h / 2 - 2, b = m + 20;
     // the prompt on the empty console only: not under the history, nor when a calculation starts
     // (its entry is in the history: painting it there cost 70 ms a calculation). (DeltaCE's tip
@@ -626,6 +724,13 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
 }
 
 static void hero_peek_paint(int y) { // history mode: the edit line, small, at the bottom
+#ifdef FLOWCE_TILOOK
+  { // (no key hints: the OS has none)
+    const char * s = (const char *)Console_GetEditLine();
+    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, 310, 40, MI_F_CALLBOX); draw_math(s, c, 2, y + 6 + c.a, UC_INK, UC_BG, MI_F_CALLBOX); }
+    return;
+  }
+#endif
   ui_fill(10, y + 2, UI_W - 20, 1, col(UC_LINE));
   const char * s = (const char *)Console_GetEditLine();
   int b = y + 20;
@@ -645,7 +750,7 @@ static void hero_peek_paint(int y) { // history mode: the edit line, small, at t
 static int hist_sel = -1; // entry selected in the history, -1 in edit mode
 // the status bar in 3 zones redrawn separately: mode label | message | 2nd/alpha chip, battery
 enum { SZ_L = 112, SZ_R = 226 };
-static char stat_l[24], stat_m[sizeof(smsg)];
+static char stat_l[32], stat_m[sizeof(smsg)];
 static int stat_r = -1;
 static const char * stat_view; // a full-screen view's label (focus_status_label), 0: the console's
 static int stat_chip;          // the view shows the 2nd/alpha chip (the program editor types with them)
@@ -664,6 +769,35 @@ static void read_battery() {
 #endif
 }
 
+#ifdef FLOWCE_TILOOK
+// the OS's battery icon (x 303-316, rows 2-23), green from the bottom, red when low
+static void ti_battery(int lv) {
+  ui_fill(307, 2, 6, 2, col(UC_HEADSUB)); ui_fill(304, 4, 12, 1, col(UC_HEADSUB));
+  ui_fill(303, 5, 14, 19, col(UC_HEADSUB)); ui_fill(305, 6, 10, 16, col(UC_WHITE));
+  int h = lv >= 4 ? 15 : lv > 0 ? lv * 15 / 4 : 2;
+  ui_fill(307, 22 - h, 6, h, col(lv <= 1 ? UC_RED : UC_GREEN));
+}
+// words of s in the small font from x = 2 on baseline b, gap columns apart (its space is 2 wide)
+static void ti_words(const char * s, int b, int gap, const unsigned char * rp) {
+  int x = 2;
+  for (const char * p = s, * q; *p; p = q) {
+    while (*p == ' ') ++p;
+    for (q = p; *q && *q != ' '; ++q) ;
+    if (q > p) x += ui_draw_text(&ui_tr9, p, q - p, x, b, rp, 0) + gap;
+  }
+}
+// as the OS's: its words in the small font, white on gray, 8 columns apart; a message on the
+// second row; the battery (the 2nd/alpha state shows in the cursor, as on the OS)
+static void ti_status(const char * buf, const char * mid, int lv) {
+  ui_clip(0, 0, UI_W, SB);
+  ui_fill(0, 0, UI_W, SB, col(UC_HEAD));
+  ti_words(buf, 12, 8, ramp(UC_HEADINK, UC_HEAD));
+  if (mid[0]) ti_words(mid + (mid[0] == 1), 26, 5, ramp(mid[0] == 1 ? UC_HEADSUB : UC_HEADINK, UC_HEAD));
+  ti_battery(lv);
+  ui_noclip();
+}
+#endif
+static int fresh();
 static void status_draw(int force) {
   if (!focus_on || focus_hold) return; // (the start screen: no status line over it, the idle redraw included)
   unsigned char ph = focus_phase;
@@ -677,13 +811,27 @@ static void status_draw(int force) {
     buf[k++] = '0' + n % 10; buf[k++] = ' '; buf[k++] = '/'; buf[k++] = ' ';
     if (t >= 10) buf[k++] = '0' + t / 10;
     buf[k++] = '0' + t % 10; buf[k] = 0;
+#ifdef FLOWCE_TILOOK
+  } else strcpy(buf, os_get_angle_unit() ? "NORMAL EXACT RADIAN MP" : "NORMAL EXACT DEGREE MP");
+#else
   } else strcpy(buf, os_get_angle_unit() ? "RAD    EXACT" : "DEG    EXACT");
+#endif
   // a view types letters directly (the command search locks alpha): no 2nd/alpha chip there
   int fl = stat_view && !stat_chip ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
   // the middle: a message, else the modes go on as on a TI ("SIMPLIFY OFF", mode's setting)
   const char * mid = smsg[0] || stat_view || answer_simplify_on ? smsg : "\1SIMPLIFY OFF";
+#if defined(FLOWCE_TILOOK) && defined(FLOWCE_STEPS)
+  // the answer has steps: said on the bar's second row, as the OS's hints ("PRESS + FOR ...")
+  if (!mid[0] && !stat_view && hist_sel < 0 && fresh() && steps_input(E[NE - 1])) mid = "\1PRESS ENTER FOR STEPS";
+#endif
   int dl = force || strcmp(buf, stat_l), dm = force || strcmp(mid, stat_m), dr = force || r != stat_r;
   if (!dl && !dm && !dr) { focus_phase = ph; return; }
+#ifdef FLOWCE_TILOOK
+  strcpy(stat_l, buf); strcpy(stat_m, mid); stat_r = r;
+  ti_status(buf, mid, lv);
+  focus_phase = ph;
+  return;
+#endif
   focus_phase = 13;
   if (dl) {
     strcpy(stat_l, buf);
@@ -796,6 +944,7 @@ int focus_chip(int bank, int x, int cy, const char * w, const char * k, int on, 
 }
 static int forms_key(); // F4 shows forms (a result is selected, or shown large)
 static const char * const tab_word[5] = {"algebra", "calculus", "trig", "symbols", "more"};
+enum { LB = SB == 30 ? 12 : 15 }; // the labels' baseline under SBOT (TI look: the small font's)
 static const unsigned char tab_icon[5] = {IC_X2, IC_INT, IC_WAVE, IC_PI, IC_MORE};
 
 // (DeltaCE) an open tab: the card above it (focus_tab_card) and the tab are one shape, their rim
@@ -844,6 +993,18 @@ void focus_tab_open_box(int i) {
 }
 // the tab of F-key i in the standard layer; on: its popover is open (drawn bright, bank 1)
 void focus_tab(int i, int on, int bank) {
+#ifdef FLOWCE_TILOOK
+  { // the label in small gray letters; its menu open: white on black
+    const char * w = i == 3 && forms_key() ? "forms" : tab_word[i];
+    int cx = 32 + 64 * i, lw = ui_text_width(&ui_tr9, w, -1);
+    ui_clip(cx - 32, SBOT, cx + 32, UI_H);
+    ui_fill(cx - 32, SBOT, 64, MB, ui_col(bank, UC_BAR));
+    if (on) ui_fill(cx - lw / 2 - 3, SBOT, lw + 6, MB, ui_col(bank, UC_INK));
+    ui_draw_text(&ui_tr9, w, -1, cx - lw / 2, SBOT + LB, ui_ramp(bank, on ? UC_WHITE : UC_BARINK, on ? UC_INK : UC_BAR), 0);
+    ui_noclip();
+    return;
+  }
+#endif
   int cx = 32 + 64 * i, by = SBOT + 15, fm = i == 3 && forms_key();
   const char * w = fm ? "forms" : tab_word[i];
   if (on) focus_tab_open_box(i);
@@ -897,7 +1058,7 @@ static void bar_draw(int keyflag, int force) {
     ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
     ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
     int fg = layer == 1 ? UC_BLUE : UC_GREEN;
-    for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + 15, fg, UC_BAR, 1);
+    for (int i = 0; i < 5; ++i) ui_text(&ui_tr10, lab[i], 32 + 64 * i, SBOT + LB, fg, UC_BAR, 1);
   }
   ui_noclip();
   if (band) ui_band_end();
@@ -914,9 +1075,15 @@ void focus_bar_tabs(const char * const * labels, int on) {
   ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
   ui_fill(0, SBOT, UI_W, 1, col(UC_BARLINE));
   for (int i = 0; i < 5; ++i) {
+#ifdef FLOWCE_TILOOK
+    int cx = 32 + 64 * i, bg = i == on ? UC_INK : UC_BAR;
+    if (i == on) ui_fill(cx - ui_text_width(&ui_tr9, labels[i], -1) / 2 - 3, SBOT, ui_text_width(&ui_tr9, labels[i], -1) + 6, MB, col(UC_INK));
+    ui_text(&ui_tr9, labels[i], cx, SBOT + LB, i == on ? UC_WHITE : UC_BARINK, bg, 1);
+#else
     int cx = 32 + 64 * i, bg = i == on ? UC_ACCSOFT : UC_BAR;
     if (i == on) ui_rrect(0, cx - 30, SBOT + 3, 60, MB - 5, 6, UC_ACCSOFT, UC_BAR);
     ui_text(i == on ? &ui_tb10 : &ui_tr10, labels[i], cx, SBOT + 15, i == on ? UC_ACC : UC_BARINK, bg, 1);
+#endif
   }
   ui_noclip();
   if (band) ui_band_end();
@@ -942,7 +1109,7 @@ static model M, PM = {0, -1, 0, 0, 0, 0, 0, -1}; // the model, the one on screen
 static void stage_paint(int y0, int y1) { // rows [y0, y1) of the stage, in the current band
   ui_clip(0, y0, UI_W, y1);
   ui_fill(0, y0, UI_W, y1 - y0, col(UC_BG));
-  int bot = M.hist ? SBOT : M.hero_y, yy = ST - M.scroll;
+  int bot = M.hist ? SBOT : M.hero_y, yy = ST + TOP - M.scroll;
   for (int k = 0; k < M.col_n; ++k) {
     const fent & e = E[k];
     if (yy + e.h > y0 && yy < y1 && yy < bot) {
@@ -981,7 +1148,7 @@ static void stage_rows(int y0, int y1) { // repaints rows [y0, y1) through the s
   }
 }
 
-static int entry_top(int k) { int y = ST - M.scroll; for (int i = 0; i < k; ++i) y += E[i].h; return y; }
+static int entry_top(int k) { int y = ST + TOP - M.scroll; for (int i = 0; i < k; ++i) y += E[i].h; return y; }
 
 // The screen still shows the Focus stage: it only uses palette entries >= 128, every other
 // KhiCAS screen (menus, graphs, the editor) only < 128.
@@ -991,6 +1158,14 @@ static int screen_is_ours() { // a grid of 6 x 6 points: a message box over the 
       if (ui_fb[y * UI_W + x] < 128) return 0;
   return 1;
 }
+#ifdef FLOWCE_TILOOK
+// getkey, about twice a second at the console: the cursor blinks, as on the OS (its rows only)
+extern "C" void focus_blink(void) {
+  if (focus_hold || cur_y1 <= cur_y0 || M.hist || PM.ll != Last_Line || !screen_is_ours()) return;
+  cur_on = !cur_on;
+  stage_rows(cur_y0, cur_y1);
+}
+#endif
 
 // Calculating: enter on a long calculation left the prompt ("Type a calculation") on screen for
 // seconds, no sign of work (the user, 2026-10-07). While giac works, its control_c checks call
@@ -1038,7 +1213,7 @@ static __attribute__((noinline)) void compute_model() {
   M.hist = cl >= 0 && cl < Last_Line && NE > 0;
   const char * s = (const char *)Console_GetEditLine();
   if (s && *s) hero_last = 0;
-  int show_last = !M.hist && hero_last && NE && (!s || !*s);
+  int show_last = !TOP && !M.hist && hero_last && NE && (!s || !*s); // (TI look: never)
   M.col_n = show_last ? NE - 1 : NE;
   int y = 0;
   for (int k = 0; k < M.col_n; ++k) y += E[k].h;
@@ -1059,10 +1234,17 @@ static __attribute__((noinline)) void compute_model() {
     if (hscroll < lo) hscroll = lo;
     M.scroll = hscroll;
   } else {
+#ifdef FLOWCE_TILOOK
+    // as the OS: the history, the edit line under it, scrolled up when they do not fit
+    int eh = 16;
+    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, 310, SH, MI_F_CALLBOX); eh = c.a + c.d; }
+    M.scroll = TOP + M.col_h + eh + 2 > SH ? TOP + M.col_h + eh + 2 - SH : 0;
+#else
     M.scroll = M.col_n ? M.col_h - (E[M.col_n - 1].outh + 12) : 0;
     if (M.col_n && E[M.col_n - 1].out < 0) M.scroll = M.col_h - (E[M.col_n - 1].inh + 12);
+#endif
   }
-  M.hero_y = ST + M.col_h - M.scroll;
+  M.hero_y = ST + TOP + M.col_h - M.scroll;
   if (!M.hist && M.hero_y < ST) M.hero_y = ST;
   M.ll = Last_Line;
 }
@@ -1092,6 +1274,9 @@ static void scroll_stage(int from, int to) {
 bool focus_hold; // the start screen stays while the session loads (it painted half a console)
 void focus_disp(int mode) {
   if (focus_hold) return;
+#ifdef FLOWCE_TILOOK
+  cur_on = 1; // (a key: the cursor shows at once)
+#endif
   focus_phase = 1;
   const char * es = (const char *)Console_GetEditLine();
   int nonempty = es && *es;
@@ -1146,16 +1331,26 @@ void focus_disp(int mode) {
   focus_phase = 0;
 }
 
+// the last answer is the current one: shown large (TI look: just computed, the edit line empty,
+// as the OS keeps it in the history), enter opens its steps, F4 cycles its forms
+static int fresh() {
+#ifdef FLOWCE_TILOOK
+  const char * s = (const char *)Console_GetEditLine();
+  return hero_last && NE && E[NE - 1].out >= 0 && (!s || !*s) && console_caret() >= 0;
+#else
+  return hm == HM_RESULT;
+#endif
+}
 // F4 cycles the forms of a result: one selected in the history, or the last one shown large
 int focus_result_line() {
   int cl = console_caret() < 0 ? Start_Line + Cursor.y : -1; // the history line of the cursor
   if (cl >= 0 && cl < Last_Line && Line[cl].type == LINE_TYPE_OUTPUT) return cl;
-  return hm == HM_RESULT && NE ? E[NE - 1].out : -1;
+  return fresh() && NE ? E[NE - 1].out : -1;
 }
 static int forms_key() { return focus_result_line() >= 0; }
 #ifdef FLOWCE_STEPS
 const char * focus_steps_input(const char ** ans) {
-  const char * s = hm == HM_RESULT && NE ? steps_input(E[NE - 1]) : 0;
+  const char * s = fresh() && NE ? steps_input(E[NE - 1]) : 0;
   if (s) *ans = shown((const char *)Line[E[NE - 1].out].str);
   // (DeltaCE) Ans in it (solve(Ans=0,x) from the answer actions): the answer before, in parentheses
   static char * sub;

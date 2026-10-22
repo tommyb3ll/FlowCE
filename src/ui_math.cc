@@ -103,6 +103,11 @@ const mi_metrics & ui_math_metrics(int lv, int flags) {
         m.gap = (short)(rnd(s, 13) < 2 ? 2 : rnd(s, 13));
         m.rad = (short)rnd(s, 56);
         m.isw = (short)rnd(s, 50);
+#ifdef FLOWCE_TILOOK
+        // the OS's fonts (large: 12 columns, small: 8), MathPrint's 2-row bars, no space around + -
+        m.big.adv = (short)(MU[l]->size >= 17 ? 12 : 8); m.small.adv = (short)(MU[script(l)]->size >= 17 ? 12 : 8);
+        m.opgap = 0; m.bar = 2; m.gap = 2; m.rad = 6; m.isw = 9;
+#endif
         m.flags = (short)(k == 1 ? MI_F_IMPLDOT : k == 2 ? MI_F_CALLBOX : k == 3 ? MI_F_TIDY : k == 4 ? MI_F_CALLBOX | MI_F_HINTS : 0);
       }
     met_ready = 1;
@@ -233,6 +238,21 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
       }
     } break;
     case MI_HLINE: ui_fill(ox, oy, w, h, r[3]); break;
+#ifdef FLOWCE_TILOOK
+    case MI_SQRT: { // MathPrint's: a hook (rows from the bottom), a 2-column line, a 2-row bar
+      static const unsigned char hx[7] = {0, 0, 0, 1, 2, 3, 4}, hw[7] = {1, 2, 3, 5, 4, 3, 2};
+      const int b = oy + h - 7;
+      for (int i = 0; i < 7; ++i) ui_fill(ox + hx[i], b + i, hw[i], 1, r[3]);
+      ui_fill(ox + 4, oy, 2, h, r[3]);
+      ui_fill(ox + 4, oy, w - 4, 2, r[3]);
+    } break;
+    case MI_INTEGRAL: { // MathPrint's: a 2-column line, hooked right at the top, left at the bottom
+      ui_fill(ox + 3, oy + 2, 2, h - 4, r[3]);
+      ui_fill(ox + 5, oy, 2, 1, r[3]); ui_fill(ox + 4, oy + 1, 4, 1, r[3]); ui_fill(ox + 6, oy + 2, 2, 1, r[3]);
+      ui_fill(ox, oy + h - 3, 2, 1, r[3]); ui_fill(ox, oy + h - 2, 4, 1, r[3]); ui_fill(ox + 1, oy + h - 1, 2, 1, r[3]);
+    } break;
+    case MI_SIGMA: ui_draw_glyph_v(MU[o.small ? UI_NSIZES - 1 : 0], 0xE0C6, ox, oy, h, r); break; // (the OS's)
+#else
     case MI_SQRT: { // tick, heavy down stroke, up stroke, overbar (the prototype's shape)
       int rw = m.rad * osz / sz, b = oy + h - 1, t16 = oy * 16 + m.bar * 8, bh = osz * 16;
       int p[] = {ox * 16 + 8, b * 16 - bh * 26 / 100, ox * 16 + rw * 4, b * 16 - bh * 34 / 100};
@@ -254,6 +274,7 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
       int p[] = {x0 + W - 8, y0 + 8, x0 + 8, y0 + 8, x0 + W * 55 / 100, y0 + H / 2, x0 + 8, y0 + H - 8, x0 + W - 8, y0 + H - 8};
       ui_poly16(p, 5, th, r);
     } break;
+#endif
     case MI_LPAREN: case MI_RPAREN: {
       int l = o.code == MI_LPAREN, fl = o.small ? script(lv) : lv;
       const ui_face * pf = MU[fl];
@@ -283,8 +304,18 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
       int p[] = {xo, y0, xm, y0 + 24, xm, mid - 16, xi, mid, xm, mid + 16, xm, y1 - 24, xo, y1};
       ui_poly16(p, 7, th - 6, r);
     } break;
+#ifdef FLOWCE_TILOOK
+    case MI_BAR: ui_fill(ox + w / 2, oy, 2, h, r[3]); break;
+    case MI_BOX: { // MathPrint's empty box: 2 x 2 dots 4 apart round it
+      for (int yy = 0; yy + 2 <= h; yy += 4)
+        for (int xx = 0; xx + 2 <= w; xx += 4)
+          if (!yy || yy + 4 > h - 2 || !xx || xx + 4 > w - 2) ui_fill(ox + xx, oy + yy, 2, 2, r[3]);
+      (void)ra;
+    } break;
+#else
     case MI_BAR: ui_fill(ox + w / 2, oy, osz >= 24 ? 2 : 1, h, r[3]); break;
     case MI_BOX: ui_rframe(bank, ox, oy, w, h, osz >= 24 ? 3 : 2, acc, bg); (void)ra; break;
+#endif
     case MI_HINT: { // an argument's name in its empty box: small italics, faint
       const unsigned char * rs = ui_ramp(bank, UC_SUB, bg);
       const ui_face * f;

@@ -16,6 +16,7 @@ extern "C" {
 void focus_status(void);                // status bar (statusline / statusflags in focus mode)
 void focus_status_msg(const char * msg); // a message in the status bar ("computing...")
 void focus_idle(void); // getkey, idle for a few seconds: slow refreshes (battery)
+void focus_blink(void); // getkey at the console, twice a second: the TI look's cursor blinks
 void focus_wake(void); // getkey, turned on after 2nd ON at the console: the start screen again
 void focus_warm(void); // getkey at the console, idle: the menus' previews laid out ahead (focus_menu.cc)
 extern volatile char getkey_console; // k_csdk.c: set while the console itself waits for a key

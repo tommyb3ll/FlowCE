@@ -218,6 +218,10 @@ int getkey(int allow_suspend){
           focus_idle();
         else if ((j&0x1f)==0x1f && getkey_console)
           focus_warm();
+#ifdef FLOWCE_TILOOK
+        else if ((j&0x1f)==0x0f && getkey_console)
+          focus_blink(); // (the TI look's cursor)
+#endif
         i=key_n?key_pop():os_GetCSC();
         ++getkey_polls;
       }
