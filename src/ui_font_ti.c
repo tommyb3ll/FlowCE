@@ -16,6 +16,12 @@ TIL(ui_mu20, 20) TIL(ui_mi20, 20) TIL(ui_mu17, 17) TIL(ui_mi17, 17)
 TIS(ui_mu14, 14) TIS(ui_mi14, 14) TIS(ui_mu12, 12) TIS(ui_mi12, 12) TIS(ui_mu10, 10) TIS(ui_mi10, 10)
 TIS(ui_tr9, 9) TIS(ui_tb9, 9) TIS(ui_tr10, 10) TIS(ui_tb10, 10) TIS(ui_tr12, 12) TIS(ui_tb12, 12)
 #define LARGE(f) ((f)->size >= 17)
+// FlowCE's own faces (the start screen's, ui_fx_*: they have glyphs) are drawn by ui_font.c
+#define FX(f) ((f)->count)
+const ui_glyph * ui_fx_glyph_of(const ui_face * f, unsigned cp);
+int ui_fx_text_width(const ui_face * f, const char * s, int n);
+int ui_fx_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque);
+int ui_fx_draw_glyph_v(const ui_face * f, unsigned cp, int x, int ytop, int h, const unsigned char * ramp);
 
 unsigned ui_utf8(const char ** sp, const char * end) {
   const unsigned char * s = (const unsigned char *)*sp;
@@ -98,6 +104,7 @@ static int rows_of(int large, int c, unsigned short * m) {
 
 static ui_glyph G; // ui_glyph_of's answer (one at a time)
 const ui_glyph * ui_glyph_of(const ui_face * f, unsigned cp) {
+  if (FX(f)) return ui_fx_glyph_of(f, cp);
   int c = code_of(cp);
   if (c < 0) return 0;
   int large = LARGE(f);
@@ -112,6 +119,7 @@ const ui_glyph * ui_glyph_of(const ui_face * f, unsigned cp) {
 }
 
 int ui_text_width(const ui_face * f, const char * s, int n) {
+  if (FX(f)) return ui_fx_text_width(f, s, n);
   const char * e = n < 0 ? 0 : s + n;
   int w = 0, large = LARGE(f), c;
   unsigned cp;
@@ -136,6 +144,7 @@ static void blit(const unsigned short * m, int r0, int r1, int w, int x, int y, 
 }
 
 int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned char * ramp, int opaque) {
+  if (FX(f)) return ui_fx_draw_glyph(f, cp, x, y, ramp, opaque);
   int c = code_of(cp);
   if (c < 0) return 0;
   int large = LARGE(f), w = width_of(large, c);
@@ -146,6 +155,7 @@ int ui_draw_glyph(const ui_face * f, unsigned cp, int x, int y, const unsigned c
 }
 
 int ui_draw_glyph_v(const ui_face * f, unsigned cp, int x, int ytop, int h, const unsigned char * ramp) {
+  if (FX(f)) return ui_fx_draw_glyph_v(f, cp, x, ytop, h, ramp);
   int c = code_of(cp);
   if (c < 0 || h <= 0) return 0;
   int large = LARGE(f), w = width_of(large, c);

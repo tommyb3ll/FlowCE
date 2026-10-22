@@ -739,6 +739,14 @@ static void splash_shade(int e, const unsigned char * fg, const unsigned char * 
 // reads it); 2: played again (turned on). The text is drawn once, in palette entries lent by
 // KhiCAS's screens (32-52) that go from the background to its colors: a frame writes those and
 // the curve's new segments only.
+#ifdef FLOWCE_TILOOK // the start screen keeps FlowCE's own look: its fonts (ui_fontdata.c's, renamed), blue
+extern "C" const ui_face ui_fx_mi34, ui_fx_tr12, ui_fx_tb12, ui_fx_tr10;
+#define ui_mi34 ui_fx_mi34
+#define ui_tr12 ui_fx_tr12
+#define ui_tb12 ui_fx_tb12
+#define ui_tr10 ui_fx_tr10
+#define UC_ACC UC_BLUE
+#endif
 void focus_splash(int first) {
   static bool animated;
   const int y = 100;
@@ -808,6 +816,13 @@ void focus_splash(int first) {
   }
   focus_invalidate();
 }
+#ifdef FLOWCE_TILOOK
+#undef ui_mi34
+#undef ui_tr12
+#undef ui_tb12
+#undef ui_tr10
+#undef UC_ACC
+#endif
 
 // a value prompt (KhiCAS's inputline): title t, label sub over an edit field. Keys as inputline:
 // characters, DEL, AC/CLEAR (clears, then cancels), arrows, EXE. Returns KEY_CTRL_EXE or

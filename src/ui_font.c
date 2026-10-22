@@ -1,5 +1,12 @@
 // ui_font.c - draws the 4-shade fonts of ui_fontdata.c (see ui_font.h, tools/fonts/mkfonts.py).
-#ifndef FLOWCE_TILOOK // (the TI-84 look: ui_font_ti.c)
+#ifdef FLOWCE_TILOOK // (the TI-84 look: these draw the start screen's own fonts, ui_font_ti.c the rest)
+#define ui_utf8 ui_fx_utf8
+#define ui_glyph_of ui_fx_glyph_of
+#define ui_text_width ui_fx_text_width
+#define ui_draw_text ui_fx_draw_text
+#define ui_draw_glyph ui_fx_draw_glyph
+#define ui_draw_glyph_v ui_fx_draw_glyph_v
+#endif
 #include "ui_font.h"
 #include "ui_gfx.h"
 
@@ -133,4 +140,3 @@ int ui_draw_text(const ui_face * f, const char * s, int n, int x, int y, const u
   while ((cp = ui_utf8(&s, e))) x += ui_draw_glyph(f, cp, x, y, ramp, opaque);
   return x - x0;
 }
-#endif
