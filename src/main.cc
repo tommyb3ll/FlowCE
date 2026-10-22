@@ -1375,6 +1375,10 @@ void do_run(const char * s){
     giac::gen gs;
     int do_logo_graph_eqw=(rows2d || focus_on)?6:7; // drawn in 2D in the history: no viewer
     xcas::check_do_graph(g,gs,do_logo_graph_eqw,contextptr);
+#if defined FLOWCE_KHICAS && defined WITH_PLOT
+    if (xcas::ispnt(g))
+      focus_bar_reset(); // (KhiCAS's viewer drew over the F-key bar)
+#endif
 #endif
 #ifdef WITH_PLOT
     if (xcas::ispnt(g))

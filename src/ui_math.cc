@@ -9,9 +9,15 @@ extern "C" volatile unsigned char focus_phase; // focus.cc: timing probe (tools/
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef FLOWCE_KHICAS // (KhiCAS + Flow: a console, 20 px at most; its 34 to 24 px faces' flash for KhiCAS's plots)
+const unsigned char ui_math_sizes[UI_NSIZES] = {20, 20, 20, 20, 17, 14, 12, 10};
+static const ui_face * const MU[UI_NSIZES] = {&ui_mu20, &ui_mu20, &ui_mu20, &ui_mu20, &ui_mu17, &ui_mu14, &ui_mu12, &ui_mu10};
+static const ui_face * const MI[UI_NSIZES] = {&ui_mi20, &ui_mi20, &ui_mi20, &ui_mi20, &ui_mi17, &ui_mi14, &ui_mi12, &ui_mi10};
+#else
 const unsigned char ui_math_sizes[UI_NSIZES] = {34, 28, 24, 20, 17, 14, 12, 10};
 static const ui_face * const MU[UI_NSIZES] = {&ui_mu34, &ui_mu28, &ui_mu24, &ui_mu20, &ui_mu17, &ui_mu14, &ui_mu12, &ui_mu10};
 static const ui_face * const MI[UI_NSIZES] = {&ui_mi34, &ui_mi28, &ui_mi24, &ui_mi20, &ui_mi17, &ui_mi14, &ui_mi12, &ui_mi10};
+#endif
 
 static int script(int lv) { return lv + 2 < UI_NSIZES ? lv + 2 : UI_NSIZES - 1; }
 static int rnd(int a, int pct) { return (a * pct + 50) / 100; }

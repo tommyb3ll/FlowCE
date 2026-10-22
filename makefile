@@ -44,7 +44,7 @@ else ifeq ($(KHICAS),1)
     # KhiCAS's applications back: the spreadsheet and its statistics, the variation tables, units
     # and constants, the periodic table; FlowCE's graph screen (focus_graph.cc) replaces KhiCAS's
     # plot viewer (WITH_PLOT, 146 KB): it is what makes them fit
-    FEATURE_DEFS += -DWITH_EDITOR -DWITH_SHEET -DWITH_TABVAR -DWITH_UNITS -DWITH_PERIODIC
+    FEATURE_DEFS += -DWITH_EDITOR -DWITH_SHEET -DWITH_TABVAR -DWITH_UNITS -DWITH_PERIODIC -DWITH_PLOT
 else
     FEATURE_DEFS += -DWITH_EDITOR -DWITH_PLOT # (DeltaCE, the steps build: no script editor, 17 KB, 2026-10-17)
 endif

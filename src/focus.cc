@@ -637,6 +637,7 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     }
   } else if (hm == HM_TEXT) {
     ui_text(&ui_tr12, s, 12, y0 + h / 2 + 4, UC_INK, UC_BG, 0);
+#ifndef FOCUS_CONSOLE // (the console's layout shows no answer large)
   } else if (hm == HM_RESULT) {
     const fent & e = E[NE - 1];
     const char * r = shown(Line[e.out].str);
@@ -734,6 +735,7 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
         x += bw + 6;
       }
     }
+#endif
 #endif
   } else {
 #ifdef FLOWCE_TILOOK
