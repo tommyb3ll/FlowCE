@@ -46,6 +46,7 @@ const char * console_fkey_label(int layer, int k); // console.cc: F-key label (l
 extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
+static int matrix_grid(const char * r, int top, int maxh, int maxw, int lv0, int right, int draw);
 #ifdef FLOWCE_KHICAS
 enum { TOP_KH = 1, GT = 13, NMSG = 6 }; // KhiCAS + Flow: results as giac prints them (no "+ C"); GT: the edit line's text row; NMSG: notes shown
 #else
@@ -229,7 +230,9 @@ static void scan() {
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < NMSG) ++e.msgs;
     if (e.out >= 0) {
       const char * s = shown(Line[e.out].str);
+      int mh = 0;
       if (!HIST2D) e.outh = 16;
+      else if (TOP_KH && (mh = matrix_grid(s, 0, 120, W_OUT, OUT_LV, 0, 0))) e.outh = mh; // (KhiCAS: a matrix as a grid)
       else if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
       else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
     }
@@ -342,6 +345,7 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
   if (e.out >= 0) {
     const char * s = shown(Line[e.out].str);
     if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, sel && selout ? UC_ACC : UC_INK, bg, 2); // (as giac prints it)
+    else if (TOP_KH && matrix_grid(s, b, 120, W_OUT, OUT_LV, UI_W - 12, 1)) ;
     else {
       int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
       draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
@@ -535,7 +539,10 @@ static void help_line(const ui_face * f, const char * t, int base, int fg, const
 // aligned, in brackets, as large as fits in maxw by [top, bot) (one line, it was a small row of
 // lists across an empty screen: the user). 0 if r is not one: rows of the same length, 6 by 6 at
 // most, at least 14 px.
-static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bot, int maxw) {
+// a matrix [[a,b],[c,d]] (2 to 6 rows of 1 to 6 cells) as a grid: at the largest level from lv0 it
+// fits maxw x maxh at, drawn (draw) centered (right < 0) or ending at column right, from row top; its
+// height (0: not a matrix, or too large)
+static __attribute__((noinline)) int matrix_grid(const char * r, int top, int maxh, int maxw, int lv0, int right, int draw) {
   const int n = strlen(r);
   if (n < 5 || n > 400 || r[0] != '[' || r[1] != '[' || r[n - 1] != ']') return 0;
   char * b = (char *)malloc(n + 1);
@@ -565,7 +572,7 @@ static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bo
   if (!ok || d != 1 || nr < 2 || nc < 1 || nr > 6 || nc > 6) { free(b); return 0; }
   for (int i = 0; i < k; ++i) while (*cell[i] == ' ') ++cell[i];
   short cw[6], ra[6], rd[6];
-  int lv = 2, w = 0, h = 0;
+  int lv = lv0, w = 0, h = 0;
   const int gx = 14, gy = 6;
   for (; lv < UI_NSIZES - 2; ++lv) { // the largest level the matrix fits at
     memset(cw, 0, sizeof cw); memset(ra, 0, sizeof ra); memset(rd, 0, sizeof rd);
@@ -579,10 +586,10 @@ static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bo
     w = 16 + gx * (nc - 1); h = gy * (nr - 1);
     for (int j = 0; j < nc; ++j) w += cw[j];
     for (int i = 0; i < nr; ++i) h += ra[i] + rd[i];
-    if (w <= maxw && h <= bot - top - 6) break;
+    if (w <= maxw && h <= maxh) break;
   }
-  if (lv >= UI_NSIZES - 2) { free(b); return 0; }
-  const int x0 = (UI_W - w) / 2, y = top + (bot - top - h) / 2, ink = col(UC_INK);
+  if (lv >= UI_NSIZES - 2 || !draw) { free(b); return lv >= UI_NSIZES - 2 ? 0 : h + 6; }
+  const int x0 = right < 0 ? (UI_W - w) / 2 : right - w, y = right < 0 ? top + (maxh - h) / 2 : top + 3, ink = col(UC_INK);
   for (int s = 0; s < 2; ++s) { // the brackets: a bar and its two ends
     const int bx = s ? x0 + w - 2 : x0;
     ui_fill(bx, y - 3, 2, h + 6, ink);
@@ -603,6 +610,7 @@ static __attribute__((noinline)) int hero_matrix(const char * r, int top, int bo
   free(b);
   return 1;
 }
+static int hero_matrix(const char * r, int top, int bot, int maxw) { return matrix_grid(r, top, bot - top - 6, maxw, 2, -1, 1) != 0; }
 
 #ifdef FLOWCE_TILOOK
 static int cur_on = 1;      // the cursor's blink phase (focus_blink); on after each key
