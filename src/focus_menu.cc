@@ -993,6 +993,68 @@ int focus_card_list(int col, const char * word, const char * const * maths, cons
 }
 // idx: the menu, numbered as console_menu does (key - F1: 0-4 plain, 5-9 2nd, 10-14 alpha, 15+
 // others). Returns the entry chosen, -1 if cancelled, -2 - j to open menu j instead.
+#ifdef FLOWCE_KHICAS
+// KhiCAS's character table (F4), in the Focus look: the 96 characters from 32 in 6 rows of 16, the one
+// chosen on the accent, its code under the table (KhiCAS's "Current"); arrows move (around), enter
+// types it, clear leaves. *r, *c: where it was left (KhiCAS keeps it)
+enum { CT_W = 19, CT_H = 26, CT_X = (UI_W - 16 * CT_W) / 2, CT_Y = ST + 14 };
+static void ct_cell(int r, int c, int on) {
+  const int ch = 32 + 16 * r + c, x = CT_X + c * CT_W, y = CT_Y + r * CT_H, bg = on ? UC_ACC : UC_BG;
+  ui_fill(x, y, CT_W, CT_H, ui_col(0, UC_BG));
+  if (on) ui_rrect(0, x + 1, y + 1, CT_W - 2, CT_H - 2, 5, UC_ACC, UC_BG);
+  const unsigned char * rp = ui_ramp(0, on ? UC_ONACC : UC_INK, bg);
+  if (ch == 127) { ui_draw_text(&ui_tr9, "del", 3, x + (CT_W - ui_text_width(&ui_tr9, "del", 3)) / 2, y + 17, ui_ramp(0, on ? UC_ONACC : UC_SUB, bg), 0); return; }
+  const char t[2] = {(char)ch, 0};
+  ui_draw_text(&ui_tr12, t, 1, x + (CT_W - ui_text_width(&ui_tr12, t, 1)) / 2, y + 18, rp, 0);
+}
+static void ct_code(int r, int c) {
+  const int ch = 32 + 16 * r + c, y = CT_Y + 6 * CT_H + 22;
+  char t[32];
+  if (ch == 127) strcpy(t, "Current  del  127  0x7f");
+  else { // (Current  A  65  0x41)
+    strcpy(t, "Current  ");
+    int k = strlen(t);
+    t[k++] = (char)ch; t[k++] = ' '; t[k++] = ' ';
+    if (ch >= 100) t[k++] = (char)('0' + ch / 100);
+    t[k++] = (char)('0' + ch / 10 % 10); t[k++] = (char)('0' + ch % 10);
+    strcpy(t + k, "  0x");
+    k += 4;
+    const char hx[] = "0123456789abcdef";
+    t[k++] = hx[ch >> 4]; t[k++] = hx[ch & 15]; t[k] = 0;
+  }
+  ui_fill(0, y - 14, UI_W, 20, ui_col(0, UC_BG));
+  ui_draw_text(&ui_tr12, t, -1, CT_X + 2, y, ui_ramp(0, UC_SUB, UC_BG), 0);
+}
+int focus_chartab(int * rp, int * cp) {
+  int r = *rp, c = *cp;
+  focus_status_label("CHARACTERS");
+  ui_noclip();
+  ui_fill(0, ST, UI_W, SBOT - ST, ui_col(0, UC_BG));
+  for (int i = 0; i < 6; ++i)
+    for (int j = 0; j < 16; ++j) ct_cell(i, j, i == r && j == c);
+  ct_code(r, c);
+  int res = -1;
+  for (;;) {
+    int k;
+    GetKey(&k);
+    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || k == KEY_CTRL_QUIT) break;
+    if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) { res = 32 + 16 * r + c; break; }
+    const int r0 = r, c0 = c;
+    if (k == KEY_CTRL_LEFT) c = (c + 15) & 15;
+    else if (k == KEY_CTRL_RIGHT) c = (c + 1) & 15;
+    else if (k == KEY_CTRL_UP) r = (r + 5) % 6;
+    else if (k == KEY_CTRL_DOWN) r = (r + 1) % 6;
+    else continue;
+    ct_cell(r0, c0, 0);
+    ct_cell(r, c, 1);
+    ct_code(r, c);
+  }
+  *rp = r; *cp = c;
+  focus_status_label(0);
+  focus_invalidate();
+  return res;
+}
+#endif
 int focus_fmenu(int idx, const char * const * e, int n) {
   if (n > 9) n = 9;
   if (n < 1) return -1;

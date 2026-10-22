@@ -1780,6 +1780,13 @@ bool inputdouble(const char * msg1,double & d){
     boot_sprintf(c, "0x%x", i);
     return c;
   }
+#ifdef FLOWCE_KHICAS
+  int focus_chartab(int * r, int * c); // focus_menu.cc: KhiCAS's table in the Focus look
+  int chartab(){
+    static int row=0,col=0;
+    return focus_chartab(&row,&col);
+  }
+#else
   int chartab(){
     // display table
     drawRectangle(0,18,LCD_WIDTH_PX,LCD_HEIGHT_PX-18,_WHITE);
@@ -1824,6 +1831,7 @@ bool inputdouble(const char * msg1,double & d){
 	++row;
     }
   }
+#endif
 
 extern "C" const char * const * mp_vars();
 extern "C" int gc_ramfree();
