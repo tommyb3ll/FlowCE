@@ -48,6 +48,10 @@ static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
 static int matrix_grid(const char * r, int top, int maxh, int maxw, int lv0, int right, int draw);
 #ifdef FLOWCE_KHICAS
+static int wrap_h(const char * s);
+static int wrap_draw(const char * s, int top, int right, int ink, int bg);
+#endif
+#ifdef FLOWCE_KHICAS
 enum { TOP_KH = 1, GT = 13, NMSG = 6 }; // KhiCAS + Flow: results as giac prints them (no "+ C"); GT: the edit line's text row; NMSG: notes shown
 #else
 enum { TOP_KH = 0, GT = 0, NMSG = 2 };
@@ -234,7 +238,13 @@ static void scan() {
       if (!HIST2D) e.outh = 16;
       else if (TOP_KH && (mh = matrix_grid(s, 0, 120, W_OUT, OUT_LV, 0, 0))) e.outh = mh; // (KhiCAS: a matrix as a grid)
       else if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
-      else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
+      else {
+        fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
+        e.outh = c.a + c.d;
+#ifdef FLOWCE_KHICAS
+        if (c.w > W_OUT && (mh = wrap_h(s))) e.outh = mh; // (too wide even small: on several lines)
+#endif
+      }
     }
 #ifdef FLOWCE_TILOOK
     // as the OS: the input, 4 rows, the answer, 2 rows, its dotted line (2 rows); the next input's
@@ -346,6 +356,9 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
     const char * s = shown(Line[e.out].str);
     if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, sel && selout ? UC_ACC : UC_INK, bg, 2); // (as giac prints it)
     else if (TOP_KH && matrix_grid(s, b, 120, W_OUT, OUT_LV, UI_W - 12, 1)) ;
+#ifdef FLOWCE_KHICAS
+    else if (!is_text(s) && fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).w > W_OUT && wrap_draw(s, b, UI_W - 12, sel && selout ? UC_ACC : UC_INK, bg)) ;
+#endif
     else {
       int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
       draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
@@ -473,7 +486,7 @@ __attribute__((noinline)) static int mwidth(const char * s, int n, int lv, int &
   if (WLL->desc > wl_d) wl_d = WLL->desc;
   return WLL->width;
 }
-__attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh, int lvmax) {
+__attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh, int lvmax, int lvmin = 3) {
   unsigned hs = shash(r);
   if (r == wl_src && hs == wl_hash) return wl_n;
   wl_src = r; wl_hash = hs; wl_n = 0;
@@ -491,7 +504,7 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   if (nc < 2 || n > 600) return 0;
   free(WB);
   if (!(WB = (char *)malloc(n + WL + 1))) return 0;
-  for (int lv = 3; lv < lvmax; ++lv) { // larger than the single line's level
+  for (int lv = lvmin; lv < lvmax; ++lv) { // larger than the single line's level
     int lh = 0, gap = 2 * ui_math_metrics(lv, MI_F_IMPLDOT).opgap + 2, lines = 0, k = 0, w = 0, p = 0;
     wl_a = wl_d = 0;
     for (int j = 0; j < nc; ++j) // each term's width (its sign drawn as binary)
@@ -515,6 +528,44 @@ __attribute__((noinline)) static int wrapped(const char * r, int maxw, int maxh,
   }
   return 0;
 }
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow: a result too wide even small, on several lines in the history (KhiCAS opens it in its
+// editor): the lines of the last NWC such results kept (wrapped() keeps one)
+enum { NWC = 4 };
+struct wcache { const char * p; unsigned h; char * b; short n, lv, w, lh, a, at[WL]; };
+static wcache * WC;
+static int wcn;
+static const wcache * wraps(const char * s) {
+  if (!WC && !(WC = (wcache *)calloc(NWC, sizeof(wcache)))) return 0;
+  const unsigned h = shash(s);
+  for (int i = 0; i < NWC; ++i)
+    if (WC[i].p == s && WC[i].h == h) return WC[i].n ? WC + i : 0;
+  wcache & c = WC[wcn];
+  wcn = (wcn + 1) % NWC;
+  free(c.b);
+  c.b = 0; c.p = s; c.h = h; c.n = 0;
+  wl_src = 0;
+  if (wrapped(s, W_OUT - 10, 160, UI_NSIZES, OUT_LV)) { // (its lines: this slot's)
+    c.n = wl_n; c.lv = wl_lv; c.w = wl_w; c.lh = wl_h; c.a = wl_a;
+    memcpy(c.at, wl_at, sizeof c.at);
+    c.b = WB; WB = 0;
+  }
+  return c.n ? &c : 0;
+}
+static int wrap_h(const char * s) { const wcache * w = wraps(s); return w ? w->n * w->lh : 0; }
+// drawn from row top, the block ending at column right, the lines after the first 10 px in
+static int wrap_draw(const char * s, int top, int right, int ink, int bg) {
+  const wcache * w = wraps(s);
+  if (!w) return 0;
+  const int x0 = right - w->w - 10;
+  for (int k = 0; k < w->n; ++k) {
+    const char * t = w->b + w->at[k];
+    fitc lc = fitted(t, w->lv, 600, 200, MI_F_IMPLDOT);
+    draw_math(t, lc, x0 + (k ? 10 : 0), top + w->a + 2 + k * w->lh, ink, bg, MI_F_IMPLDOT);
+  }
+  return 1;
+}
+#endif
 
 // a line of help under the edit line: pre (gray) then t in color fg, centered, cut with an
 // ellipsis when wider than the screen (one pass over t)
