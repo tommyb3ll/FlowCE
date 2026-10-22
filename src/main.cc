@@ -1138,6 +1138,32 @@ void save_session(){
 }
 
 static bool starting; // main1: the session restored at start (the FlowCE start screen)
+#ifdef TICE
+// The installer's appvars, AppIns00, AppIns01...: INST leaves the first four (255 KB) in the archive
+// (Bernard, 2026-10-22: the installer should remove them). Deleted at the start, the OS's way for an
+// archived variable (_ChkFindSym, then _DelVarArc, as the toolchain's ti_Delete). Eight names missing
+// in a row end the search (a start without them: eight lookups).
+extern "C" { volatile unsigned char flowce_var_found __attribute__((used)); } // (set by the assembly below)
+static void remove_installer_vars(){
+  for (int k=0,miss=0;k<100 && miss<8;++k){
+    unsigned char * op1=(unsigned char *)0xD005F8; // (OP1: the type, an appvar, then the name)
+    op1[0]=0x15; memcpy(op1+1,"AppIns00",9);
+    op1[7]=(unsigned char)('0'+k/10); op1[8]=(unsigned char)('0'+k%10);
+    __asm__ volatile("push af\n\tpush bc\n\tpush de\n\tpush hl\n\tpush ix\n\tpush iy\n\t"
+                     "ld iy, 0xD00080\n\t"
+                     "xor a, a\n\t"
+                     "ld (_flowce_var_found), a\n\t"
+                     "call 0x02050C\n\t" // _ChkFindSym: hl its entry, de its data; carry: none
+                     "jr c, 1f\n\t"
+                     "call 0x021434\n\t" // _DelVarArc
+                     "ld a, 1\n\t"
+                     "ld (_flowce_var_found), a\n"
+                     "1:\n\t"
+                     "pop iy\n\tpop ix\n\tpop hl\n\tpop de\n\tpop bc\n\tpop af" ::: "memory");
+    if (flowce_var_found) miss=0; else ++miss;
+  }
+}
+#endif
 int restore_session(const char * fname){
   if (focus_on && starting){
     starting=false;
@@ -1785,6 +1811,9 @@ int main(){
 #endif
   if (pcmain<appstart || pcmain>=0x3b0000)
     return 1;
+#ifdef TICE
+  remove_installer_vars(); // (on the OS's stack, before the app's: the OS writes the flash)
+#endif
 #if KHICAS_STACK
   stack_reserve();
 #if __clang_major__ >= 19 // CE toolchain v15: GNU as
