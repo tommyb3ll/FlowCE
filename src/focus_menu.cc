@@ -76,7 +76,9 @@ static const fm_item m_sym[] = { // what the keypad has no key for, or hides beh
 static const fm_item m_more[] = {
   {0, 0, 0, "Graph", "line or answer", FA_GRAPH},
   {0, 0, 0, "All commands", "search", FA_CATALOG},
+#ifndef FLOWCE_TILOOK // (the TI-84 look has the OS's colors only)
   {0, 0, 0, "Themes", "colors", FA_THEME},
+#endif
   {0, 0, 0, "Other plots", "kinds", FA_PLOT},
 #ifdef FLOWCE_STEPS
   {0, 0, 0, "Statistics", "data, fits", FA_STATS}, // (DeltaCE: focus_stats.cc)
@@ -85,11 +87,19 @@ static const fm_item m_more[] = {
   {0, 0, 0, "File", "sessions", FA_FILE},
   {0, 0, 0, "Clear history", 0, FA_CLEAR},
 };
+#ifdef FLOWCE_TILOOK // (a list as the OS's: named, the template small at the right when it fits)
+static const fm_item m_math[] = {
+  {"()/()", 4, 0, "Fraction", 0, 0}, {"sqrt()", 1, 0, "Square root", 0, 0}, {"abs()", 1, 0, "Absolute value", 0, 0},
+  {"integrate(,x)", 3, 0, "Antiderivative", 0, 0}, {"integrate(,x,,)", 5, 0, "Definite integral", 0, 0}, {"diff(,x)", 3, 0, "Derivative", 0, 0},
+  {"limit(,x,)", 4, 0, "Limit", 0, 0}, {"sum(,k,,)", 5, 0, "Sum", 0, 0}, {"^()", 1, 0, "Power", 0, 0},
+};
+#else
 static const fm_item m_math[] = {
   {"()/()", 4, 0, 0, 0, 0}, {"sqrt()", 1, 0, 0, 0, 0}, {"abs()", 1, 0, 0, 0, 0},
   {"integrate(,x)", 3, 0, 0, 0, 0}, {"integrate(,x,,)", 5, 0, 0, 0, 0}, {"diff(,x)", 3, 0, 0, 0, 0},
   {"limit(,x,)", 4, 0, 0, 0, 0}, {"sum(,k,,)", 5, 0, 0, 0, 0}, {"^()", 1, 0, 0, 0, 0},
 };
+#endif
 #define N(a) (char)(sizeof(a) / sizeof(a[0]))
 #ifdef FLOWCE_STEPS
 static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
@@ -97,13 +107,23 @@ static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
 #else
 #define CALC_MENU {2, 2, N(m_calc), m_calc}
 #endif
+#ifdef FLOWCE_TILOOK // the TI-84 look: every menu a list, as the OS's
+#undef CALC_MENU
+#define CALC_MENU {0, 1, N(m_calc), m_calc}
+static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
+  {0, 1, N(m_alg), m_alg}, CALC_MENU, {0, 1, N(m_trig), m_trig},
+  {0, 1, N(m_sym), m_sym}, {0, 1, N(m_more), m_more}, {0, 1, N(m_math), m_math},
+};
+#else
 static const fm_menu MENUS[6] = { // F1 F2 F3 F4 F5 math
   {0, 1, N(m_alg), m_alg}, CALC_MENU, {1, 3, N(m_trig), m_trig},
   {1, 4, N(m_sym), m_sym}, {0, 1, N(m_more), m_more}, {1, 3, N(m_math), m_math},
 };
+#endif
 #undef N
 
 enum { RH = 30, LW = 252, CH = 40, CH2 = 60, BH = 36, ST = FOCUS_SB, SBOT = UI_H - FOCUS_MB }; // BH: a wide item's bar
+enum { IN = ST > 16 ? 2 : 5 }; // a list's rows from the card's edge (TI look: inside its 2 px frame)
 static int grid_rows(const fm_menu & m) { return (m.n - m.wide + m.cols - 1) / m.cols; } // (without the bar)
 // a card's cell height: lower cells when its rows would cover the status bar (the steps build's
 // calculus card: three rows and the bar, 52)
@@ -122,6 +142,17 @@ static int top, vis = 99, rh = RH; // focus_list: the first row shown, the rows 
 static int rh_need; // (prepare) the rows a list's formulas need, at one size
 // rmin: a list's rows at least so tall (its formulas'), fewer of them shown when it scrolls
 static void geometry(int id, const fm_menu & m, int rmin = 0) {
+#ifdef FLOWCE_TILOOK
+  if (!m.grid) { // as the OS's menus: rows of 20 (taller for a formula), 9 at most shown, in a box
+    // from column 34 to 302 over the F-key labels (a key's menu) or in the middle
+    const int r0 = rmin > 20 ? rmin : 20, room = (SBOT - ST - 4 - hdr) / r0;
+    int rows = m.n < vis ? m.n : vis;
+    if (rows > room) rows = vis = room;
+    rh = r0; pw = 268; ph = rows * rh + 4 + hdr; px = 34;
+    py = id == 5 ? ST + (SBOT - ST - ph) / 2 : SBOT - ph;
+    return;
+  }
+#endif
   if (m.grid) {
     cw = m.grid == 2 ? (m.cols == 3 ? 100 : 150) : m.cols == 3 ? 76 : 60;
     pw = m.cols * cw + 10; ph = grid_rows(m) * cellh(m) + (m.wide ? BH : 0) + 10;
@@ -145,6 +176,7 @@ static void geometry(int id, const fm_menu & m, int rmin = 0) {
 static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & h) {
   if (m.grid && m.wide && k == m.n - 1) { x = px + 5; y = py + 5 + grid_rows(m) * cellh(m); w = m.cols * cw; h = BH; }
   else if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
+  else if (IN == 2) { x = px + 2; y = py + 2 + hdr + (k - top) * rh; w = pw - 4; h = rh; }
   else { x = px + 5; y = py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
 }
 
@@ -199,6 +231,12 @@ static void prepare(const fm_menu & m) {
     const char * t = it.pv ? it.pv : it.text;
     PLV[k] = -1;
     if (!t || (!m.grid && !it.text)) continue; // (a list's symbol column is text)
+#ifdef FLOWCE_TILOOK
+    if (!m.grid) { // (the OS's menus: a named item's formula small, at the right; else the name, large)
+      PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, it.label ? 5 : 3, it.label ? 110 : 220, 60, it.pv ? MI_F_IMPLDOT : MI_F_CALLBOX, PL[k]);
+      continue;
+    }
+#endif
     // (a card's formula, its pv: products without dots, 2 pi r h; a template: boxes in its calls;
     // the bar's preview at its left)
     const int fl = it.pv ? MI_F_IMPLDOT : MI_F_CALLBOX;
@@ -209,6 +247,11 @@ static void prepare(const fm_menu & m) {
     else PLV[k] = (signed char)ui_math_fit(t, strlen(t), -1, 4, lroom(m, k), 200, fl, PL[k]); // (its width)
   }
   if (m.grid) return;
+#ifdef FLOWCE_TILOOK
+  rh_need = 0; // (rows as tall as the tallest formula, 20 at least)
+  for (int k = 0; k < m.n; ++k) if (PLV[k] >= 0 && PL[k].asc + PL[k].desc + 4 > rh_need) rh_need = PL[k].asc + PL[k].desc + 4;
+  return;
+#endif
   // a list's formulas one size: the smallest any needs for its width (12 px at least: smaller
   // ones alone); rh_need: the rows as tall as the tallest at that size (focus_card_list makes
   // them so); in shorter rows, the tall ones smaller
@@ -300,6 +343,25 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
         ui_draw_text(f, it.label, -1, x + (w - lw) / 2, alone ? y + h / 2 + 5 : y + h - 8, ui_ramp(1, alone ? fg : sub, bg), 0);
       }
     } else preview(k, it.pv ? it.pv : it.text, x + 4, y + h / 2, w - 8, fg, bg, 1);
+  } else if (IN == 2) { // TI look: "1:" (white on black when chosen; 9: an arrow when rows follow),
+    // the name in the large font; a formula small and blue at the right of a name, else the name
+    ui_fill(x, y, w, h, ui_col(1, UC_CARD));
+    const int b = y + (h + 14) / 2;
+    char num[5] = {(char)(k < 9 ? '1' + k : k == 9 ? '0' : ' '), ':', 0};
+    if ((k == top + vis - 1 && k < m.n - 1) || (k == top && k)) strcpy(num + 1, k == top && k ? "\xe2\x86\x91" : "\xe2\x86\x93");
+    const int nw = ui_text_width(&ui_mu20, num, -1);
+    if (on) ui_fill(x, y + (h - 16) / 2, nw - 2, 16, ui_col(1, UC_INK));
+    ui_draw_text(&ui_mu20, num, -1, x, b, ui_ramp(1, on ? UC_WHITE : UC_INK, on ? UC_INK : UC_CARD), 0);
+    const unsigned char * ri = ui_ramp(1, UC_INK, UC_CARD);
+    if (it.label) {
+      const int lw = ui_draw_text(&ui_mu20, it.label, -1, x + nw, b, ri, 0);
+      if (it.text && PLV[k] >= 0 && nw + lw + 10 + PL[k].width <= w) { // (only when it fits)
+        preview(k, it.pv ? it.pv : it.text, x + w - 4 - PL[k].width, y + h / 2, 0, UC_BLUE, UC_CARD, 0);
+      } else if (it.hint) ui_draw_text(&ui_tr9, it.hint, -1, x + w - 4 - ui_text_width(&ui_tr9, it.hint, -1), b, ui_ramp(1, UC_SUB, UC_CARD), 0);
+    } else if (PLV[k] >= 0) {
+      ui_clip(x + nw, y, x + w, y + h);
+      preview(k, it.pv ? it.pv : it.text, x + nw, y + h / 2, 0, UC_INK, UC_CARD, 0);
+    } else if (it.pv) ui_draw_text(&ui_mu20, it.pv, -1, x + nw, b, ri, 0);
   } else { // a list: each row on its tile, as the grids' items; a formula's label at the right, gray
     ui_rrect(1, x + 1, y + 1, w - 2, h - 2, 6, bg, UC_CARD);
     if (k < 9) { // a keycap: its digit's ink centered in the frame (from the advance, the 1 sat right)
@@ -332,6 +394,11 @@ static __attribute__((noinline)) void paint_item(const fm_menu & m, int k, int s
 
 // the card: a shadow (dimmed, bank 0), the white card, a hairline inside its edge
 static void card_bg() {
+#ifdef FLOWCE_TILOOK
+  ui_fill(px, py, pw, ph, ui_col(1, UC_INK)); // as the OS's menus: a 2 px black frame, the gray card
+  ui_fill(px + 2, py + 2, pw - 4, ph - 4, ui_col(1, UC_CARD));
+  return;
+#endif
   // the shadow where the card leaves it showing, along its right and bottom edges (all of it was
   // filled, then covered by the card)
   const int c0 = ui_cx0, r0 = ui_cy0, c1 = ui_cx1, r1 = ui_cy1;
@@ -377,7 +444,7 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
       item_box(m, k, x, y, w, h);
       if (y < e && y + h > b) { paint_item(m, k, sel); key_latch(); }
     }
-    if (!m.grid && m.n > vis) { // a long list's scroll bar
+    if (!m.grid && m.n > vis && IN != 2) { // a long list's scroll bar (TI look: the arrows of 1:)
       int ty = py + 5 + hdr, th = vis * rh, tx = px + pw - 10;
       ui_clip(tx, b > ty ? b : ty, tx + 4, e < ty + th ? e : ty + th);
       ui_fill(tx, ty, 4, th, ui_col(1, UC_LINE));
@@ -413,6 +480,20 @@ static void card_tab(int col, int layer) {
   if (band) ui_band_end();
 }
 static void open_card(const fm_menu & m, int col, int layer, int sel) {
+#ifdef FLOWCE_TILOOK
+  if (!m.grid) { // the OS's 20-row items; a formula alone (no name) as tall as it needs, a named
+    // item's only when it fits (its name says it); the chosen one shown
+    int r = 20;
+    for (int k = 0; k < m.n && k < 60; ++k)
+      if (PLV[k] >= 0) {
+        const int hk = PL[k].asc + PL[k].desc + 2;
+        if (!m.items[k].label) { if (hk > r) r = hk; }
+        else if (hk > 18) PLV[k] = -1;
+      }
+    geometry(col, m, r);
+    top = sel >= vis ? sel - vis + 1 : 0;
+  }
+#endif
   ui_dim(1);
   paint_rows(m, py, col < 5 ? SBOT : py + ph + 4, sel, 1);
   if (col < 5) card_tab(col, layer);
@@ -477,13 +558,14 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
     if (k == KEY_CHAR_0 && m.wide) return n - 1; // (the bar: the steps build's Applications)
+    if (k == KEY_CHAR_0 && IN == 2 && n >= 10) return 9; // (TI look: 0 is the tenth, as on the OS)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
       int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
       sel = ns;
       if (nt != top) { // a long list scrolled: all its rows
         top = nt;
-        paint_rows(m, py + 5 + hdr, py + 5 + hdr + vis * rh, sel, 0);
+        paint_rows(m, py + IN + hdr, py + IN + hdr + vis * rh, sel, 0);
       } else {
         repaint_item(m, old, sel);
         repaint_item(m, sel, sel);
