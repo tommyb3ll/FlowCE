@@ -3089,6 +3089,16 @@ int Console_GetKey(){
       Console_Disp(1);
       continue;
     }
+#ifdef FLOWCE_KHICAS
+    if (key==KEY_CTRL_F5 && Current_Line==Last_Line && Edit_Line && Edit_Line[0] && !console_python_mode()){
+      // KhiCAS's 2D editor: F5 (eval) evaluates the line in place
+      const std::string put=console_eval_part((const char *)Edit_Line);
+      Console_Clear_EditLine();
+      Console_Input((const Char *)put.c_str());
+      Console_Disp(1);
+      continue;
+    }
+#endif
     if (key==KEY_CTRL_F5){
 #if 1
       Menu smallmenu;
@@ -4277,6 +4287,9 @@ const char * console_fkey_label(int layer,int k){
   if (layer==0 && k==3) return "chartab"; // (KhiCAS: F4 is the character table)
 #else
   if (layer==0 && k==3) return (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT)?"forms":"chartab";
+#endif
+#ifdef FLOWCE_KHICAS
+  if (layer==0 && k==4 && Current_Line==Last_Line && Edit_Line && Edit_Line[0] && !console_python_mode()) return "eval"; // (KhiCAS's 2D editor: F5 evaluates)
 #endif
   if (layer==0 && k==4) return lang?"Fichier":"File";
   return t[(layer<0?0:layer>2?2:layer)*5+(k<0?0:k>4?4:k)];

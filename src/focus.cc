@@ -483,6 +483,14 @@ static int help_e = -1;  // HM_MATH: the command the caret is in (catalog entry)
 enum { HELP_H = 32 };    // ... at the bottom of the hero
 
 #ifdef FOCUS_CONSOLE
+#ifdef FLOWCE_KHICAS
+// KhiCAS's 2D editor, as KhiCAS + Flow shows the edit line while it has text: a panel at the bottom,
+// KPT over the expression (its hairline), KPB under it (the line's text); the panel's top for layout
+// L (kh_moved: not where it was laid out, the history moves)
+enum { KPT = 8, KPB = 22 };
+static char kh_moved;
+static int kh_top(const mi_layout & L) { const int t = SBOT - (L.asc + L.desc + KPT + KPB); return t < ST ? ST : t; }
+#endif
 // as the OS's home screen and KhiCAS's console: the edit line at the left, its top on the row
 // under the history; empty arguments are boxes; no help lines, no answer shown large (the answers
 // stay in the history)
@@ -495,7 +503,11 @@ static void hero_prepare(int y0, int h) {
     if (!HL) HL = new mi_layout;
     mi_layout & L = *HL;
     focus_phase = 2;
+#ifdef FLOWCE_KHICAS
+    hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, W_IN, SH - KPT - KPB, MI_F_CALLBOX, L); // (the panel's room)
+#else
     hero_lv = ui_math_refit(s, strlen(s), hcaret, HERO_LV, hero_lv, W_IN, SH, MI_F_CALLBOX, L);
+#endif
     focus_phase = 3;
     hx = HX; hbase = y0 + L.asc;
     if (L.width > W_IN) { // caret kept in view
@@ -504,6 +516,12 @@ static void hero_prepare(int y0, int h) {
       if (hx + L.width < UI_W - 8) hx = UI_W - 8 - L.width;
     }
     hb_y0 = y0; hb_y1 = hbase + L.desc + 2 + GT;
+#ifdef FLOWCE_KHICAS
+    kh_moved = y0 != kh_top(L); // (KhiCAS's editor: a panel at the bottom, the expression centered)
+    if (L.width <= W_IN) hx = (UI_W - L.width) / 2;
+    hbase = y0 + KPT + L.asc;
+    hb_y1 = SBOT;
+#endif
     hm = HM_MATH;
   } else hm = s && *s ? HM_TEXT : HM_HINT;
 }
@@ -791,10 +809,19 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     if (hcaret >= 0) ti_cursor(hx + HL->cx, hbase + HL->cy, HL->ch);
 #else
     if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
+#ifdef FLOWCE_KHICAS
+    { // KhiCAS's 2D editor's panel: a hairline over it (as between the history's entries), the line's
+      // text along its bottom as typed, with its parentheses (its end when too long)
+      ui_fill(12, y0, UI_W - 24, 1, col(UC_LINE));
+      const int n = strlen(s), w = ui_text_width(&ui_tr10, s, n);
+      ui_draw_text(&ui_tr10, s, n, w > UI_W - 2 * HX ? UI_W - HX - w : HX, SBOT - 7, ramp(UC_INK, UC_BG), 0);
+    }
+#else
     if (GT) { // as KhiCAS's 2D editor: the line's giac text under it, small (its end when too long)
       const int n = strlen(s), w = ui_text_width(&ui_tr9, s, n);
       ui_draw_text(&ui_tr9, s, n, w > UI_W - 2 * HX ? UI_W - HX - w : HX, hbase + HL->desc + GT - 2, ramp(UC_SUB, UC_BG), 0);
     }
+#endif
 #endif
     if (help_e >= 0) { // the command's description (it names the arguments as the boxes do), an example
       char d[72], ex[72];
@@ -1448,6 +1475,9 @@ bool focus_busy_tick() {
   return false;
 }
 
+#ifdef FLOWCE_KHICAS
+static int kh_y; // (compute_model) the editor panel's top, 0: no panel (an empty line)
+#endif
 static __attribute__((noinline)) void compute_model() {
   focus_phase = 20;
   scan();
@@ -1490,6 +1520,14 @@ static __attribute__((noinline)) void compute_model() {
     int eh = SB == 30 ? 16 : 26;
     if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, SH, MI_F_CALLBOX); eh = c.a + c.d + GT; }
     M.scroll = TOP + M.col_h + eh + 2 > SH ? TOP + M.col_h + eh + 2 - SH : 0;
+#ifdef FLOWCE_KHICAS
+    if (s && *s && console_edit2d()) { // KhiCAS's 2D editor: a panel at the bottom, the history above it
+      if (!HL) HL = new mi_layout;
+      hero_lv = ui_math_refit(s, strlen(s), console_caret(), HERO_LV, hero_lv, W_IN, SH - KPT - KPB, MI_F_CALLBOX, *HL);
+      kh_y = kh_top(*HL);
+      M.scroll = TOP + M.col_h > kh_y - ST ? TOP + M.col_h - (kh_y - ST) : 0;
+    } else kh_y = 0;
+#endif
 #else
     M.scroll = M.col_n ? M.col_h - (E[M.col_n - 1].outh + 12) : 0;
     if (M.col_n && E[M.col_n - 1].out < 0) M.scroll = M.col_h - (E[M.col_n - 1].inh + 12);
@@ -1497,6 +1535,9 @@ static __attribute__((noinline)) void compute_model() {
   }
   M.hero_y = ST + TOP + M.col_h - M.scroll;
   if (!M.hist && M.hero_y < ST) M.hero_y = ST;
+#ifdef FLOWCE_KHICAS
+  if (!M.hist && kh_y) M.hero_y = kh_y;
+#endif
   M.ll = Last_Line;
 }
 
@@ -1540,7 +1581,11 @@ void focus_disp(int mode) {
     int was_math = hm == HM_MATH, oy0 = hb_y0, oy1 = hb_y1;
     hero_prepare(M.hero_y, SBOT - M.hero_y);
 #ifdef FOCUS_CONSOLE
+#ifdef FLOWCE_KHICAS
+    if (was_math && !kh_moved) // (KhiCAS's panel: it appeared, or grew: the history moves, below)
+#else
     if (hb_y1 <= SBOT || M.hero_y <= ST) // (taller than the room left: the history scrolls up, below)
+#endif
 #endif
     {
       if (was_math) stage_rows(oy0 < hb_y0 ? oy0 : hb_y0, oy1 > hb_y1 ? oy1 : hb_y1);
