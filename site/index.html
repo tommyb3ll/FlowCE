@@ -31,17 +31,31 @@
 <main>
 <section class="hero wrap">
   <div class="hero-text">
-    <a class="pill" href="#new">New: FlowCE 2.2.1</a>
-    <h1><span class="wordmark big">Flow<span>CE</span></span></h1>
-    <p class="lead">Calculus on your TI-84 Plus CE.</p>
-    <p>Type math the way it looks. Get exact answers the way your textbook writes them, and every step to get there.</p>
+    <a class="pill" href="#new">New: KhiCAS + Flow 1.0</a>
+    <div class="show-pick" role="group" aria-label="Show">
+      <button type="button" class="on" data-show="flowce" aria-pressed="true">FlowCE</button>
+      <button type="button" data-show="khicas" aria-pressed="false">KhiCAS + Flow</button>
+    </div>
+    <div class="show" data-app="flowce">
+      <h1><span class="wordmark big">Flow<span>CE</span></span></h1>
+      <p class="lead">Calculus on your TI-84 Plus CE.</p>
+      <p>Type math the way it looks. Get exact answers the way your textbook writes them, and every step to get there.</p>
+    </div>
+    <div class="show" data-app="khicas" hidden>
+      <h1><span class="wordmark big long">KhiCAS + <span>Flow</span></span></h1>
+      <p class="lead">KhiCAS, as Bernard Parisse made it.</p>
+      <p>His menus, keys and catalog, the 2D editor with the line as typed under it, the spreadsheet and programs, drawn in FlowCE's look and at its speed.</p>
+    </div>
     <div class="cta">
-      <a class="btn primary" href="#install">Install</a>
+      <a class="btn primary" href="#install" id="hero-install">Install</a>
       <a class="btn" href="#screens">Screens</a>
     </div>
     <p class="fine">Free and open source. For the TI-84 Plus CE and TI-83 Premium CE.</p>
   </div>
-  <figure class="screen hero-screen">
+  <figure class="screen hero-screen show" data-app="khicas" hidden>
+    <img src="media/khicasflow.gif" width="640" height="480" alt="KhiCAS + Flow on the calculator: its start screen, an integral from KhiCAS's calculus list typed in 2D over its text, a factorization, KhiCAS's algebra list, the spreadsheet">
+  </figure>
+  <figure class="screen hero-screen show" data-app="flowce">
     <picture>
       <source srcset="media/flowce_dark.gif" media="(prefers-color-scheme: dark)">
       <img src="media/flowce_light.gif" width="640" height="480" alt="FlowCE on the calculator: a definite integral typed in 2D, the sum of 1/n² giving π²/6, other forms of an answer, and a graph with trace">
@@ -54,7 +68,7 @@
   <summary>
     <span class="wn-text">
       <h2>What's new</h2>
-      <span class="wn-sub">Steps for algebra as well as calculus, a real graph screen, the applications of calculus as forms you fill in, statistics, probability, nine themes you can tell apart on the calculator, and faster menus and answers.</span>
+      <span class="wn-sub">KhiCAS + Flow 1.0 takes FlowCE Python's place: Bernard Parisse's KhiCAS in FlowCE's look. In FlowCE: steps for algebra as well as calculus, a real graph screen, the applications of calculus as forms you fill in, statistics, probability, nine themes you can tell apart on the calculator, and faster menus and answers.</span>
     </span>
     <span class="wn-more"><span class="wn-open">See what's new</span><span class="wn-close">Hide</span></span>
   </summary>
@@ -74,6 +88,7 @@
     </figure>
   </div>
   <ul class="news">
+    <li><strong>KhiCAS + Flow 1.0</strong> replaces FlowCE Python: Bernard Parisse's KhiCAS as he arranged it (his menus, keys, catalog, 2D editor, spreadsheet, programs and debugger), in FlowCE's look and at its speed.</li>
     <li><strong>2.2, themes:</strong> Sand, Mint, Rose, Arctic, Ember, Grape and Forest have stronger colors, picked on a calculator, so its screen no longer shows several of them alike. Paper and Night are unchanged.</li>
     <li><strong>2.1 is faster:</strong> menus open in about half the time, everyday problems answer 25 to 45% sooner, the steps pages scroll twice as fast, and the probability page keeps up with the arrows. Same answers as 2.0.</li>
     <li><strong>Steps for algebra:</strong> equations by the formula, factoring, systems, logs and exponentials, trig equations, inequalities, absolute values, polynomial division.</li>
@@ -96,9 +111,9 @@
       <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs, statistics and the Applications menu.</span>
     </label>
     <label class="opt">
-      <input type="radio" name="build" value="python">
-      <span class="opt-head"><strong>FlowCE Python</strong> <span class="ver" data-ver="python"></span></span>
-      <span class="opt-text">For programs: Python syntax and the program editor. Exact answers and graphs, no steps.</span>
+      <input type="radio" name="build" value="khicas">
+      <span class="opt-head"><strong>KhiCAS + Flow</strong> <span class="ver" data-ver="khicas"></span></span>
+      <span class="opt-text">Bernard Parisse's KhiCAS as he arranged it: his menus, keys and catalog, the spreadsheet, programs and their debugger, drawn in FlowCE's look. Exact answers and graphs, no steps.</span>
     </label>
   </div>
 
@@ -143,10 +158,10 @@
       <li class="step" data-step="finish">
         <div class="step-head"><span class="num">3</span><h3>Finish on the calculator</h3></div>
         <div class="step-body">
-          <p id="finish-intro">When it shows <strong>INST</strong>, press <kbd>enter</kbd> once. It installs and restarts by itself (<em>"RAM Cleared"</em>). Then <kbd>apps</kbd> → <strong>FlowCE</strong>.</p>
+          <p id="finish-intro">When it shows <strong>INST</strong>, press <kbd>enter</kbd> once. It installs and restarts by itself (<em>"RAM Cleared"</em>). Then <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</p>
           <div class="status" id="st-finish" aria-live="polite"></div>
           <img class="gif" id="install-gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and FlowCE">
-          <button class="btn" id="btn-finished" hidden>FlowCE opened successfully</button>
+          <button class="btn" id="btn-finished" hidden><span class="app">FlowCE</span> opened successfully</button>
         </div>
       </li>
     </ol>
@@ -158,7 +173,7 @@
       <li>Clear the archive: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
       <li>Download <a id="dl" href="files/FlowCE.b84" download>FlowCE.b84</a> and send it with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>.</li>
       <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens arTIfiCE. <kbd>enter</kbd> starts INST, <kbd>enter</kbd> again installs.</li>
-      <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>. Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>. Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
     </ol>
   </details>
 
@@ -181,9 +196,9 @@
       <li>Clear the archive before starting: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
       <li>Follow the <a href="https://yvantt.github.io/arTIfiCE/">official arTIfiCE v3 instructions for OS 5.8.5</a>: install Inequalz, reset RAM, send <code>arTIfiCE.8xp</code> to RAM, open Inequalz's Functions screen, then send <code>INEQUVAR.8xv</code>. After the restart, press <kbd>on</kbd> if the screen stays black.</li>
       <li><kbd>apps</kbd> → <strong>AsmHook2</strong>. Dismiss “Installation successful!” to return to the home screen.</li>
-      <li>Download the version selected above: <a href="files/FlowCE.b84" download>FlowCE</a> or <a href="files/FlowCE-python.b84" download>FlowCE Python</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
+      <li>Download the version selected above: <a href="files/FlowCE.b84" download>FlowCE</a> or <a href="files/KhiCAS-Flow.b84" download>KhiCAS + Flow</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
       <li><kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. Ignore the bundle's program A; it is for older OS versions. Press <kbd>enter</kbd> at the install prompt, then wait for the countdown to finish.</li>
-      <li>At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li>At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
     </ol>
     <p class="fine">Verified in CEmu on OS 5.8.5.0074 with boot code 5.6.1.0006. Calculators with newer boot code still need verification. If INST says “Unknown OS version”, report your model, OS and boot-code versions.</p>
   </details>
@@ -195,7 +210,7 @@
       <li><strong>Connect fails on a Mac or Chromebook:</strong> close TI Connect CE, then unplug and replug.</li>
       <li><strong>Linux:</strong> add a udev rule such as <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then replug.</li>
       <li><strong>Still not enough memory after the erase:</strong> some apps survive it (often TI's language apps). Delete them: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → Apps, <kbd>del</kbd> on each.</li>
-      <li><strong>"RAM Cleared" but this page still waits:</strong> FlowCE is installed. Press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li><strong>"RAM Cleared" but this page still waits:</strong> it is installed. Press <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
       <li><strong>Frozen at "Success! Will now reset":</strong> press the reset button on the back (a pen tip). FlowCE stays installed.</li>
       <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed.</li>
       <li><strong>OS 5.8.5:</strong> the page selects v3. Follow its calculator prompts, or use <a href="#manual-585">TI Connect CE</a>. OS 5.8.4.0058 uses v2.1.</li>
@@ -249,6 +264,24 @@
     window.addEventListener('hashchange', open);
     open();
   })();
+</script>
+<script>
+// the top's switch: FlowCE (first) or KhiCAS + Flow, its text and its screen; its Install picks it below
+(() => {
+  const btns = document.querySelectorAll('.show-pick button');
+  const shown = () => document.querySelector('.show-pick button.on').dataset.show;
+  const show = app => {
+    btns.forEach(b => { const on = b.dataset.show === app; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('.show[data-app]').forEach(e => { e.hidden = e.dataset.app !== app; });
+  };
+  btns.forEach(b => b.addEventListener('click', () => show(b.dataset.show)));
+  const asked = new URLSearchParams(location.search).get('build');
+  if (asked === 'khicas' || asked === 'python') show('khicas');
+  document.getElementById('hero-install').addEventListener('click', () => {
+    const r = document.querySelector(`input[name="build"][value="${shown() === 'khicas' ? 'khicas' : 'normal'}"]`);
+    if (r && !r.checked && !r.dataset.off) { r.checked = true; r.dispatchEvent(new Event('change')); }
+  });
+})();
 </script>
 </body>
 </html>

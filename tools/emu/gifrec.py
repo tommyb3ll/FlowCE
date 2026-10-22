@@ -61,7 +61,16 @@ GRAPHNEW = [('k', 'x^3{right}-3x', 200), ('k', '{graph}1', 0), ('w', 7000), ('f'
             ('k', '{down}{down}{down}{enter}', 1200, 300), ('k', '{yequ}', 400),
             ('k', '{right}' * 12, 1500, 110)]
 
+# KhiCAS + Flow (en-khicas): its start screen (KhiCAS typed, + Flow flowing in), an integral from
+# KhiCAS's F2 list (the template, its bounds, the integrand: the 2D over the text as typed), a factor,
+# KhiCAS's F1 list, the spreadsheet
+KHICASFLOW = [('intro', 2600), ('k', '{window}', 900), ('k', '3', 500), ('k', '0{right}1{right}x^2', 300, 240),
+              ('k', '{enter}', 1600), ('p', 'factor(x^4-1)', 1500), ('k', '{yequ}', 1300), ('k', '{clear}', 0),
+              ('k', '{stat}', 900), ('k', '1{enter}4{enter}9{enter}16{enter}', 600, 200),
+              ('k', '{up}{trace}2{up}{up}{up}', 1800, 300)]
+
 MOVIES = {
+    'khicasflow': KHICASFLOW,
     'flowce_light': [('intro', 1400)] + INTEGRAL + SERIES + FORMS + GRAPH,
     'flowce_dark': [('night',), ('intro', 1400)] + INTEGRAL + SERIES + FORMS + GRAPH,
     'flowce_steps': STEPS,

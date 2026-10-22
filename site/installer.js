@@ -1,5 +1,5 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// version picked (files/FlowCE.b84, or files/FlowCE-python.b84 for the Python build) over WebUSB
+// version picked (files/FlowCE.b84, or files/KhiCAS-Flow.b84 for KhiCAS + Flow) over WebUSB
 // and opens its installer, which then needs one key press on the calculator. Steps and texts:
 // index.html.
 import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile, readAppFile } from './dusb.js';
@@ -19,9 +19,9 @@ const V3_FILES = [
 const WINDOWS = /Windows/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.userAgent);
 
 // The versions the page installs, with their version texts (site/build.sh puts them in files/)
-const BUILDS = {
-  normal: { file: 'FlowCE.b84', ver: 'version.txt', name: 'FlowCE' },
-  python: { file: 'FlowCE-python.b84', ver: 'version-python.txt', name: 'FlowCE Python' },
+const BUILDS = { // (app: its name in the calculator's apps menu)
+  normal: { file: 'FlowCE.b84', ver: 'version.txt', name: 'FlowCE', app: 'FlowCE' },
+  khicas: { file: 'KhiCAS-Flow.b84', ver: 'version-khicas.txt', name: 'KhiCAS + Flow', app: 'KhiFlow' },
 };
 const versions = {};      // their version texts once read ('' if the site doesn't have it)
 let build = 'normal';     // the version picked
@@ -147,7 +147,7 @@ function friendly(e) {
   if (e && e.code === 'calc' && v3Stage)
     return 'The calculator refused a file. Keep AsmHook2 installed. Use the TI Connect CE instructions below to finish, or reload to restart the setup.';
   if (e && e.code === 'calc')
-    return 'The calculator refused a file. Usually part of FlowCE is already on it: erase it, then try again.';
+    return `The calculator refused a file. Usually part of ${BUILDS[build].name} is already on it: erase it, then try again.`;
   if (e && e.code === 'short')
     return 'The calculator still doesn\'t have enough free memory: some apps stay after the erase (on some calculators, ' +
       'TI\'s language apps). Delete them in TI Connect CE (select them in the calculator\'s file list, then Delete), or on ' +
@@ -182,7 +182,7 @@ async function loadBundle() {
   list.sort((a, b) => (a.name.startsWith('AppIns') - b.name.startsWith('AppIns')) || a.name.localeCompare(b.name));
   const inst = list.find(v => v.name === 'INST');
   if (list.filter(v => v.name.startsWith('AppIns')).length < 2 || !inst)
-    throw new Error('the FlowCE download is incomplete');
+    throw new Error(`the ${BUILDS[build].name} download is incomplete`);
   const patched = patchInst(inst.data);
   if (patched) inst.data = patched;
   autoInst = !!patched;
@@ -203,6 +203,7 @@ function showBuild() {
   dl.href = 'files/' + b.file;
   dl.textContent = b.file;
   dl.setAttribute('download', b.file);
+  document.querySelectorAll('.app').forEach(e => { e.textContent = b.app; }); // (its name in the apps menu)
   document.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('input').checked));
 }
 
@@ -251,7 +252,7 @@ async function check(c = calc) {
   console.info('FlowCE: calculator', info);
   const needErase = info.freeFlash !== null && info.freeFlash < need;
   if (info.freeFlash !== null)
-    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : ' (enough for FlowCE).'));
+    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; ${BUILDS[build].name} needs ${MB(need)}, so the calculator's archive will be erased.` : ` (enough for ${BUILDS[build].name}).`));
   state = { blocked, needErase, route };
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
@@ -359,7 +360,7 @@ async function sendAll(c) {
   $('progress').hidden = false;
   for (let i = 0; i < list.length; i++) {
     const v = list[i];
-    say('st-install', `Sending FlowCE: ${v.name} (${i + 1} of ${list.length})…`);
+    say('st-install', `Sending ${BUILDS[build].name}: ${v.name} (${i + 1} of ${list.length})…`);
     await c.sendVar(v, n => {
       $('bar').style.width = (100 * (done + n) / total).toFixed(1) + '%';
     });
@@ -458,10 +459,10 @@ async function continueV3() {
       say('st-finish', '<kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. ' +
         `At “enter: install app”, press <kbd>enter</kbd>. Wait for ${countdown()} to count down to 0. ` +
         'At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, ' +
-        'then <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+        `then <kbd>apps</kbd> → <strong>${BUILDS[build].app}</strong>.`);
       if (autoInst) {
         say('st-finish', 'Installing automatically. Leave the calculator alone until “RAM Cleared”. ' +
-          'Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+          `Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong>${BUILDS[build].app}</strong>.`);
         try {
           for (const k of [KEY.clear, KEY.prgm, KEY.enter, KEY.enter]) {
             await c.pressKey(k); await sleep(700);
@@ -490,7 +491,7 @@ async function proceed(c) {
     await c.pressKey(k);
     await sleep(700);
   }
-  say('st-install', '<span class="ok">FlowCE is on the calculator.</span>');
+  say('st-install', `<span class="ok">${BUILDS[build].name} is on the calculator.</span>`);
   mark('install', 'done');
   mark('finish', 'active');
   waitingReset = true;
@@ -499,7 +500,7 @@ async function proceed(c) {
   // could replace the reset INST leaves for the OS. So nothing more is sent.
   say('st-finish', autoInst
     ? '<strong>Press <kbd>enter</kbd> on the calculator</strong> (the arTIfiCE shell shows INST). That\'s the only key: ' +
-      `it installs FlowCE, counting down from ${countdown()} to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.`
+      `it installs ${BUILDS[build].name}, counting down from ${countdown()} to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.`
     : `On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from ${countdown()} to 0. ` +
       'At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
 }
@@ -597,7 +598,7 @@ function finished() {
   $('btn-finished').hidden = true;
   mark('finish', 'done');
   $('btn-connect').disabled = busy;
-  say('st-finish', '<span class="ok">FlowCE is ready.</span>');
+  say('st-finish', `<span class="ok">${BUILDS[build].name} is ready.</span>`);
   updateInstall();
 }
 
@@ -605,10 +606,11 @@ function init() {
   document.querySelectorAll('.step').forEach((li, i) => { li.dataset.n = String(i + 1); });
   mark('connect', 'active');
 
-  // the version: picked here, or by a link (?build=python; ?build=steps, from the betas: FlowCE);
-  // one this site doesn't have is off
+  // the version: picked here, or by a link (?build=khicas; ?build=python, FlowCE Python's links: its
+  // successor, KhiCAS + Flow; ?build=steps, from the betas: FlowCE); one this site doesn't have is off
   const radios = document.querySelectorAll('input[name="build"]');
-  const want = new URLSearchParams(location.search).get('build');
+  const asked = new URLSearchParams(location.search).get('build');
+  const want = asked === 'python' ? 'khicas' : asked;
   if (Object.prototype.hasOwnProperty.call(BUILDS, want)) build = want;
   radios.forEach(r => {
     r.checked = r.value === build;
@@ -650,7 +652,7 @@ function init() {
     if (!calc || e.device !== calc.dev) return;
     calc = null;
     if (waitingReset) say('st-finish', 'The USB connection ended. Check the calculator: after “RAM Cleared”, ' +
-      'press <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>. If INST has not finished, ' +
+      `press <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>${BUILDS[build].app}</strong>. If INST has not finished, ` +
       'follow its screen. A disconnected cable alone does not mean the installation finished.');
     else if (v3Stage) say('st-install', 'Connection ended. Complete the calculator step below, then use its Continue button.');
     else if (!busy) say('st-connect', 'The calculator was disconnected. Plug it back in: this page picks it up again.');

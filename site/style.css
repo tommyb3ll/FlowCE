@@ -80,6 +80,7 @@ kbd {
 }
 .wordmark span { color: var(--acc); }
 .wordmark.big { font-size: clamp(3.2rem, 9vw, 5.2rem); }
+.wordmark.big.long { font-size: clamp(2.5rem, 7vw, 3.9rem); white-space: nowrap; }
 
 .top {
   position: sticky;
@@ -132,6 +133,11 @@ kbd {
 .confirm { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .8rem; font-weight: 700; cursor: pointer; }
 .confirm input { width: 18px; height: 18px; accent-color: var(--red); }
 
+/* the top's switch: FlowCE or KhiCAS + Flow */
+.show-pick { display: flex; width: fit-content; gap: 2px; padding: 3px; margin: .9rem 0 .2rem; border-radius: 999px; background: var(--acc-soft); }
+.show-pick button { border: 0; background: transparent; color: var(--acc); font: inherit; font-size: .92rem; font-weight: 650; padding: .38rem 1rem; border-radius: 999px; cursor: pointer; }
+.show-pick button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.show-pick + .show h1 { margin-top: .5rem; }
 .pill {
   display: inline-block; margin-bottom: .9rem; padding: .3rem .8rem; border-radius: 999px;
   background: var(--acc-soft); color: var(--acc); font-weight: 700; font-size: .9rem; text-decoration: none;
