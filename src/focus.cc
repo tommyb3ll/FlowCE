@@ -23,6 +23,7 @@ extern "C" int os_get_angle_unit();
 extern "C" int os_key_flags();      // k_csdk.c: 1 2nd, 2 alpha, 4 alpha lock, 8 lowercase
 bool console_edit2d();              // console.cc: the edit line is math (not Python)
 extern "C" bool console_python_mode(); // main.cc: Python syntax (KhiCAS build's status bar)
+int console_selection(int * a, int * b); // console.cc: KhiCAS + Flow's selected part of the edit line
 int console_caret();                // console.cc: caret index in the edit line, -1 if in the history
 extern const char * console_form_name; // main.cc: the form F4 last gave (console_form_of)
 bool console_form_check(const char * s); // main.cc: s shows the check of an antiderivative (no + C)
@@ -621,6 +622,25 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
   int y0 = hy0, h = hh;
   if (hm == HM_MATH) {
     focus_phase = 4;
+#ifdef FLOWCE_KHICAS
+    { // Bernard's selection: a soft box round the selected part's pieces
+      int sa, sb;
+      if (console_selection(&sa, &sb)) {
+        int x0 = 9999, y0 = 9999, x1 = -9999, y1 = -9999;
+        for (unsigned k = 0; k < HL->ops.size(); ++k) {
+          const mi_op & o = HL->ops[k];
+          if (o.pos < sa || o.pos >= sb) continue;
+          // (a text's y is its baseline, h its ascent and descent: the faces' descent is about a quarter)
+          const int t = o.code == MI_TEXT ? o.y - (o.h * 3 + 2) / 4 : o.y, b = o.code == MI_TEXT ? o.y + o.h / 4 : o.y + o.h;
+          if (o.x < x0) x0 = o.x;
+          if (t < y0) y0 = t;
+          if (o.x + o.w > x1) x1 = o.x + o.w;
+          if (b > y1) y1 = b;
+        }
+        if (x0 < x1) ui_rrect(0, hx + x0 - 2, hbase + y0 - 2, x1 - x0 + 4, y1 - y0 + 4, 4, UC_ACCSOFT, UC_BG);
+      }
+    }
+#endif
     ui_math_draw(*HL, s, hero_lv, hx, hbase, 0, UC_INK, UC_BG, UC_ACC);
     focus_phase = 5;
 #ifdef FLOWCE_TILOOK

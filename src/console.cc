@@ -107,6 +107,15 @@ void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int 
 static bool console_input2d();
 static const mi_metrics & edit_metrics();
 static void console_set_caret(int p);
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow: Bernard's selection editing on the edit line (MODE): [sel_a,sel_b) selected
+static int sel_a=-1,sel_b=-1;
+std::string console_eval_part(const char * s); // main.cc
+static const mi_metrics & edit_metrics();
+const char * console_menu(int key,int active_app);
+bool console_edit2d();
+int console_selection(int * a,int * b){ *a=sel_a; *b=sel_b; return sel_a>=0; } // (focus.cc draws it)
+#endif
 int console_caret();
 static int input2d_rows=1; // rows of the 2D edit line at the last full redraw
 static int console_rows_of(const mi_layout & L);
@@ -2613,6 +2622,56 @@ int Console_GetKey(){
       return -2;
     if (key==KEY_CTRL_SHIFT || key==KEY_CTRL_ALPHA)
       continue;
+#ifdef FLOWCE_KHICAS
+    // Bernard's selection (his 2D editor's MODE): arrows choose a part of the line, a menu's command
+    // takes it as argument, enter or F5 evaluates it in place; MODE, clear or exit leave
+    if (key==KEY_CTRL_SETUP && sel_a<0 && Current_Line==Last_Line && Edit_Line && Edit_Line[0] && console_edit2d()){
+      int a=Current_Col,b=Current_Col;
+      if (mi_select((const char *)Edit_Line,strlen((const char *)Edit_Line),&a,&b,-1,edit_metrics())){ sel_a=a; sel_b=b; }
+      Console_Disp(1);
+      continue;
+    }
+    if (sel_a>=0){
+      const char * s=(const char *)Edit_Line;
+      const int l=s?strlen(s):0;
+      if (!s || sel_b>l){ sel_a=sel_b=-1; Console_Disp(1); continue; }
+      if (key==KEY_CTRL_UP || key==KEY_CTRL_DOWN || key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT){
+        int a=sel_a,b=sel_b;
+        if (mi_select(s,l,&a,&b,key==KEY_CTRL_UP?0:key==KEY_CTRL_DOWN?1:key==KEY_CTRL_LEFT?2:3,edit_metrics())){ sel_a=a; sel_b=b; }
+        Console_Disp(1);
+        continue;
+      }
+      const int a=sel_a,b=sel_b;
+      std::string part(s+a,b-a),put;
+      bool replace=false;
+      if (key==KEY_CTRL_EXE || key==KEY_CTRL_F5){ put=console_eval_part(part.c_str()); replace=true; }
+      else if ((key>=KEY_CTRL_F1 && key<=KEY_CTRL_F4) || key==KEY_CTRL_F6 || (key>=KEY_CTRL_F7 && key<=KEY_CTRL_F15)){
+        sel_a=sel_b=-1; // (the menu drawn over the line as it is)
+        const char * m=console_menu(key,0);
+        if (m && *m){
+          const int ml=strlen(m);
+          put=m[ml-1]=='('?std::string(m)+part+")":std::string(m)+part;
+          replace=true;
+        }
+      }
+      sel_a=sel_b=-1;
+      if (replace){ // the part replaced: the caret after it, as typed
+        console_set_caret(b);
+        for (int k=b-a;k>0 && Current_Col>0;--k){
+          Console_DelStr(Edit_Line,Current_Col,1);
+          Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+          Console_MoveCursor(CURSOR_LEFT);
+        }
+        Console_Input((const Char *)put.c_str());
+        Console_Disp(1);
+        continue;
+      }
+      console_set_caret(b);
+      Console_Disp(1);
+      if (key==KEY_CTRL_SETUP || key==KEY_CTRL_EXIT || key==KEY_CTRL_AC)
+        continue;
+    }
+#endif
 #ifdef FLOWCE_STEPS
     // (DeltaCE) the action row under an answer has the keys once the right arrow selected an
     // action: left and right move (left of the first: out), enter does it ("more": the list of

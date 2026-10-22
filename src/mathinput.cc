@@ -1009,6 +1009,44 @@ static int prep(const char * s, int len, const mi_metrics & m) {
   if (r) measure(r, 0);
   return r;
 }
+
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow's selection (its 2D editor's): the parts of s as laid out. sel_find: the deepest node
+// whose span holds [a,b), the nodes from the root to it in path; its depth
+static int sel_find(int n, int a, int b, int * path, int d) {
+  path[d] = n;
+  for (int c = T[n].kid; c; c = T[c].nx)
+    if (T[c].a <= a && b <= T[c].b && T[c].b > T[c].c && d < 31) return sel_find(c, a, b, path, d + 1);
+  return d;
+}
+int mi_select(const char * s, int len, int * a, int * b, int dir, const mi_metrics & m) {
+  const int r = prep(s, len, m);
+  if (!r) return 0;
+  int path[32], d = sel_find(r, *a, *b, path, 0), n = path[d];
+  if (dir < 0) { if (T[n].b <= T[n].c) return 0; *a = T[n].c; *b = T[n].b; return 1; } // the part at the caret
+  if (dir == 0) { // up: the first part around it
+    for (int i = d - 1; i >= 0; --i)
+      if (T[path[i]].c < *a || T[path[i]].b > *b) { *a = T[path[i]].c; *b = T[path[i]].b; return 1; }
+    return 0;
+  }
+  if (dir == 1) { // down: its first part
+    for (int c = T[n].kid; c; c = T[c].nx)
+      if (T[c].b > T[c].c && (T[c].c > *a || T[c].b < *b)) { *a = T[c].c; *b = T[c].b; return 1; }
+    return 0;
+  }
+  for (int i = d; i > 0; --i) { // left, right: the part before or after it, at the first level that has one
+    int p = path[i - 1], prev = 0;
+    for (int c = T[p].kid; c; prev = c, c = T[c].nx)
+      if (c == path[i]) {
+        int t = dir == 2 ? prev : T[c].nx;
+        while (t && T[t].b <= T[t].c) t = dir == 2 ? 0 : T[t].nx;
+        if (t) { *a = T[t].c; *b = T[t].b; return 1; }
+        break;
+      }
+  }
+  return 0;
+}
+#endif
 static void run(int r, int mode, int target) { // one place pass
   md = mode; tgt = target; pp = -1; ckn = rd = cp = 0; bl = -1;
   P(0, 0, 0, 0, 0);

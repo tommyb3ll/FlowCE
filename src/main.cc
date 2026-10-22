@@ -544,6 +544,16 @@ static void stack_floor(){
   giac::stack_hit=false;
 }
 
+void do_eval(giac::gen & g);
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow's selection: a part of the edit line evaluated in place (its 2D editor's eval)
+std::string console_eval_part(const char * s){
+  giac::gen g(s,contextptr);
+  g=giac::add_autosimplify(g,contextptr);
+  do_eval(g);
+  return g.print(contextptr);
+}
+#endif
 void do_eval(giac::gen & g){
 #ifdef FAKE_GIAC
   statuslinemsg(!lang?(focus_on?"ON or clear: stop":"cancel: stop calcul."):"annul: stoppe calcul",COLOR_RED);
