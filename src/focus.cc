@@ -1030,6 +1030,14 @@ static void status_draw(int force) {
   int fl = stat_view && !stat_chip ? 0 : os_key_flags() & 15, lv = battery_lv, r = fl | lv << 4;
   // the middle: a message, else the modes go on as on a TI ("SIMPLIFY OFF", mode's setting)
   const char * mid = smsg[0] || stat_view || answer_simplify_on ? smsg : "\1SIMPLIFY OFF";
+#ifdef FLOWCE_KHICAS
+  char clk[8]; // KhiCAS's clock (14h05), when nothing else is said there
+  if (!mid[0]) {
+    const int h = rtc_Hours, m = rtc_Minutes;
+    clk[0] = 2; clk[1] = '0' + h / 10; clk[2] = '0' + h % 10; clk[3] = 'h'; clk[4] = '0' + m / 10; clk[5] = '0' + m % 10; clk[6] = 0;
+    mid = clk;
+  }
+#endif
 #if defined(FLOWCE_TILOOK) && defined(FLOWCE_STEPS)
   // the answer has steps: said on the bar's second row, as the OS's hints ("PRESS + FOR ...")
   if (!mid[0] && !stat_view && hist_sel < 0 && fresh() && steps_input(E[NE - 1])) mid = "\1PRESS ENTER FOR STEPS";
@@ -1054,6 +1062,7 @@ static void status_draw(int force) {
     ui_clip(SZ_L, 0, SZ_R, SB);
     ui_fill(SZ_L, 0, SZ_R - SZ_L, SB, col(UC_HEAD));
     if (mid[0] == 1) spaced_text(&ui_tb9, mid + 1, SZ_L + 4, 12, ramp(UC_HEADSUB, UC_HEAD), 1);
+    else if (mid[0] == 2) ui_text(&ui_tb9, mid + 1, (SZ_L + SZ_R) / 2, 12, UC_HEADSUB, UC_HEAD, 1); // (the clock)
     else if (mid[0]) ui_text(&ui_tb9, mid, (SZ_L + SZ_R) / 2, 12, UC_HEADINK, UC_HEAD, 1);
   }
   if (dr) {
