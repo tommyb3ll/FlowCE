@@ -3121,6 +3121,9 @@ int Console_GetKey(){
 #if defined WITH_EQW && !focus_on // (Focus: the old equation editor is not built; imports instead)
       smallmenuitems[10].text = (char*)(lang?"Editer expression [X,T...]":"Expression edit");
       smallmenuitems[11].text = (char*)(lang?"Editer matrice [matr]":"Matrix edit");
+#elif defined FLOWCE_KHICAS // (KhiCAS + Flow: KhiCAS's matrix editor, on the edit line)
+      smallmenuitems[10].text = (char*)"Expression Y0-Y9 [X,T...]";
+      smallmenuitems[11].text = (char*)"Matrix edit [matr]";
 #else
       smallmenuitems[10].text = (char*)"Expression Y0-Y9 [X,T...]";
       smallmenuitems[11].text = (char*)"Matrices [A]-[I] [matr]";
@@ -3246,7 +3249,7 @@ int Console_GetKey(){
           }
 #endif
           if (sel==12){
-#if defined WITH_EQW && !focus_on
+#if (defined WITH_EQW && !focus_on) || defined FLOWCE_KHICAS
             const char * matrix_ptr=input_matrix(false);
             if (matrix_ptr)
               return Console_Input(matrix_ptr);
@@ -3693,10 +3696,25 @@ int Console_FMenu(int key){
     //cout << "console " << unsigned(s) << endl;
     return CONSOLE_NO_EVENT;
   }
-  if (!focus_on && strcmp("matrix(",s)==0 && (ptr=input_matrix(false)) ) // (its editor is the old
-    s=ptr;                                                                   // equation editor)
-  if (!focus_on && strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
+  const bool ed=!focus_on || (KHICAS_UI && Current_Line==Last_Line && Edit_Line && !Edit_Line[0]); // (KhiCAS + Flow: on an empty line)
+  if (ed && strcmp("matrix(",s)==0 && (ptr=input_matrix(false)) ) // (its editor is the old
+    s=ptr;                                                        // equation editor)
+  if (ed && strcmp("makelist(",s)==0 && (ptr=input_matrix(true)) )
     s=ptr;
+#ifdef FLOWCE_KHICAS
+  if (ptr){ // its first cell or element (a new one: empty) at the caret
+    const int r=Console_Input((const Char *)ptr);
+    const char * e=strchr(ptr,'=');
+    if (e){
+      int k=e+1-ptr;
+      while (ptr[k]=='[')
+        ++k;
+      console_set_caret(k);
+      Console_Disp(1);
+    }
+    return r;
+  }
+#endif
   const int l=strlen(s);
   if (console_input2d() && l>1 && l<60 && s[l-1]=='(') // 2D: irem( goes in as irem(|,□)
     return console_input_call(s);

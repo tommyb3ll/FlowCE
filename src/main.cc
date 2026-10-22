@@ -190,6 +190,76 @@ const char * input_matrix(bool list){
   reset_kbd();
   return nullptr;
 }
+#elif defined FLOWCE_KHICAS && !defined FAKE_GIAC
+bool confirm_overwrite();
+void invalid_varname();
+// KhiCAS + Flow: KhiCAS's matrix (list) editor, on the edit line: a variable's name asked ("create new
+// or edit" the matrices there), its matrix put on the line as name=[[...]] (drawn as a grid: edited
+// there, enter stores it), or a new one of the size asked, its cells empty
+const char * input_matrix(bool list){
+  static std::string * sptr=nullptr;
+  if (!sptr)
+    sptr=new std::string;
+  *sptr="";
+  giac::gen v(giac::_VARS(0,contextptr));
+  giac::vecteur w;
+  if (v.type==giac::_VECT)
+    for (size_t i=0;i<v._VECTptr->size();++i){
+      const giac::gen & t=(*v._VECTptr)[i];
+      if (t.type!=giac::_IDNT)
+        continue;
+      const giac::gen e(giac::eval(t,1,contextptr));
+      if (list?e.type==giac::_VECT && !giac::ckmatrix(e):giac::ckmatrix(e))
+        w.push_back(t);
+    }
+  const std::string msg=w.empty()?"Create new":"Create new or edit "+(w.size()==1?w.front():giac::gen(w,giac::_SEQ__VECT)).print(contextptr);
+  lock_alpha(); // (a name: letters)
+  const int k=inputline(msg.c_str(),"Variable name:",*sptr,false);
+  reset_kbd();
+  if (k!=KEY_CTRL_EXE || sptr->empty() || !isalpha((unsigned char)(*sptr)[0]))
+    return nullptr;
+  const giac::gen g(*sptr,contextptr);
+  if (g.type!=giac::_IDNT){
+    invalid_varname();
+    return nullptr;
+  }
+  giac::gen ge(giac::eval(g,1,contextptr));
+  static std::string out;
+  if (ge.type==giac::_VECT){ // (its own: edited)
+    ge.subtype=0;
+    out=g.print(contextptr)+"="+ge.print(contextptr);
+    return out.c_str();
+  }
+  if (!(ge==g) && !confirm_overwrite())
+    return nullptr;
+  std::string n;
+  if (inputline(list?"Size of the list":"Rows","",n,true)!=KEY_CTRL_EXE)
+    return nullptr;
+  const int l=strtol(n.c_str(),nullptr,10);
+  int c=1;
+  if (!list){
+    n="";
+    char t[24];
+    sprintf(t,"%i rows",l);
+    if (inputline(t,"Columns:",n,true)!=KEY_CTRL_EXE)
+      return nullptr;
+    c=strtol(n.c_str(),nullptr,10);
+  }
+  if (l<1 || c<1 || l*c>=256)
+    return nullptr;
+  out=g.print(contextptr)+"=[";
+  for (int i=0;i<l;++i){
+    if (i)
+      out+=',';
+    if (!list){
+      out+='[';
+      out.append(c-1,',');
+      out+=']';
+    }
+  }
+  out+=']';
+  return out.c_str();
+}
 #else
 const char * input_matrix(bool list){
   return 0;
