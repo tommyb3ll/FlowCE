@@ -1286,8 +1286,10 @@ void do_run(const char * s){
       giac::logptr(0,contextptr);
     // Focus: giac's notes ("No checks were made for answer...", "Warning: ...") are not shown;
     // what a program prints is
+#ifndef FLOWCE_KHICAS // (KhiCAS shows them)
     if (focus_on && !strstr(buf,"print"))
       dconsole_mode=0;
+#endif
     giac::gen g(buf,contextptr);
     focus_phase=90; // (parsed; 91: the graph's check done)
 #if defined FLOWCE_STEPS || defined FLOWCE_KHICAS // (plot(...): FlowCE's graph screen)

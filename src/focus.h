@@ -20,6 +20,8 @@ extern "C" {
 #endif
 #ifdef FLOWCE_STEPS
 #define FLOWCE_VERSION "2.2.4" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
+#elif defined FLOWCE_KHICAS
+#define FLOWCE_VERSION "2.0b1" // the Python build arranged as KhiCAS (2026-10-22): its own line (beta 1)
 #else
 #define FLOWCE_VERSION "1.9.1" // in the status bar and on the start screen: bump it at each release
 #endif
