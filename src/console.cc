@@ -3499,6 +3499,15 @@ int Console_GetKey(){
         return r;
       }
       tmp = Line[Current_Line].str;
+#ifdef FLOWCE_KHICAS
+      if (Line[Current_Line].type==LINE_TYPE_OUTPUT && (!strcmp((const char *)tmp,"Graph") || !strcmp((const char *)tmp,"Graphic object"))){
+        int l=Current_Line-1; // (KhiCAS: a graph's line gives its command)
+        while (l>0 && Line[l].type!=LINE_TYPE_INPUT)
+          --l;
+        if (l>=0 && Line[l].type==LINE_TYPE_INPUT)
+          tmp=Line[l].str;
+      }
+#endif
 
       int x=editline_cursor;
       move_line = Last_Line - Current_Line;

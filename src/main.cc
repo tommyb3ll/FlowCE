@@ -1351,8 +1351,14 @@ void do_run(const char * s){
       dconsole_mode=1;
       if (defn)
         giac::logptr(savelog,contextptr);
+#ifdef FLOWCE_KHICAS
+      unsigned char * th=graphed>0?focus_thumb_capture():0; // (KhiCAS: the graph's thumbnail in the history)
+#endif
       Console_Output(graphed>0?"Graph":"Can't graph that: one letter, 4 curves at most");
       Console_NewLine(LINE_TYPE_OUTPUT,1);
+#ifdef FLOWCE_KHICAS
+      focus_thumb_keep(th);
+#endif
       free(buf);
       return;
     }
@@ -1419,6 +1425,9 @@ void do_run(const char * s){
     }
     int rows2d=0;
     giac::gen lay2d;
+#if defined FLOWCE_KHICAS && defined WITH_PLOT
+    unsigned char * th=0; // (KhiCAS: a graph's thumbnail in the history)
+#endif
     if (!msg.empty())
       Console_Output(msg.c_str());
     else {
@@ -1428,8 +1437,10 @@ void do_run(const char * s){
     int do_logo_graph_eqw=(rows2d || focus_on)?6:7; // drawn in 2D in the history: no viewer
     xcas::check_do_graph(g,gs,do_logo_graph_eqw,contextptr);
 #if defined FLOWCE_KHICAS && defined WITH_PLOT
-    if (xcas::ispnt(g))
+    if (xcas::ispnt(g)){
+      th=focus_thumb_capture(); // (the graph as it was left)
       focus_bar_reset(); // (KhiCAS's viewer drew over the F-key bar)
+    }
 #endif
 #endif
 #ifdef WITH_PLOT
@@ -1462,6 +1473,9 @@ void do_run(const char * s){
     }
     }
     Console_NewLine(LINE_TYPE_OUTPUT,1);
+#if defined FLOWCE_KHICAS && defined WITH_PLOT
+    focus_thumb_keep(th);
+#endif
     if (oom_hit)
       giac::ctrl_c=giac::interrupted=false;
     oom_rearm();

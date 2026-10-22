@@ -16,6 +16,7 @@
 #include "ui_math.h"
 #ifdef TICE
 #include <sys/power.h>
+#include <sys/lcd.h>             // (KhiCAS + Flow's thumbnails: the palette)
 #include <sys/rtc.h>
 #endif
 
@@ -209,6 +210,85 @@ static const char * steps_input(const fent & e) {
   return focus_steps_able(s, r) ? s : 0;
 }
 #endif
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow: KhiCAS's graph thumbnails in the history: the graph as it was left (rows TH_Y0 on),
+// half size (a pixel dark when one of its 4 is), coded as KhiCAS codes them: 0x80|b, 7 pixels (b's
+// bits); 7+w (w 0..120), w light pixels then a dark one; c (1..6), c*128 light pixels; 0 ends. The
+// last NTH kept beside the history, for the output line just made (its pointer, its input's hash)
+enum { TH_W = 160, TH_H = 100, TH_Y0 = 18, NTH = 4 };
+static struct { const void * key; unsigned inh; unsigned char * px; } THB[NTH];
+static int thn;
+static unsigned char th_dark[256];
+static const unsigned char * th_row; // the screen rows of thumbnail pixels [th_ry, th_ry + TH_W)
+static int th_ry;
+static int th_px(int p) {
+  while (p >= th_ry + TH_W) { th_ry += TH_W; th_row += 2 * UI_W; }
+  while (p < th_ry) { th_ry -= TH_W; th_row -= 2 * UI_W; }
+  const unsigned char * r = th_row + 2 * (p - th_ry);
+  return th_dark[r[0]] | th_dark[r[1]] | th_dark[r[UI_W]] | th_dark[r[UI_W + 1]];
+}
+unsigned char * focus_thumb_capture() {
+  const unsigned short * pal = (const unsigned short *)lcd_Palette; // (1555: dark under 2/3 of white)
+  for (int i = 0; i < 256; ++i) { const int v = pal[i]; th_dark[i] = 2 * ((v >> 10) & 31) + 5 * ((v >> 5) & 31) + (v & 31) < 168; }
+  const int n = TH_W * TH_H;
+  unsigned char * o = (unsigned char *)malloc(n / 7 + 2);
+  if (!o) return 0;
+  th_row = (const unsigned char *)lcd_Ram + TH_Y0 * UI_W; th_ry = 0;
+  int k = 0;
+  for (int p = 0; p < n;) {
+    int w = 0;
+    while (p + w < n && !th_px(p + w)) ++w;
+    if (p + w >= n) break; // (the last light pixels)
+    if (w >= 128) { const int c = w / 128 > 6 ? 6 : w / 128; o[k++] = (unsigned char)c; p += c * 128; continue; }
+    if (w >= 6 && w <= 120) { o[k++] = (unsigned char)(7 + w); p += w + 1; continue; }
+    int v = 0x80;
+    for (int j = 0; j < 7; ++j) if (p + j < n && th_px(p + j)) v |= 0x40 >> j;
+    o[k++] = (unsigned char)v; p += 7;
+  }
+  o[k] = 0;
+  if (!k) { free(o); return 0; }
+  unsigned char * r = (unsigned char *)realloc(o, k + 1); // (the heap back)
+  return r ? r : o;
+}
+void focus_thumb_keep(unsigned char * px) {
+  const int l = Last_Line - 1;
+  int in = l - 1;
+  while (in > 0 && Line[in].type != LINE_TYPE_INPUT) --in;
+  if (!px || in < 0 || Line[in].type != LINE_TYPE_INPUT || !Line[l].str || !Line[in].str) { free(px); return; }
+  free(THB[thn].px);
+  THB[thn].key = Line[l].str; THB[thn].inh = shash((const char *)Line[in].str); THB[thn].px = px;
+  thn = (thn + 1) % NTH;
+}
+static const unsigned char * thumb_of(const fent & e) {
+  if (e.out < 0 || e.in < 0) return 0;
+  const char * s = (const char *)Line[e.out].str;
+  if (strcmp(s, "Graph") && strcmp(s, "Graphic object")) return 0;
+  const unsigned h = shash((const char *)Line[e.in].str);
+  for (int i = 0; i < NTH; ++i)
+    if (THB[i].px && THB[i].key == s && THB[i].inh == h) return THB[i].px;
+  return 0;
+}
+// drawn in ink with its top left corner at (x0, y0), the rows of the band being painted
+static void thumb_draw(const unsigned char * u, int x0, int y0, int ink) {
+  const unsigned char c = col(ink);
+  int x = 0, y = 0;
+  for (; *u && y < TH_H; ++u) {
+    const int v = *u;
+    if (v >= 0x80) {
+      for (int j = 0; j < 7; ++j) {
+        if ((v & (0x40 >> j)) && y < TH_H && y0 + y >= ui_cy0 && y0 + y < ui_cy1) ui_fb[(y0 + y) * UI_W + x0 + x] = c;
+        if (++x == TH_W) { x = 0; ++y; }
+      }
+      continue;
+    }
+    for (x += v >= 7 ? v - 7 : v * 128; x >= TH_W; x -= TH_W) ++y;
+    if (v >= 7) {
+      if (y < TH_H && y0 + y >= ui_cy0 && y0 + y < ui_cy1) ui_fb[(y0 + y) * UI_W + x0 + x] = c;
+      if (++x == TH_W) { x = 0; ++y; }
+    }
+  }
+}
+#endif
 static void scan() {
   NE = 0;
   if (!E) E = (fent *)calloc(MAXE, sizeof(fent));
@@ -237,6 +317,9 @@ static void scan() {
       int mh = 0;
       if (!HIST2D) e.outh = 16;
       else if (TOP_KH && (mh = matrix_grid(s, 0, 120, W_OUT, OUT_LV, 0, 0))) e.outh = mh; // (KhiCAS: a matrix as a grid)
+#ifdef FLOWCE_KHICAS
+      else if (thumb_of(e)) e.outh = TH_H + 4; // (KhiCAS: a graph's thumbnail)
+#endif
       else if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
       else {
         fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
@@ -357,6 +440,7 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
     if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, sel && selout ? UC_ACC : UC_INK, bg, 2); // (as giac prints it)
     else if (TOP_KH && matrix_grid(s, b, 120, W_OUT, OUT_LV, UI_W - 12, 1)) ;
 #ifdef FLOWCE_KHICAS
+    else if (const unsigned char * tp = thumb_of(e)) thumb_draw(tp, UI_W - 12 - TH_W, b + 2, sel && selout ? UC_ACC : UC_INK);
     else if (!is_text(s) && fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).w > W_OUT && wrap_draw(s, b, UI_W - 12, sel && selout ? UC_ACC : UC_INK, bg)) ;
 #endif
     else {

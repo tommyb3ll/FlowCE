@@ -30,7 +30,11 @@ void focus_status_msg(const char * msg); // a message in the status bar ("comput
 void focus_idle(void); // getkey, idle for a few seconds: slow refreshes (battery)
 void focus_blink(void); // getkey at the console, twice a second: the TI look's cursor blinks
 #ifdef __cplusplus
-extern bool focus_hist2d; // the history in 2D (KhiCAS's Config: "2D history"; off: as text)
+extern bool focus_hist2d;
+// KhiCAS + Flow's graph thumbnails: the graph on the screen, small (malloc'ed, 0 if none), then
+// kept for the output line just made (Console_NewLine; freed when it is not kept)
+unsigned char * focus_thumb_capture();
+void focus_thumb_keep(unsigned char * px); // the history in 2D (KhiCAS's Config: "2D history"; off: as text)
 #endif
 void focus_wake(void); // getkey, turned on after 2nd ON at the console: the start screen again
 void focus_warm(void); // getkey at the console, idle: the menus' previews laid out ahead (focus_menu.cc)
