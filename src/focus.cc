@@ -1723,6 +1723,21 @@ void focus_disp(int mode) {
 #endif
   if (!nonempty) hero_lv = HERO_LV; // a new expression starts large
   compute_model();
+  if (ours && M.hist != PM.hist && !nonempty && M.col_n == PM.col_n && M.col_h == PM.col_h && M.scroll == PM.scroll) {
+    // into the history or out of it, the edit line empty, the screen staying as it was: the entry
+    // selected (or no longer) and the rows under the entries (the edit line, or its peek)
+    focus_phase = 24;
+    if (!M.hist) hero_prepare(M.hero_y, SBOT - M.hero_y);
+    const int k = M.hist ? M.sel : PM.sel;
+    if (k >= 0 && k < M.col_n) { const int t = entry_top(k); stage_rows(t, t + E[k].h); }
+    stage_rows(entry_top(M.col_n), SBOT);
+    ui_band_close();
+    status_draw(0);
+    bar_draw(bar_keyflag, 0);
+    PM = M;
+    focus_phase = 0;
+    return;
+  }
   if (ours && M.hist && PM.hist && M.col_n == PM.col_n && M.col_h == PM.col_h) {
     // a move in the history: scroll if needed, then the entries whose selection changed
     focus_phase = 21;
