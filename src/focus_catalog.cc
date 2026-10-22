@@ -503,7 +503,7 @@ static __attribute__((noinline)) int help_page(const catalogFunc & c) {
     for (const char * p = part[j]; *p && n < 280; ) h[n++] = *p++;
   for (int j = 0; j < 2; ++j)
     if (example_text(c, ex, sizeof(ex), j)) {
-      const char * p = j ? "\nF3: " : "\n\nF2: ";
+      const char * p = j ? "\nF3: " : "\nF2: ";
       while (*p) h[n++] = *p++;
       for (p = ex; *p; ) h[n++] = *p++;
     }

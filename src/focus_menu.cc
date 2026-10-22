@@ -732,7 +732,7 @@ int focus_text(const char * t, const char * s, int fk) {
       ui_fill(0, Y0 - 4, UI_W, UI_H - Y0 + 4, ui_col(0, UC_BG));
       for (int k = 0; k < vis && top + k < n; ++k) {
         const char * l = s + ls[top + k];
-        const int bold = ll[top + k] > 1 && l[ll[top + k] - 1] == ':';
+        const int bold = ll[top + k] > 1 && l[ll[top + k] - 1] == ':' && (!l[ll[top + k]] || l[ll[top + k]] == '\n'); // (a whole line)
         ui_draw_text(bold ? &ui_tb12 : &ui_tr12, l, ll[top + k], 12, Y0 + 12 + k * LH, ui_ramp(0, bold ? UC_ACC : UC_INK, UC_BG), 0);
       }
       if (n > vis) { // scroll bar
