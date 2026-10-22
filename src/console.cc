@@ -35,6 +35,11 @@ int lang=1;
 
 struct line * Line;
 constexpr const int maxfmenusize=16;
+#ifdef FLOWCE_KHICAS
+constexpr const bool KHICAS_UI=true;  // KhiCAS + Flow: KhiCAS's keys where FlowCE's differ
+#else
+constexpr const bool KHICAS_UI=false;
+#endif
 
 char menu_f1[maxfmenusize]={0};
 char menu_f2[maxfmenusize]={0};
@@ -3258,7 +3263,7 @@ int Console_GetKey(){
     }
     if ( (key == KEY_CTRL_DOWN || key=='\t' || key==KEY_CTRL_F10
 	  || key==KEY_CHAR_FRAC || key==KEY_CTRL_MIXEDFRAC
-	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && (focus_on || Current_Col>0)){ // Focus: down on an empty line opens the search too
+	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && ((focus_on && !KHICAS_UI) || Current_Col>0)){ // Focus: down on an empty line opens the search too (KhiCAS: a name to complete before the caret)
       // find cmdname
       console_help_insert(false);
       Console_Disp(1); oldkeyflag=-1;
@@ -3454,7 +3459,7 @@ int Console_GetKey(){
       //if (ret!=CONSOLE_SUCCEEDED) return ret;
       continue;
     }
-    if (focus_on && key==KEY_CHAR_CR){
+    if (focus_on && !KHICAS_UI && key==KEY_CHAR_CR){ // (KhiCAS + Flow: KhiCAS's, below)
       // TI's ENTRY (2nd enter): the last input on the edit line, the one before at the next
       // press (KhiCAS ran the whole session again)
       static int entry=-1; // the input line copied last

@@ -290,7 +290,11 @@ int getkey(int allow_suspend){
       //statusline(0);
       return KEY_CTRL_SHIFT; // continue;
     case sk_Math: // 2nd MATH (TEST on the keyboard): '=' directly, for x^2-4=0 and f(x)=...
+#ifdef FLOWCE_KHICAS // (KhiCAS: the catalog too; = is in F2's calculus menu)
+      return Alpha?KEY_CHAR_A+decal:KEY_CTRL_SYMB;
+#else
       return Alpha?KEY_CHAR_A+decal:(Shift?KEY_CHAR_EQUAL:KEY_CTRL_SYMB);
+#endif
     case sk_Matrice:
       return Alpha?KEY_CHAR_B+decal:KEY_CHAR_MAT;
     case sk_Prgm:
