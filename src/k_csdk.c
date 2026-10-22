@@ -71,6 +71,7 @@ static const int STATUS_AREA_PX=18;
 #include <ti/screen.h>
 #include <ti/flags.h>
 #include <ti/vars.h>
+#include <ti/info.h>
 #include <sys/power.h>
 #include <sys/rtc.h> // boot_GetTime(uint8_t *seconds, uint8_t *minutes, uint8_t *hours), boot_SetTime(uint8_t seconds, uint8_t minutes, uint8_t hours)
 #include <sys/timers.h>
@@ -178,6 +179,20 @@ void key_discard(void){ if (key_n) key_pop(); } // the key that skipped an anima
 // key_waiting() unseen by the test harness (getkey_polls stays), also behind keys already kept: a
 // card opening for longer than a key press (the calculus card, 0.5 s: F2 then 1 lost the 1)
 void key_latch(void){ key_push(); }
+// a TI-83 Premium CE (the boot code's hardware type 1; KhiCAS's 83 build: FRANCAIS): its keyboard has
+// trig, resol and frac where the TI-84 Plus CE has sin, cos and tan, pi on 2nd trig
+int sdk_ti83(void){
+#ifdef FRANCAIS
+  return 1;
+#else
+  static signed char m=-1;
+  if (m<0){
+    const system_info_t * i=os_GetSystemInfo();
+    m=i && i->hardwareType==1;
+  }
+  return m;
+#endif
+}
 int getkey(int allow_suspend){
   sync_screen();
   display_time();//statusline(0);
@@ -249,12 +264,9 @@ int getkey(int allow_suspend){
       return Shift?KEY_CTRL_QUIT:KEY_CTRL_SETUP;
     case sk_Del:
       return Shift?KEY_CTRL_PASTE:KEY_CTRL_DEL;
-    case sk_GraphVar:
-#ifdef FRANCAIS
-      return Shift?KEY_CTRL_UNDO:KEY_CTRL_XTT;
-#else
+    case sk_GraphVar: // (TI-83 Premium CE: undo with 2nd too, as KhiCAS's 83 build)
+      if (sdk_ti83()) return Shift||Alpha?KEY_CTRL_UNDO:KEY_CTRL_XTT;
       return Alpha?KEY_CTRL_UNDO:(Shift?KEY_EQW_TEMPLATE:KEY_CTRL_XTT);
-#endif
     case sk_Stat:
       return Shift?KEY_CHAR_LIST:KEY_CTRL_STATS;
     case sk_Right:
@@ -302,25 +314,16 @@ int getkey(int allow_suspend){
     case sk_TglExact:
       //dbg_printf("tab\n");
       return Alpha?KEY_CHAR_D+decal:'\t';
-#ifdef FRANCAIS
-    case sk_Trig:
-      return Alpha?KEY_CHAR_E+decal:(Shift?KEY_CHAR_PI:KEY_CHAR_SIN);
-    case sk_Resol:
-      return Alpha?KEY_CHAR_F+decal:(Shift?KEY_CTRL_APPS:KEY_CTRL_SOLVE);
-    case sk_Frac:
-      return Alpha?KEY_CHAR_G+decal:KEY_EQW_TEMPLATE;
-    case sk_Power:
-      return Alpha?KEY_CHAR_H+decal:KEY_CHAR_POW;
-#else
-    case sk_Sin:
-      return Alpha?KEY_CHAR_E+decal:(Shift?KEY_CHAR_ASIN:KEY_CHAR_SIN);
-    case sk_Cos:
+    case sk_Sin: // (TI-83 Premium CE: trig, sin as KhiCAS's 83 build; 2nd: pi)
+      return Alpha?KEY_CHAR_E+decal:Shift?(sdk_ti83()?KEY_CHAR_PI:KEY_CHAR_ASIN):KEY_CHAR_SIN;
+    case sk_Cos: // (resol: the Solve commands; 2nd: apps, as the 84's apps key)
+      if (sdk_ti83()) return Alpha?KEY_CHAR_F+decal:(Shift?KEY_CHAR_MAT:KEY_CTRL_SOLVE);
       return Alpha?KEY_CHAR_F+decal:(Shift?KEY_CHAR_ACOS:KEY_CHAR_COS);
-    case sk_Tan:
+    case sk_Tan: // (frac: a fraction)
+      if (sdk_ti83()) return Alpha?KEY_CHAR_G+decal:KEY_CHAR_NDFRAC;
       return Alpha?KEY_CHAR_G+decal:(Shift?KEY_CHAR_ATAN:KEY_CHAR_TAN);
-    case sk_Power:
-      return Alpha?KEY_CHAR_H+decal:(Shift?KEY_CHAR_PI:KEY_CHAR_POW);
-#endif
+    case sk_Power: // (TI-83 Premium CE: pi is 2nd trig)
+      return Alpha?KEY_CHAR_H+decal:(Shift&&!sdk_ti83()?KEY_CHAR_PI:KEY_CHAR_POW);
     case sk_Square:
       return Alpha?KEY_CHAR_I+decal:Shift?KEY_CHAR_ROOT:KEY_CHAR_SQUARE;
     case sk_Comma:

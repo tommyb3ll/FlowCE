@@ -2907,6 +2907,12 @@ int Console_GetKey(){
       console_search("",0);
       return CONSOLE_SUCCEEDED;
     }
+#ifndef FLOWCE_KHICAS
+    if (focus_on && key==KEY_CTRL_SOLVE){ // (a TI-83 Premium CE's resol key: the solve commands, in the search)
+      console_search("solve",0);
+      return CONSOLE_SUCCEEDED;
+    }
+#endif
     //if (1){ char buf1[32],buf2[32]; sprint_double(buf1,key),sprint_double(buf2,KEY_CTRL_F7); confirm(buf1,buf2); }
     if (key==KEY_CHAR_MAT) key=KEY_CTRL_F10;
     if (key==KEY_CTRL_STATS) {
@@ -3045,6 +3051,15 @@ int Console_GetKey(){
     }
     if (focus_on && key==KEY_EQW_TEMPLATE) // the old equation editor: Focus edits in 2D inline
       continue;
+    if (key==KEY_CHAR_NDFRAC){ // a TI-83 Premium CE's frac key: a fraction, the caret in its numerator
+      if (Current_Line==Last_Line && Edit_Line && !Line[Last_Line].readonly){
+        Console_Input((const Char *)"()/()");
+        for (int k=0;k<4;++k)
+          Console_MoveCursor(CURSOR_LEFT);
+        Console_Disp(0);
+      }
+      continue;
+    }
 #if defined WITH_EQW && !focus_on
     if (key==KEY_EQW_TEMPLATE && Current_Line==Last_Line){
       char buf[std::max<size_t>(GEN_PRINT_BUFSIZE,strlen(Edit_Line)+1)];

@@ -171,6 +171,7 @@
 #define KEY_CTRL_SOLVE 31108
 #define KEY_CTRL_APPS 31104
 #define KEY_CTRL_SYMB 31105
+#define KEY_CHAR_NDFRAC 31110 // (a TI-83 Premium CE's frac key: a fraction, the caret in its numerator)
 //#define KEY_CTRL_NUM 31106
 //#define KEY_CTRL_PLOT 31107
 #define KEY_SELECT_LEFT       31200

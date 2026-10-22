@@ -46,6 +46,7 @@ extern "C" {
 #include <stdlib.h>
 
   int convertcolor(int c);
+  int sdk_ti83(void); // a TI-83 Premium CE (its keyboard)
   #define STANDALONE // don't use graphx and fileioc
   #define kb_Data (uint8_t)((volatile uint16_t*)0xF50010)
   #include "dbg.h"

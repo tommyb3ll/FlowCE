@@ -214,7 +214,7 @@ int doMenu(Menu* menu, MenuItemIcon* icontable) { // returns code telling what u
       continue;
     }
     if (key==KEY_CTRL_SOLVE) key=KEY_CHAR_COS;
-    if (key==KEY_EQW_TEMPLATE) key=KEY_CHAR_TAN;
+    if (key==KEY_EQW_TEMPLATE || key==KEY_CHAR_NDFRAC) key=KEY_CHAR_TAN;
     switch(key) {
     case KEY_CTRL_PAGEDOWN:
       menu->selection+=6;
