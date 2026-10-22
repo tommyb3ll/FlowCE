@@ -938,7 +938,12 @@ void get_time(int *h,int *m){
 }
 
 void display_time(){
-  if (focus_on) return;
+  if (focus_on){
+#ifdef FLOWCE_KHICAS
+    focus_status(); // (KhiCAS + Flow: the status line's clock current, at once after a wake too)
+#endif
+    return;
+  }
   const int h=rtc_Hours,m=rtc_Minutes;
   char msg[10];
   msg[0]=' ';
