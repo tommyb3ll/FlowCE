@@ -1605,6 +1605,9 @@ int focus_act_select(int k) {
 int focus_clear_hero() {
   if (!hero_last) return 0;
   hero_last = 0;
+#ifdef FLOWCE_KHICAS
+  return 0; // (KhiCAS + Flow: no answer shown large: CLEAR goes on at once, as in KhiCAS)
+#endif
   focus_disp(1);
   return 1;
 }
