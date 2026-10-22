@@ -1084,11 +1084,15 @@ static void spaced_text(const ui_face * f, const char * s, int x, int base, cons
   for (; *s; ++s) x += ui_draw_glyph(f, (unsigned char)*s, x, base, rp, 0) + sp;
 }
 
-// battery level 0-4: boot_GetBatteryStatus takes about 150 ms, so it is read at startup and
-// when the calculator has been idle for a few seconds (focus_idle), never while keys are handled
-static int battery_lv = 4;
+// battery level 0-4: boot_GetBatteryStatus takes about 150 ms, during which a key is not seen, so it
+// is read at startup, then when the calculator has been idle for a few seconds (focus_idle) at most
+// once a minute (every few seconds, a quick key pressed then was lost), never while keys are handled
+static int battery_lv = 4, battery_min = -1;
 static void read_battery() {
 #ifdef TICE
+  const int m = rtc_Minutes;
+  if (m == battery_min) return;
+  battery_min = m;
   battery_lv = boot_GetBatteryStatus();
 #endif
 }
