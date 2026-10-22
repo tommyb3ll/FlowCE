@@ -644,13 +644,13 @@ void focus_splash_clear() {
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 }
 // the start screen: FlowCE written letter by letter over a curve drawn left to right, then held
-// (about 1 s in all, once per start; any key skips it and is not typed); first (no saved
-// session): three tips and "press any key" (the caller reads it)
+// (about 1 s in all, once per start; any key skips it and is not typed); first 1 (no saved
+// session): three tips and "press any key" (the caller reads it); 2: played again (turned on)
 void focus_splash(int first) {
   static bool animated;
   const int y = 100;
   ui_noclip();
-  if (first && animated) { // (no session: the screen drawn stays, its key line under it; drawn
+  if (first == 1 && animated) { // (no session: the screen drawn stays, its key line under it; drawn
     const char * go = "press any key"; // again, it flickered and the name moved)
     ui_fill(0, 0, UI_W, ST, ui_col(0, UC_BG)); // (the loader's status line gone)
     ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
@@ -666,7 +666,7 @@ void focus_splash(int first) {
   const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2;
   static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
   const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
-  int skip = animated, drawn = 0;
+  int skip = animated && first != 2, drawn = 0;
   animated = true;
   for (int f = 1; f <= 12; ++f) {
     const int k = f < 6 ? f : 6, p = f == 12 ? np : f * np / 12;
@@ -680,7 +680,7 @@ void focus_splash(int first) {
   }
   const char * tag = "calculus on your TI-84 Plus CE";
   ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
-  if (first) { // (the console shows its keys once past this screen)
+  if (first == 1) { // (the console shows its keys once past this screen)
     const char * go = "press any key";
     ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
   }

@@ -9,13 +9,14 @@ extern "C" {
 #endif
 #define focus_on 1 // the console is drawn by focus.cc (a constant: the classic screen's paths compile away)
 #ifdef FLOWCE_STEPS
-#define FLOWCE_VERSION "2.2.1" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
+#define FLOWCE_VERSION "2.2.2" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
 #else
 #define FLOWCE_VERSION "1.9.1" // in the status bar and on the start screen: bump it at each release
 #endif
 void focus_status(void);                // status bar (statusline / statusflags in focus mode)
 void focus_status_msg(const char * msg); // a message in the status bar ("computing...")
 void focus_idle(void); // getkey, idle for a few seconds: slow refreshes (battery)
+void focus_wake(void); // getkey, turned on after 2nd ON at the console: the start screen again
 void focus_warm(void); // getkey at the console, idle: the menus' previews laid out ahead (focus_menu.cc)
 extern volatile char getkey_console; // k_csdk.c: set while the console itself waits for a key
 #ifdef __cplusplus

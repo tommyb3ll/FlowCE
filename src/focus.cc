@@ -1225,6 +1225,16 @@ extern "C" void focus_idle(void) { // getkey, after a few idle seconds
   read_battery();
   status_draw(0);
 }
+// turned on after 2nd ON at the console's key wait (getkey; not after the idle power-off, nor in a
+// menu or a view): the start screen played again, then the console drawn whole
+extern "C" void focus_wake(void) {
+  if (!focus_on) return;
+  focus_splash(2);
+  focus_splash_clear();
+  focus_invalidate();
+  bar_keyflag = GetSetupSetting(0x14); // (2nd ON left the 2nd layer up: the keys as they are now)
+  focus_disp(0);
+}
 void focus_evaluated() { hero_last = 1; act_sel = -1; }
 // (DeltaCE) the action row's selection: the action selected (-1: none, the row's count: "more"),
 // -1 without a row; select k (-1: none) and repaint the row and the steps chip; 0: no row shown
