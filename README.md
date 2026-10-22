@@ -38,6 +38,8 @@ pick one, click Install, and follow the short calculator prompts.
 
 ## What's new
 
+- **2.3:** the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).
+- **KhiCAS + Flow 1.1:** KhiCAS's 1D command line in color (`mode` → 2D history off), the normal line and the osculating circle, the TI-83 Premium CE's keys.
 - **KhiCAS + Flow 1.0** replaces FlowCE Python: Bernard Parisse's KhiCAS as he arranged it (his menus, keys, catalog, 2D editor, spreadsheet, programs and debugger), in FlowCE's look and at its speed.
 - **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE (2.2.1: a clean start screen).
 - **2.1:** faster: menus open in about half the time, everyday problems answer 25 to 45% sooner.
@@ -113,7 +115,7 @@ with what you typed, or post on the [Cemetech thread](https://www.cemetech.net/f
   `enter` shows the whole setup and the integral, step by step.
 - **A real graph screen.** Arrows pan and `+` `−` zoom; trace along the curve; the key points
   (zeros, extrema, inflections) marked and labeled, exact when you jump to one; a table; tangent
-  lines, areas, max and min on an interval. Equations in x and y (circles, ellipses), parametric
+  and normal lines and the osculating circle, areas, max and min on an interval. Equations in x and y (circles, ellipses), parametric
   and polar curves, slope fields.
 - **Nine themes.** Paper, Night, Sand, Mint, Arctic, Ember, Rose, Grape and Forest. *more* →
   Themes shows each one on the whole screen as you move to it.
@@ -241,7 +243,8 @@ KhiCAS's screens, drawn in FlowCE's look: its F-key menus rise from the key as n
 2D editor is a panel at the bottom with the line as typed under it (the caret and a selection in
 both), the history reads like KhiCAS's, and the catalog, the spreadsheet, the periodic table and
 the program debugger keep KhiCAS's keys. `mode` → Shortcuts lists them; `mode` → *Arrows by
-character* makes left and right step through the typed line instead of the 2D.
+character* makes left and right step through the typed line instead of the 2D; `mode` → *2D history*
+off gives KhiCAS's command line, the input and the history as text in KhiCAS's colors.
 
 | | |
 |:-:|:-:|
@@ -301,11 +304,11 @@ rules (some tests, like the ACT, don't allow one).
 
 ## Building
 
-FlowCE 2.2.1 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
-plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac` submodule).
-`tools/dev/build.sh en-steps-v15` builds it in WSL from the working tree (`APPLANG=en STEPS=1`;
+FlowCE 2.3 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain)'s nightly
+release (2.2.4 and earlier: v15) plus `g++` and `python3`. Clone with `--recursive` (the engine is the
+`src/giac` submodule). `tools/dev/build.sh en-steps-v15-nightly` builds it in WSL from the working tree (`APPLANG=en STEPS=1`;
 `tools/dev/wsl_build_v15.sh` links the app and cuts it into the AppIns appvars installed by the
-INST program). KhiCAS + Flow builds with `tools/dev/build.sh en-khicas-v15` (`APPLANG=en KHICAS=1`).
+INST program). KhiCAS + Flow builds with `tools/dev/build.sh en-khicas-v15-nightly` (`APPLANG=en KHICAS=1`).
 FlowCE Python 1.9.1 is the `v1.9.1-rc1` tag, built with CEdev v14.2 and `./mkappen`. `tools/emu/` drives the CEmu emulator for the regression tests, the screenshots and
 the GIFs above, and `tests/host/` holds host tests of the editor and the 2D layout.
 
