@@ -28,7 +28,7 @@ pick a version, click Install, and follow the short calculator prompts.
 
 ## What's new
 
-- **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE.
+- **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE (2.2.1: a clean start screen).
 - **2.1:** faster: menus open in about half the time, everyday problems answer 25 to 45% sooner.
 - **2.0:** steps for algebra, Calculus → Applications, a real graph screen, nine themes, and more:
 
@@ -70,7 +70,7 @@ pick a version, click Install, and follow the short calculator prompts.
 
 ## Two versions
 
-| | **FlowCE** 2.2 | **FlowCE Python** 1.9.1 |
+| | **FlowCE** 2.2.1 | **FlowCE Python** 1.9.1 |
 |---|---|---|
 | Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
 | Graphs | the graph screen: key points, pan and zoom, conics, parametric, polar, slope fields | the classic graph, trace, table |
@@ -240,7 +240,7 @@ rules (some tests, like the ACT, don't allow one).
 
 ## Building
 
-FlowCE 2.2 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
+FlowCE 2.2.1 builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) v15
 plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac` submodule).
 `tools/dev/build.sh en-steps-v15` builds it in WSL from the working tree (`APPLANG=en STEPS=1`;
 `tools/dev/wsl_build_v15.sh` links the app and cuts it into the AppIns appvars installed by the
