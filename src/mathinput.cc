@@ -743,10 +743,15 @@ static void cons(int n, int x, int y, int sm) {
     cw = t + 2 + A.w;
   } break;
   case K_SER: { // series(f,x,a,n), as lim: column "taylor" over "x->a deg n" (small); then f
-    int bx, bb, tw = lw("taylor", 6, sm), aw = lw("", 1, 1), dw = lw(" deg ", 5, 1);
+#ifdef FLOWCE_KHICAS
+    static const char ser[] = "series"; // (KhiCAS + Flow: as KhiCAS labels it)
+#else
+    static const char ser[] = "taylor";
+#endif
+    int bx, bb, tw = lw(ser, 6, sm), aw = lw("", 1, 1), dw = lw(" deg ", 5, 1);
     u = B.w + aw + C.w + dw + D.w; v = mx(sf.asc, mx(B.as, mx(C.as, D.as)));
     t = mx(tw, u);
-    dtext("taylor", 6, sm, (t - tw) / 2, 0);
+    dtext(ser, 6, sm, (t - tw) / 2, 0);
     bx = (t - u) / 2; bb = f.desc + 1 + v;
     sl(1, bx, bb, 1);
     dtext("", 1, 1, bx + B.w, bb);
@@ -812,7 +817,8 @@ static void measure(int n, int sm) {
   } else if (k == K_EMPTY) {
     const char * s;
     int l = (d.f & F_LABEL) && !sm ? label(n, &s) : 0; // a name: in the small font, 3 px in
-    d.w = (d.f & F_NOBOX) ? 0 : l ? (M->wf ? M->wf(s, l, 1, MI_IT) : l * M->small.adv) + 8 : f.adv;
+    d.w = (d.f & F_NOBOX) ? (d.a > 0 && (ch(d.a - 1) == '[' || ch(d.a - 1) == '{') ? f.adv / 3 : 0) // ([]: a gap, not a box)
+          : l ? (M->wf ? M->wf(s, l, 1, MI_IT) : l * M->small.adv) + 8 : f.adv;
   }
   else if (k <= K_CALL) { // row, group, call: items side by side, delimiters as tall as the content
     c = d.kid; w = 0;
