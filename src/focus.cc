@@ -40,6 +40,12 @@ const char * console_fkey_label(int layer, int k); // console.cc: F-key label (l
 // timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
 extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
+bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
+#ifdef FLOWCE_KHICAS
+#define HIST2D focus_hist2d
+#else
+#define HIST2D 1
+#endif
 
 #ifdef FLOWCE_TILOOK
 // the TI-84 look: the OS's status bar (30 rows), quiet F-key labels (13); one text size, the large
@@ -207,12 +213,14 @@ static void scan() {
   for (int k = 0; k < NE; ++k) { // geometry
     fent & e = E[k];
     e.inh = 0; e.outh = 0; e.msgs = 0;
-    if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY); e.inh = c.a + c.d; }
+    if (e.in >= 0 && !HIST2D) e.inh = 16; // (a text line)
+    else if (e.in >= 0) { fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY); e.inh = c.a + c.d; }
     for (int l = e.m0; l >= 0 && l < e.out; ++l)
       if (Line[l].type != LINE_TYPE_CONT && e.msgs < 2) ++e.msgs;
     if (e.out >= 0) {
       const char * s = shown(Line[e.out].str);
-      if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
+      if (!HIST2D) e.outh = 16;
+      else if (is_text(s)) e.outh = SB == 30 ? 16 : 13; // (TI look: the large font)
       else { fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT); e.outh = c.a + c.d; }
     }
 #ifdef FLOWCE_TILOOK
@@ -305,8 +313,11 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
   int bg = sel ? UC_ACCSOFT : UC_BG;
   if (sel) ui_rrect(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACCSOFT, UC_BG);
   int b = y + 7;
-  if (e.in >= 0) {
-    fitc c = fitted(Line[e.in].str, IN_LV, W_IN, 34, MI_F_TIDY);
+  if (e.in >= 0 && !HIST2D) { // KhiCAS's text history: the line as typed
+    ui_text(&ui_tr12, Line[e.in].str, 12, b + 12, sel && !selout ? UC_ACC : UC_SUB, bg, 0);
+    b += e.inh;
+  } else if (e.in >= 0) {
+    fitc c = fitted(Line[e.in].str, IN_LV, W_IN, IN_MAXH, MI_F_TIDY);
     draw_math(Line[e.in].str, c, 12, b + c.a, sel && !selout ? UC_ACC : UC_SUB, bg, MI_F_TIDY);
     b += e.inh;
   }
@@ -319,8 +330,11 @@ static __attribute__((noinline)) void draw_entry(const fent & e, int y, int sel,
     }
   if (e.out >= 0) {
     const char * s = shown(Line[e.out].str);
-    int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
-    draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
+    if (!HIST2D) ui_text(&ui_tr12, s, UI_W - 12, b + 12, sel && selout ? UC_ACC : UC_INK, bg, 2); // (as giac prints it)
+    else {
+      int a = is_text(s) ? 11 : fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT).a;
+      draw_result(e, UI_W - 12, b + a, sel && selout ? UC_ACC : UC_INK, bg);
+    }
   }
   if (sel) ui_rframe(0, 5, y + 2, UI_W - 10, e.h - 4, 7, UC_ACC, UC_BG);
   else ui_fill(12, y + e.h - 1, UI_W - 24, 1, col(UC_LINE));

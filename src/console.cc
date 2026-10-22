@@ -884,8 +884,13 @@ bool answer_simplify(); // answer.cc: Simplify answers (giac's autosimplify, kep
 void answer_set_simplify(bool on);
 void menu_setup(){
   //drawRectangle(0, 18, LCD_WIDTH_PX, LCD_HEIGHT_PX-18, SDK_WHITE);
+#ifdef FLOWCE_KHICAS
+  enum { H = 1 }; // KhiCAS's "2D history" checkbox, second
+#else
+  enum { H = 0 };
+#endif
   Menu smallmenu;
-  smallmenu.numitems=6;
+  smallmenu.numitems=6+H;
   MenuItem smallmenuitems[smallmenu.numitems];
   smallmenu.items=smallmenuitems;
   smallmenu.height=6;
@@ -897,13 +902,18 @@ void menu_setup(){
   // off: an answer stays as giac gives it (B. Parisse: to store a result with sto as it is)
   smallmenuitems[0].type = MENUITEM_CHECKBOX;
   smallmenuitems[0].text = (char*)(lang?"Simplifier":"Simplify answers");
-  smallmenuitems[1].text = (char*)(lang?"Mise a l'heure":"Set time");
-  smallmenuitems[2].text = (char*)(lang?"Effacer variables":"Clear variables");
-  smallmenuitems[3].text = (char *) (lang?"Raccourcis":"Shortcuts");
-  smallmenuitems[4].text = (char*) (lang?"A propos":"About");
-  smallmenuitems[5].text = (char*) "Quit";
+  if (H){
+    smallmenuitems[1].type = MENUITEM_CHECKBOX;
+    smallmenuitems[1].text = (char*)(lang?"Historique 2D":"2D history");
+  }
+  smallmenuitems[1+H].text = (char*)(lang?"Mise a l'heure":"Set time");
+  smallmenuitems[2+H].text = (char*)(lang?"Effacer variables":"Clear variables");
+  smallmenuitems[3+H].text = (char *) (lang?"Raccourcis":"Shortcuts");
+  smallmenuitems[4+H].text = (char*) (lang?"A propos":"About");
+  smallmenuitems[5+H].text = (char*) "Quit";
   while(1) {
     smallmenuitems[0].value = answer_simplify();
+    if (H) smallmenuitems[1].value = focus_hist2d;
     const int sres = doMenu(&smallmenu);
     if (sres==MENU_RETURN_EXIT)
       break;
@@ -912,7 +922,11 @@ void menu_setup(){
         answer_set_simplify(!answer_simplify());
         continue;
       }
-      if (smallmenu.selection==2){
+      if (H && smallmenu.selection==2){ // the history drawn again, in 2D or as text
+        focus_hist2d=!focus_hist2d; // (the console is drawn again when the menu closes)
+        continue;
+      }
+      if (smallmenu.selection==2+H){
 	int h,m; get_time(&h,&m);
 	double d=h+m/100.;
 	char buf[64]="Format HH.mm ";
@@ -924,14 +938,14 @@ void menu_setup(){
 	  //break;
 	}
       }
-      if (smallmenu.selection==3 && confirm_overwrite()){
+      if (smallmenu.selection==3+H && confirm_overwrite()){
         run("restart");
         //break;
       }
-      if (smallmenu.selection==6)
+      if (smallmenu.selection==6+H)
 	break;
-      if (smallmenu.selection>=4 && focus_on){ // Shortcuts, About
-        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==4?shortcuts_string:apropos_string);
+      if (smallmenu.selection>=4+H && focus_on){ // Shortcuts, About
+        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==4+H?shortcuts_string:apropos_string);
         Console_Disp(1);
         continue;
       }
