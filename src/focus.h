@@ -19,9 +19,9 @@ extern "C" {
 #define FOCUS_CONSOLE 1 // the console's layout: the history from the top, the edit line under it, no answer shown large
 #endif
 #ifdef FLOWCE_STEPS
-#define FLOWCE_VERSION "2.2.4" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
+#define FLOWCE_VERSION "2.3" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
 #elif defined FLOWCE_KHICAS
-#define FLOWCE_VERSION "1.0" // KhiCAS + Flow: KhiCAS arranged as Bernard Parisse made it, in FlowCE's look (its own line; it replaces FlowCE Python)
+#define FLOWCE_VERSION "1.1" // KhiCAS + Flow: KhiCAS arranged as Bernard Parisse made it, in FlowCE's look (its own line; it replaces FlowCE Python)
 #else
 #define FLOWCE_VERSION "1.9.1" // in the status bar and on the start screen: bump it at each release
 #endif
