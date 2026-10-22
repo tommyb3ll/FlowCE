@@ -65,6 +65,7 @@ static const int STATUS_AREA_PX=18;
 //cursorImage		equ 0E30800h ; 1020 bytes
 #include "k_csdk.h"
 #include "focus.h"
+#include "ui_gfx.h"
 #include <ti/getkey.h>
 #include <ti/getcsc.h>
 #include <ti/screen.h>
@@ -742,6 +743,12 @@ int c_rgb565to888(int c){
 int convertcolor(int c){
   // convert 16 bits to default palette
   c &= 0xffff;
+#ifdef FLOWCE_KHICAS
+  // KhiCAS's highlights (COLOR_SELECTED, color_gris: light grays) fell on the cube's pink (255,219,255),
+  // its spreadsheet's key legend (65039) on orange: in the KhiCAS-like build, FlowCE's soft accent
+  if (c==52857 || c==57083 || c==65039)
+    return ui_col(0,UC_ACCSOFT);
+#endif
   const int r=(c>>11)&0x1f,g=(c>>5)&0x3f,b=c&0x1f;
   const int R = ((r>>3)<<5) | ((g>>3)<<2) | (b>>3);
   //dbg_printf("convertcolor rgb565=%x r=%i/32 g=%i/64 b=%i/32 to rgb232=%i palette[]=%x\n",c,r,g,b,R,lcd_Palette[R]);
