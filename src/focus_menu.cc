@@ -102,7 +102,11 @@ static const fm_item m_math[] = {
 #endif
 #define N(a) (char)(sizeof(a) / sizeof(a[0]))
 #ifdef FLOWCE_STEPS
+#ifdef FLOWCE_TILOOK
+static const fm_menu M_APPS = {0, 1, N(m_apps), m_apps}; // (a list, as the OS's menus)
+#else
 static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
+#endif
 #define CALC_MENU {2, 3, N(m_calc), m_calc, 1}
 #else
 #define CALC_MENU {2, 2, N(m_calc), m_calc}
@@ -1153,7 +1157,7 @@ static void af_layout(const char * sp, int i, int caret) {
 static void af_band(int b, int e, int all) {
   const int k = af_k, sel = af_sel;
   const char * sp = AF_SPEC[k];
-  const int n = strlen(sp), fx = px + 100, fw = pw - 110, hy = py + ph - AF_BOT;
+  const int n = strlen(sp), fx = px + (IN == 2 ? 124 : 100), fw = pw - (IN == 2 ? 134 : 110), hy = py + ph - AF_BOT; // (TI look: wider letters)
   if (e <= py) return;
   if (all) { // the card, the application's name
     card_bg();
