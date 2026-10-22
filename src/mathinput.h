@@ -71,6 +71,10 @@ int mi_move(const char * s, int len, int caret, int dir, const mi_metrics & m);
 // KhiCAS + Flow's selection: [*a,*b) set to the part of s at the caret (dir -1), the part around it
 // (0), its first part (1), the part before (2) or after (3); 0 when there is none
 int mi_select(const char * s, int len, int * a, int * b, int dir, const mi_metrics & m);
+// KhiCAS + Flow: the matrix grid whose cell holds the caret: its rows (*nr) and cells (*nc), the
+// caret's *row and *col, at[i] the end of row i's cell *col (at: 8 ints), *rend the position after
+// the caret's row; 0 when the caret is in no matrix's cell
+int mi_grid_cell(const char * s, int len, int caret, int * row, int * col, int * nr, int * nc, int * at, int * rend, const mi_metrics & m);
 
 struct mi_template { const char * text; short caret; }; // caret offset inside text after insertion
 enum { MI_T_FRAC, MI_T_DIV, MI_T_POW, MI_T_SQ, MI_T_SQRT, MI_T_NROOT, MI_T_ABS, MI_T_INT,

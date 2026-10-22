@@ -2888,6 +2888,36 @@ int Console_GetKey(){
          key==KEY_CHAR_SQUARE || key==KEY_CHAR_RECIP || key==KEY_CHAR_STORE))
       Console_Input((const Char *)"ans()");
 #endif
+#ifdef FLOWCE_KHICAS
+    if ((key==KEY_CHAR_COMMA || key==KEY_CHAR_CR) && console_input2d() && Current_Line==Last_Line && Edit_Line){
+      // KhiCAS's editor in a matrix: a comma adds a column after the caret's cell, in every row; 2nd
+      // enter a row after the caret's, its cells empty
+      int row,col,nr,nc,at[8],rend;
+      const int l=strlen((const char *)Edit_Line);
+      if (mi_grid_cell((const char *)Edit_Line,l,Current_Col,&row,&col,&nr,&nc,at,&rend,edit_metrics())){
+        if (key==KEY_CHAR_COMMA && nc<8 && l+nr<EDIT_LINE_MAX-1){
+          for (int i=nr-1;i>=0;--i){
+            console_set_caret(at[i]);
+            Console_Input((const Char *)",");
+          }
+          console_set_caret(at[row]+row+1);
+          Console_Disp(0);
+          continue;
+        }
+        if (key==KEY_CHAR_CR && nr<8 && l+nc+3<EDIT_LINE_MAX-1){
+          char buf[24]=",[";
+          for (int j=1;j<nc;++j)
+            strcat(buf,",");
+          strcat(buf,"]");
+          console_set_caret(rend);
+          Console_Input((const Char *)buf);
+          console_set_caret(rend+2);
+          Console_Disp(0);
+          continue;
+        }
+      }
+    }
+#endif
     if (console_input2d()){
       int mk=0;
       if (key==KEY_CHAR_DIV || key==KEY_CHAR_LPAR || key==KEY_CHAR_RPAR || key==KEY_CHAR_COMMA ||

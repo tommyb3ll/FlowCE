@@ -794,6 +794,9 @@ static int rd;
 static int kindof(int n) { return rd > RMAX ? (int)K_FLAT : (int)T[n].k; }
 static int corec(int n, int k) { return k == K_FLAT ? T[n].a : T[n].c; }
 
+#ifdef FLOWCE_KHICAS
+static int grid_measure(int n, int sm);
+#endif
 static void measure(int n, int sm) {
   mi_node & d = T[n];
   const mi_font & f = fnt(sm);
@@ -820,6 +823,9 @@ static void measure(int n, int sm) {
     d.w = (d.f & F_NOBOX) ? (d.a > 0 && (ch(d.a - 1) == '[' || ch(d.a - 1) == '{') ? f.adv / 3 : 0) // ([]: a gap, not a box)
           : l ? (M->wf ? M->wf(s, l, 1, MI_IT) : l * M->small.adv) + 8 : f.adv;
   }
+#ifdef FLOWCE_KHICAS
+  else if (k == K_GROUP && grid_measure(n, sm)) ; // (KhiCAS + Flow: a matrix as a grid)
+#endif
   else if (k <= K_CALL) { // row, group, call: items side by side, delimiters as tall as the content
     c = d.kid; w = 0;
     if (k == K_CALL) { measure(c, sm); w = T[c].w; c = T[c].nx; }
@@ -917,6 +923,101 @@ static void P(int p, int x, int y, int sm, int d) {
 // ---------------------------------------------------------------- place
 // Draws node n at (x, baseline y); emits positions (a,b] (a itself belongs to the caller,
 // a construct may re-claim it from a deeper slot). dp: slot depth.
+#ifdef FLOWCE_KHICAS
+// KhiCAS + Flow: a matrix typed [[a,b],[c,d]] (2 to GMAX rows of the same 1 to GMAX cells, all its
+// brackets closed) drawn as KhiCAS's editor draws it, a grid in tall brackets, the cells centered in
+// their columns; a cell: the nodes between two separators of its row. Its brackets and commas are
+// not drawn: their positions are the cell's edge before them (the caret steps cell to cell).
+// mgrid: its rows (0: not a matrix), rw: their groups, nc: the cells of a row
+enum { GMAX = 8, GPAD = 2, GGAP = 3 };
+static int is_comma(int e) { return T[e].k == K_SEP && S[T[e].c] == ','; }
+static int row_first(int g) { return T[T[g].kid].k == K_ROW ? T[T[g].kid].kid : T[g].kid; }
+static int mgrid(int n, int * rw, int * nc) {
+  const mi_node & d = T[n];
+  if (S[d.c] != '[' || !(d.f & F_CLOSED) || (d.f & F_HID)) return 0;
+  int r = 0, c0 = 0, want = 1; // want: a row next, else a separator
+  for (int q = row_first(n); q; q = T[q].nx, want = !want) {
+    if (!want) { if (!is_comma(q)) return 0; continue; }
+    const mi_node & g = T[q];
+    if (g.k != K_GROUP || S[g.c] != '[' || !(g.f & F_CLOSED) || r == GMAX || (T[g.kid].f & F_NOBOX)) return 0;
+    int c = 1;
+    for (int e = row_first(q); e; e = T[e].nx) c += is_comma(e);
+    if (c > GMAX || (r && c != c0)) return 0;
+    c0 = c; rw[r++] = q;
+  }
+  if (want || r < 2) return 0; // (it ends with a separator; one row: a list)
+  *nc = c0;
+  return r;
+}
+// the columns' widths, the rows' ascents and descents, from the measured cells
+static void grid_geo(const int * rw, int nr, int nc, short * cw, short * ra, short * rds) {
+  for (int j = 0; j < nc; ++j) cw[j] = 0;
+  for (int i = 0; i < nr; ++i) {
+    int j = 0, w = 0;
+    ra[i] = rds[i] = 0;
+    for (int e = row_first(rw[i]); ; e = T[e].nx) {
+      if (!e || is_comma(e)) { if (w > cw[j]) cw[j] = (short)w; w = 0; ++j; if (!e) break; continue; }
+      w += T[e].w + (T[e].f & F_IMPL ? 1 : 0);
+      if (T[e].as > ra[i]) ra[i] = T[e].as;
+      if (T[e].ds > rds[i]) rds[i] = T[e].ds;
+    }
+  }
+}
+static int grid_measure(int n, int sm) {
+  int rw[GMAX], nc, nr = mgrid(n, rw, &nc);
+  if (!nr) return 0;
+  for (int i = 0; i < nr; ++i)
+    for (int e = row_first(rw[i]); e; e = T[e].nx)
+      if (!is_comma(e)) measure(e, sm);
+  short cw[GMAX], ra[GMAX], rds[GMAX];
+  grid_geo(rw, nr, nc, cw, ra, rds);
+  const mi_font & f = fnt(sm);
+  int w = 2 * (f.adv / 2 + 1 + GPAD), h = 0;
+  for (int j = 0; j < nc; ++j) w += cw[j] + (j ? f.adv : 0);
+  for (int i = 0; i < nr; ++i) h += ra[i] + rds[i] + (i ? GGAP : 0);
+  mi_node & d = T[n];
+  d.w = (short)w; d.as = (short)(h / 2 + f.asc / 3); d.ds = (short)mx(h - d.as, f.desc); // (centered on the axis)
+  return 1;
+}
+static void place(int n, int x, int y, int dp, int sm);
+static int grid_place(int n, int x, int y, int dp, int sm) {
+  int rw[GMAX], nc, nr = mgrid(n, rw, &nc);
+  if (!nr) return 0;
+  const mi_node & d = T[n];
+  const mi_font & f = fnt(sm);
+  short cw[GMAX], ra[GMAX], rds[GMAX];
+  grid_geo(rw, nr, nc, cw, ra, rds);
+  const int bw = f.adv / 2 + 1, top = y - d.as, h = d.as + d.ds;
+  op(MI_LBRACKET, sm, x, top, bw, h, d.c, 1, 0);
+  op(MI_RBRACKET, sm, x + d.w - bw, top, bw, h, d.b - 1, 1, 0);
+  push(n);
+  int p = d.a, yy = top; // p: the last position emitted (d.a: the caller's)
+  for (int i = 0; i < nr; ++i) {
+    yy += (i ? GGAP : 0) + ra[i]; // row i's baseline
+    int xx = x + bw + GPAD;
+    for (int e = row_first(rw[i]), j = 0; ; ++j) {
+      int w = 0, q;
+      for (q = e; q && !is_comma(q); q = T[q].nx) w += T[q].w + (T[q].f & F_IMPL ? 1 : 0);
+      int cx = xx + (cw[j] - w) / 2;
+      alias(p + 1, T[e].a); // (brackets, commas: as the edge before them)
+      P(T[e].a, cx, yy, sm, dp + 1);
+      for (q = e; q && !is_comma(q); q = T[q].nx) {
+        if (T[q].f & F_IMPL) ++cx;
+        place(q, cx, yy, dp + 1, sm);
+        cx += T[q].w; p = T[q].b;
+      }
+      xx += cw[j] + f.adv;
+      if (!q) break;
+      e = T[q].nx;
+    }
+    yy += rds[i];
+  }
+  alias(p + 1, d.b);
+  pop();
+  P(d.b, x + d.w, y, sm, dp);
+  return 1;
+}
+#endif
 static void place(int n, int x, int y, int dp, int sm) {
   const mi_node & d = T[n];
   const mi_font & f = fnt(sm);
@@ -959,6 +1060,9 @@ static void place(int n, int x, int y, int dp, int sm) {
       op(MI_BOX, sm, x + 1, top, d.w - 2, bh, d.a, 0, 0);
       op(MI_HINT, 1, x + 4, top + (bh - g.asc - g.desc) / 2 + g.asc, d.w - 8, g.asc + g.desc, d.a, l, s, MI_IT);
     } else if (!(d.f & F_NOBOX)) op(MI_BOX, sm, x + 1, y - f.asc + 2, f.adv - 2, f.asc - 2, d.a, 0, 0);
+#ifdef FLOWCE_KHICAS
+  } else if (k == K_GROUP && grid_place(n, x, y, dp, sm)) { // (KhiCAS + Flow: a matrix as a grid)
+#endif
   } else if (k <= K_CALL) { // row, visible group, call
     int vis = k != K_ROW && !(d.f & F_HID), code = MI_LPAREN, last;
     c = d.kid; p = d.a;
@@ -1027,6 +1131,34 @@ static int sel_find(int n, int a, int b, int * path, int d) {
   for (int c = T[n].kid; c; c = T[c].nx)
     if (T[c].a <= a && b <= T[c].b && T[c].b > T[c].c && d < 31) return sel_find(c, a, b, path, d + 1);
   return d;
+}
+// the matrix grid whose cell holds the caret (the innermost): its rows, *row and *col the caret's,
+// at[i] the end of row i's cell *col (a new column's comma goes there), *rend the position after the
+// caret's row's ']'
+int mi_grid_cell(const char * s, int len, int caret, int * row, int * col, int * nr, int * nc, int * at, int * rend, const mi_metrics & m) {
+  if (!prep(s, len, m)) return 0;
+  int best = 0, rw[GMAX], n, r = 0, c = 0;
+  for (n = 1; n < nn; ++n)
+    if (T[n].k == K_GROUP && T[n].a < caret && caret < T[n].b && (!best || T[n].b - T[n].a < T[best].b - T[best].a) && mgrid(n, rw, &c)) best = n;
+  if (!best || !(r = mgrid(best, rw, &c))) return 0;
+  *row = -1;
+  for (int i = 0; i < r; ++i)
+    if (T[rw[i]].a < caret && caret < T[rw[i]].b) {
+      *row = i; *col = 0; *rend = T[rw[i]].b;
+      for (int e = row_first(rw[i]); e; e = T[e].nx)
+        if (is_comma(e) && T[e].a < caret) ++*col;
+    }
+  if (*row < 0) return 0;
+  for (n = 1; n < nn; ++n) // (in a call, a group or a construct inside the cell: its own comma)
+    if (T[n].k >= K_GROUP && T[rw[*row]].a < T[n].a && T[n].a < caret && caret < T[n].b) return 0;
+  for (int i = 0; i < r; ++i) {
+    int j = 0;
+    at[i] = T[rw[i]].b - 1; // (its ']': after its last cell)
+    for (int e = row_first(rw[i]); e; e = T[e].nx)
+      if (is_comma(e) && j++ == *col) { at[i] = T[e].a; break; }
+  }
+  *nr = r; *nc = c;
+  return 1;
 }
 int mi_select(const char * s, int len, int * a, int * b, int dir, const mi_metrics & m) {
   const int r = prep(s, len, m);
