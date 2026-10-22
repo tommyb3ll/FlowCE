@@ -124,6 +124,10 @@ CPP_EXTENSION = cc
 APP_NAME = FlowCE
 APP_VERSION = 5.0.0.0000
 DESCRIPTION = FlowCE - calculus CAS - GNU GPL
+ifeq ($(KHICAS),1) # (KhiCAS + Flow: its own name in the APPS menu; the v15 packer's too)
+APP_NAME = KhiFlow
+DESCRIPTION = KhiCAS + Flow - CAS - GNU GPL
+endif
 
 EXTRA_LDFLAGS = -e 9999
 ALLOCATOR = CUSTOM

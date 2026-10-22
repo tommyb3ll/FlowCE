@@ -6,10 +6,12 @@
 # a footer (0x104), the whole ending at 0x3AFFFD in flash. With GNU ld the code is linked at its
 # final address directly (no relocation table); the toolchain's crt0 (HAS_APPLICATION) copies
 # .data itself, so the OS copies no data (size 0).
-import struct, sys
+import os, struct, sys
 
-NAME, VERSION = b'FlowCE', b'5.0.0.0000'
-INFO = b'FlowCE - calculus CAS - GNU GPL\0'
+# the name in the APPS menu (8 letters at most) and the description: the build's (KhiCAS + Flow's:
+# tools/dev/wsl_build_v15.sh), else FlowCE's
+NAME, VERSION = os.environ.get('APP_NAME', 'FlowCE').encode()[:8], b'5.0.0.0000'
+INFO = os.environ.get('APP_INFO', 'FlowCE - calculus CAS - GNU GPL').encode() + b'\0'
 END = 0x3AFFFD
 FOOTER = b'\x02\x3e\x01\x00' + b'\xff' * 256
 HDR = 0x12a

@@ -30,7 +30,7 @@ case "$VARIANT" in
   en-steps-v15) ARGS="APPLANG=en STEPS=1" ;;
   en-units-v15) ARGS="APPLANG=en UNITS=1" ;;
   en-steps-tilook-v15) ARGS="APPLANG=en STEPS=1 TILOOK=1" ;;
-  en-khicas-v15) ARGS="APPLANG=en KHICAS=1" ;;
+  en-khicas-v15) ARGS="APPLANG=en KHICAS=1"; export APP_NAME=KhiFlow APP_INFO="KhiCAS + Flow - CAS - GNU GPL" ;; # (its own name in APPS)
   *) echo "unknown variant $VARIANT"; exit 2 ;;
 esac
 if [ "$(cat obj/.variant 2>/dev/null)" != "$VARIANT" ]; then rm -rf obj bin; mkdir -p obj; echo "$VARIANT" > obj/.variant; fi
