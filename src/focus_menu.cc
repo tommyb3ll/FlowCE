@@ -143,6 +143,7 @@ static int formulas(const fm_menu & m) { for (int k = 0; k < m.n; ++k) if (m.ite
 static int hdr;                // focus_list: the title's height at the top of the card
 static const char * title;
 static int top, vis = 99, rh = RH; // focus_list: the first row shown, the rows shown, their height
+static char up_list; // (KhiCAS + Flow) a key's list as KhiCAS's: item 0 at the bottom, by the key
 static int rh_need; // (prepare) the rows a list's formulas need, at one size
 // rmin: a list's rows at least so tall (its formulas'), fewer of them shown when it scrolls
 static void geometry(int id, const fm_menu & m, int rmin = 0) {
@@ -181,7 +182,7 @@ static void item_box(const fm_menu & m, int k, int & x, int & y, int & w, int & 
   if (m.grid && m.wide && k == m.n - 1) { x = px + 5; y = py + 5 + grid_rows(m) * cellh(m); w = m.cols * cw; h = BH; }
   else if (m.grid) { x = px + 5 + (k % m.cols) * cw; h = cellh(m); y = py + 5 + (k / m.cols) * h; w = cw; }
   else if (IN == 2) { x = px + 2; y = py + 2 + hdr + (k - top) * rh; w = pw - 4; h = rh; }
-  else { x = px + 5; y = py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
+  else { x = px + 5; y = up_list ? py + ph - 5 - (k - top + 1) * rh : py + 5 + hdr + (k - top) * rh; w = pw - (m.n > vis ? 18 : 10); h = rh; }
 }
 
 // a list row's width for its formula: from after the keycap to its label (at the right), apart
@@ -562,8 +563,9 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
       if (k == KEY_CTRL_DOWN) ns = sel + c < gn ? sel + c : m.wide ? n - 1 : sel % c;
       if (ns == n - 1 && m.wide) wcol = sel % c;
     } else {
-      if (k == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
-      if (k == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
+      const int kk = up_list && (k == KEY_CTRL_UP || k == KEY_CTRL_DOWN) ? KEY_CTRL_UP + KEY_CTRL_DOWN - k : k; // (upward: up goes up)
+      if (kk == KEY_CTRL_UP) ns = sel > 0 ? sel - 1 : n - 1;
+      if (kk == KEY_CTRL_DOWN) ns = sel < n - 1 ? sel + 1 : 0;
     }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
     if (k == KEY_CHAR_0 && m.wide) return n - 1; // (the bar: the steps build's Applications)
@@ -994,6 +996,41 @@ int focus_card_list(int col, const char * word, const char * const * maths, cons
 int focus_fmenu(int idx, const char * const * e, int n) {
   if (n > 9) n = 9;
   if (n < 1) return -1;
+#ifdef FLOWCE_KHICAS
+  { // KhiCAS's: the commands as it lists them, rising from the key (1 at the bottom, by the key)
+    fm_item it[9];
+    char tx[9][24];
+    int wm = 0;
+    for (int k = 0; k < n; ++k) {
+      const char * s = e[k];
+      while (*s == ' ') ++s; // ( mod : mod)
+      int L = strlen(s);
+      while (L > 0 && s[L - 1] == ' ') --L;
+      if (L > 22) L = 22;
+      memcpy(tx[k], s, L); tx[k][L] = 0;
+      it[k].text = 0; it[k].back = 0; it[k].pv = 0; it[k].label = tx[k]; it[k].hint = 0; it[k].act = 0;
+      const int w = ui_text_width(&ui_tb12, tx[k], -1);
+      if (w > wm) wm = w;
+    }
+    fm_menu m = {0, 1, (char)n, it};
+    const int col = idx < 15 ? idx % 5 : 5;
+    up_list = 1;
+    geometry(col, m);
+    if (rh > 24) { rh = 24; ph = n * rh + 10; }
+    pw = wm + 52; // (the keycap, the name, a margin)
+    px = 32 + 64 * col - pw / 2;
+    if (px < 1) px = 1;
+    if (px > UI_W - pw - 1) px = UI_W - pw - 1;
+    py = SBOT - ph;
+    prepare(m);
+    open_card(m, col, idx / 5, 0);
+    cur = idx;
+    const int res = run_keys(m, 0, fk_kh);
+    close_card(1, 1);
+    up_list = 0; rh = RH;
+    return res;
+  }
+#endif
   fm_item it[9];
   char pv[9][24];
   for (int k = 0; k < n; ++k) {
