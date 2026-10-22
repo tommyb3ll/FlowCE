@@ -791,7 +791,6 @@ static void ti_cursor(int x, int top, int h) {
   ui_draw_glyph(&ui_mu20, cp, x, top + h, ramp(UC_INK, UC_BG), 1);
 }
 #endif
-static void spaced_text(const ui_face * f, const char * s, int x, int base, const unsigned char * rp, int sp);
 __attribute__((noinline)) static void hero_paint() { // in the current clip
   const char * s = (const char *)Console_GetEditLine();
   int y0 = hy0, h = hh;
@@ -824,11 +823,26 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
 #ifdef FLOWCE_KHICAS
     { // KhiCAS's 2D editor's panel: a hairline over it (as between the history's entries), the line's
-      // text along its bottom as typed, with its parentheses (its end when too long)
-      // (12 px, a pixel between the letters: smaller, they touched)
+      // text along its bottom as typed, with its parentheses, the caret and the selection: either one
+      // can be read to edit. 12 px, a pixel between the letters (smaller, they touched); a long line
+      // scrolled to keep the caret in view
       ui_fill(12, y0, UI_W - 24, 1, col(UC_LINE));
-      const int n = strlen(s), w = ui_text_width(&ui_tr12, s, n) + n;
-      spaced_text(&ui_tr12, s, w > UI_W - 2 * HX ? UI_W - HX - w : HX, SBOT - 8, ramp(UC_INK, UC_BG), 1);
+      const int n = strlen(s), w = ui_text_width(&ui_tr12, s, n) + n, b = SBOT - 8;
+      const int c = hcaret >= 0 && hcaret <= n ? hcaret : n, cx = ui_text_width(&ui_tr12, s, c) + c;
+      int x = HX, sa, sb;
+      if (w > UI_W - 2 * HX) {
+        x = UI_W / 2 - cx;
+        if (x > HX) x = HX;
+        if (x + w < UI_W - HX) x = UI_W - HX - w;
+      }
+      if (!console_selection(&sa, &sb) || sb > n) sa = sb = -1;
+      if (sa < sb) {
+        const int xa = x + ui_text_width(&ui_tr12, s, sa) + sa, xb = x + ui_text_width(&ui_tr12, s, sb) + sb;
+        ui_rrect(0, xa - 2, b - 12, xb - xa + 3, 16, 3, UC_ACCSOFT, UC_BG);
+      }
+      for (int k = 0, xx = x; k < n; ++k)
+        xx += ui_draw_glyph(&ui_tr12, (unsigned char)s[k], xx, b, ramp(UC_INK, k >= sa && k < sb ? UC_ACCSOFT : UC_BG), 0) + 1;
+      if (hcaret >= 0) ui_fill(x + cx - 1, b - 11, 1, 14, col(UC_ACC));
     }
 #else
     if (GT) { // as KhiCAS's 2D editor: the line's giac text under it, small (its end when too long)
