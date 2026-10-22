@@ -210,7 +210,8 @@ static int tf;                            // trace: the curve
 static float tx;                          // trace: x
 static bool coords, grid = true;          // dots' coordinates shown; the grid
 static bool klabels;                      // the key points' coordinates on the graph
-static bool tang;                         // the tangent line at the trace point
+static bool tang, nrm, osc;               // the tangent line, the normal line, the osculating circle at the trace point
+static char feat;                         // the one of them turned on last (1, 2, 3): its equation in the readout
 static float area_a, area_b;              // the area under the curve shaded (a < b), else a = b
 static float fan_a, fan_b;                // a polar curve's area shaded: θ from a to b (a < b)
 static char note[64];                     // the readout's own line (a key point, the area, the tangent)
@@ -834,12 +835,16 @@ static NOINL void chip_at(const char * s, int w, int x, int base, int b, int e) 
   ui_rrect(0, x - 4, base - 11, w + 8, 15, 5, UC_TILE, UC_BG);
   ui_math_text(s, NL, x, base, ui_ramp(0, UC_INK, UC_TILE));
 }
-static bool tang_on() { return tang && mode && (KIND_ || tf < NF); } // (DeltaCE: not on data points)
+static bool tang_on() { return (tang || nrm || (osc && KIND_ != 3)) && mode && (KIND_ || tf < NF); } // (DeltaCE: not on data points)
 static bool shown_note() { return tang_on() || (note[0] && (note_x < 0 || (KIND_ ? note_t == tx : note_x == px_of(tx)))); }
 static char * tang_note();
 static float slope(int i, float x);
 static float tslope();
-static NOINL void tangent_text(char * t, float m, float b);
+static NOINL void line_text(char * t, const char * w, float m, float b);
+static NOINL bool line16(float x, float y, float m, int * tl);
+static NOINL void circle16(float x, float y, bool note);
+enum { NCIR = 96 };
+static int CIR_[2 * (NCIR + 1)], ncir; // the osculating circle's points (1/16 px; ncir: their number, 0: none)
 // the readout: a tile at the bottom left as wide as what it says: x and y of the trace point (pan:
 // none, the axes' numbers say where the view is), the note under them (a key point's exact values,
 // the tangent, the area)
@@ -915,7 +920,7 @@ static NOINL void implicit(int b, int e, int G) {
     }
   }
 }
-static char tnote[48];
+static char tnote[72]; // (a circle's equation: 3 numbers of up to 11 characters)
 static char * tang_note() { return tnote; }
 // the grid's lines from lo to hi at step st (k st, k an integer), their numbers
 static NOINL int lines_of(gl * g, float lo, float hi, float st, bool x) {
@@ -1006,27 +1011,26 @@ static NOINL void paint(bool fast) {
         if (tile_ok(F, k, px[q], py[q], s)) { F.lx[k] = px[q]; F.ly[k] = py[q]; break; }
       }
   }
-  int tl[4]; // the tangent, cut to the plot (1/16 px)
+  int tl[4], nl[4]; // the tangent, the normal, cut to the plot (1/16 px)
   float tpxf, tpyf;
-  const bool tok = mode && tpt(tpxf, tpyf);
-  bool tg = tang && tok && (KIND_ || tf < NF); // (not on data points)
-  if (tg) { // (its equation in the readout, for the trace point)
-    const float x = tpxf, y = tpyf, m = tslope();
-    if (!fin(m)) { // (vertical: x = c)
-      char u[16];
-      strcpy(tnote, "Tangent\x01x="); fmtg(u, x); strcat(tnote, u);
-      const int X = px_of(x) * 16 + 8;
-      tl[0] = tl[2] = X; tl[1] = (GT - 2) * 16; tl[3] = (GB + 2) * 16;
-    } else
-    tangent_text(tnote, m, y - m * x);
-    float xa = 0, xb = UI_W - 1, ra = row_of(y + m * (vx0 - x)), rb = row_of(y + m * (vx1 - x));
-    if (ra > rb) { float t = ra; ra = rb; rb = t; t = xa; xa = xb; xb = t; }
-    if (fin(m)) tg = rb >= GT - 2 && ra <= GB + 2;
-    if (tg && fin(m)) {
-      if (ra < GT - 2) { xa += (xb - xa) * (GT - 2 - ra) / (rb - ra); ra = GT - 2; }
-      if (rb > GB + 2) { xb = xa + (xb - xa) * (GB + 2 - ra) / (rb - ra); rb = GB + 2; }
-      tl[0] = (int)(xa * 16); tl[1] = (int)(ra * 16); tl[2] = (int)(xb * 16); tl[3] = (int)(rb * 16);
+  const bool tok = mode && tpt(tpxf, tpyf), here = tok && (KIND_ || tf < NF); // (not on data points)
+  bool tg = tang && here, ng = nrm && here;
+  ncir = 0;
+  if (tg || ng || (osc && here)) { // (the equation of the one turned on last in the readout, for the trace point)
+    const float x = tpxf, y = tpyf, m = tslope(), mn = !fin(m) ? 0 : fabsf(m) < 1e-6f ? NAN : -1 / m;
+    const bool og = osc && KIND_ != 3;
+    const int f = (feat == 1 && tg) || (feat == 2 && ng) || (feat == 3 && og) ? feat : tg ? 1 : ng ? 2 : 3;
+    if (f < 3) {
+      const float s = f == 1 ? m : mn;
+      const char * w = f == 1 ? "Tangent" : "Normal";
+      if (!fin(s)) { // (vertical: x = c)
+        char u[16];
+        strcpy(tnote, w); strcat(tnote, "\x01x="); fmtg(u, x); strcat(tnote, u);
+      } else line_text(tnote, w, s, y - s * x);
     }
+    if (tg) tg = line16(x, y, m, tl);
+    if (ng) ng = line16(x, y, mn, nl);
+    if (og) circle16(x, y, f == 3);
   }
   const float ty = mode ? tpyf : 0;
   const int tpx = mode && (tok || !KIND_) ? px_of(KIND_ ? tpxf : tx) : -100, tpy = tok ? py_of(ty) : NONE;
@@ -1129,6 +1133,8 @@ static NOINL void paint(bool fast) {
     for (int k = 0; k < NK && k < NKP; ++k)
       if (F.ky[k] != NONE && F.lx[k] >= 0) chip_at(K_[k].lt, K_[k].lw, F.lx[k], F.ly[k], b, e);
     if (tg) seg16(tl[0], tl[1], tl[2], tl[3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the tangent
+    if (ng) seg16(nl[0], nl[1], nl[2], nl[3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the normal
+    for (int k = 0; k + 1 < ncir; ++k) seg16(CIR_[2 * k], CIR_[2 * k + 1], CIR_[2 * k + 2], CIR_[2 * k + 3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the circle
     if (mode) { // the trace point: a dot (no y there: a faint line at its x)
       if (tpy != NONE) disc(tpx, tpy, 4, ccol(tf), true);
       else vline(tpx, UC_ACCSOFT);
@@ -1252,6 +1258,7 @@ static NOINL bool ask(const char * t, const char * sub, float & v, gen * exact =
 }
 static void bar();
 static void redraw() { bar(); paint(false); } // (a menu closed: gone before a prompt)
+static void square_view() { const float m = (vy0 + vy1) / 2, h = (vx1 - vx0) * GH / UI_W; vy0 = m - h / 2; vy1 = m + h / 2; } // (equal units)
 static void zoom_menu() {
   static const char * const lab[] = {"Zoom in", "Zoom out", "Fit the curve", "Standard", "Trig", "Square", "Window..."};
   static const char * const hint[] = {"+", "-", 0, "-10 to 10", "x: -2pi to 2pi", "equal units", 0};
@@ -1264,7 +1271,7 @@ static void zoom_menu() {
   case 2: if (KIND_ == 1 || KIND_ == 2) pfit(); else if (!KIND_) fit_y(); break;
   case 3: vx0 = vy0 = -10; vx1 = vy1 = 10; break;
   case 4: vx0 = -6.2832f; vx1 = 6.2832f; vy0 = -4; vy1 = 4; break;
-  case 5: { const float m = (vy0 + vy1) / 2, h = (vx1 - vx0) * GH / UI_W; vy0 = m - h / 2; vy1 = m + h / 2; } break;
+  case 5: square_view(); break;
   case 6: {
     redraw();
     float a = vx0, b = vx1, p = vy0, q = vy1;
@@ -1406,7 +1413,7 @@ static NOINL void pvalue_at() {
 static NOINL void fpoints_menu() {
   static const char * const lab[2] = {"Solution through a point", "Clear the solutions"};
   const int c = focus_card_list(2, "points", 0, lab, 0, NC_ ? 2 : 1, 0);
-  if (c == 1) { NC_ = 0; mode = 0; tang = false; return; }
+  if (c == 1) { NC_ = 0; mode = 0; tang = nrm = osc = false; return; }
   if (c) return;
   if (NC_ >= NGRP) { focus_status_msg("Four solutions at most"); return; }
   redraw();
@@ -1507,10 +1514,71 @@ static NOINL float tslope() {
   }
   return fabsf(dx) <= 1e-6f * (1 + fabsf(dy)) ? NAN : dy / dx;
 }
-// the tangent's equation: y = m x + b, its terms when not 0 (after \x01: math)
-static NOINL void tangent_text(char * t, float m, float b) {
+// the line through (x, y) of slope m (not finite: vertical), cut to the plot (1/16 px): false, it misses it
+static NOINL bool line16(float x, float y, float m, int * tl) {
+  if (!fin(m)) {
+    tl[0] = tl[2] = px_of(x) * 16 + 8; tl[1] = (GT - 2) * 16; tl[3] = (GB + 2) * 16;
+    return true;
+  }
+  float xa = 0, xb = UI_W - 1, ra = row_of(y + m * (vx0 - x)), rb = row_of(y + m * (vx1 - x));
+  if (ra > rb) { float t = ra; ra = rb; rb = t; t = xa; xa = xb; xb = t; }
+  if (rb < GT - 2 || ra > GB + 2) return false;
+  if (ra < GT - 2) { xa += (xb - xa) * (GT - 2 - ra) / (rb - ra); ra = GT - 2; }
+  if (rb > GB + 2) { xb = xa + (xb - xa) * (GB + 2 - ra) / (rb - ra); rb = GB + 2; }
+  tl[0] = (int)(xa * 16); tl[1] = (int)(ra * 16); tl[2] = (int)(xb * 16); tl[3] = (int)(rb * 16);
+  return true;
+}
+// the traced curve at t (a function: x = t); false where it is not defined
+static NOINL bool cpt(float t, float & x, float & y) {
+  if (KIND_) return pt_at(tf, t, x, y);
+  x = t; y = val(tf, t);
+  return fin(y);
+}
+// the osculating circle at the trace point (x, y): from x', y', x'', y'' in t (central differences:
+// the first over a 4000th of the range; the second over a 100th and a 50th, extrapolated (Richardson):
+// its rounding small, its error of the 4th order; 4 digits right),
+// the radius of curvature R = (x'^2 + y'^2)^(3/2) / |x' y'' - y' x''|, the center R along the normal,
+// towards the curve's bend. Its points into CIR_ (drawn while R is at most 4 views wide: more, it is a
+// straight line here); note: its equation in the readout's note, (x - a)^2 + (y - b)^2 = R^2
+static NOINL void circle16(float x, float y, bool note) {
+  const float r = KIND_ ? PT1[0] - PT0[0] : vx1 - vx0, h = r / 4000, H = r / 100;
+  float xa, ya, xb, yb, xc, yc, xd, yd, xe, ye, xf, yf;
+  if (!cpt(tx - h, xa, ya) || !cpt(tx + h, xb, yb) || !cpt(tx - H, xc, yc) || !cpt(tx + H, xd, yd) || !cpt(tx - 2 * H, xe, ye) || !cpt(tx + 2 * H, xf, yf)) {
+    if (note) strcpy(tnote, "No circle here");
+    return;
+  }
+  const float dx = KIND_ ? (xb - xa) / (2 * h) : 1, dy = (yb - ya) / (2 * h), H3 = 3 * H * H;
+  const float ddx = KIND_ ? (4 * (xd - 2 * x + xc) - (xf - 2 * x + xe) / 4) / H3 : 0, ddy = (4 * (yd - 2 * y + yc) - (yf - 2 * y + ye) / 4) / H3;
+  const float s = dx * dx + dy * dy, d = dx * ddy - dy * ddx, R = s * sqrtf(s) / fabsf(d), view = vx1 - vx0 + vy1 - vy0;
+  if (!fin(R) || R > 1e4f * view) { if (note) strcpy(tnote, "No circle: straight here"); return; }
+  const float cx = x - dy * s / d, cy = y + dx * s / d;
+  if (note) {
+    char u[20];
+    strcpy(tnote, "Circle\x01");
+    for (int k = 0; k < 2; ++k) { // (x - a)^2 + (y - b)^2 = R^2 (a = 0: x^2)
+      const float v = k ? cy : cx;
+      const char * w = k ? "y" : "x";
+      if (fabsf(v) > 1e-4f * R) { strcat(tnote, "("); strcat(tnote, w); strcat(tnote, v < 0 ? "+" : "-"); fmtg(u, fabsf(v), 4); strcat(tnote, u); strcat(tnote, ")"); }
+      else strcat(tnote, w);
+      strcat(tnote, k ? "^2=" : "^2+");
+    }
+    fmtg(u, R, 4); strcat(tnote, u); strcat(tnote, "^2");
+  }
+  if (R > 4 * view) return;
+  const float kx = 16 * (UI_W - 1) / (vx1 - vx0), ky = 16 * (GH - 1) / (vy1 - vy0), cd = cosf(6.2831853f / NCIR), sd = sinf(6.2831853f / NCIR);
+  float c = 1, sn = 0; // (turned by 2 pi / NCIR each point: no sinf, cosf in the loop)
+  for (int k = 0; k <= NCIR; ++k) {
+    const float X = (cx + R * c - vx0) * kx + 8, Y = GT * 16 + (vy1 - cy - R * sn) * ky;
+    CIR_[2 * k] = X < -16000 ? -16000 : X > 32000 ? 32000 : (int)X; CIR_[2 * k + 1] = Y < -16000 ? -16000 : Y > 32000 ? 32000 : (int)Y;
+    const float t = c * cd - sn * sd;
+    sn = sn * cd + c * sd; c = t;
+  }
+  ncir = NCIR + 1;
+}
+// a line's equation: y = m x + b, its terms when not 0 (after \x01: math); w: its name
+static NOINL void line_text(char * t, const char * w, float m, float b) {
   char u[20];
-  strcpy(t, "Tangent\x01y=");
+  strcpy(t, w); strcat(t, "\x01y=");
   const bool mz = fabsf(m) < 1e-5f, bz = fabsf(b) < 1e-5f * (1 + fabsf(m));
   if (!mz) {
     if (fabsf(m - 1) < 1e-6f) strcat(t, "x");
@@ -1544,18 +1612,35 @@ static NOINL void int_note(const char * what, const gen & f, const gen & a, cons
   note_x = -1;
 }
 // F5 for a parametric or polar curve: the tangent, the arc length from t = a to b, a polar curve's area
+static const char * onoff(bool b) { return b ? "on" : "off"; }
+// a feature at the trace point turned on or off (k: 1 the tangent, 2 the normal, 3 the circle): tracing
+// if it was not, the readout showing its equation
+static NOINL void feature(bool & b, int k, float x0) {
+  b = !b;
+  if (b) { feat = (char)k; if (!mode) { mode = 1; tx = x0; } }
+  if (b && k == 3) square_view(); // (as KhiCAS: a circle that looks round)
+}
 static NOINL void pmore_menu() {
-  static const char * const lab[4] = {"Tangent line here", "Arc length", "Area (polar)", "Grid"};
-  const int pol = KIND_ == 2, fld = KIND_ == 3; // (a slope field: the tangent, the grid)
-  const char * l[4] = {lab[0], fld ? lab[3] : lab[1], pol ? lab[2] : lab[3], lab[3]}, * hint[4] = {tang ? "on" : "off", fld ? (grid ? "on" : "off") : 0, pol ? "1/2 r^2" : grid ? "on" : "off", grid ? "on" : "off"};
-  const int c = focus_card_list(4, "more", 0, l, hint, fld ? 2 : 3 + pol, 0);
-  if (c == 0) {
-    tang = !tang && (!fld || NC_);
-    if (tang && !mode) { mode = 1; tx = tnear(tf); }
+  enum { TAN, NRM, OSC, ARC, PAREA, GRID };
+  static const char * const lab[6] = {"Tangent line here", "Normal line here", "Osculating circle", "Arc length", "Area (polar)", "Grid"};
+  const int pol = KIND_ == 2, fld = KIND_ == 3; // (a slope field: the tangent, the normal, the grid)
+  unsigned char id[6];
+  int n = 0;
+  id[n++] = TAN; id[n++] = NRM;
+  if (!fld) { id[n++] = OSC; id[n++] = ARC; if (pol) id[n++] = PAREA; }
+  id[n++] = GRID;
+  const char * l[6], * hint[6];
+  for (int k = 0; k < n; ++k) {
+    const int i = id[k];
+    l[k] = lab[i];
+    hint[k] = i == TAN ? onoff(tang) : i == NRM ? onoff(nrm) : i == OSC ? onoff(osc) : i == PAREA ? "1/2 r^2" : i == GRID ? onoff(grid) : 0;
   }
-  if (fld) { if (c == 1) grid = !grid; return; }
-  if (c == 2 + pol) grid = !grid;
-  if (c != 1 && !(pol && c == 2)) return;
+  const int k = focus_card_list(4, "more", 0, l, hint, n, 0);
+  if (k < 0) return;
+  const int c = id[k] == ARC ? 1 : id[k] == PAREA ? 2 : -1;
+  if (id[k] == GRID) grid = !grid;
+  if (id[k] <= OSC && (!fld || NC_)) feature(id[k] == TAN ? tang : id[k] == NRM ? nrm : osc, id[k] + 1, tnear(tf));
+  if (c < 0) return;
   redraw();
   float a, b;
   gen ga, gb, gx, gy;
@@ -1575,20 +1660,18 @@ static NOINL void pmore_menu() {
   int_note("Arc length", symbolic(at_sqrt, simplify(eval(dx * dx + dy * dy, 1, contextptr), contextptr)), ga, gb);
 }
 static NOINL void more_menu(int & nfun) {
-  static const char * const lab[] = {"Tangent line here", "Area under the curve", "Graph f' too", "Analyze f(x)", "Point coordinates", "Grid"};
-  const char * hint[6] = {tang ? "on" : "off", 0, 0, "the report", coords ? "on" : "off", grid ? "on" : "off"};
+  static const char * const lab[] = {"Tangent line here", "Normal line here", "Osculating circle", "Area under the curve", "Graph f' too", "Analyze f(x)", "Point coordinates", "Grid"};
+  const char * hint[8] = {onoff(tang), onoff(nrm), onoff(osc), 0, 0, "the report", onoff(coords), onoff(grid)};
 #ifdef FLOWCE_STEPS
-  const int c = focus_card_list(4, "more", 0, lab, hint, 6, 0);
+  int c = focus_card_list(4, "more", 0, lab, hint, 8, 0);
 #else // (the KhiCAS-like build has no analysis page: its item is left out)
-  static const char * const lab5[] = {"Tangent line here", "Area under the curve", "Graph f' too", "Point coordinates", "Grid"};
-  const char * hint5[5] = {hint[0], hint[1], hint[2], hint[4], hint[5]};
-  int c = focus_card_list(4, "more", 0, lab5, hint5, 5, 0);
-  if (c >= 3) ++c;
+  static const char * const lab7[] = {"Tangent line here", "Normal line here", "Osculating circle", "Area under the curve", "Graph f' too", "Point coordinates", "Grid"};
+  const char * hint7[7] = {hint[0], hint[1], hint[2], hint[3], hint[4], hint[6], hint[7]};
+  int c = focus_card_list(4, "more", 0, lab7, hint7, 7, 0);
+  if (c >= 5) ++c;
 #endif
-  if (c == 0) {
-    tang = !tang; // (drawn at the trace point, its equation in the readout: paint)
-    if (tang && !mode) { mode = 1; tx = (vx0 + vx1) / 2; }
-  }
+  if (c >= 0 && c <= 2) { feature(c == 0 ? tang : c == 1 ? nrm : osc, c + 1, (vx0 + vx1) / 2); return; } // (drawn at the trace point, the equation in the readout: paint)
+  if (c > 2) c -= 2; // (then as before the two)
   if (c == 1) { // from a to b: shaded, its value (giac: exact when it can)
     redraw();
     float a, b;
@@ -1675,7 +1758,7 @@ static NOINL void run(float a, float b, bool eqs) {
   if (4 * in < all || (all && hi - lo < 5)) fit_y();
   if (vy1 - vy0 > 1e4f && !KIND_) { vy0 = -10; vy1 = 10; } // (1/x: not its 1e8 near 0)
   if (DATN_ && !KIND_) fit_points();
-  mode = 0; tf = 0; tx = 0; tang = false; area_a = area_b = fan_a = fan_b = 0; note[0] = 0;
+  mode = 0; tf = 0; tx = 0; tang = nrm = osc = false; area_a = area_b = fan_a = fan_b = 0; note[0] = 0;
   while (tf < NF - 1 && fin(VX[tf])) ++tf; // (trace: a curve y = f(x))
   focus_view = 1;
   int nfun = NF;

@@ -975,7 +975,9 @@ void menu_setup(){
         continue;
       }
       if (H && smallmenu.selection==2){ // the history drawn again, in 2D or as text (and the edit line: KhiCAS's command line)
+#ifdef FLOWCE_KHICAS
         focus_set_hist2d(!focus_hist2d); // (the console is drawn again when the menu closes)
+#endif
         continue;
       }
 #ifdef FLOWCE_KHICAS
