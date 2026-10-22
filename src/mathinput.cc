@@ -1033,9 +1033,9 @@ int mi_select(const char * s, int len, int * a, int * b, int dir, const mi_metri
   if (!r) return 0;
   int path[32], d = sel_find(r, *a, *b, path, 0), n = path[d];
   if (dir < 0) { if (T[n].b <= T[n].c) return 0; *a = T[n].c; *b = T[n].b; return 1; } // the part at the caret
-  if (dir == 0) { // up: the first part around it
+  if (dir == 0) { // up: the first part around it (not hidden parentheses: they look the same)
     for (int i = d - 1; i >= 0; --i)
-      if (T[path[i]].c < *a || T[path[i]].b > *b) { *a = T[path[i]].c; *b = T[path[i]].b; return 1; }
+      if ((T[path[i]].c < *a || T[path[i]].b > *b) && !(T[path[i]].k == K_GROUP && (T[path[i]].f & F_HID))) { *a = T[path[i]].c; *b = T[path[i]].b; return 1; }
     return 0;
   }
   if (dir == 1) { // down: its first part
