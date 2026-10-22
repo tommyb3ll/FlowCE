@@ -643,9 +643,20 @@ void focus_splash_clear() {
   ui_noclip();
   ui_fill(0, 0, UI_W, UI_H, ui_col(0, UC_BG));
 }
-// the start screen: FlowCE written letter by letter over a curve drawn left to right, then held
-// (about 1 s in all, once per start; any key skips it and is not typed); first 1 (no saved
-// session): three tips and "press any key" (the caller reads it); 2: played again (turned on)
+// a lent ramp (entries e, e+1, e+2: 1/3, 2/3, all of fg over bg) a/256 of the way from bg
+static void splash_shade(int e, const unsigned char * fg, const unsigned char * bg, int a) {
+  for (int s = 1; s <= 3; ++s) {
+    unsigned char c[3];
+    for (int j = 0; j < 3; ++j) c[j] = (unsigned char)(bg[j] + (fg[j] - bg[j]) * s * a / 768);
+    ui_borrow(e + s - 1, c);
+  }
+}
+// the start screen: a curve drawn left to right under "FlowCE", each letter fading in as the
+// curve's end passes under it, then the tag line, then held (about 1.2 s in all, once per start;
+// any key skips it and is not typed); first 1 (no saved session): "press any key" (the caller
+// reads it); 2: played again (turned on). The text is drawn once, in palette entries lent by
+// KhiCAS's screens (32-52) that go from the background to its colors: a frame writes those and
+// the curve's new segments only.
 void focus_splash(int first) {
   static bool animated;
   const int y = 100;
@@ -662,30 +673,54 @@ void focus_splash(int first) {
                                     "version " FLOWCE_VERSION " \xc2\xb7 free software, GNU GPL v3"};
   for (int k = 0; k < 2; ++k)
     ui_draw_text(&ui_tr10, cr[k], -1, (UI_W - ui_text_width(&ui_tr10, cr[k], -1)) / 2, UI_H - 24 + 16 * k, ui_ramp(0, UC_SUB, UC_BG), 0);
-  const char * name = "FlowCE"; // (the upright math faces have no capitals)
+  const char * name = "FlowCE", * tag = "calculus on your TI-84 Plus CE"; // (the upright math faces have no capitals)
   const int w = ui_text_width(&ui_mi34, name, -1), w4 = ui_text_width(&ui_mi34, name, 4), x0 = (UI_W - w) / 2;
+  const int tx = (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2;
   static const signed char wave[16] = {0, 43, 79, 103, 112, 103, 79, 43, 0, -43, -79, -103, -112, -103, -79, -43}; // 7 sin, 1/16 px
   const int wx = 48, np = 57, wy = (y + 46) * 16; // 57 points 4 px apart: a period of 64 px
-  int skip = animated && first != 2, drawn = 0;
-  animated = true;
-  for (int f = 1; f <= 12; ++f) {
-    const int k = f < 6 ? f : 6, p = f == 12 ? np : f * np / 12;
-    ui_draw_text(&ui_mi34, name, k < 4 ? k : 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
-    if (k > 4) ui_draw_text(&ui_mi34, name + 4, k - 4, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
-    for (; drawn + 1 < p; ++drawn)
-      ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
-    if (skip) continue; // the rest at once
-    if (key_waiting()) { skip = 1; key_discard(); continue; }
-    os_wait_1ms(40);
+  const ui_theme * th = ui_theme_now();
+  const unsigned char * bg = th->rgb[UC_BG];
+  unsigned char rp[7][4]; // the letters' ramps, then the tag line's (lent entries, the background at first)
+  int lx[6];
+  for (int i = 0; i < 7; ++i) {
+    rp[i][0] = ui_col(0, UC_BG);
+    for (int s = 1; s <= 3; ++s) rp[i][s] = (unsigned char)(32 + 3 * i + s - 1);
+    splash_shade(32 + 3 * i, bg, bg, 0);
   }
-  const char * tag = "calculus on your TI-84 Plus CE";
-  ui_draw_text(&ui_tr12, tag, -1, (UI_W - ui_text_width(&ui_tr12, tag, -1)) / 2, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
+  for (int i = 0; i < 6; ++i) {
+    lx[i] = x0 + ui_text_width(&ui_mi34, name, i);
+    ui_draw_text(&ui_mi34, name + i, 1, lx[i], y, rp[i], 0);
+  }
+  ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, rp[6], 0);
+  // the curve 0-700 ms (smoothstep from 0.12: moving at once, fast, slow); a letter from 12 px
+  // before the curve's end reaches it to 36 px after; the tag line 600-900 ms
+  int skip = animated && first != 2, drawn = 0, t = 0;
+  animated = true;
+  const long t0 = (long)(clock)(); // 32768 Hz ((clock): giac's first.h makes clock() 0)
+  while (t < 900) {
+    t = skip ? 900 : (int)(((long)(clock)() - t0) * 1000 / 32768);
+    const int u = t < 700 ? 120 + t * 880 / 700 : 1000, p = u * u / 1000 * (3000 - 2 * u) / 1000;
+    const int pts = 1 + p * (np - 1) / 1000, pen = wx + 4 * (pts - 1);
+    for (; drawn + 1 < pts; ++drawn)
+      ui_seg16((wx + 4 * drawn) * 16, wy - wave[drawn & 15], (wx + 4 * drawn + 4) * 16, wy - wave[(drawn + 1) & 15], 28, ui_ramp(0, UC_ACC, UC_BG));
+    for (int i = 0; i < 7; ++i) {
+      int a = i < 6 ? (pen - lx[i] + 12) * 256 / 48 : (t - 600) * 256 / 300;
+      a = a < 0 ? 0 : a > 256 ? 256 : a;
+      splash_shade(32 + 3 * i, th->rgb[i < 4 ? UC_INK : i < 6 ? UC_ACC : UC_SUB], bg, a);
+    }
+    if (!skip && key_waiting()) { skip = 1; key_discard(); }
+  }
+  // the same text in the theme's own shades (the same colors), the lent entries given back
+  ui_draw_text(&ui_mi34, name, 4, x0, y, ui_ramp(0, UC_INK, UC_BG), 0);
+  ui_draw_text(&ui_mi34, name + 4, 2, x0 + w4, y, ui_ramp(0, UC_ACC, UC_BG), 0);
+  ui_draw_text(&ui_tr12, tag, -1, tx, y + 26, ui_ramp(0, UC_SUB, UC_BG), 0);
+  ui_borrow_end();
   if (first == 1) { // (the console shows its keys once past this screen)
     const char * go = "press any key";
     ui_draw_text(&ui_tb12, go, -1, (UI_W - ui_text_width(&ui_tb12, go, -1)) / 2, y + 82, ui_ramp(0, UC_ACC, UC_BG), 0);
   }
   else if (!skip) { // held a moment (it flashed by: the session loads fast)
-    for (int t = 0; t < 10 && !key_waiting(); ++t)
+    for (int k = 0; k < 6 && !key_waiting(); ++k)
       os_wait_1ms(50);
     key_discard();
   }
