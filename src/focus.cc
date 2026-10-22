@@ -1211,14 +1211,27 @@ bool focus_busy_tick() {
   if (t < busy_next) return false;
   busy_next = t + 8192; // 4 frames a second
   int fr = busy_fr < 0 || busy_fr == 2 ? 0 : busy_fr + 1;
+#ifdef FOCUS_CONSOLE
+  // the console's layout: the three dots on the edit line, under the history (the bar untouched)
+  const int b = (busy_y ? busy_y + 9 : hy0 + 21) < SBOT ? (busy_y ? busy_y + 9 : hy0 + 21) : SBOT - 2, x0 = busy_y ? UI_W / 2 - 15 : HX + 2;
+#else
   int m = hy0 + hh / 2 - 2, b = busy_y ? busy_y + 9 : m + 20; // where hero_paint wrote the prompt
+  const int x0 = UI_W / 2 - 15;
+#endif
   if (!screen_is_ours() || (busy_fr < 0 && (hm != HM_HINT || M.hist))) { busy_next = -1; return false; } // (a program draws)
+#ifdef FOCUS_CONSOLE
+  ui_clip(0, ST, UI_W, SBOT);
+#else
   if (busy_fr < 0) {
     ui_noclip();
     ui_fill(0, m - 18, UI_W, b + 10 - (m - 18), col(UC_BG)); // the prompt and its key hints
     ui_text(&ui_tr12, "Calculating", UI_W / 2, m, UC_SUB, UC_BG, 1);
   }
-  for (int k = 0; k < 3; ++k) ui_rrect(0, UI_W / 2 - 15 + 12 * k, b - 9, 6, 6, 3, k == fr ? UC_ACC : UC_LINE, UC_BG);
+#endif
+  for (int k = 0; k < 3; ++k) ui_rrect(0, x0 + 12 * k, b - 9, 6, 6, 3, k == fr ? UC_ACC : UC_LINE, UC_BG);
+#ifdef FOCUS_CONSOLE
+  ui_noclip();
+#endif
   busy_fr = (signed char)fr;
 #endif
   return false;
