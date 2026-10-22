@@ -1226,12 +1226,20 @@ static __attribute__((noinline)) void compute_model() {
     int top = 0;
     for (int k = 0; k < M.sel; ++k) top += E[k].h;
     int bot = top + E[M.sel].h, view = SH - PEEK;
+#ifdef FLOWCE_TILOOK
+    // as the OS: the screen stays as it was; it scrolls only to show the entry selected
+    if (!PM.hist) hscroll = PM.scroll;
+    if (top < hscroll) hscroll = top;
+    if (TOP + bot > hscroll + SH) hscroll = TOP + bot - SH;
+    (void)view;
+#else
     if (!PM.hist) hscroll = M.col_h + PEEK - SH;
     if (top < hscroll + 4) hscroll = top - 4;
     if (bot > hscroll + view) hscroll = bot - view;
     int lo = M.col_h + PEEK - SH < -4 ? M.col_h + PEEK - SH : -4, hi = M.col_h + PEEK - SH;
     if (hscroll > hi) hscroll = hi;
     if (hscroll < lo) hscroll = lo;
+#endif
     M.scroll = hscroll;
   } else {
 #ifdef FLOWCE_TILOOK
