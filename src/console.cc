@@ -3266,7 +3266,7 @@ int Console_GetKey(){
     }
     if ( (key == KEY_CTRL_DOWN || key=='\t' || key==KEY_CTRL_F10
 	  || key==KEY_CHAR_FRAC || key==KEY_CTRL_MIXEDFRAC
-	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && ((focus_on && !KHICAS_UI) || Current_Col>0)){ // Focus: down on an empty line opens the search too (KhiCAS: a name to complete before the caret)
+	  ) && Current_Line==Last_Line && !Line[Current_Line].readonly && (focus_on || Current_Col>0)){ // Focus: down on an empty line opens the search too
       // find cmdname
       console_help_insert(false);
       Console_Disp(1); oldkeyflag=-1;

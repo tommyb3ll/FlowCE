@@ -34,13 +34,22 @@ const char * console_approx();
 int console_answer_row(const char ** lab, signed char * idx); // console.cc: the answer's likeliest actions (the row under it)
 
 // what a result line shows: giac prints the lists of solve as list[a,b], shown [a,b]
+#ifdef FLOWCE_KHICAS
+static const char * shown(const char * s) { return s; } // (KhiCAS shows giac's print: list[...])
+#else
 static const char * shown(const char * s) { return s && !strncmp(s, "list[", 5) ? s + 4 : s; }
+#endif
 const char * console_fkey_label(int layer, int k); // console.cc: F-key label (layer 0, 2nd, alpha)
 
 // timing probe for tools/emu (sampled with peek): the step of the drawing in progress, 0 when done
 extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
+#ifdef FLOWCE_KHICAS
+enum { TOP_KH = 1 }; // KhiCAS + Flow: results as giac prints them (no "+ C")
+#else
+enum { TOP_KH = 0 };
+#endif
 #ifdef FLOWCE_KHICAS
 #define HIST2D focus_hist2d
 #else
@@ -261,7 +270,7 @@ static __attribute__((noinline)) void draw_result(const fent & e, int right, int
   }
   fitc c = fitted(s, OUT_LV, W_OUT, 64, MI_F_IMPLDOT);
   int cw = 0;
-  if (e.in >= 0 && is_antideriv(Line[e.in].str) && !console_form_check((const char *)Line[e.out].str)) { // "+ C" in the secondary color
+  if (!TOP_KH && e.in >= 0 && is_antideriv(Line[e.in].str) && !console_form_check((const char *)Line[e.out].str)) { // "+ C" in the secondary color (KhiCAS: none)
     const ui_face * f = &ui_mu17;
     cw = ui_text_width(f, "+ ", -1) + ui_text_width(&ui_mi17, "C", -1) + 4;
     int x = right - cw + 4;

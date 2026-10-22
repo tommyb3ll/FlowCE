@@ -18,6 +18,11 @@
 #include "main.h"
 #include "focus.h"
 #include "answer.h"
+#ifdef FLOWCE_KHICAS
+static constexpr bool KHICAS_ON=true; // KhiCAS + Flow: KhiCAS's results
+#else
+static constexpr bool KHICAS_ON=false;
+#endif
 #include <giac/kdisplay.h>
 #if !defined std
 #define std ustl
@@ -1327,10 +1332,14 @@ void do_run(const char * s){
       g=0;
     }
     else {
+#ifdef FLOWCE_KHICAS // (KhiCAS + Flow: the result as giac gives it, as in KhiCAS)
+      graw=g;
+#else
       answer_after(g,actx,msg,graw);
       focus_phase=87;
       if (focus_on && msg.empty() && !giac::interrupted) // ("diverges": g is not shown)
         result_approx(g);
+#endif
       focus_phase=88;
       if (giac::interrupted || giac::ctrl_c){ // ON while simplifying: giac's "Stopped by user
         msg=oom_hit?"Out of memory":giac::stack_hit?"Too many recursion levels":"Interrupted"; // interruption" texts were in the result
@@ -1339,7 +1348,11 @@ void do_run(const char * s){
     }
     giac::control_c_hook=0;
     focus_busy(0);
+#ifdef FLOWCE_KHICAS
+    const char * dv=0;
+#else
     const char * dv=msg.empty()?answer_diverges(g,actx):0; // a definite integral without a value
+#endif
     if (dv)
       msg=dv;
     if (oom_hit && msg.empty()){ // memory ran out while simplifying
@@ -1349,7 +1362,7 @@ void do_run(const char * s){
     dconsole_mode=1;
     if (defn){
       giac::logptr(savelog,contextptr);
-      if (g.is_symb_of_sommet(giac::at_program)) // the 2D input above shows the function
+      if (!KHICAS_ON && g.is_symb_of_sommet(giac::at_program)) // the 2D input above shows the function
         msg=std::string(buf,defn)+" defined";
     }
     int rows2d=0;
@@ -1371,10 +1384,15 @@ void do_run(const char * s){
     if (taille(g,256)>=256)
       Console_Output("Done");
     else {
+#ifdef FLOWCE_KHICAS
+      const std::string printed=g.print(contextptr); // (KhiCAS's: giac's print)
+      const char * str = printed.c_str();
+#else
       const std::string printed=answer_print(g,graw,actx); // (a pointer into the temporary dangled)
       const char * str = printed.c_str();
       if (focus_on)
         set_approx_for(printed);
+#endif
       Console_Output(str);
       vector<unsigned char> v;
       tokenize(str,v);
