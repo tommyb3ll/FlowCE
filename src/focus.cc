@@ -46,9 +46,9 @@ extern "C" { volatile unsigned char focus_phase; }
 static int theme_i; // the theme, of ui_themes (more > Themes: focus_set_theme)
 bool focus_hist2d = true; // (KhiCAS's Config: off, inputs and results are text lines)
 #ifdef FLOWCE_KHICAS
-enum { TOP_KH = 1 }; // KhiCAS + Flow: results as giac prints them (no "+ C")
+enum { TOP_KH = 1, GT = 13 }; // KhiCAS + Flow: results as giac prints them (no "+ C"); GT: the edit line's text row
 #else
-enum { TOP_KH = 0 };
+enum { TOP_KH = 0, GT = 0 };
 #endif
 #ifdef FLOWCE_KHICAS
 #define HIST2D focus_hist2d
@@ -400,7 +400,7 @@ static void hero_prepare(int y0, int h) {
       if (hx > HX) hx = HX;
       if (hx + L.width < UI_W - 8) hx = UI_W - 8 - L.width;
     }
-    hb_y0 = y0; hb_y1 = hbase + L.desc + 2;
+    hb_y0 = y0; hb_y1 = hbase + L.desc + 2 + GT;
     hm = HM_MATH;
   } else hm = s && *s ? HM_TEXT : HM_HINT;
 }
@@ -627,6 +627,10 @@ __attribute__((noinline)) static void hero_paint() { // in the current clip
     if (hcaret >= 0) ti_cursor(hx + HL->cx, hbase + HL->cy, HL->ch);
 #else
     if (hcaret >= 0) ui_math_caret(*HL, hx, hbase, 0, UC_ACC);
+    if (GT) { // as KhiCAS's 2D editor: the line's giac text under it, small (its end when too long)
+      const int n = strlen(s), w = ui_text_width(&ui_tr9, s, n);
+      ui_draw_text(&ui_tr9, s, n, w > UI_W - 2 * HX ? UI_W - HX - w : HX, hbase + HL->desc + GT - 2, ramp(UC_SUB, UC_BG), 0);
+    }
 #endif
     if (help_e >= 0) { // the command's description (it names the arguments as the boxes do), an example
       char d[72], ex[72];
@@ -1311,7 +1315,7 @@ static __attribute__((noinline)) void compute_model() {
 #ifdef FOCUS_CONSOLE
     // as the OS and KhiCAS: the history, the edit line under it, scrolled up when they do not fit
     int eh = SB == 30 ? 16 : 26;
-    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, SH, MI_F_CALLBOX); eh = c.a + c.d; }
+    if (s && *s && console_edit2d()) { fitc c = fitted(s, HERO_LV, W_IN, SH, MI_F_CALLBOX); eh = c.a + c.d + GT; }
     M.scroll = TOP + M.col_h + eh + 2 > SH ? TOP + M.col_h + eh + 2 - SH : 0;
 #else
     M.scroll = M.col_n ? M.col_h - (E[M.col_n - 1].outh + 12) : 0;
