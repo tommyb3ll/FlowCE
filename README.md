@@ -52,7 +52,7 @@ pick one, click Install, and follow the short calculator prompts.
 | Calculus → Applications | area, volumes, arc length, surface area, average value | |
 | Statistics and probability | data, box plots, regressions, distributions, tests | KhiCAS's spreadsheet and statistics |
 | Menus and keys | FlowCE's | KhiCAS's, as Bernard Parisse arranged them (`mode` → Shortcuts lists them) |
-| Programs (Python syntax, the program editor, the debugger) | | yes |
+| Programs (the program editor, the debugger) | | yes, in Xcas syntax |
 | Themes | nine | Paper |
 | Download | [`FlowCE.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE.b84) | [`KhiCAS-Flow.b84`](https://tommyb3ll.github.io/FlowCE/files/KhiCAS-Flow.b84) |
 
