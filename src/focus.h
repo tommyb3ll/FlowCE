@@ -31,6 +31,10 @@ void focus_idle(void); // getkey, idle for a few seconds: slow refreshes (batter
 void focus_blink(void); // getkey at the console, twice a second: the TI look's cursor blinks
 #ifdef __cplusplus
 extern bool focus_hist2d;
+#ifdef FLOWCE_KHICAS
+extern bool focus_text_arrows;          // Config: left and right by character in the text line (off: through the 2D)
+void focus_set_text_arrows(bool on);    // (kept with the theme)
+#endif
 // KhiCAS + Flow's graph thumbnails: the graph on the screen, small (malloc'ed, 0 if none), then
 // kept for the output line just made (Console_NewLine; freed when it is not kept)
 unsigned char * focus_thumb_capture();

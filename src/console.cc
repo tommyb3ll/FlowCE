@@ -930,7 +930,7 @@ void answer_set_simplify(bool on);
 void menu_setup(){
   //drawRectangle(0, 18, LCD_WIDTH_PX, LCD_HEIGHT_PX-18, SDK_WHITE);
 #ifdef FLOWCE_KHICAS
-  enum { H = 1 }; // KhiCAS's "2D history" checkbox, second
+  enum { H = 2 }; // KhiCAS's "2D history" checkbox, second; "Arrows by character", third
 #else
   enum { H = 0 };
 #endif
@@ -950,6 +950,10 @@ void menu_setup(){
   if (H){
     smallmenuitems[1].type = MENUITEM_CHECKBOX;
     smallmenuitems[1].text = (char*)(lang?"Historique 2D":"2D history");
+#ifdef FLOWCE_KHICAS
+    smallmenuitems[2].type = MENUITEM_CHECKBOX; // left and right in the text line under the 2D, a character at a time
+    smallmenuitems[2].text = (char*)"Arrows by character";
+#endif
   }
   smallmenuitems[1+H].text = (char*)(lang?"Mise a l'heure":"Set time");
   smallmenuitems[2+H].text = (char*)(lang?"Effacer variables":"Clear variables");
@@ -959,6 +963,9 @@ void menu_setup(){
   while(1) {
     smallmenuitems[0].value = answer_simplify();
     if (H) smallmenuitems[1].value = focus_hist2d;
+#ifdef FLOWCE_KHICAS
+    smallmenuitems[2].value = focus_text_arrows;
+#endif
     const int sres = doMenu(&smallmenu);
     if (sres==MENU_RETURN_EXIT)
       break;
@@ -971,6 +978,12 @@ void menu_setup(){
         focus_hist2d=!focus_hist2d; // (the console is drawn again when the menu closes)
         continue;
       }
+#ifdef FLOWCE_KHICAS
+      if (smallmenu.selection==3){
+        focus_set_text_arrows(!focus_text_arrows);
+        continue;
+      }
+#endif
       if (smallmenu.selection==2+H){
 	int h,m; get_time(&h,&m);
 	double d=h+m/100.;
@@ -3417,7 +3430,11 @@ int Console_GetKey(){
       if (r!=-1) return r;
     }
 #endif
-    if (console_input2d() && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT || key==KEY_CTRL_UP || key==KEY_CTRL_DOWN)){
+    if (console_input2d() && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT || key==KEY_CTRL_UP || key==KEY_CTRL_DOWN)
+#ifdef FLOWCE_KHICAS
+        && !(focus_text_arrows && (key==KEY_CTRL_LEFT || key==KEY_CTRL_RIGHT)) // (Config: by character, below)
+#endif
+        ){
       const char * s=(const char *)Edit_Line;
       const int dir=key==KEY_CTRL_LEFT?0:key==KEY_CTRL_RIGHT?1:key==KEY_CTRL_UP?2:3;
       const int p=mi_move(s,strlen(s),Current_Col,dir,edit_metrics());

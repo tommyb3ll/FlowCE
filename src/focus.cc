@@ -1730,20 +1730,40 @@ int focus_view;
 // screen_is_ours() cannot tell: forget what is on screen
 void focus_invalidate() { PM.ll = -1; }
 
+#ifdef FLOWCE_KHICAS
+bool focus_text_arrows; // Config: left and right by character in the text line (off: through the 2D, as KhiCAS)
+#endif
 void focus_init() {
-  const char * t = read_file("FocusUI"); // the theme chosen last: its digit (P or N before 2.0)
+  const char * t = read_file("FocusUI"); // the theme chosen last: its digit (P or N before 2.0); KhiCAS + Flow: then T, arrows by character
   theme_i = !t ? 0 : t[0] == 'N' ? 1 : t[0] > '0' && t[0] < '0' + UI_NTHEMES ? t[0] - '0' : 0;
+#ifdef FLOWCE_KHICAS
+  focus_text_arrows = t && t[0] && t[1] == 'T';
+#endif
   ui_set_theme(ui_themes[theme_i]);
   read_battery();
+}
+static void save_ui() {
+#ifdef FLOWCE_KHICAS
+  const char d[3] = {(char)('0' + theme_i), focus_text_arrows ? 'T' : '-', 0};
+  write_file("FocusUI", d, 3);
+#else
+  const char d[2] = {(char)('0' + theme_i), 0};
+  write_file("FocusUI", d, 2);
+#endif
 }
 // every Focus pixel is a palette entry: the new theme shows at once, without a redraw
 int focus_theme() { return theme_i; }
 void focus_set_theme(int i) {
   theme_i = i;
   ui_set_theme(ui_themes[i]);
-  const char d[2] = {(char)('0' + i), 0};
-  write_file("FocusUI", d, 2);
+  save_ui();
 }
+#ifdef FLOWCE_KHICAS
+void focus_set_text_arrows(bool on) {
+  focus_text_arrows = on;
+  save_ui();
+}
+#endif
 extern "C" void focus_idle(void) { // getkey, after a few idle seconds
   if (!focus_on) return;
   read_battery();
