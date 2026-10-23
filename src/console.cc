@@ -3831,6 +3831,7 @@ const char * console_menu(int key,Char* cfg_,int active_app){
       continue;
     }
     if (temp[0] == 'F' && temp[1]!=(key-KEY_CTRL_F1)+'0'){
+      if (matched) break; // (its entries read: the rest of the text is other keys' menus)
       matched = 0;
       continue;
     }

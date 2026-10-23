@@ -18,6 +18,7 @@ unsigned short * ui_host_palette(void) { return host_palette; }
 unsigned char * ui_fb = FB;
 int ui_cx0 = 0, ui_cy0 = 0, ui_cx1 = UI_W, ui_cy1 = UI_H;
 static int band_y0 = 0, band_y1 = UI_H; // the rows drawing may touch
+static int band_x0 = 0, band_x1 = UI_W; // the columns a band copies from the screen and to it
 static unsigned char * strip;
 static int strip_rows;
 static char band_busy, strip_given; // a band is being drawn; the strip went to a calculation
@@ -57,7 +58,13 @@ void ui_band_begin(int y0, int y1) {
   ui_fb = strip - y0 * UI_W; // screen row y lands at strip row y - y0
   ui_noclip();
 }
-void ui_band_load(void) { memcpy(strip, FB + band_y0 * UI_W, (band_y1 - band_y0) * UI_W); }
+// (a card narrower than the screen: its columns only, half the copying of an F-key menu's opening)
+void ui_band_cols(int x0, int x1) { band_x0 = x0 < 0 ? 0 : x0; band_x1 = x1 > UI_W ? UI_W : x1 < band_x0 ? band_x0 : x1; }
+static void band_copy(unsigned char * d, const unsigned char * s) {
+  if (!band_x0 && band_x1 == UI_W) { memcpy(d, s, (band_y1 - band_y0) * UI_W); return; }
+  for (int y = band_y0; y < band_y1; ++y, d += UI_W, s += UI_W) memcpy(d + band_x0, s + band_x0, band_x1 - band_x0);
+}
+void ui_band_load(void) { band_copy(strip, FB + band_y0 * UI_W); }
 // The LCD reads the screen's memory row after row, 60 times a second, as the panel shows it: rows
 // rewritten while it reads them show half old, half new for a frame (a tear; the emulator's panel
 // shows it too). ui_scan_clear waits while it reads rows [y0, y1) (at most 20 ms): a block written
@@ -76,7 +83,7 @@ void ui_scan_clear(int y0, int y1) {
 #endif
 }
 void ui_band_end(void) {
-  memcpy(FB + band_y0 * UI_W, strip, (band_y1 - band_y0) * UI_W);
+  band_copy(FB + band_y0 * UI_W, strip);
   ui_fb = FB; band_y0 = 0; band_y1 = UI_H;
   ui_noclip();
   band_busy = 0;
@@ -376,7 +383,7 @@ static void corner_shades(unsigned char * t, int r, int ring) {
     }
   }
 }
-enum { CT_N = 16 };
+enum { CT_N = 48 }; // (16 were fewer than a card's radii and rings: rebuilt at every opening)
 static unsigned char * ct_tab[CT_N], ct_key[CT_N], ct_next; // (kept: r | ring << 6)
 // the table (r * r + 2 r bytes): the r x r shades, then (ring 0: a disc's corner, its shades rising
 // along a row) per row the first pixel shaded and the first full one

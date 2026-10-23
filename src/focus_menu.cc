@@ -432,6 +432,7 @@ static int snap(const fm_menu & m, int b, int e) {
 static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
   int rows = ui_band_open(48);
   fresh = (char)all;
+  ui_band_cols(px - 2, px + pw + 4); // (the card and its shadow: the rest of the screen stays)
   for (int b = y0, e; b < y1; b = e) {
     e = rows && b + rows < y1 ? snap(m, b, b + rows) : y1;
     if (rows) { ui_band_begin(b, e); ui_band_load(); }
@@ -459,6 +460,7 @@ static void paint_rows(const fm_menu & m, int y0, int y1, int sel, int all) {
     }
     if (rows) ui_band_end();
   }
+  ui_band_cols(0, UI_W);
   ui_noclip();
 }
 

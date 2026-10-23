@@ -29,6 +29,7 @@ int ui_band_open(int maxrows);       // allocates the strip (fewer rows when mem
 void ui_band_close(void);            // frees it
 void ui_band_begin(int y0, int y1);  // screen rows [y0, y1), at most the strip's rows
 void ui_band_load(void);             // starts the band from the screen's pixels (draw over them)
+void ui_band_cols(int x0, int x1);   // the columns the bands copy, [x0, x1) (0, UI_W: whole rows)
 void ui_scan_clear(int y0, int y1);          // waits while the LCD reads rows [y0, y1) (no tear: at most a frame)
 void ui_band_end(void);              // copies the band to the screen
 // The strip is the first memory a calculation gets when the heap runs out (allocator_custom.c):
