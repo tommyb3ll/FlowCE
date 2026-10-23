@@ -212,6 +212,12 @@ static bool coords, grid = true;          // dots' coordinates shown; the grid
 static bool klabels;                      // the key points' coordinates on the graph
 static bool tang, nrm, osc;               // the tangent line, the normal line, the osculating circle at the trace point
 static char feat;                         // the one of them turned on last (1, 2, 3): its equation in the readout
+#ifdef FLOWCE_KHICAS
+static bool showeq;                       // the readout: that equation (X,T,θ,n); off: the slope m and the radius R
+                                          // after x and y (B. Parisse: enough, and less of the graph hidden)
+#else
+static bool showeq = true;                // (FlowCE: the equation first, X,T,θ,n: m and R)
+#endif
 static float area_a, area_b;              // the area under the curve shaded (a < b), else a = b
 static float fan_a, fan_b;                // a polar curve's area shaded: θ from a to b (a < b)
 static char note[64];                     // the readout's own line (a key point, the area, the tangent)
@@ -836,15 +842,23 @@ static NOINL void chip_at(const char * s, int w, int x, int base, int b, int e) 
   ui_math_text(s, NL, x, base, ui_ramp(0, UC_INK, UC_TILE));
 }
 static bool tang_on() { return (tang || nrm || (osc && KIND_ != 3)) && mode && (KIND_ || tf < NF); } // (DeltaCE: not on data points)
-static bool shown_note() { return tang_on() || (note[0] && (note_x < 0 || (KIND_ ? note_t == tx : note_x == px_of(tx)))); }
 static char * tang_note();
+// the readout's note: the tangent's, the normal's or the circle's (its equation, or m and R not
+// fitting after x and y), else a key point's or an area's
+static bool tang_shown() { return tang_on() && tang_note()[0]; }
+static bool shown_note() { return tang_shown() || (note[0] && (note_x < 0 || (KIND_ ? note_t == tx : note_x == px_of(tx)))); }
 static float slope(int i, float x);
 static float tslope();
 static NOINL void line_text(char * t, const char * w, float m, float b);
 static NOINL bool line16(float x, float y, float m, int * tl);
-static NOINL void circle16(float x, float y, bool note);
+static NOINL bool tvel(float & dx, float & dy);
+#ifdef FLOWCE_KHICAS
+static NOINL bool arrow16(float x, float y, float dx, float dy, int * vl);
+#endif
+static NOINL float circle16(float x, float y, bool note);
 enum { NCIR = 96 };
 static int CIR_[2 * (NCIR + 1)], ncir; // the osculating circle's points (1/16 px; ncir: their number, 0: none)
+static bool tline; // the tangent's note is m and R (too long for the line above): drawn as that line
 // the readout: a tile at the bottom left as wide as what it says: x and y of the trace point (pan:
 // none, the axes' numbers say where the view is), the note under them (a key point's exact values,
 // the tangent, the area)
@@ -853,8 +867,9 @@ static void readout(int b, int e) {
   if ((!mode && !n) || e <= GB - 72) return; // (the tile: 66 rows high at most)
   enum { X0 = 6, LV = 5 }; // (LV: 14 px)
   // the note's line: its words, then its math (a fraction: the tile taller)
-  const char * nt = n ? (tang_on() ? tang_note() : note) : 0, * m = n ? strchr(nt, '\x01') : 0;
-  const int tw = n ? ui_text_width(&ui_tb10, nt, m ? (int)(m - nt) : -1) : 0;
+  const bool ln = n && tline && tang_shown();
+  const char * nt = n ? (tang_shown() ? tang_note() : note) : 0, * m = n && !ln ? strchr(nt, '\x01') : 0;
+  const int tw = ln ? 12 + ui_math_text(nt, LV, 0, 0, 0) : n ? ui_text_width(&ui_tb10, nt, m ? (int)(m - nt) : -1) : 0;
   mi_layout L;
   int lv = 0, asc = 10, desc = 3, nw = tw;
   if (m) {
@@ -877,7 +892,8 @@ static void readout(int b, int e) {
       if (u) ui_draw_text(&ui_tr10, "undefined", -1, x, y + 11, ui_ramp(0, UC_SUB, UC_ACCSOFT), 0);
       y += 20;
     }
-    if (n) {
+    if (ln) ui_math_text(nt, LV, X0 + 22, y + 11, ui_ramp(0, UC_INK, UC_ACCSOFT)); // (under x and y)
+    else if (n) {
       ui_draw_text(&ui_tb10, nt, m ? (int)(m - nt) : -1, X0 + 10, y + asc, ui_ramp(0, UC_ACC, UC_ACCSOFT), 0);
       if (m) ui_math_draw(L, m + 1, lv, X0 + 16 + tw, y + asc, 0, UC_INK, UC_ACCSOFT, UC_ACC);
     }
@@ -1011,16 +1027,20 @@ static NOINL void paint(bool fast) {
         if (tile_ok(F, k, px[q], py[q], s)) { F.lx[k] = px[q]; F.ly[k] = py[q]; break; }
       }
   }
-  int tl[4], nl[4]; // the tangent, the normal, cut to the plot (1/16 px)
+  int tl[4], nl[4], vl[8]; // the tangent, the normal, cut to the plot; a curve's velocity, its head (1/16 px)
   float tpxf, tpyf;
   const bool tok = mode && tpt(tpxf, tpyf), here = tok && (KIND_ || tf < NF); // (not on data points)
-  bool tg = tang && here, ng = nrm && here;
+  bool tg = tang && here, ng = nrm && here, vg = false;
+  char tsh[40]; // the short readout: m (the curve's slope) and R (the circle's radius), after x and y
+  tsh[0] = 0;
+  tnote[0] = 0;
+  tline = false;
   ncir = 0;
-  if (tg || ng || (osc && here)) { // (the equation of the one turned on last in the readout, for the trace point)
+  if (tg || ng || (osc && here)) { // (showeq: the equation of the one turned on last in the readout, for the trace point)
     const float x = tpxf, y = tpyf, m = tslope(), mn = !fin(m) ? 0 : fabsf(m) < 1e-6f ? NAN : -1 / m;
     const bool og = osc && KIND_ != 3;
     const int f = (feat == 1 && tg) || (feat == 2 && ng) || (feat == 3 && og) ? feat : tg ? 1 : ng ? 2 : 3;
-    if (f < 3) {
+    if (showeq && f < 3) {
       const float s = f == 1 ? m : mn;
       const char * w = f == 1 ? "Tangent" : "Normal";
       if (!fin(s)) { // (vertical: x = c)
@@ -1028,9 +1048,22 @@ static NOINL void paint(bool fast) {
         strcpy(tnote, w); strcat(tnote, "\x01x="); fmtg(u, x); strcat(tnote, u);
       } else line_text(tnote, w, s, y - s * x);
     }
+#ifdef FLOWCE_KHICAS
+    float dx, dy; // a curve's tangent: also its velocity, a vector as long as the speed (as KhiCAS)
+    if (tg && (KIND_ == 1 || KIND_ == 2) && tvel(dx, dy)) vg = arrow16(x, y, dx, dy, vl);
+#endif
     if (tg) tg = line16(x, y, m, tl);
     if (ng) ng = line16(x, y, mn, nl);
-    if (og) circle16(x, y, f == 3);
+    const float R = og ? circle16(x, y, showeq && f == 3) : NAN;
+    if (!showeq) {
+      char u[16];
+      if (tang || nrm) { strcpy(tsh, "m = "); if (fin(m)) { fmtg(u, m, 4); strcat(tsh, u); } else strcat(tsh, "\xe2\x88\x9e"); }
+      if (og && (fin(R) || R > 0)) { // (R infinite: straight here; none: no circle there)
+        if (tsh[0]) strcat(tsh, "   ");
+        strcat(tsh, "R = ");
+        if (fin(R)) { fmtg(u, R, 4); strcat(tsh, u); } else strcat(tsh, "\xe2\x88\x9e");
+      }
+    }
   }
   const float ty = mode ? tpyf : 0;
   const int tpx = mode && (tok || !KIND_) ? px_of(KIND_ ? tpxf : tx) : -100, tpy = tok ? py_of(ty) : NONE;
@@ -1048,6 +1081,12 @@ static NOINL void paint(bool fast) {
       else { fmt(b1, x, sx / 100); fmt(b2, y, sy / 100); trim(b1); trim(b2); }
       if (!KIND_ || !mode || tok) { strcat(F.ln, "x = "); strcat(F.ln, b1); strcat(F.ln, "   y = "); }
       strcat(F.ln, fin(y) && (!KIND_ || !mode || tok) ? b2 : "\x02"); // (\x02: undefined, in words)
+    }
+    if (tsh[0]) { // m and R: on the same line when the readout stays on the screen, else under it
+      if (strlen(F.ln) + strlen(tsh) + 4 < sizeof(F.ln) && ui_math_text(F.ln, 5, 0, 0, 0) + ui_math_text(tsh, 5, 0, 0, 0) + 30 < UI_W - 44) {
+        strcat(F.ln, "   "); strcat(F.ln, tsh);
+      }
+      else { strcpy(tnote, tsh); tline = true; }
     }
   }
   const int pa = area_a < area_b ? (px_of(area_a) < 0 ? 0 : px_of(area_a)) : 1, pb = area_a < area_b ? (px_of(area_b) >= UI_W ? UI_W - 1 : px_of(area_b)) : 0;
@@ -1133,6 +1172,12 @@ static NOINL void paint(bool fast) {
     for (int k = 0; k < NK && k < NKP; ++k)
       if (F.ky[k] != NONE && F.lx[k] >= 0) chip_at(K_[k].lt, K_[k].lw, F.lx[k], F.ly[k], b, e);
     if (tg) seg16(tl[0], tl[1], tl[2], tl[3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the tangent
+    if (vg) { // a curve's velocity: an arrow from the trace point
+      const unsigned char * rp = ui_ramp(0, UC_ACC, UC_BG);
+      seg16(vl[0], vl[1], vl[2], vl[3], lo, hi, 28, rp);
+      seg16(vl[2], vl[3], vl[4], vl[5], lo, hi, 28, rp);
+      seg16(vl[2], vl[3], vl[6], vl[7], lo, hi, 28, rp);
+    }
     if (ng) seg16(nl[0], nl[1], nl[2], nl[3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the normal
     for (int k = 0; k + 1 < ncir; ++k) seg16(CIR_[2 * k], CIR_[2 * k + 1], CIR_[2 * k + 2], CIR_[2 * k + 3], lo, hi, 18, ui_ramp(0, UC_SUB, UC_BG)); // the circle
     if (mode) { // the trace point: a dot (no y there: a faint line at its x)
@@ -1502,18 +1547,40 @@ static NOINL float slope(int i, float x) {
   const float h = KIND_ ? (PT1[0] - PT0[0]) / 4000 : (vx1 - vx0) / 4000;
   return (val(i, x + h) - val(i, x - h)) / (2 * h);
 }
-// dy/dx at the trace point (a curve: dy/dt over dx/dt; NAN: a vertical tangent)
-static NOINL float tslope() {
-  if (!KIND_) return slope(tf, tx);
-  if (KIND_ == 3) return fxy(tx, sol_y(tf, tx)); // (the field)
-  float dx, dy;
+// a curve's velocity at the trace point: x'(t), y'(t) (polar: from r and r'); false where not finite
+static NOINL bool tvel(float & dx, float & dy) {
   if (KIND_ == 1) { dx = slope(2 * tf, tx); dy = slope(2 * tf + 1, tx); }
   else {
     const float r = run_prog(P_[tf], F_[tf], tx), dr = slope(tf, tx), c = cosf(tx), s = sinf(tx);
     dx = dr * c - r * s; dy = dr * s + r * c;
   }
+  return fin(dx) && fin(dy);
+}
+// dy/dx at the trace point (a curve: dy/dt over dx/dt; NAN: a vertical tangent)
+static NOINL float tslope() {
+  if (!KIND_) return slope(tf, tx);
+  if (KIND_ == 3) return fxy(tx, sol_y(tf, tx)); // (the field)
+  float dx, dy;
+  tvel(dx, dy);
   return fabsf(dx) <= 1e-6f * (1 + fabsf(dy)) ? NAN : dy / dx;
 }
+#ifdef FLOWCE_KHICAS
+// the vector from (x, y) to (x + dx, y + dy), its head two strokes back from the tip at 25 degrees
+// (1/16 px; far ends kept in range); false: too short to draw (under 3 px)
+static NOINL bool arrow16(float x, float y, float dx, float dy, int * vl) {
+  const float kx = 16 * (UI_W - 1) / (vx1 - vx0), ky = 16 * (GH - 1) / (vy1 - vy0);
+  float p[4] = {(x - vx0) * kx + 8, GT * 16 + (vy1 - y) * ky, (x + dx - vx0) * kx + 8, GT * 16 + (vy1 - y - dy) * ky};
+  const float ux = p[2] - p[0], uy = p[3] - p[1], L = sqrtf(ux * ux + uy * uy);
+  if (!fin(L) || L < 48) return false;
+  const float bx = -ux / L * 112, by = -uy / L * 112, c = 0.9063f, s = 0.4226f; // (the head: 7 px)
+  const float h[4] = {p[2] + bx * c - by * s, p[3] + bx * s + by * c, p[2] + bx * c + by * s, p[3] - bx * s + by * c};
+  for (int k = 0; k < 8; ++k) {
+    const float v = k < 4 ? p[k] : h[k - 4];
+    vl[k] = v < -16000 ? -16000 : v > 32000 ? 32000 : (int)v;
+  }
+  return true;
+}
+#endif
 // the line through (x, y) of slope m (not finite: vertical), cut to the plot (1/16 px): false, it misses it
 static NOINL bool line16(float x, float y, float m, int * tl) {
   if (!fin(m)) {
@@ -1539,18 +1606,20 @@ static NOINL bool cpt(float t, float & x, float & y) {
 // its rounding small, its error of the 4th order; 4 digits right),
 // the radius of curvature R = (x'^2 + y'^2)^(3/2) / |x' y'' - y' x''|, the center R along the normal,
 // towards the curve's bend. Its points into CIR_ (drawn while R is at most 4 views wide: more, it is a
-// straight line here); note: its equation in the readout's note, (x - a)^2 + (y - b)^2 = R^2
-static NOINL void circle16(float x, float y, bool note) {
+// straight line here); note: its equation in the readout's note, (x - a)^2 + (y - b)^2 = R^2.
+// Returns R (infinite: straight here; NAN: no circle there)
+static NOINL float circle16(float x, float y, bool note) {
   const float r = KIND_ ? PT1[0] - PT0[0] : vx1 - vx0, h = r / 4000, H = r / 100;
   float xa, ya, xb, yb, xc, yc, xd, yd, xe, ye, xf, yf;
   if (!cpt(tx - h, xa, ya) || !cpt(tx + h, xb, yb) || !cpt(tx - H, xc, yc) || !cpt(tx + H, xd, yd) || !cpt(tx - 2 * H, xe, ye) || !cpt(tx + 2 * H, xf, yf)) {
     if (note) strcpy(tnote, "No circle here");
-    return;
+    return NAN;
   }
   const float dx = KIND_ ? (xb - xa) / (2 * h) : 1, dy = (yb - ya) / (2 * h), H3 = 3 * H * H;
   const float ddx = KIND_ ? (4 * (xd - 2 * x + xc) - (xf - 2 * x + xe) / 4) / H3 : 0, ddy = (4 * (yd - 2 * y + yc) - (yf - 2 * y + ye) / 4) / H3;
   const float s = dx * dx + dy * dy, d = dx * ddy - dy * ddx, R = s * sqrtf(s) / fabsf(d), view = vx1 - vx0 + vy1 - vy0;
-  if (!fin(R) || R > 1e4f * view) { if (note) strcpy(tnote, "No circle: straight here"); return; }
+  if (!fin(s) || d != d) { if (note) strcpy(tnote, "No circle here"); return NAN; } // (not computed there)
+  if (!fin(R) || R > 1e4f * view) { if (note) strcpy(tnote, "No circle: straight here"); return INFINITY; }
   const float cx = x - dy * s / d, cy = y + dx * s / d;
   if (note) {
     char u[20];
@@ -1564,7 +1633,7 @@ static NOINL void circle16(float x, float y, bool note) {
     }
     fmtg(u, R, 4); strcat(tnote, u); strcat(tnote, "^2");
   }
-  if (R > 4 * view) return;
+  if (R > 4 * view) return R;
   const float kx = 16 * (UI_W - 1) / (vx1 - vx0), ky = 16 * (GH - 1) / (vy1 - vy0), cd = cosf(6.2831853f / NCIR), sd = sinf(6.2831853f / NCIR);
   float c = 1, sn = 0; // (turned by 2 pi / NCIR each point: no sinf, cosf in the loop)
   for (int k = 0; k <= NCIR; ++k) {
@@ -1574,6 +1643,7 @@ static NOINL void circle16(float x, float y, bool note) {
     sn = sn * cd + c * sd; c = t;
   }
   ncir = NCIR + 1;
+  return R;
 }
 // a line's equation: y = m x + b, its terms when not 0 (after \x01: math); w: its name
 static NOINL void line_text(char * t, const char * w, float m, float b) {
@@ -1619,6 +1689,7 @@ static NOINL void feature(bool & b, int k, float x0) {
   b = !b;
   if (b) { feat = (char)k; if (!mode) { mode = 1; tx = x0; } }
   if (b && k == 3) square_view(); // (as KhiCAS: a circle that looks round)
+  if (b) focus_status_msg(showeq ? "X,T,\xce\xb8,n: m and R" : "X,T,\xce\xb8,n: its equation"); // (until a key)
 }
 static NOINL void pmore_menu() {
   enum { TAN, NRM, OSC, ARC, PAREA, GRID };
@@ -1810,6 +1881,11 @@ static NOINL void run(float a, float b, bool eqs) {
       if (KIND_ == 3) { float x; if (ask("Value at x =", "x", x) && fin(sol_y(tf, x))) { tx = x; follow(); } }
       else if (KIND_) pvalue_at(); else value_at();
       bar(); paint(false);
+      continue;
+    }
+    if (key == KEY_CTRL_XTT && tang_on()) { // the readout: m and R, or the equation (B. Parisse)
+      showeq = !showeq;
+      paint(false);
       continue;
     }
     if (key == KEY_CTRL_F2) zoom_menu();
