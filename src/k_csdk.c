@@ -314,7 +314,12 @@ int getkey(int allow_suspend){
     case sk_TglExact:
       //dbg_printf("tab\n");
       return Alpha?KEY_CHAR_D+decal:'\t';
-    case sk_Sin: // (TI-83 Premium CE: trig, sin as KhiCAS's 83 build; 2nd: pi)
+    case sk_Sin: // (TI-83 Premium CE: trig, the six functions to choose as KhiCAS's 83 build; 2nd: pi)
+      if (sdk_ti83() && !Alpha && !Shift){
+        const int k=focus_trig();
+        if (k) return k;
+        continue; // (none chosen: the next key)
+      }
       return Alpha?KEY_CHAR_E+decal:Shift?(sdk_ti83()?KEY_CHAR_PI:KEY_CHAR_ASIN):KEY_CHAR_SIN;
     case sk_Cos: // (resol: the Solve commands; 2nd: apps, as the 84's apps key)
       if (sdk_ti83()) return Alpha?KEY_CHAR_F+decal:(Shift?KEY_CHAR_MAT:KEY_CTRL_SOLVE);

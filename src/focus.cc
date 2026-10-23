@@ -1224,6 +1224,34 @@ extern "C" void focus_status(void) { status_draw(0); }
 void focus_status_label(const char * s) { stat_view = s; stat_chip = 0; status_draw(0); }
 void focus_status_view(const char * s, int chip) { stat_view = s; stat_chip = chip; status_draw(0); }
 
+// a TI-83 Premium CE's trig key (it has no cos or tan keys): the six functions on a strip over the key
+// bar, a digit picks one, enter sin, as KhiCAS's 83 build (k_csdk.c getkey; 0: none); the bar's
+// pixels put back after, whatever screen is under it
+extern "C" int focus_trig(void) {
+  static const char * const fn[6] = {"sin", "cos", "tan", "asin", "acos", "atan"};
+  static const int keys[6] = {KEY_CHAR_SIN, KEY_CHAR_COS, KEY_CHAR_TAN, KEY_CHAR_ASIN, KEY_CHAR_ACOS, KEY_CHAR_ATAN};
+  unsigned char * fb = ui_fb + SBOT * UI_W, * keep = (unsigned char *)malloc(UI_W * MB);
+  if (keep) memcpy(keep, fb, UI_W * MB);
+  ui_clip(0, SBOT, UI_W, UI_H);
+  ui_fill(0, SBOT, UI_W, MB, col(UC_BAR));
+  for (int i = 0; i < 6; ++i) { // "1 sin" centered in each sixth
+    const char d[2] = {(char)('1' + i), 0};
+    const int dw = ui_text_width(&ui_tb10, d, 1), fw = ui_text_width(&ui_tr10, fn[i], -1), x = 27 + 53 * i - (dw + 4 + fw) / 2;
+    ui_draw_text(&ui_tb10, d, 1, x, SBOT + 15, ramp(UC_ACC, UC_BAR), 0);
+    ui_draw_text(&ui_tr10, fn[i], -1, x + dw + 4, SBOT + 15, ramp(UC_BARINK, UC_BAR), 0);
+  }
+  ui_noclip();
+  int k;
+  for (;;) {
+    GetKey(&k);
+    if (k == KEY_CTRL_EXIT || k == KEY_CTRL_AC || k == KEY_CTRL_QUIT) { k = 0; break; }
+    if (k == KEY_CTRL_EXE) { k = KEY_CHAR_SIN; break; }
+    if (k >= KEY_CHAR_1 && k < KEY_CHAR_1 + 6) { k = keys[k - KEY_CHAR_1]; break; }
+  }
+  if (keep) { memcpy(fb, keep, UI_W * MB); free(keep); }
+  return k;
+}
+
 extern "C" void focus_status_msg(const char * msg) {
   char m[sizeof(smsg)];
   if (!msg || !strcmp(msg, session_filename)) m[0] = 0;
