@@ -2272,14 +2272,17 @@ static bool ti_value_key(int key){
 }
 
 // is the char before the cursor the end of a value (digit, letter, closing bracket, factorial)?
-static bool console_prev_is_value(){
+// letter: only a letter (a name's end: what comes next would join it, pi sin -> pisin)
+static bool console_prev_is_value(bool letter=false){
   if (Line[Current_Line].readonly)
     return false;
   int pos=Console_GetActualPos(Edit_Line,Current_Col);
   if (pos<=0)
     return false;
   const char c=Edit_Line[pos-1];
-  return (c>='0' && c<='9') || (c>='a' && c<='z') || (c>='A' && c<='Z') || c==')' || c==']' || c=='!';
+  if ((c>='a' && c<='z') || (c>='A' && c<='Z'))
+    return true;
+  return !letter && ((c>='0' && c<='9') || c==')' || c==']' || c=='!');
 }
 
 // Close brackets left open on the input line, as TI-OS does on ENTER: "sin(x" -> "sin(x)".
@@ -3726,9 +3729,11 @@ int Console_GetKey(){
     }
     if (const char * ptr=keytostring(key,keyflag,false)){
       if (ptr){
-        if (ti_value_key(key) && console_prev_is_value() && console_python_mode())
-          Console_Input((const Char *)"*"); // Python: 2[pi] -> 2*pi; otherwise the pre-pass in do_run
-                                            // does it and the input keeps reading 2pi
+        if (ti_value_key(key) && (console_python_mode() ? console_prev_is_value() : key!=KEY_CTRL_XTT && console_prev_is_value(true)))
+          Console_Input((const Char *)"*"); // Python: 2[pi] -> 2*pi; CAS: after a name only (pi sin -> pi*sin,
+                                            // not the name pisin; a sin: a*sin, not asin), but not x: names
+                                            // typed letter by letter take it (exp, max); the pre-pass in do_run
+                                            // does the rest and the input keeps reading 2pi
 #ifdef FLOWCE_KHICAS
         if (key==KEY_CHAR_PMINUS && focus_on && !Line[Current_Line].readonly){ // (-) right after a number: KhiCAS's _ (a unit: 5_m)
           const int pos=Console_GetActualPos(Edit_Line,Current_Col);
