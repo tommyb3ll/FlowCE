@@ -930,13 +930,14 @@ void answer_set_simplify(bool on);
 void menu_setup(){
   //drawRectangle(0, 18, LCD_WIDTH_PX, LCD_HEIGHT_PX-18, SDK_WHITE);
 #ifdef FLOWCE_KHICAS
-  enum { H = 2 }; // KhiCAS's "2D history" checkbox, second; "Arrows by character", third
+  // KhiCAS's items in KhiCAS's places (B. Parisse presses 3 for "2D history"), ours after them
+  enum { TIME, CLEAR, HIST, SIMP, ARROWS, SHORT, ABOUT, QUIT, N };
 #else
-  enum { H = 0 };
+  enum { SIMP, TIME, CLEAR, SHORT, ABOUT, QUIT, N };
 #endif
   Menu smallmenu;
-  smallmenu.numitems=6+H;
-  MenuItem smallmenuitems[smallmenu.numitems];
+  smallmenu.numitems=N;
+  MenuItem smallmenuitems[N];
   smallmenu.items=smallmenuitems;
   smallmenu.height=6;
   smallmenu.width=20;
@@ -945,48 +946,45 @@ void menu_setup(){
   smallmenu.scrollout=1;
   smallmenu.title = (char*)"Config";
   // off: an answer stays as giac gives it (B. Parisse: to store a result with sto as it is)
-  smallmenuitems[0].type = MENUITEM_CHECKBOX;
-  smallmenuitems[0].text = (char*)(lang?"Simplifier":"Simplify answers");
-  if (H){
-    smallmenuitems[1].type = MENUITEM_CHECKBOX;
-    smallmenuitems[1].text = (char*)(lang?"Historique 2D":"2D history");
+  smallmenuitems[SIMP].type = MENUITEM_CHECKBOX;
+  smallmenuitems[SIMP].text = (char*)(lang?"Simplifier":"Simplify answers");
 #ifdef FLOWCE_KHICAS
-    smallmenuitems[2].type = MENUITEM_CHECKBOX; // left and right in the text line under the 2D, a character at a time
-    smallmenuitems[2].text = (char*)"Arrows by character";
+  smallmenuitems[HIST].type = MENUITEM_CHECKBOX;
+  smallmenuitems[HIST].text = (char*)(lang?"Historique 2D":"2D history");
+  smallmenuitems[ARROWS].type = MENUITEM_CHECKBOX; // left and right in the text line under the 2D, a character at a time
+  smallmenuitems[ARROWS].text = (char*)"Arrows by character";
 #endif
-  }
-  smallmenuitems[1+H].text = (char*)(lang?"Mise a l'heure":"Set time");
-  smallmenuitems[2+H].text = (char*)(lang?"Effacer variables":"Clear variables");
-  smallmenuitems[3+H].text = (char *) (lang?"Raccourcis":"Shortcuts");
-  smallmenuitems[4+H].text = (char*) (lang?"A propos":"About");
-  smallmenuitems[5+H].text = (char*) "Quit";
+  smallmenuitems[TIME].text = (char*)(lang?"Mise a l'heure":"Set time");
+  smallmenuitems[CLEAR].text = (char*)(lang?"Effacer variables":"Clear variables");
+  smallmenuitems[SHORT].text = (char *) (lang?"Raccourcis":"Shortcuts");
+  smallmenuitems[ABOUT].text = (char*) (lang?"A propos":"About");
+  smallmenuitems[QUIT].text = (char*) "Quit";
   while(1) {
-    smallmenuitems[0].value = answer_simplify();
-    if (H) smallmenuitems[1].value = focus_hist2d;
+    smallmenuitems[SIMP].value = answer_simplify();
 #ifdef FLOWCE_KHICAS
-    smallmenuitems[2].value = focus_text_arrows;
+    smallmenuitems[HIST].value = focus_hist2d;
+    smallmenuitems[ARROWS].value = focus_text_arrows;
 #endif
     const int sres = doMenu(&smallmenu);
     if (sres==MENU_RETURN_EXIT)
       break;
     if (sres == MENU_RETURN_SELECTION) {
-      if (smallmenu.selection==1){
+      const int c=smallmenu.selection-1;
+      if (c==SIMP){
         answer_set_simplify(!answer_simplify());
         continue;
       }
-      if (H && smallmenu.selection==2){ // the history drawn again, in 2D or as text (and the edit line: KhiCAS's command line)
 #ifdef FLOWCE_KHICAS
+      if (c==HIST){ // the history drawn again, in 2D or as text (and the edit line: KhiCAS's command line)
         focus_set_hist2d(!focus_hist2d); // (the console is drawn again when the menu closes)
-#endif
         continue;
       }
-#ifdef FLOWCE_KHICAS
-      if (smallmenu.selection==3){
+      if (c==ARROWS){
         focus_set_text_arrows(!focus_text_arrows);
         continue;
       }
 #endif
-      if (smallmenu.selection==2+H){
+      if (c==TIME){
 	int h,m; get_time(&h,&m);
 	double d=h+m/100.;
 	char buf[64]="Format HH.mm ";
@@ -998,24 +996,24 @@ void menu_setup(){
 	  //break;
 	}
       }
-      if (smallmenu.selection==3+H && confirm_overwrite()){
+      if (c==CLEAR && confirm_overwrite()){
         run("restart");
         //break;
       }
-      if (smallmenu.selection==6+H)
+      if (c==QUIT)
 	break;
-      if (smallmenu.selection>=4+H && focus_on){ // Shortcuts, About
-        focus_text(smallmenuitems[smallmenu.selection-1].text,smallmenu.selection==4+H?shortcuts_string:apropos_string);
+      if ((c==SHORT || c==ABOUT) && focus_on){
+        focus_text(smallmenuitems[c].text,c==SHORT?shortcuts_string:apropos_string);
         Console_Disp(1);
         continue;
       }
 #if !focus_on
-      if (smallmenu.selection>=4) {
+      if (c==SHORT || c==ABOUT) {
 	textArea text;
 	text.editable=false;
 	text.clipline=-1;
-	text.title = smallmenuitems[smallmenu.selection-1].text;
-	add(&text,smallmenu.selection==4?shortcuts_string:apropos_string);
+	text.title = smallmenuitems[c].text;
+	add(&text,c==SHORT?shortcuts_string:apropos_string);
         text.minimini=false;
 	doTextArea(&text);
 	continue;
