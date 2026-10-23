@@ -39,6 +39,7 @@ pick one, click Install, and follow the short calculator prompts.
 ## What's new
 
 - **2.3:** the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).
+- **KhiCAS + Flow 1.2:** the graph shows the slope m and the radius R (`X,T,θ,n`: the full equation), the Config in khicasce's order, the TI-83 Premium CE's trig key offers sin, cos, tan and their inverses, faster menus.
 - **KhiCAS + Flow 1.1:** KhiCAS's 1D command line in color (`mode` → 2D history off), the normal line and the osculating circle, the TI-83 Premium CE's keys.
 - **KhiCAS + Flow 1.0** replaces FlowCE Python: Bernard Parisse's KhiCAS as he arranged it (his menus, keys, catalog, 2D editor, spreadsheet, programs and debugger), in FlowCE's look and at its speed.
 - **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE (2.2.1: a clean start screen).
