@@ -14,7 +14,7 @@ KH_VER=${4:-}
 OUT=_site
 rm -rf "$OUT"
 mkdir -p "$OUT/media/screenshots" "$OUT/media/install" "$OUT/files"
-cp site/index.html site/style.css site/installer.js site/dusb.js "$OUT/"
+cp site/index.html site/style.css site/installer.js site/dusb.js site/chat.js "$OUT/"
 cp -R site/artifice-v3 "$OUT/"
 python3 site/fetch_inequalz.py "$OUT/artifice-v3" ${FLOWCE_INEQUALZ_FILE:+"$FLOWCE_INEQUALZ_FILE"}
 cp site/icon.svg "$OUT/media/icon.svg"

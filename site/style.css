@@ -288,3 +288,82 @@ details.manual li { margin-bottom: .45rem; }
   .installer { padding: .2rem 1rem; }
   .step-body { padding-left: 0; }
 }
+
+/* the chat (chat.js): the button in the corner opens it beside the page (the whole screen on a
+   phone): the last messages, a name and a message under them */
+.chat-open {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--acc);
+  color: var(--on-acc);
+  font: 700 1rem "Atkinson Hyperlegible", system-ui, sans-serif;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.chat-open:hover { filter: brightness(1.08); }
+.chat-open svg { width: 20px; height: 20px; fill: currentColor; }
+/* (new messages since it was closed) */
+.chat-open.unread::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--acc); }
+.chat {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 6;
+  width: 380px;
+  height: min(620px, calc(100vh - 98px)); /* (below the top bar) */
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), 0 18px 48px rgba(0, 0, 0, .16);
+  padding: 8px 12px 12px;
+}
+.chat-top { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px; }
+.chat-top h2 { font-size: 1.15rem; margin: 0; }
+.chat-close { border: 0; background: none; color: var(--sub); cursor: pointer; font-size: 1.7rem; line-height: 1; padding: 0 4px; }
+.chat-close:hover { color: var(--ink); }
+.chat-log { flex: 1 1 auto; min-height: 0; list-style: none; margin: 0; padding: 2px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.chat-log:not(:has(.msg:not([hidden])))::before { content: "No messages yet. Say hi!"; color: var(--sub); font-size: .92rem; padding: 10px 8px; }
+.msg { background: var(--bg); border-radius: 10px; padding: 8px 12px; }
+.msg.mine { background: var(--acc-soft); }
+.msg-head { display: flex; align-items: baseline; gap: 8px; }
+.msg-head strong { font-size: .92rem; overflow-wrap: anywhere; }
+.msg-time { font-size: .8rem; color: var(--sub); white-space: nowrap; }
+/* one's own message: × deletes it; anyone else's: the flag reports it (on a mouse: under the pointer) */
+.msg-act { margin-left: auto; align-self: center; border: 0; background: none; color: var(--sub); cursor: pointer; line-height: 1; padding: 2px; }
+.msg-act:hover, .msg-act:focus-visible { color: var(--red); }
+.msg-del { font-size: 1.15rem; }
+.msg-flag::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 22V3h2v1h12l-3 5 3 5H7v8z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 22V3h2v1h12l-3 5 3 5H7v8z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (hover: hover) {
+  .msg-flag { opacity: 0; }
+  .msg:hover .msg-flag, .msg-flag:focus-visible { opacity: 1; }
+}
+.msg p { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.chat-form input { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); min-width: 0; }
+.chat-form input:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
+#chat-name { grid-column: 1 / -1; }
+.chat-note { margin: 8px 2px 0; font-size: .82rem; }
+.chat-status.err { color: var(--red); }
+@media (max-width: 560px) {
+  .chat { inset: 0; width: auto; height: auto; z-index: 7; border: 0; border-radius: 0; }
+  .chat-open { right: 14px; bottom: 14px; }
+}

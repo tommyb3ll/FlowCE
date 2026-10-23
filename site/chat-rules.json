@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "chat": {
+      "messages": {
+        ".read": true,
+        ".indexOn": ["t"],
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && data.child('u').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['n', 'm', 'u', 't']) && newData.child('u').val() === auth.uid && newData.child('t').val() === now && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 24 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && !newData.child('n').val().matches(/(https?:|www\\.)/i) && !newData.child('m').val().matches(/(https?:|www\\.)/i) && (!root.child('chat/last/' + auth.uid).exists() || root.child('chat/last/' + auth.uid).val() <= now - 590000) && newData.parent().parent().child('last/' + auth.uid).val() === now",
+          "$other": {
+            ".validate": "$other === 'n' || $other === 'm' || $other === 'u' || $other === 't'"
+          }
+        }
+      },
+      "last": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && newData.exists()",
+          ".validate": "newData.val() === now"
+        }
+      },
+      "reports": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && newData.exists() && root.child('chat/messages/' + $id).exists()",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1 && !root.child('chat/reporters/' + $id + '/' + auth.uid).exists() && newData.parent().parent().child('reporters/' + $id + '/' + auth.uid).val() === true"
+        }
+      },
+      "reporters": {
+        "$id": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('chat/messages/' + $id).exists()",
+            ".validate": "newData.val() === true"
+          }
+        }
+      }
+    }
+  }
+}
