@@ -23,7 +23,7 @@
       <a href="#new">What's new</a>
       <a href="#install">Install</a>
       <a href="#screens">Screens</a>
-      <a href="#chat" hidden>Chat</a>
+      <a href="#chat" hidden>Live chat</a>
       <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
     </nav>
   </div>
@@ -257,23 +257,26 @@
   <p>Parts of FlowCE 2.0 (the algebra steps, the graph screen, analyze, statistics and probability) were adapted from <a href="https://github.com/bupfff/DeltaCE">DeltaCE</a>, a GPL-3.0 fork of FlowCE.</p>
 </footer>
 
-<!-- the chat (chat.js): the button in the corner opens it beside the page -->
+<!-- the live chat (chat.js): the button in the corner (who wrote last, how many are in it) opens it beside the page -->
 <button class="chat-open" id="chat-open" type="button" hidden>
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A3.5 3.5 0 0 1 7.5 3h9A3.5 3.5 0 0 1 20 6.5v6a3.5 3.5 0 0 1-3.5 3.5H11l-4.4 3.7c-.6.5-1.6.1-1.6-.7V16a3.5 3.5 0 0 1-1-2.5z"/></svg>
-  Chat
+  <span class="chat-faces" id="chat-faces" aria-hidden="true"></span>
+  <span class="chat-open-text"><strong><span class="live" aria-hidden="true"></span>Live chat</strong><span class="chat-open-sub" id="chat-open-sub">with other FlowCE users</span></span>
 </button>
-<aside class="chat" id="chat" aria-label="Chat" hidden>
+<aside class="chat" id="chat" aria-label="Live chat" hidden>
   <div class="chat-top">
-    <h2>Chat</h2>
+    <div>
+      <h2><span class="live" aria-hidden="true"></span>Live chat</h2>
+      <p class="chat-sub" id="chat-sub">Public chat with other FlowCE users</p>
+    </div>
     <button class="chat-close" id="chat-close" type="button" aria-label="Close the chat">×</button>
   </div>
   <ul class="chat-log" id="chat-log" aria-live="polite" aria-label="Messages"></ul>
   <form class="chat-form" id="chat-form" autocomplete="off">
-    <input id="chat-name" maxlength="24" placeholder="Name" aria-label="Your name" disabled>
-    <input id="chat-text" maxlength="300" placeholder="Say something" aria-label="Message" disabled>
+    <input id="chat-name" maxlength="24" placeholder="Your name (everyone sees it)" aria-label="Your name" disabled>
+    <input id="chat-text" maxlength="300" placeholder="Message everyone" aria-label="Message" disabled>
     <button class="btn primary" type="submit" disabled>Send</button>
   </form>
-  <p class="fine chat-note">Everyone sees what you write: be kind, and leave out anything personal. One message every 10 minutes. <span id="chat-status" class="chat-status" role="status"></span></p>
+  <p class="fine chat-note"><span id="chat-as" hidden>Posting as <b id="chat-as-name"></b> (<button class="chat-rename" id="chat-rename" type="button">change</button>). </span>One message every 10 minutes; be kind, and leave out anything personal. <span id="chat-status" class="chat-status" role="status"></span></p>
 </aside>
 
 <script type="module" src="installer.js"></script>
