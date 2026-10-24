@@ -9,6 +9,8 @@
   --acc-soft: #e2eafa;
   --on-acc: #ffffff;
   --green: #278c4a;
+  --gold: #9a6700;      /* the creator's name in the chat; its badge: --gold-bg */
+  --gold-bg: #f2c443;
   --red: #c74440;
   --beta-bg: #fff0d4;
   --beta-ink: #8a5300;
@@ -27,6 +29,8 @@
     --acc-soft: #182840;
     --on-acc: #070b11;
     --green: #56c882;
+    --gold: #f2c14e;
+    --gold-bg: #e9b62a;
     --red: #ff7066;
     --beta-bg: #3b2b0e;
     --beta-ink: #ffc66e;
@@ -368,6 +372,12 @@ details.manual li { margin-bottom: .45rem; }
 .msg.mine .msg-main { background: var(--acc); color: var(--on-acc); border-radius: 16px 16px 5px 16px; }
 .msg-head { display: flex; align-items: baseline; gap: 8px; }
 .msg-head strong { font-size: .85rem; overflow-wrap: anywhere; }
+/* the creator: his name in gold, a Creator badge by it, a gold circle */
+.msg-head strong.creator { color: var(--gold); }
+.msg.mine .msg-head strong.creator { color: inherit; }
+.chat-badge { display: inline-block; margin-left: -2px; padding: 0 7px; border-radius: 999px; background: var(--gold-bg); color: #2b1d00; font-size: .68rem; font-weight: 700; line-height: 1.55; letter-spacing: .02em; }
+.chat-note .chat-badge { margin-left: 5px; }
+.face.creator { background: linear-gradient(135deg, #f6d36a, #c8901b); color: #2b1d00; }
 .msg-time { font-size: .76rem; color: var(--sub); white-space: nowrap; }
 .msg.mine .msg-time { color: inherit; opacity: .75; }
 /* one's own message: × deletes it; anyone else's: the flag reports it (on a mouse: under the pointer) */
