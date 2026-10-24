@@ -38,7 +38,7 @@ pick one, click Install, and follow the short calculator prompts.
 
 ## What's new
 
-- **2.4:** logs with any base: `math`, `0` (or `log`, the number, a comma, the base) draws log₂(8) as textbooks write it, with exact answers (log₄ 8 is 3/2) and steps for log equations; the TI-83 Premium CE's trig key offers all six functions.
+- **2.4:** logs with any base: `math`, `0` (or `log`, the number, a comma, the base) draws log₂(8) as textbooks write it, with exact answers (log₄ 8 is 3/2) and steps for log equations; algebra's steps show for problems typed with `^` or `x²` (they did not); the TI-83 Premium CE's trig key offers all six functions.
 - **2.3:** the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).
 - **KhiCAS + Flow 1.2:** the graph shows the slope m and the radius R (`X,T,θ,n`: the full equation), the Config in khicasce's order, the TI-83 Premium CE's trig key offers sin, cos, tan and their inverses, faster menus.
 - **KhiCAS + Flow 1.1:** KhiCAS's 1D command line in color (`mode` → 2D history off), the normal line and the osculating circle, the TI-83 Premium CE's keys.
