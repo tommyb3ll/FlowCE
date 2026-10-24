@@ -46,6 +46,10 @@ static bool starts(const char * s, const char * p) { return !strncmp(s, p, strle
 // equations and factoring), told from the text: the chip and Enter promised steps for every solve,
 // and "No steps" came back for inequalities, systems, |x|, roots, logs (the user, in class)
 static int alg_able(const char * s) {
+  int d = 0; // the call is the whole line: factor(Ans)x^2-5x+6 is a product, not factoring (its steps: none)
+  const char * c = strchr(s, '(');
+  for (; c && *c; ++c) if (*c == '(') ++d; else if (*c == ')' && !--d) break;
+  if (!c || !*c || c[1]) return 0;
   // (solve: square roots and x in a denominator too, the radical and rational equations; one root a side)
   const bool eq = starts(s, "solve(");
   static const char * const no[] = {"<", ">", "[", "abs(", "surd(", "log", "ln(", "exp(", "sin(", "cos(", "tan(", "^(", "e^", "!", "%", "|", "sqrt(", "/("};
