@@ -3660,6 +3660,20 @@ int Console_GetKey(){
         Console_Disp(0);
         continue;
       }
+#ifndef FLOWCE_KHICAS
+      if (p>0 && s[p-1]==','){ // after a comma of an empty 2D template (the log base's box, logb(,|)): it goes
+        int from,to;           // as a whole, as from its first box (me_backspace moved the caret into the other)
+        const int q=mi_backspace(s,strlen(s),p,from,to,edit_metrics());
+        if (to-from>1 && from<p-1){
+          memmove(s+from,s+to,strlen(s)-to+1);
+          Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
+          console_changed=1;
+          console_set_caret(q);
+          Console_Disp(0);
+          continue;
+        }
+      }
+#endif
       if (me_backspace(s,&p)){ // at the start of a slot: unwraps a call, a fraction, an exponent
         Line[Current_Line].disp_len=Console_GetDispLen(Edit_Line);
         console_changed=1;

@@ -322,6 +322,56 @@ static void t_limit() {
   CHECK(OP(opc(L, MI_HLINE)).x > lim.x + lim.w);
 }
 
+static void t_logb() { // log(u,b), log10(u,b) (the log key), logb(u,b): "log", b small and lowered, (u)
+  const char * s = "log(x,2)";
+  mi_layout L = lay(s);
+  const mi_op & lg = OP(text(L, s, "log")), & b = OP(text(L, s, "2")), & x = OP(text(L, s, "x"));
+  CHECK(lg.lit != 0 && lg.small == 0 && lg.x == 0);
+  CHECKEQ(b.small, 1);
+  CHECKEQ(b.x, 25);                      // right after "log" (3 glyphs of 8)
+  CHECKEQ(b.y, 4);                       // its baseline 4 px under the line's
+  CHECKEQ(parens(L), 2);                 // (x), drawn
+  CHECKEQ(OP(opc(L, MI_LPAREN)).x, 32);  // after the base and 1 px
+  CHECKEQ(x.small, 0);
+  CHECKEQ(x.x, 37);
+  CHECKEQ(L.width, 50);
+  const char * same3[] = {"log10(x,2)", "logb(x,2)"};
+  for (int i = 0; i < 2; ++i) {
+    mi_layout M = lay(same3[i]);
+    CHECK(text(M, same3[i], "log") && OP(text(M, same3[i], "log")).lit);
+    CHECKEQ(OP(text(M, same3[i], "2")).small, 1);
+    CHECKEQ(M.width, 50);
+  }
+  s = "log(x)";                          // one argument: the plain call
+  L = lay(s);
+  CHECK(text(L, s, "log") && !OP(text(L, s, "log")).lit);
+  CHECKEQ(parens(L), 2);
+  s = "log10(8,2";                       // without its ): as typed, the arrows go on
+  L = lay(s);
+  CHECK(OP(text(L, s, "log")).style == MI_UP && !textsm(L, s, "2", 1)); // (log10 shown as log)
+  CHECK(walk(s, 6, RIGHT, 3) == "7,8,9");
+  s = "log((x+1)/2,10)";                 // a tall argument: taller parentheses, the base as low
+  L = lay(s);
+  CHECK(OP(opc(L, MI_LPAREN)).h > 18);
+  CHECKEQ(OP(textsm(L, s, "10", 1)).y, 4);
+  s = "logb(x,1/2)";                     // a tall base (a fraction): lower, its top near mid-letter
+  L = lay(s);
+  CHECK(OP(opc(L, MI_HLINE)).y > -7);
+  CHECKEQ(mi_drawn_as_template("logb", 4, 2), 1);
+  CHECKEQ(mi_drawn_as_template("log", 3, 1), 0);
+  // the arrows: the base first (drawn first), then the argument, then out; and back
+  s = "log(x,2)";
+  CHECK(walk(s, 0, RIGHT, 5) == "6,7,4,5,8");
+  CHECK(walk(s, 8, LEFT, 5) == "5,4,7,6,0");
+  // the math card's template: the caret in the base's box, small and low
+  L = lay("logb(,)", 6);
+  CHECK(caret_in_box(L));
+  CHECKEQ(L.ch, 9 + 3);
+  CHECK(L.cy + L.ch > 4);
+  CHECKEQ(mv("logb(,)", 6, RIGHT), 5);   // then the argument's box
+  CHECKEQ(mv("logb(,)", 5, RIGHT), 7);   // then out
+}
+
 static void t_exp_pi() {
   const char * s = "exp(x)";
   mi_layout L = lay(s);
@@ -742,6 +792,9 @@ static void t_backspace() {
   BS("sum(,k,,)", 4, 0, 9, 0);
   BS("limit(,x,)", 6, 0, 10, 0);
   BS("surd(,)", 5, 0, 7, 0);
+  BS("logb(,)", 5, 0, 7, 0);             // empty: the whole template, from either box
+  BS("logb(,)", 6, 0, 7, 0);
+  BS("log(x,)", 6, 6, 6, 0);             // the base's box, x there: as LEFT (out, before log)
   BS("e^()", 3, 1, 4, 1);
   BS("2+sqrt()", 7, 2, 8, 2);            // the empty template after 2+
   BS("2+()/()", 3, 2, 7, 2);
@@ -977,6 +1030,7 @@ int main() {
   run_case("diff: d/dx and parentheses", t_diff);
   run_case("sum: sigma with limits", t_sum);
   run_case("limit: lim with x->a", t_limit);
+  run_case("log with a base: log(u,b), log10(u,b), logb(u,b)", t_logb);
   run_case("exp, pi, infinity", t_exp_pi);
   run_case("operators and spacing", t_operators);
   run_case("blanks, UTF-8, strings", t_blanks_utf8_strings);

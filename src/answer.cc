@@ -2148,14 +2148,24 @@ static __attribute__((noinline)) void ti_log10(char * buf,int cap){
   for (int i=0;i+4<=n;++i){
     if (buf[i]=='"')
       str=!str;
-    if (str || strncmp(buf+i,"log(",4) || (i && (isalnum((unsigned char)buf[i-1]) || buf[i-1]=='_')))
+    const bool l10=!strncmp(buf+i,"log10(",6); // (the log key's)
+    if (str || (!l10 && strncmp(buf+i,"log(",4)) || (i && (isalnum((unsigned char)buf[i-1]) || buf[i-1]=='_')))
       continue;
     // (DeltaCE) log(8,2), the TI's logBASE: base 2 (logb); log10(8,2) was the log of each, 2 answers
     int depth=0,comma=0;
-    for (int j=i+4;j<n && depth>=0 && !comma;++j){
+    for (int j=i+(l10?6:4);j<n && depth>=0 && !comma;++j){
       if (buf[j]=='(' || buf[j]=='[') ++depth;
       else if (buf[j]==')' || buf[j]==']') --depth;
       else if (buf[j]==',' && !depth) comma=1;
+    }
+    if (l10){ // the log key, then a comma (the 2D editor shows log with its base): logb too
+      if (comma){
+        memmove(buf+i+4,buf+i+5,n-i-4); // "log" + "b" + "(..."
+        buf[i+3]='b';
+        --n;
+      }
+      i+=4;
+      continue;
     }
     if (n+3>cap)
       return;
@@ -3664,6 +3674,28 @@ static giac::gen perms(const giac::gen & g,const giac::gen & f,const giac::gen &
   }
   return sym1(&g._SYMBptr->sommet,f);
 }
+// a log with its base (logb: log(8,2) typed, the log key's log10(8,2), the math card's) of positive
+// rationals: the exponent when the number is a power of the base, log_4(8) 3/2, log_2(1/8) -3 (giac's
+// ln(2)/ln(4)+1, -ln(8)/ln(2)), else ln(a)/ln(b) (giac's log_2(10) was ln(5)/ln(2)+1); others giac's
+static giac::gen exact_logb(const giac::gen & g,const giac::gen & f,const giac::gen &){
+  using namespace giac;
+  if (g._SYMBptr->sommet==at_logb && f.type==_VECT && f._VECTptr->size()==2){
+    const gen a=eval(f._VECTptr->front(),1,contextptr),b=eval(f._VECTptr->back(),1,contextptr);
+    if ((a.type==_INT_ || a.type==_ZINT || a.type==_FRAC) && (b.type==_INT_ || b.type==_ZINT || b.type==_FRAC)
+        && is_strictly_positive(a,contextptr) && is_strictly_positive(b,contextptr) && !is_one(b)){
+      const gen k=evalf_double(rdiv(ln(a,contextptr),ln(b,contextptr),contextptr),1,contextptr);
+      if (k.type!=_DOUBLE_ || std::abs(k._DOUBLE_val)>=100) // (2^200 base 2: giac's exact 200)
+        return sym1(&g._SYMBptr->sommet,f);
+      for (int q=1;q<=12;++q){ // k=p/q: a^q=b^p, checked exactly (the estimate in floats)
+        const int p=(int)std::floor(k._DOUBLE_val*q+0.5);
+        if (std::abs(k._DOUBLE_val*q-p)<1e-3 && is_zero(pow(a,q)-pow(b,gen(p),contextptr)))
+          return rdiv(gen(p),gen(q),contextptr);
+      }
+      return sym2(at_prod,sym1(at_ln,a),sym1(at_inv,sym1(at_ln,b)));
+    }
+  }
+  return sym1(&g._SYMBptr->sommet,f);
+}
 // k/(a+b*sin(v)+c*cos(v)) (v=p*x+q) the textbook way: t=tan(v/2), sin(v)=2t/(1+t^2),
 // cos(v)=(1-t^2)/(1+t^2), dx=2dt/(p(1+t^2)): k/(quadratic in t) integrated, t put back
 // (1/(3-5sin(x)): (ln|tan(x/2)-3|-ln|3tan(x/2)-1|)/4; giac took 25 s on the calculator, 3 s so).
@@ -3865,6 +3897,8 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
 #endif
   if (strstr(buf,"perm(") || strstr(buf,"nPr("))
     g=map_nodes(g,perms,0);
+  if (focus && strstr(buf,"logb("))
+    g=map_nodes(g,exact_logb,0);
   a.typed_sum=strstr(buf,"sum(");
   a.typed_sec=strstr(buf,"sec(") || strstr(buf,"csc(") || strstr(buf,"cot(");
   a.typed_limit=strstr(buf,"limit(");

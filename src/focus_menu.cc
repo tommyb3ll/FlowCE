@@ -92,12 +92,15 @@ static const fm_item m_math[] = {
   {"()/()", 4, 0, "Fraction", 0, 0}, {"sqrt()", 1, 0, "Square root", 0, 0}, {"abs()", 1, 0, "Absolute value", 0, 0},
   {"integrate(,x)", 3, 0, "Antiderivative", 0, 0}, {"integrate(,x,,)", 5, 0, "Definite integral", 0, 0}, {"diff(,x)", 3, 0, "Derivative", 0, 0},
   {"limit(,x,)", 4, 0, "Limit", 0, 0}, {"sum(,k,,)", 5, 0, "Sum", 0, 0}, {"^()", 1, 0, "Power", 0, 0},
+  {"logb(,)", 1, 0, "Log base", 0, 0},
 };
 #else
 static const fm_item m_math[] = {
   {"()/()", 4, 0, 0, 0, 0}, {"sqrt()", 1, 0, 0, 0, 0}, {"abs()", 1, 0, 0, 0, 0},
   {"integrate(,x)", 3, 0, 0, 0, 0}, {"integrate(,x,,)", 5, 0, 0, 0, 0}, {"diff(,x)", 3, 0, 0, 0, 0},
   {"limit(,x,)", 4, 0, 0, 0, 0}, {"sum(,k,,)", 5, 0, 0, 0, 0}, {"^()", 1, 0, 0, 0, 0},
+  // the 0 key: log with a base, the caret in the base first (the TI's logBASE); the n-th root, e^
+  {"logb(,)", 1, 0, 0, 0, 0}, {"surd(,)", 2, 0, 0, 0, 0}, {"exp()", 1, 0, 0, 0, 0},
 };
 #endif
 #define N(a) (char)(sizeof(a) / sizeof(a[0]))
@@ -572,7 +575,7 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     }
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
     if (k == KEY_CHAR_0 && m.wide) return n - 1; // (the bar: the steps build's Applications)
-    if (k == KEY_CHAR_0 && IN == 2 && n >= 10) return 9; // (TI look: 0 is the tenth, as on the OS)
+    if (k == KEY_CHAR_0 && (IN == 2 || m.grid) && n >= 10) return 9; // (0 is the tenth, as on the OS: the math card's log base)
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
       int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;

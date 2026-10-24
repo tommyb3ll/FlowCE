@@ -2470,7 +2470,7 @@ gen steps_problem(const gen & input,GIAC_CONTEXT){
     if (!lop(e,at_log10).empty() || !lop(e,at_logb).empty()) return el_norm(e); // (DeltaCE: log(x) as typed, not ln(x)/ln(10))
     return e.is_symb_of_sommet(at_equal) || rel_of(e)?symbolic(e._SYMBptr->sommet,makesequence(ev(arg(e,0)),ev(arg(e,1)))):ev(e); // (DeltaCE: 3x-5 < 7, not 7 > 3x-5)
   }
-  if (input.is_symb_of_sommet(at_equal) || rel_of(input)){ ctx_=contextptr; return symbolic(input._SYMBptr->sommet,makesequence(ev(arg(input,0)),ev(arg(input,1)))); } // (DeltaCE: typed alone)
+  if (input.is_symb_of_sommet(at_equal) || rel_of(input)){ ctx_=contextptr; if (!lop(input,at_logb).empty()) return el_norm(input); return symbolic(input._SYMBptr->sommet,makesequence(ev(arg(input,0)),ev(arg(input,1)))); } // (DeltaCE: typed alone; a log with its base as typed, log_2(x+1) = 3, not ln(x+1)/ln(2) = 3)
   ctx_=contextptr; raw_=true;
   gen in=input;
   if (is(in,at_of) && arg(in).type==_VECT && arg(in)._VECTptr->size()==2 && arg(in,1).type==_VECT){ // area(x-x^2,...): the arguments too
