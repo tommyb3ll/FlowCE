@@ -128,7 +128,7 @@
       <strong>This browser can't reach a calculator.</strong> Use Chrome or Edge on a computer, or <a href="#manual">TI Connect CE</a>.
     </div>
     <div class="notice" id="win-note" hidden>
-      <strong>Windows USB connection needs a driver update:</strong> install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer, then close it and reconnect here.
+      <strong>Windows can't open the calculator.</strong> First close TI Connect CE (while it runs it keeps the calculator, even hidden in the taskbar's corner) and any other tab of this page, unplug the calculator, plug it back in and press Connect calculator again. Still the same? Install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer (its driver lets browsers reach the calculator), close it, then reconnect here.
     </div>
 
     <ol class="steps">
@@ -149,6 +149,7 @@
           </div>
           <button class="btn primary" id="btn-install" disabled>Install FlowCE</button>
           <button class="btn primary" id="btn-reconnect" hidden>Reconnect calculator</button>
+          <button class="btn primary" id="btn-delete-apps" hidden>Delete the language apps and continue</button>
           <div class="progress" id="progress" hidden><div class="bar"><span id="bar"></span></div></div>
           <div class="status" id="st-install" aria-live="polite"></div>
           <div class="notice" id="v3-guidance" hidden>
@@ -213,7 +214,7 @@
       <li><strong>Connect fails on Windows:</strong> update TI Connect CE to 6.1 or newer, then unplug and replug the calculator.</li>
       <li><strong>Connect fails on a Mac or Chromebook:</strong> close TI Connect CE, then unplug and replug.</li>
       <li><strong>Linux:</strong> add a udev rule such as <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then replug.</li>
-      <li><strong>Still not enough memory after the erase:</strong> some apps survive it (often TI's language apps). Delete them: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → Apps, <kbd>del</kbd> on each.</li>
+      <li><strong>Still not enough memory after the erase:</strong> TI's language apps survive it. The page offers to delete them (<strong>Delete the language apps and continue</strong>); by hand: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → Apps, <kbd>del</kbd> on each.</li>
       <li><strong>"RAM Cleared" but this page still waits:</strong> it is installed. Press <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
       <li><strong>Frozen at "Success! Will now reset":</strong> press the reset button on the back (a pen tip). FlowCE stays installed.</li>
       <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed.</li>

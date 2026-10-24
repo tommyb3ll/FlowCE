@@ -34,6 +34,7 @@ let state = null;         // the last check: { blocked, needErase }
 let busy = false;         // installing
 let waitingReset = false; // the installer runs on the calculator: its restart ends the install
 let awaitingReconnect = false; // erased: waiting for the calculator to come back
+let erased = false;           // the archive reset done (this connection): still short means the language apps
 let inequalz = null;          // verified TI app supplied by the site's build
 let v3Files = null;
 let v3Stage = null;           // ram-reset -> inequalz -> asmhook -> native INST
@@ -146,10 +147,14 @@ async function loadV3() {
 // Plain-English messages for what can go wrong
 function friendly(e) {
   const msg = String(e && e.message || e);
+  // (Windows: most often TI Connect CE, open, keeps the calculator: told first, the old driver second; the
+  // driver alone was said till 2026-10-24, and people installed TI Connect CE 6.1 and got the same message)
   if (e && e.code === 'claim')
     return WINDOWS
-      ? 'Windows is using an older TI USB driver that browsers can\'t open. Install TI Connect CE 6.1 or newer ' +
-        '(free from TI, see the note at the top of the installer), unplug the calculator, plug it back in and try again.'
+      ? 'Windows can\'t open the calculator. First close TI Connect CE (while it runs it keeps the calculator, even ' +
+        'hidden in the taskbar\'s corner) and any other tab of this page, unplug the calculator, plug it back in and ' +
+        'press Connect calculator again. Still the same? Windows has TI\'s older USB driver: install TI Connect CE 6.1 or ' +
+        'newer (free from TI, see the note at the top of the installer), close it, then try again.'
       : 'The browser can\'t open the calculator: another program may be using it. Close TI Connect CE, unplug the ' +
         'calculator, plug it back in and try again (on Linux, see "If something goes wrong" below).';
   if (e && e.code === 'timeout')
@@ -170,9 +175,13 @@ function friendly(e) {
   return msg;
 }
 
+// What went wrong, for the counter: the link's code (claim, timeout, calc, short, io, protocol), the browser's
+// error (network: unplugged; security), else other
+const kind = e => (e && e.code) || (e && e.name === 'NetworkError' ? 'network' : e && e.name === 'SecurityError' ? 'security' : 'other');
 // The message, and the browser's own words under it (for reports)
 function problem(e) {
   count('error');
+  count('error-' + kind(e)); // (error-claim-normal...: which errors people get)
   if (WINDOWS && e && e.code === 'claim') $('win-note').hidden = false;
   const raw = esc(e && e.message || e);
   const f = friendly(e);
@@ -263,8 +272,13 @@ async function check(c = calc) {
   console.info('FlowCE: calculator', info);
   const needErase = info.freeFlash !== null && info.freeFlash < need;
   if (info.freeFlash !== null)
-    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; ${BUILDS[build].name} needs ${MB(need)}, so the calculator's archive will be erased.` : ` (enough for ${BUILDS[build].name}).`));
+    lines.push(`Free memory: ${MB(info.freeFlash)}` + (!needErase ? ` (enough for ${BUILDS[build].name}).`
+      : erased ? `; ${BUILDS[build].name} needs ${MB(need)}.` : `; ${BUILDS[build].name} needs ${MB(need)}, so the calculator's archive will be erased.`));
   state = { blocked, needErase, route };
+  if (!awaitingReconnect) { // (a new check: Install again, not Delete the language apps)
+    $('btn-delete-apps').hidden = true;
+    $('btn-install').hidden = false;
+  }
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
     mark('connect', 'done');
@@ -291,6 +305,7 @@ async function connect() {
   }
   if (calc && calc !== c) await calc.close();
   calc = c;
+  erased = false;
   try {
     say('st-connect', 'Checking the calculator…');
     await loadBundle();
@@ -345,10 +360,78 @@ async function erase(c) {
   }
 }
 
-// Still short after the erase: the reset kept apps (TI's language apps on a friend's calculator, OS
-// 5.3.1, 2026-10-07): the message says how to delete them (branch installer-dusb deletes them over
-// USB, as TI Connect CE does: waiting for a test on a real calculator)
+// Still short after the erase: the archive reset never deletes TI's language apps (Deutsch, Español,
+// Français, Nederlan, Portug, Svenska: a friend's calculator, OS 5.3.1, 2026-10-07; CEmu on OS 5.8.2
+// with TI's own apps, 2026-10-24: the reset kept the six, 2752K free, FlowCE's 43rd file did not fit).
+// A button deletes them (deleteApps); if the calculator is still short, the message says how by hand.
 const stillShort = () => new LinkError('short', 'not enough free memory after the erase');
+
+// The apps the reset kept, deleted with remote keys as a person would (checked in CEmu on OS 5.8.2 with
+// these very D-USB key packets): quit, clear, MEM, 2 Mem Management/Delete, A Apps, then del and 2 (Yes)
+// on the first app of the list, again and again. The free memory is read after each: it stops when it
+// did not grow (the list is empty: del goes back home, and 2 only types a 2, cleared after; or the Apps
+// list never opened: the first 2 then opens another list, so a second del there must not happen)
+async function deleteApps(c, onOne) {
+  for (const k of [KEY.quit, KEY.clear, KEY.mem, KEY.k2, KEY.capA]) {
+    await c.pressKey(k);
+    await sleep(800);
+  }
+  let free = (await c.info()).freeFlash, n = 0;
+  for (let i = 0; i < 16 && free !== null; i++) {
+    await c.pressKey(KEY.del);
+    await sleep(800);
+    await c.pressKey(KEY.k2); // Are You Sure? 2: Yes
+    await sleep(1500);
+    const now = (await c.info()).freeFlash;
+    if (now === null || now <= free) break;
+    free = now;
+    if (onOne) onOne(++n);
+  }
+  for (const k of [KEY.quit, KEY.clear]) {
+    await c.pressKey(k);
+    await sleep(500);
+  }
+  return n;
+}
+
+// still short after the erase: the button that deletes the language apps, in place of Install
+function offerDelete() {
+  count('short');
+  $('btn-install').hidden = true;
+  const b = $('btn-delete-apps');
+  b.hidden = false;
+  b.focus({ preventScroll: true });
+  say('st-install', `<strong>Erased, but ${BUILDS[build].name} doesn't fit yet:</strong> your calculator kept TI's language ` +
+    'apps (Deutsch, Español, Français…), which its erase never removes. The button deletes them on the calculator, ' +
+    `nothing to press there, then installs ${BUILDS[build].name}. TI Connect CE can send them back later.`);
+}
+
+async function deleteClick() {
+  if (busy || !calc || !state || waitingReset || v3Stage) return;
+  busy = true;
+  updateInstall();
+  $('btn-connect').disabled = true;
+  $('btn-delete-apps').hidden = true;
+  count('delete');
+  const c = calc;
+  try {
+    let stop = ticking('st-install', 'Deleting the language apps on the calculator. Nothing to press.');
+    let n;
+    try {
+      n = await deleteApps(c, k => { stop(); stop = ticking('st-install', `Deleting the language apps on the calculator (${k} deleted). Nothing to press.`); });
+    } finally {
+      stop();
+    }
+    say('st-install', `${n} ${n === 1 ? 'app' : 'apps'} deleted. Checking the calculator…`);
+    await check(c);
+    if (state.blocked) throw new Error('The calculator OS changed. Reload before installing.');
+    if (state.needErase) throw stillShort();
+    await proceed(c);
+  } catch (e) {
+    say('st-install', problem(e));
+  }
+  done();
+}
 
 // "text 0:42", every second, until the returned function is called
 function ticking(id, text) {
@@ -535,6 +618,7 @@ async function install() {
       let c2;
       try {
         c2 = await erase(c);
+        erased = true;
       } finally {
         stop();
       }
@@ -558,7 +642,7 @@ async function install() {
       say('st-install', 'Erased. Checking the calculator…');
       await check(c);
       if (state.blocked) throw new Error('The calculator OS changed. Reload before installing.');
-      if (state.needErase) throw stillShort();
+      if (state.needErase) { offerDelete(); done(); return; } // (the language apps: the button deletes them)
     }
     await proceed(c);
   } catch (e) {
@@ -580,7 +664,7 @@ async function resume(c) {
     await c.ping();
     await check(c);
     if (state.blocked) throw new Error('The calculator OS changed. Reload before installing.');
-    if (state.needErase) throw stillShort();
+    if (state.needErase) { offerDelete(); done(); return; }
     await proceed(c);
   } catch (e) {
     say('st-install', problem(e));
@@ -661,6 +745,7 @@ function init() {
   $('dl').addEventListener('click', () => count('download'));
   $('btn-install').addEventListener('click', install);
   $('btn-reconnect').addEventListener('click', reconnectClick);
+  $('btn-delete-apps').addEventListener('click', deleteClick);
   $('btn-v3-next').addEventListener('click', continueV3);
   $('btn-finished').addEventListener('click', finished);
   $('erase-ok').addEventListener('change', updateInstall);
