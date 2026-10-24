@@ -400,6 +400,37 @@ details.manual li { margin-bottom: .45rem; }
   .msg:hover .msg-flag, .msg-flag:focus-visible { opacity: 1; }
 }
 .msg p { margin: 1px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+/* the creator's replies, under the message: one line ("Reply from FlowCE" and its start), the whole
+   reply in a soft gold tile when pressed; his reply button (the creator only) */
+.msg { flex-wrap: wrap; row-gap: 2px; }
+.msg-reply { flex-basis: 100%; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 8% 0 34px; }
+.msg.mine .msg-reply { align-items: flex-end; padding: 0 0 0 16%; }
+.reply-toggle { display: flex; align-items: baseline; gap: 6px; max-width: 100%; border: 0; border-radius: 8px; background: none; padding: 3px 6px; font: inherit; font-size: .78rem; line-height: 1.3; color: var(--sub); text-align: left; cursor: pointer; }
+.reply-toggle:hover, .reply-toggle:focus-visible { background: var(--bg); }
+.reply-from { flex: none; color: var(--gold); font-weight: 700; }
+.reply-from::before { content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 5px 3px 1px; border: solid currentColor; border-width: 0 0 1.5px 1.5px; border-bottom-left-radius: 3px; }
+.reply-from::after { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 1px 2px 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.reply-toggle[aria-expanded="true"] .reply-from::after { margin-bottom: -1px; transform: rotate(-135deg); }
+.reply-gist { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg .reply-text { max-width: 100%; margin: 0; padding: 6px 11px; border-radius: 12px; background: color-mix(in srgb, var(--gold-bg) 18%, var(--card)); font-size: .88rem; }
+.reply-text .msg-time { margin-left: 2px; }
+.reply-text .msg-del { margin-left: 6px; vertical-align: -1px; }
+.msg-act + .msg-act { margin-left: 0; }
+.msg-answer:hover, .msg-answer:focus-visible { color: var(--acc); }
+.msg-answer::before {
+  content: "";
+  display: block;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.chat-replying { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 0; padding: 5px 6px 5px 11px; border-radius: 10px; background: color-mix(in srgb, var(--gold-bg) 18%, var(--card)); font-size: .82rem; }
+.chat-replying[hidden] { display: none; }
+.chat-replying-text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sub); }
+.chat-replying-text b { color: var(--ink); }
+.chat-replying .chat-close { font-size: 1.3rem; }
 .chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
 .chat-form input { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); min-width: 0; }
 .chat-form input:focus { outline: 2px solid var(--acc); outline-offset: -1px; }

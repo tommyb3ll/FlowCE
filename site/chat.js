@@ -11,7 +11,9 @@
 // to write, and stays so in this browser (their messages: deletable) until Firebase clears accounts
 // unused for 30 days. The creator (Tommy Bell) signs in with Google from the page opened with ?creator:
 // the rules know his account; his messages are marked (TommyB3LL in gold, a Creator badge), have no
-// limits and cannot be reported, he can delete any message, and no one else can take his name. Before
+// limits and cannot be reported, he can delete any message, and no one else can take his name. He alone
+// replies to a message (chat/replies/<its id>, gone with it): one line under it, "Reply from FlowCE" and
+// its start, the whole reply when pressed. Before
 // it is opened, the button reads who wrote last and how many are in it once (no connection kept: the
 // free plan allows 100 at once). ?chatmock: a chat in this page's memory only (tests).
 const CONFIG = { // (Project settings > Your apps > FlowCE site; public: the rules are the protection)
@@ -28,6 +30,7 @@ const MAX = 100, NAME = 24, TEXT = 300, HIDE = 3, LINK = /(https?:|www\.)/i;
 const GAP = 2500, BURST = 8, WIN = 60000;
 const CREATOR = 'TommyB3LL'; // the creator's name: his alone, and its look-alikes (the rules refuse them too)
 const TAKEN = /t[^a-z0-9]*[o0][^a-z0-9]*m[^a-z0-9]*m[^a-z0-9]*[yi][^a-z0-9]*b[^a-z0-9]*[3e][^a-z0-9]*[l1i][^a-z0-9]*[l1i]/i;
+const REPLIER = 'FlowCE'; // (the creator's replies under a message: "Reply from FlowCE")
 const FRESH = 43200000; // (in the chat: came in the last 12 hours; an older place is one a lost disconnect left)
 const $ = id => document.getElementById(id);
 const ARGS = new URLSearchParams(location.search), MOCK = ARGS.has('chatmock'), ASK = ARGS.has('creator');
@@ -65,10 +68,14 @@ async function firebase() {
   return {
     get me() { return me; },
     get creator() { return creator; },
-    watch(add, drop, reports, online) {
+    watch(add, drop, reports, online, replies) {
       const q = db.query(db.ref(d, 'chat/messages'), db.orderByChild('t'), db.limitToLast(MAX));
       db.onChildAdded(q, s => add(s.key, s.val()));
       db.onChildRemoved(q, s => drop(s.key));
+      const r = db.ref(d, 'chat/replies'), each = s => replies(s.key, s.val()); // (a message's: all of them)
+      db.onChildAdded(r, each);
+      db.onChildChanged(r, each);
+      db.onChildRemoved(r, s => replies(s.key, null));
       db.onValue(db.ref(d, 'chat/reports'), s => reports(s.val() || {}));
       db.onValue(db.ref(d, 'chat/online'), s => online(s.val() || {}));
       db.onValue(db.ref(d, '.info/connected'), s => { if (s.val() === true) present(); });
@@ -92,7 +99,9 @@ async function firebase() {
         }
       }
     },
-    remove(id) { return db.remove(db.ref(d, `chat/messages/${id}`)); },
+    remove(id) { return db.update(chat, { [`messages/${id}`]: null, [`replies/${id}`]: null }); }, // (its replies too)
+    async reply(id, m) { await db.push(db.ref(d, `chat/replies/${id}`), { m, t: db.serverTimestamp() }); }, // (the creator)
+    unreply(id, rid) { return db.remove(db.ref(d, `chat/replies/${id}/${rid}`)); },
     async report(id) { // (once per visitor; who reported stays private, only the count shows)
       await signIn();
       await db.update(chat, { [`reporters/${id}/${me}`]: true, [`reports/${id}`]: db.increment(1) });
@@ -115,16 +124,19 @@ async function firebase() {
 }
 
 function memory() {
-  const subs = [], reports = {};
+  const subs = [], reports = {}, replies = {};
   let k = 0, creator = false;
+  const replied = id => subs.forEach(s => s[3](id, replies[id] ? { ...replies[id] } : null));
   return {
     me: 'me',
     get creator() { return creator; },
-    watch(add, drop, rep, online) {
-      subs.push([add, drop, rep]);
+    watch(add, drop, rep, online, rp) {
+      subs.push([add, drop, rep, rp]);
       add('s1', { n: 'Sam', m: 'Does it work on the TI-84 Plus CE Python?', u: 'sam', t: Date.now() - 7200000 });
-      add('s2', { n: CREATOR, m: 'Yes: send the .b84 or use the Install button.', u: 'tb', t: Date.now() - 7000000, o: true });
+      add('s2', { n: CREATOR, m: 'FlowCE 2.3 is out: faster, and the themes look right on the real screen.', u: 'tb', t: Date.now() - 7000000, o: true });
       add('s3', { n: 'Maya', m: 'It runs on mine.', u: 'maya', t: Date.now() - 6900000 });
+      replies.s1 = { r0: { m: 'Yes: send FlowCE.b84 with TI Connect CE, or use the Install button on this page.', t: Date.now() - 7100000 } };
+      replied('s1');
       online({ me: Date.now(), sam: Date.now() });
     },
     async send(n, m) {
@@ -132,7 +144,13 @@ function memory() {
       if (creator) v.o = true;
       subs.forEach(s => s[0](id, v));
     },
-    async remove(id) { subs.forEach(s => s[1](id)); },
+    async remove(id) { subs.forEach(s => s[1](id)); delete replies[id]; replied(id); },
+    async reply(id, m) { replies[id] = { ...replies[id], ['r' + ++k]: { m, t: Date.now() } }; replied(id); },
+    async unreply(id, rid) {
+      if (replies[id]) delete replies[id][rid];
+      if (replies[id] && !Object.keys(replies[id]).length) delete replies[id];
+      replied(id);
+    },
     async report(id) { reports[id] = (reports[id] || 0) + 1; subs.forEach(s => s[2]({ ...reports })); },
     async becomeCreator() { creator = true; return true; },
     async leave() { creator = false; },
@@ -218,11 +236,70 @@ async function start(panel) {
   let chat, counts = {}, reported = [], online = 0, unread = false;
   try { reported = JSON.parse(store.get('flowce-chat-reported')) || []; } catch (e) { /* */ }
   const items = new Map(), people_ = new Map(), vals = new Map(); // (each message's li, its author: {n, o}, it)
+  const replied = new Map(), opened = new Set(); // (the creator's replies to a message: [id, {m, t}], oldest first; shown whole)
+  let replyTo = null; // (the creator: the message his next send replies to)
   const hidden = id => (!(people_.get(id) || {}).o && counts[id] >= HIDE) || reported.includes(id);
   const button = () => people(recent([...items].filter(([, li]) => !li.hidden).map(([id]) => people_.get(id))), online, unread);
+  const atEnd = () => log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
+  const answers = id => { // under the message: "Reply from FlowCE" and its start on one line; pressed: the whole reply
+    const li = items.get(id), rs = replied.get(id) || [];
+    if (!li) return;
+    let box = li.querySelector('.msg-reply');
+    if (!rs.length) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.className = 'msg-reply'; li.append(box); }
+    const open = opened.has(id), tog = document.createElement('button'), from = document.createElement('span');
+    tog.type = 'button';
+    tog.className = 'reply-toggle';
+    tog.setAttribute('aria-expanded', String(open));
+    from.className = 'reply-from';
+    from.textContent = rs.length > 1 ? `${rs.length} replies from ${REPLIER}` : `Reply from ${REPLIER}`;
+    tog.append(from);
+    if (!open) {
+      const gist = document.createElement('span');
+      gist.className = 'reply-gist';
+      gist.textContent = clean(rs[rs.length - 1][1].m);
+      tog.append(gist);
+    }
+    tog.addEventListener('click', () => { if (!opened.delete(id)) opened.add(id); answers(id); });
+    box.replaceChildren(tog);
+    if (open) rs.forEach(([rid, r]) => {
+      const p = document.createElement('p'), when = document.createElement('span');
+      p.className = 'reply-text';
+      p.textContent = clean(r.m) + ' ';
+      when.className = 'msg-time';
+      when.dataset.t = String(r.t);
+      when.textContent = ago(r.t);
+      p.append(when);
+      if (chat.creator) {
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'msg-act msg-del'; del.title = 'Delete this reply'; del.textContent = '×';
+        del.addEventListener('click', () => chat.unreply(id, rid).catch(() => say('Not deleted.', true)));
+        p.append(del);
+      }
+      box.append(p);
+    });
+  };
+  const reply = (id, v) => { // (the database: a message's replies, all of them, or none)
+    const rs = Object.entries(v && typeof v === 'object' ? v : {})
+      .filter(([, r]) => r && typeof r.m === 'string' && typeof r.t === 'number').sort((a, b) => a[1].t - b[1].t);
+    const end = atEnd(), li = items.get(id);
+    if (rs.length) replied.set(id, rs); else { replied.delete(id); opened.delete(id); }
+    answers(id);
+    if (end) log.scrollTop = log.scrollHeight;
+    if (panel.hidden && rs.length && li && !li.hidden) { unread = true; button(); }
+  };
+  const replying = id => { // (the creator pressed a message's reply: his next send answers it; null: no more)
+    replyTo = id && items.has(id) ? id : null;
+    $('chat-replying').hidden = !replyTo;
+    text.placeholder = replyTo ? `Reply as ${REPLIER}` : 'Message everyone';
+    if (!replyTo) return;
+    $('chat-replying-to').textContent = people_.get(id).n;
+    $('chat-replying-gist').textContent = clean(vals.get(id).m);
+    text.focus();
+  };
   const add = (id, v) => { // (a message sent from this page shows at once, before the database has it)
     if (!v || typeof v.n !== 'string' || typeof v.m !== 'string' || items.has(id)) return;
-    const mine = v.u === chat.me, o = v.o === true, atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
+    const mine = v.u === chat.me, o = v.o === true, end = atEnd();
     const li = document.createElement('li'), main = document.createElement('div'), head = document.createElement('div');
     const who = document.createElement('strong'), when = document.createElement('span'), body = document.createElement('p');
     const act = document.createElement('button');
@@ -249,19 +326,27 @@ async function start(panel) {
     head.append(who);
     if (o) head.append(badge());
     head.append(when);
+    if (chat.creator && !mine) { // the creator: a reply to it, under it
+      const re = document.createElement('button');
+      re.type = 'button'; re.className = 'msg-act msg-answer'; re.title = `Reply as ${REPLIER}`; re.setAttribute('aria-label', `Reply as ${REPLIER}`);
+      re.addEventListener('click', () => replying(id));
+      head.append(re);
+    }
     if (act.className) head.append(act);
     body.textContent = clean(v.m);
     main.append(head, body);
     if (mine) li.append(main); else li.append(face({ n, o }), main);
     log.append(li);
     items.set(id, li);
-    if (atEnd || mine) log.scrollTop = log.scrollHeight;
+    answers(id);
+    if (end || mine) log.scrollTop = log.scrollHeight;
     if (panel.hidden && !li.hidden) unread = true;
     button();
   };
   const drop = id => { // (deleted, or refused by the database)
     const li = items.get(id);
     if (li) { li.remove(); items.delete(id); people_.delete(id); vals.delete(id); button(); }
+    if (replyTo === id) replying(null);
   };
   const redraw = () => { // (signed in or out as the creator: whose messages are whose, which can go)
     const all = [...vals];
@@ -292,7 +377,7 @@ async function start(panel) {
   panel.addEventListener('chat-open', () => { unread = false; button(); });
   try {
     chat = MOCK ? memory() : await firebase();
-    chat.watch(add, drop, recount, seen);
+    chat.watch(add, drop, recount, seen, reply);
   } catch (e) {
     say('The chat could not connect. Reload to try again.', true);
     return;
@@ -315,6 +400,7 @@ async function start(panel) {
   rename.addEventListener('click', async () => {
     if (!chat.creator) { name.hidden = false; as.hidden = true; name.focus(); name.select(); return; }
     await chat.leave();
+    replying(null);
     named();
     redraw();
     say('Signed out.');
@@ -334,10 +420,28 @@ async function start(panel) {
   // not the same text twice in a minute; the database holds the same limits; the creator has none
   let times = [], lastm = '', pending = 0;
   const submit = () => (form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })));
+  $('chat-reply-cancel').addEventListener('click', () => { replying(null); text.focus(); });
+  text.addEventListener('keydown', e => { if (e.key === 'Escape' && replyTo) { e.stopPropagation(); replying(null); } });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (pending) return;
     const n = chat.creator ? CREATOR : name.value.trim().slice(0, NAME), m = text.value.trim().slice(0, TEXT);
+    if (chat.creator && replyTo) { // his reply, under the message, open
+      const id = replyTo;
+      if (!m) { text.focus(); return; }
+      say('');
+      text.value = '';
+      opened.add(id);
+      replying(null);
+      try {
+        await chat.reply(id, m);
+      } catch (err) {
+        text.value = m;
+        replying(id);
+        say('Not sent. Try again in a moment.', true);
+      }
+      return;
+    }
     if (!n) { name.hidden = false; as.hidden = true; say('Pick a name first: everyone sees it.'); name.focus(); return; }
     if (!m) { text.focus(); return; }
     const now = Date.now();

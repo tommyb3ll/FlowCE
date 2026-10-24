@@ -39,6 +39,18 @@
       "creator": {
         ".read": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true"
       },
+      "replies": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && ((auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true) || (!newData.exists() && root.child('chat/messages/' + $id + '/u').val() === auth.uid))",
+          "$rid": {
+            ".validate": "newData.hasChildren(['m', 't']) && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && newData.child('t').val() === now && root.child('chat/messages/' + $id).exists()",
+            "$other": {
+              ".validate": "$other === 'm' || $other === 't'"
+            }
+          }
+        }
+      },
       "reports": {
         ".read": true,
         "$id": {

@@ -273,6 +273,7 @@
   </div>
   <ul class="chat-log" id="chat-log" aria-live="polite" aria-label="Messages"></ul>
   <form class="chat-form" id="chat-form" autocomplete="off">
+    <p class="chat-replying" id="chat-replying" hidden><span class="chat-replying-text">Replying to <b id="chat-replying-to"></b>: <span id="chat-replying-gist"></span></span><button class="chat-close" id="chat-reply-cancel" type="button" aria-label="Cancel the reply">×</button></p>
     <input id="chat-name" maxlength="24" placeholder="Your name (everyone sees it)" aria-label="Your name" disabled>
     <input id="chat-text" maxlength="300" placeholder="Message everyone" aria-label="Message" disabled>
     <button class="btn primary" type="submit" disabled>Send</button>
