@@ -249,13 +249,37 @@ static bool relation(const char * s) {
   }
   return false;
 }
+static int steps_able(const char * s, const char * ans);
+// the editor's powers as the checks read them: x^(2) (the ^ and x^2 keys) is x^2 (every polynomial typed
+// had "^(": no steps for algebra); a copy (malloc) when s has one, else 0 (the copy on the stack made
+// steps_able's frame too large to reach its variables quickly: 2 KB more code)
+static __attribute__((noinline)) char * plain_pows(const char * s) {
+  char * t = strstr(s, "^(") ? (char *)malloc(strlen(s) + 1) : 0, * q = t;
+  if (!t) return 0;
+  for (const char * p = s; *p;) {
+    if (p[0] == '^' && p[1] == '(' && p[2] >= '0' && p[2] <= '9') {
+      const char * d = p + 2;
+      while (*d >= '0' && *d <= '9') ++d;
+      if (*d == ')') { *q++ = '^'; for (p += 2; p < d;) *q++ = *p++; ++p; continue; }
+    }
+    *q++ = *p++;
+  }
+  *q = 0;
+  return t;
+}
 int focus_steps_able(const char * s, const char * ans) {
+  char * t = plain_pows(s);
+  const int r = steps_able(t ? t : s, ans);
+  free(t);
+  return r;
+}
+static int steps_able(const char * s, const char * ans) {
   if (strstr(s, "desolve(")) return 0; // (its diff(y,x) is the equation, not a derivative to work out)
   if (starts(s, "implicitdiff(")) return 1;
   if (!starts(s, "solve(") && strlen(s) < 200 && relation(s)) { // as solve(...)
     char b[210];
     strcpy(b, "solve("); strcat(b, s); strcat(b, ")");
-    return focus_steps_able(b, ans);
+    return steps_able(b, ans);
   }
   if (starts(s, "solve(")) { int k = ineq_able(s); if (k >= 0) return k; k = more_able(s); if (k >= 0) return k; }
   if (starts(s, "canonical_form(") || starts(s, "propfrac(") || starts(s, "partfrac(")) return one_name(s);
