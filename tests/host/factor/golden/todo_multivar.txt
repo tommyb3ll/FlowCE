@@ -1,0 +1,42 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/todo_multivar.in). Only on purpose.
+== factor(6x^2*y+9x*y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: 3*y*x*(2*x+3*y)
+== factor(x*y+2x+3y+6)   [NO STEPS, 0 steps]
+   FlowCE answer: (y+2)*(x+3)
+== factor(x^2-y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (x-y)*(x+y)
+== factor(x^5+x^3+x^2+1)   [NO STEPS, 2 steps]
+   FlowCE answer: (x+1)*(x^2+1)*(x^2-x+1)
+== factor(4x^2+12x*y+9y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (2*x+3*y)^2
+== factor(x^2+5x*y+6y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (x+2*y)*(x+3*y)
+== factor(8x^3+27y^3)   [NO STEPS, 0 steps]
+   FlowCE answer: (2*x+3*y)*(4*x^2+9*y^2-6*x*y)
+== factor(2x^3*y-8x*y^3)   [NO STEPS, 0 steps]
+   FlowCE answer: 2*y*x*(x-2*y)*(x+2*y)
+== factor(a*x+a*y-b*x-b*y)   [NO STEPS, 0 steps]
+   FlowCE answer: -(x+y)*(b-a)
+== factor(x*y-6+2y-3x)   [NO STEPS, 0 steps]
+   FlowCE answer: (y-3)*(x+2)
+== factor(a^2-b^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (a-b)*(a+b)
+== factor(12a^2*b-18a*b^2)   [NO STEPS, 0 steps]
+   FlowCE answer: 6*b*a*(2*a-3*b)
+== factor(x^2+2x*y+y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (x+y)^2
+== factor(x^2-2x*y+y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (x-y)^2
+== factor(3x^2-x*y-2y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (x-y)*(3*x+2*y)
+== factor(x^3-y^3)   [NO STEPS, 0 steps]
+   FlowCE answer: (x-y)*(x^2+y^2+x*y)
+== factor(x*y+x+y+1)   [NO STEPS, 0 steps]
+   FlowCE answer: (y+1)*(x+1)
+== factor(-x^2*y-x*y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: -y*x*(x+y)
+== factor(x^4-y^4)   [NO STEPS, 0 steps]
+   FlowCE answer: (x-y)*(x+y)*(x^2+y^2)
+== factor(6x^2+x*y-y^2)   [NO STEPS, 0 steps]
+   FlowCE answer: (2*x+y)*(3*x-y)

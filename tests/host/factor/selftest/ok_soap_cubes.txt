@@ -1,0 +1,6 @@
+# selftest: pass
+== factor(8x^3+27)   [ok, 3 steps]
+  Sum of cubes:  8*x^3+27=(2*x)^3+3^3=(2*x+3)*(4*x^2-6*x+9)
+  SOAP: Same, Opposite, Always Positive:  +3,-6*x,+9
+  Check: multiply the factors:  (2*x+3)*(4*x^2-6*x+9)=(8*x^3+27)
+   FlowCE answer: (2*x+3)*(4*x^2-6*x+9)

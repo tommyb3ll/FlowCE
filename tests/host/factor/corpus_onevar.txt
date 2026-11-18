@@ -1,0 +1,58 @@
+# Hand-written one-variable corpus for tools/hostgiac/factorcheck.py. Tags: steps = must have steps,
+# prime = exactly one "does not factor" step, nosteps-ok = no steps today is acceptable.
+# Different problems from golden/*.in on purpose (those lock the text, these lock the algebra).
+factor(10x+15)  # expect: steps
+factor(8x^2-12x)  # expect: steps
+factor(x^4+x^3)  # expect: steps
+factor(-4x^2+16)  # expect: steps
+factor(-5x^3-10x^2)  # expect: steps
+factor(2/3*x^2-6)  # expect: steps
+factor(x^2-25)  # expect: steps
+factor(16x^2-81)  # expect: steps
+factor(x^4-81)  # expect: steps
+factor(2x^3-18x)  # expect: steps
+factor(x^3+27)  # expect: steps
+factor(64x^3-1)  # expect: steps
+factor(5x^3+40)  # expect: steps
+factor(x^2+10x+25)  # expect: steps
+factor(x^2-14x+49)  # expect: steps
+factor(16x^2+8x+1)  # expect: steps
+factor(x^2+3x+2)  # expect: steps
+factor(x^2-3x+2)  # expect: steps
+factor(x^2+x-20)  # expect: steps
+factor(x^2-4x-12)  # expect: steps
+factor(x^2+9x+14)  # expect: steps
+factor(x^2-10x+21)  # expect: steps
+factor(3x^2+11x+6)  # expect: steps
+factor(3x^2-11x+6)  # expect: steps
+factor(5x^2+6x-8)  # expect: steps
+factor(8x^2-10x-3)  # expect: steps
+factor(10x^2+13x-3)  # expect: steps
+factor(-3x^2+10x-8)  # expect: steps
+factor(x^4-10x^2+9)  # expect: steps
+factor(x^6-9x^3+8)  # expect: steps
+factor(x^2-5)  # expect: steps
+factor(2x^2-5x+1)  # expect: steps
+factor(x^3+5x^2+3x+15)  # expect: steps
+factor(x^3-4x^2-x+4)  # expect: steps
+factor(3x^3-2x^2+6x-4)  # expect: steps
+factor(x^3-4x^2+x+6)  # expect: steps
+factor(x^3+6x^2+11x+6)  # expect: steps
+factor(2x^3+x^2-13x+6)  # expect: steps
+factor(x^3-3x+2)  # expect: steps
+factor(x^4-3x^2-4)  # expect: steps
+factor(x^3-12x^2+48x-64)  # expect: steps
+factor(x^5-16x)  # expect: steps
+factor(x^2+16)  # expect: prime
+factor(x^2-x+3)  # expect: prime
+factor(3x^2+2x+1)  # expect: prime
+factor(x^3+2x+2)  # expect: prime
+factor(x^3-5)  # expect: prime
+factor(x+7)
+factor(9x)
+factor(x^4+x^2+1)  # expect: nosteps-ok
+factor(x^4+4)  # expect: nosteps-ok
+factor(x^8-1)  # expect: nosteps-ok
+factor(6x^2*y+9x*y^2)  # expect: nosteps-ok
+factor(x^2-y^2)  # expect: nosteps-ok
+factor(15)

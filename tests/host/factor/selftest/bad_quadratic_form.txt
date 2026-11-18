@@ -1,0 +1,11 @@
+# selftest: fail Q with u put back is not P
+== factor(x^4-5x^2+4)   [ok, 8 steps]
+  Quadratic form: substitute u:  x^4-5*x^2+4=u^2-5*u-4,u=x^2
+  Two numbers: product c, sum b:  (-1)*(-4)=4,(-1)+(-4)=-5
+  = x^4-5*x^2+4=(x^2-1)*(x^2-4)
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x-2)*(x+2))
+  Check: multiply the factors:  (x-1)*(x+1)*(x-2)*(x+2)=(x^4-5*x^2+4)
+   FlowCE answer: (x-1)*(x+1)*(x-2)*(x+2)

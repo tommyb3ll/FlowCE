@@ -1,0 +1,4 @@
+# selftest: fail pulled out
+== factor(2x^2+18)   [ok, 1 steps]
+  No real roots: does not factor:  2*x^2+18
+   FlowCE answer: 2*(x^2+9)

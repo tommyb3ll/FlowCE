@@ -1,0 +1,534 @@
+== solve(2x+3=7,x)   [ok, 4 steps]
+  Subtract from both sides:  2*x+3-3=(7-3)
+  = 2*x=4
+  Divide both sides:  2*x/2=(4/2)
+  = x=2
+   FlowCE answer: x=2
+== solve(3(x-2)=2x+5,x)   [ok, 5 steps]
+  Distribute and combine like terms:  3*x-6=(2*x+5)
+  Subtract from both sides:  3*x-6-2*x=(2*x+5-2*x)
+  = x-6=5
+  Add to both sides:  x-6+6=(5+6)
+  = x=11
+   FlowCE answer: x=11
+== solve(x/2+1/3=5/6,x)   [ok, 6 steps]
+  Multiply both sides by the common denominator:  6*(x/2+1/3)=(6*5/6)
+  = 3*x+2=5
+  Subtract from both sides:  3*x+2-2=(5-2)
+  = 3*x=3
+  Divide both sides:  3*x/3=(3/3)
+  = x=1
+   FlowCE answer: x=1
+== solve(x^2-5x+6=0,x)   [ok, 7 steps]
+  Identify a, b and c:  a=1, b=-5, c=6
+  Quadratic formula:  x=(-(-5)±sqrt((-5)^2-4*1*6))/(2*1)
+  The discriminant:  (-5)^2-4*1*6=1
+  Simplify:  x=(5±sqrt(1))/2
+  = x=(5±1)/2
+  Two solutions:  x=(5-1)/2, x=(5+1)/2
+  = x=2, x=3
+   FlowCE answer: x=2, x=3
+== solve(2x^2+3x-2=0,x)   [ok, 7 steps]
+  Identify a, b and c:  a=2, b=3, c=-2
+  Quadratic formula:  x=(-3±sqrt(3^2-4*2*(-2)))/(2*2)
+  The discriminant:  3^2-4*2*(-2)=25
+  Simplify:  x=(-3±sqrt(25))/4
+  = x=(-3±5)/4
+  Two solutions:  x=(-3-5)/4, x=(-3+5)/4
+  = x=-2, x=(1/2)
+   FlowCE answer: x=-2, x=1/2
+== solve(x^2+x+1=0,x)   [ok, 4 steps]
+  Identify a, b and c:  a=1, b=1, c=1
+  Quadratic formula:  x=(-1±sqrt(1^2-4*1*1))/(2*1)
+  The discriminant:  1^2-4*1*1=-3
+  The discriminant is negative: no real solution:  (-3)<0
+   FlowCE answer: no solution
+== solve(x^2-4x+4=0,x)   [ok, 5 steps]
+  Identify a, b and c:  a=1, b=-4, c=4
+  Quadratic formula:  x=(-(-4)±sqrt((-4)^2-4*1*4))/(2*1)
+  The discriminant:  (-4)^2-4*1*4=0
+  Simplify:  x=(4±sqrt(0))/2
+  The discriminant is 0: one solution:  x=2
+   FlowCE answer: x=2
+== solve(x^2=2,x)   [ok, 8 steps]
+  Move every term to one side:  x^2-2=0
+  Identify a, b and c:  a=1, b=0, c=-2
+  Quadratic formula:  x=(±sqrt(0^2-4*1*(-2)))/(2*1)
+  The discriminant:  0^2-4*1*(-2)=8
+  Simplify:  x=(±sqrt(8))/2
+  = x=(±2*sqrt(2))/2
+  = x=±sqrt(2)
+  Two solutions:  x=(-sqrt(2)), x=(sqrt(2))
+   FlowCE answer: x=-sqrt(2), x=sqrt(2)
+== solve(x^3-6x^2+11x-6=0,x)   [ok, 7 steps]
+  A rational root: divide by its factor:  1^3-6*1^2+11*1-6=0
+  = x^3-6*x^2+11*x-6=(x-1)*(x^2-5*x+6)
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x+6=(x-2)*(x-3)
+  = x^3-6*x^2+11*x-6=((x-1)*(x-2)*(x-3))
+  Zero product property: each factor is 0:  x-1=0,x-2=0,x-3=0
+  Solve each:  x=1,x=2,x=3
+   FlowCE answer: x=1, x=2, x=3
+== solve(x^3-x=0,x)   [ok, 5 steps]
+  Factor out the greatest common factor:  x^3-x=(x*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^3-x=(x*(x-1)*(x+1))
+  Zero product property: each factor is 0:  x=0,x-1=0,x+1=0
+  Solve each:  x=0,x=1,x=-1
+   FlowCE answer: x=-1, x=0, x=1
+== solve(x^4-5x^2+4=0,x)   [ok, 8 steps]
+  Two numbers: product c, sum b:  (-1)*(-4)=4,(-1)+(-4)=-5
+  = x^4-5*x^2+4=(x^2-1)*(x^2-4)
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x-2)*(x+2))
+  Zero product property: each factor is 0:  x-1=0,x+1=0,x-2=0,x+2=0
+  Solve each:  x=1,x=-1,x=2,x=-2
+   FlowCE answer: x=-2, x=-1, x=1, x=2
+== solve(1/x+1/(x+1)=1,x)   [ok, 11 steps]
+  Excluded values: no denominator can be 0:  x!=-1, x!=0
+  Multiply both sides by the LCD:  x*(x+1)*(1/x+1/(x+1))=(x*(x+1)*1)
+  = x+1+x=(x*(x+1))
+  Move every term to one side:  x^2-x-1=0
+  Identify a, b and c:  a=1, b=-1, c=-1
+  Quadratic formula:  x=(-(-1)±sqrt((-1)^2-4*1*(-1)))/(2*1)
+  The discriminant:  (-1)^2-4*1*(-1)=5
+  Simplify:  x=(1±sqrt(5))/2
+  = x=1/2±sqrt(5)/2
+  Two solutions:  x=(1/2-sqrt(5)/2), x=(1/2+sqrt(5)/2)
+  Check: not an excluded value:  x=((-sqrt(5)+1)/2), x=((sqrt(5)+1)/2)
+   FlowCE answer: x=(-sqrt(5)+1)/2, x=(sqrt(5)+1)/2
+== solve((x+1)/(x-2)=3,x)   [ok, 11 steps]
+  Excluded values: no denominator can be 0:  x!=2
+  Multiply both sides by the LCD:  (x-2)*(x+1)/(x-2)=((x-2)*3)
+  = x+1=(3*(x-2))
+  Distribute and combine like terms:  x+1=(3*x-6)
+  Subtract from both sides:  x+1-3*x=(3*x-6-3*x)
+  = -2*x+1=-6
+  Subtract from both sides:  -2*x+1-1=(-6-1)
+  = -2*x=-7
+  Divide both sides:  (-2*x)/-2=((-7)/-2)
+  = x=(7/2)
+  Check: not an excluded value:  x=(7/2)
+   FlowCE answer: x=7/2
+== solve(sqrt(x+3)=x-3,x)   [ok, 12 steps]
+  Square both sides:  (sqrt(x+3))^2=(x-3)^2
+  = x+3=(x^2-6*x+9)
+  Move every term to one side:  x^2-7*x+6=0
+  Identify a, b and c:  a=1, b=-7, c=6
+  Quadratic formula:  x=(-(-7)±sqrt((-7)^2-4*1*6))/(2*1)
+  The discriminant:  (-7)^2-4*1*6=25
+  Simplify:  x=(7±sqrt(25))/2
+  = x=(7±5)/2
+  Two solutions:  x=(7-5)/2, x=(7+5)/2
+  = x=1, x=6
+  Check: the sides differ, extraneous:  x=1,sqrt(1+3)=2,1-3=-2
+  Check in the equation: both sides agree:  x=6,sqrt(6+3)=3,6-3=3
+   FlowCE answer: x=6
+== solve(sqrt(2x+1)=3,x)   [ok, 7 steps]
+  Square both sides:  (sqrt(2*x+1))^2=(3)^2
+  = 2*x+1=9
+  Subtract from both sides:  2*x+1-1=(9-1)
+  = 2*x=8
+  Divide both sides:  2*x/2=(8/2)
+  = x=4
+  Check in the equation: both sides agree:  x=4,sqrt(2*4+1)=3,3=3
+   FlowCE answer: x=4
+== solve(2^x=8,x)   [ok, 2 steps]
+  Write both sides as powers of the same base:  2^x=(2^3)
+  Same base: the exponents are equal:  x=3
+   FlowCE answer: x=3
+== solve(3^(x+1)=27,x)   [ok, 4 steps]
+  Write both sides as powers of the same base:  3^(x+1)=(3^3)
+  Same base: the exponents are equal:  x+1=3
+  Subtract from both sides:  x+1-1=(3-1)
+  = x=2
+   FlowCE answer: x=2
+== solve(e^(2x)=5,x)   [ok, 4 steps]
+  Take ln of both sides:  ln(exp(2*x))=(ln(5))
+  = 2*x=(ln(5))
+  Divide both sides:  2*x/2=(ln(5)/2)
+  = x=(ln(5)/2)
+   FlowCE answer: x=ln(5)/2
+== solve(ln(x)=2,x)   [ok, 2 steps]
+  Exponential form: log_b(u) = c means u = b^c:  x=(exp(2))
+  Check: every log's argument is positive:  x=(exp(2))
+   FlowCE answer: x=exp(2)
+== solve(log(x)+log(x-3)=1,x)   [ok, 13 steps]
+  Product rule of logs:  log10(x*(x-3))=1
+  Exponential form: log_b(u) = c means u = b^c:  x*(x-3)=(10^1)
+  = x*(x-3)=10
+  Move every term to one side:  x^2-3*x-10=0
+  Identify a, b and c:  a=1, b=-3, c=-10
+  Quadratic formula:  x=(-(-3)±sqrt((-3)^2-4*1*(-10)))/(2*1)
+  The discriminant:  (-3)^2-4*1*(-10)=49
+  Simplify:  x=(3±sqrt(49))/2
+  = x=(3±7)/2
+  Two solutions:  x=(3-7)/2, x=(3+7)/2
+  = x=-2, x=5
+  A log of a number <= 0: not a solution:  x=-2
+  Check: every log's argument is positive:  x=5
+   FlowCE answer: x=5
+== solve(sin(x)=1/2,x)   [ok, 4 steps]
+  The reference angle:  asin(1/2)=(pi/6)
+  sin > 0: quadrants I and II:  x=(pi/6), x=(pi-pi/6)
+  = x=(pi/6), x=(5*pi/6)
+  All solutions: add n periods (n an integer):  x=(pi/6+2*pi*n), x=(5*pi/6+2*pi*n)
+   FlowCE answer: x=pi/6, x=5*pi/6
+== solve(cos(x)=0,x)   [ok, 2 steps]
+  On an axis of the unit circle:  x=(pi/2), x=(3*pi/2)
+  All solutions: add n periods (n an integer):  x=(pi/2+pi*n)
+   FlowCE answer: x=pi/2, x=3*pi/2
+== solve(tan(x)=1,x)   [ok, 4 steps]
+  The reference angle:  atan(1)=(pi/4)
+  tan > 0: quadrants I and III:  x=(pi/4), x=(pi+pi/4)
+  = x=(pi/4), x=(5*pi/4)
+  All solutions: add n periods (n an integer):  x=(pi/4+pi*n)
+   FlowCE answer: x=pi/4, x=5*pi/4
+== solve(2x-3<7,x)   [ok, 4 steps]
+  Add to both sides:  (2*x-3+3)<(7+3)
+  = (2*x)<10
+  Divide both sides:  (2*x/2)<(10/2)
+  = x<5
+   FlowCE answer: x<5
+== solve(-2x+1>=5,x)   [ok, 4 steps]
+  Subtract from both sides:  (-2*x+1-1)>=(5-1)
+  = (-2*x)>=4
+  Divide by a negative: the sign flips:  ((-2*x)/-2)<=(4/-2)
+  = x<=-2
+   FlowCE answer: x<=-2
+== solve(x^2-5x+6>0,x)   [ok, 8 steps]
+  Factor:  x^2-5*x+6=(x-2)*(x-3)
+      Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+      = x^2-5*x+6=(x-2)*(x-3)
+  Where it is 0 or undefined:  x=2,x=3
+  Test a number in each interval:  x<2,x=0,6>0
+  = 2<x<3,x=5/2,-1/4<0
+  = x>3,x=4,2>0
+  Keep where it is positive:  x<2,x>3
+   FlowCE answer: x<2, x>3
+== solve(x^2-4<=0,x)   [ok, 7 steps]
+  Factor:  x^2-4=(x-2)*(x+2)
+      Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  Where it is 0 or undefined:  x=-2,x=2
+  Test a number in each interval:  x<-2,x=-3,5>0
+  = -2<x<2,x=0,-4<0
+  = x>2,x=3,5>0
+  Keep where it is negative or 0:  -2<=x<=2
+   FlowCE answer: -2<=x<=2
+== solve((x-1)/(x+2)>0,x)   [ok, 5 steps]
+  Where it is 0 or undefined:  x!=-2,x=1
+  Test a number in each interval:  x<-2,x=-3,4>0
+  = -2<x<1,x=0,-1/2<0
+  = x>1,x=2,1/4>0
+  Keep where it is positive:  x<-2,x>1
+   FlowCE answer: x<-2, x>1
+== solve(abs(x-3)=5,x)   [ok, 8 steps]
+  Two cases: the inside is k or -k:  x-3=5,x-3=-5
+  First case:  x-3=5
+      Add to both sides:  x-3+3=(5+3)
+      = x=8
+  Second case:  x-3=-5
+      Add to both sides:  x-3+3=(-5+3)
+      = x=-2
+  The solutions:  x=8,x=-2
+   FlowCE answer: x=-2, x=8
+== solve(abs(2x+1)<7,x)   [ok, 3 steps]
+  Less than k: between -k and k:  -7<2*x+1<7
+  The same to all three parts:  -8<2*x<6
+  Divide all three parts:  -4<x<3
+   FlowCE answer: -4<x<3
+== solve(abs(x)>4,x)   [ok, 4 steps]
+  More than k: below -k or above k:  x<-4,x>4
+  First case:  x<-4
+  Second case:  x>4
+  The solutions:  x<-4,x>4
+   FlowCE answer: x<-4, x>4
+== solve([x+y=5,x-y=1],[x,y])   [ok, 6 steps]
+  Subtract the equations:  2*y=4
+  Divide both sides:  2*y/2=(4/2)
+  = y=2
+  Put it into an equation:  x-2=1
+  = x=3
+  The solution:  x=3, y=2
+   FlowCE answer: x=3, y=2
+== solve([2x+3y=12,x-y=1],[x,y])   [ok, 8 steps]
+  Multiply so that a variable drops out:  2*(x-y)=(2*1)
+  = 2*x-2*y=2
+  Subtract the equations:  5*y=10
+  Divide both sides:  5*y/5=(10/5)
+  = y=2
+  Put it into an equation:  x-2=1
+  = x=3
+  The solution:  x=3, y=2
+   FlowCE answer: x=3, y=2
+== solve([x+y+z=6,x-y+z=2,2x+y-z=1],[x,y,z])   [ok, 20 steps]
+  Take a pair of equations:  x+y+z=6
+  = x-y+z=2
+  Subtract the equations:  2*y=4
+  Take a pair of equations:  x+y+z=6
+  = 2*x+y-z=1
+  Multiply so that a variable drops out:  2*(x+y+z)=(2*6)
+  = 2*x+2*y+2*z=12
+  Subtract the equations:  y+3*z=11
+  Two equations in two unknowns:  2*y=4
+  = y+3*z=11
+      Multiply so that a variable drops out:  2*(y+3*z)=(2*11)
+      = 2*y+6*z=22
+      Subtract the equations:  -6*z=-18
+      Divide both sides:  (-6*z)/-6=((-18)/-6)
+      = z=3
+      Put it into an equation:  y+3*3=11
+      = y=2
+  Put it into an equation:  x+2+3=6
+  = x=1
+  The solution:  x=1, y=2, z=3
+   FlowCE answer: x=1, y=2, z=3
+== solve([x+y=2,2x+2y=4],[x,y])   [ok, 4 steps]
+  Multiply so that a variable drops out:  2*(x+y)=(2*2)
+  = 2*x+2*y=4
+  Subtract the equations:  0=0
+  Always true: infinitely many (the same line):  x+y=2
+   FlowCE answer: x=-y+2, y=y
+== solve([x+y=2,x+y=5],[x,y])   [ok, 2 steps]
+  Subtract the equations:  0=-3
+  Never true: no solution (the lines are parallel):  0!=-3
+   FlowCE answer: no solution
+== 2x+3=7   [ok, 4 steps]
+  Subtract from both sides:  2*x+3-3=(7-3)
+  = 2*x=4
+  Divide both sides:  2*x/2=(4/2)
+  = x=2
+   FlowCE answer: x=2
+== x^2-9=0   [ok, 7 steps]
+  Identify a, b and c:  a=1, b=0, c=-9
+  Quadratic formula:  x=(±sqrt(0^2-4*1*(-9)))/(2*1)
+  The discriminant:  0^2-4*1*(-9)=36
+  Simplify:  x=(±sqrt(36))/2
+  = x=(±6)/2
+  Two solutions:  x=(-6)/2, x=(6)/2
+  = x=-3, x=3
+   FlowCE answer: x=-3, x=3
+== 3x-5<7   [ok, 4 steps]
+  Add to both sides:  (3*x-5+5)<(7+5)
+  = (3*x)<12
+  Divide both sides:  (3*x/3)<(12/3)
+  = x<4
+   FlowCE answer: x<4
+== propfrac((x^2-1)/(x-1))   [ok, 5 steps]
+   method 1 of 3: long division
+  Divide the leading terms:  (x^2)/(x)=x
+  Multiply back and subtract:  (x^2-1)-x*(x-1)=x-1
+  Divide the leading terms:  (x)/(x)=1
+  Multiply back and subtract:  (x-1)-1*(x-1)=0
+  Check: divisor times quotient, plus remainder:  x^2-1=(x-1)*(x+1)
+   FlowCE answer: x+1
+== propfrac((x^3+1)/(x-2))   [ok, 8 steps]
+   method 1 of 2: long division
+  Divide the leading terms:  (x^3)/(x)=x^2
+  Multiply back and subtract:  (x^3+1)-x^2*(x-2)=2*x^2+1
+  Divide the leading terms:  (2*x^2)/(x)=2*x
+  Multiply back and subtract:  (2*x^2+1)-2*x*(x-2)=4*x+1
+  Divide the leading terms:  (4*x)/(x)=4
+  Multiply back and subtract:  (4*x+1)-4*(x-2)=9
+  The remainder's degree is lower: done:  9
+  Check: divisor times quotient, plus remainder:  x^3+1=(x-2)*(x^2+2*x+4)+9
+   FlowCE answer: x^2+2*x+4+9/(x-2)
+== propfrac((2x^3-3x^2+4x-5)/(x^2+1))   [ok, 6 steps]
+  Divide the leading terms:  (2*x^3)/(x^2)=2*x
+  Multiply back and subtract:  (2*x^3-3*x^2+4*x-5)-2*x*(x^2+1)=-3*x^2+2*x-5
+  Divide the leading terms:  (-3*x^2)/(x^2)=-3
+  Multiply back and subtract:  (-3*x^2+2*x-5)-(-3)*(x^2+1)=2*x-2
+  The remainder's degree is lower: done:  2*x-2
+  Check: divisor times quotient, plus remainder:  2*x^3-3*x^2+4*x-5=(x^2+1)*(2*x-3)+2*x-2
+   FlowCE answer: 2*x-3+2*(x-1)/(x^2+1)
+== (x^2-5x+6)/(x-2)   [ok, 5 steps]
+   method 1 of 3: long division
+  Divide the leading terms:  (x^2)/(x)=x
+  Multiply back and subtract:  (x^2-5*x+6)-x*(x-2)=-3*x+6
+  Divide the leading terms:  (-3*x)/(x)=-3
+  Multiply back and subtract:  (-3*x+6)-(-3)*(x-2)=0
+  Check: divisor times quotient, plus remainder:  x^2-5*x+6=(x-2)*(x-3)
+   FlowCE answer: x-3
+== (x^3-8)/(x-2)   [ok, 7 steps]
+   method 1 of 3: long division
+  Divide the leading terms:  (x^3)/(x)=x^2
+  Multiply back and subtract:  (x^3-8)-x^2*(x-2)=2*x^2-8
+  Divide the leading terms:  (2*x^2)/(x)=2*x
+  Multiply back and subtract:  (2*x^2-8)-2*x*(x-2)=4*x-8
+  Divide the leading terms:  (4*x)/(x)=4
+  Multiply back and subtract:  (4*x-8)-4*(x-2)=0
+  Check: divisor times quotient, plus remainder:  x^3-8=(x-2)*(x^2+2*x+4)
+   FlowCE answer: x^2+2*x+4
+== partfrac(1/(x^2-1))   [ok, 6 steps]
+  Factor the denominator:  x^2-1=(x-1)*(x+1)
+  A fraction for each factor:  1/((x-1)*(x+1))=A/(x-1)+B/(x+1)
+  Multiply both sides by the denominator:  1=A*(x+1)+B*(x-1)
+  Put in a root of the denominator:  x=1,1=2*A,A=1/2
+  Put in a root of the denominator:  x=-1,1=-2*B,B=-1/2
+  Put the values in:  1/(2*(x-1))-1/(2*(x+1))
+   FlowCE answer: 1/(2*(x-1))-1/(2*(x+1))
+== partfrac((x+3)/(x^3-x))   [ok, 7 steps]
+  Factor the denominator:  x^3-x=x*(x-1)*(x+1)
+  A fraction for each factor:  (x+3)/(x*(x-1)*(x+1))=A/x+B/(x-1)+C/(x+1)
+  Multiply both sides by the denominator:  x+3=A*(x-1)*(x+1)+B*x*(x+1)+C*x*(x-1)
+  Put in a root of the denominator:  x=0,3=-A,A=-3
+  Put in a root of the denominator:  x=1,4=2*B,B=2
+  Put in a root of the denominator:  x=-1,2=2*C,C=1
+  Put the values in:  -3/x+2/(x-1)+1/(x+1)
+   FlowCE answer: -3/x+2/(x-1)+1/(x+1)
+== partfrac(1/(x^2*(x+1)))   [ok, 6 steps]
+  Factor the denominator:  x^3+x^2=(x+1)*x^2
+  A fraction for each factor:  1/((x+1)*x^2)=A/(x+1)+B/x+C/x^2
+  Multiply both sides by the denominator:  1=A*x^2+B*(x+1)*x+C*(x+1)
+  Match the coefficients of each power of x:  A+B=0,B+C=0,C=1
+  Solve for the unknowns:  A=1,B=-1,C=1
+  Put the values in:  1/(x+1)-1/x+1/x^2
+   FlowCE answer: 1/(x+1)+1/x^2-1/x
+== partfrac((x^2+1)/(x^3+x^2))   [ok, 6 steps]
+  Factor the denominator:  x^3+x^2=(x+1)*x^2
+  A fraction for each factor:  (x^2+1)/((x+1)*x^2)=A/(x+1)+B/x+C/x^2
+  Multiply both sides by the denominator:  x^2+1=A*x^2+B*(x+1)*x+C*(x+1)
+  Match the coefficients of each power of x:  A+B=1,B+C=0,C=1
+  Solve for the unknowns:  A=2,B=-1,C=1
+  Put the values in:  2/(x+1)-1/x+1/x^2
+   FlowCE answer: 2/(x+1)+1/x^2-1/x
+== canonical_form(x^2+6x+5)   [ok, 6 steps]
+  Group the x terms:  (x^2+6*x)+5
+  Half the x coefficient, squared:  (6/2)^2=9
+  Add it and subtract it:  (x^2+6*x+9)-9+5
+  Write the perfect square:  (x+3)^2-9+5
+  Combine the numbers:  (x+3)^2-4
+  The vertex:  (-3,-4)
+   FlowCE answer: (x+3)^2-4
+== canonical_form(2x^2-8x+3)   [ok, 7 steps]
+  Factor a out of the x terms:  2*(x^2-4*x)+3
+  Half the x coefficient, squared:  (-4/2)^2=4
+  Add it and subtract it:  2*(x^2-4*x+4-4)+3
+  Write the perfect square:  2*((x-2)^2-4)+3
+  Distribute:  2*(x-2)^2-8+3
+  Combine the numbers:  2*(x-2)^2-5
+  The vertex:  (2,-5)
+   FlowCE answer: 2*(x-2)^2-5
+== canonical_form(-x^2+4x)   [ok, 7 steps]
+  Factor a out of the x terms:  -(x^2-4*x)
+  Half the x coefficient, squared:  (-4/2)^2=4
+  Add it and subtract it:  -(x^2-4*x+4-4)
+  Write the perfect square:  -((x-2)^2-4)
+  Distribute:  -(x-2)^2+4
+  Combine the numbers:  4-(x-2)^2
+  The vertex:  (2,4)
+   FlowCE answer: 4-(x-2)^2
+== implicitdiff(x^2+y^2=25,x,y)   [ok, 5 steps]
+  Differentiate both sides: y is a function of x:  diff(x^2+y^2, x)=(diff(25, x))
+  Chain rule: each y term's derivative times dy/dx:  2*x+2*y*dy/dx=0
+  The dy/dx terms to one side, the rest to the other:  2*y*dy/dx=(-2*x)
+  Divide both sides:  2*y*dy/dx/(2*y)=((-2*x)/(2*y))
+  = dy/dx=(-x/y)
+   FlowCE answer: -x/y
+== implicitdiff(x*y=1,x,y)   [ok, 5 steps]
+  Differentiate both sides: y is a function of x:  diff(x*y, x)=(diff(1, x))
+  Chain rule: each y term's derivative times dy/dx:  y+x*dy/dx=0
+  The dy/dx terms to one side, the rest to the other:  x*dy/dx=(-y)
+  Divide both sides:  x*dy/dx/x=((-y)/x)
+  = dy/dx=(-y/x)
+   FlowCE answer: -y/x
+== implicitdiff(x^3+y^3=6x*y,x,y)   [ok, 6 steps]
+  Differentiate both sides: y is a function of x:  diff(x^3+y^3, x)=(diff(6*x*y, x))
+  Chain rule: each y term's derivative times dy/dx:  3*x^2+3*y^2*dy/dx=(6*y+6*x*dy/dx)
+  The dy/dx terms to one side, the rest to the other:  3*y^2*dy/dx+(-6*x)*dy/dx=(-3*x^2+6*y)
+  Factor out dy/dx:  (-6*x+3*y^2)*dy/dx=(-3*x^2+6*y)
+  Divide both sides:  (-6*x+3*y^2)*dy/dx/(-6*x+3*y^2)=((-3*x^2+6*y)/(-6*x+3*y^2))
+  = dy/dx=((x^2-2*y)/(2*x-y^2))
+   FlowCE answer: (x^2-2*y)/(2*x-y^2)
+== diff(x^3,x)   [ok, 1 steps]
+  Power rule:  diff(x^3, x)=(3*x^2)
+   FlowCE answer: 3*x^2
+== diff(sin(x)*e^x,x)   [ok, 4 steps]
+  Product rule:  diff(sin(x)*exp(x), x)=(diff(sin(x), x)*exp(x)+sin(x)*diff(exp(x), x))
+      Known derivative:  diff(sin(x), x)=(cos(x))
+      Known derivative:  diff(exp(x), x)=(exp(x))
+  = diff(sin(x)*exp(x), x)=(cos(x)*exp(x)+sin(x)*exp(x))
+   FlowCE answer: exp(x)*cos(x)+exp(x)*sin(x)
+== diff(ln(x)/x,x)   [ok, 4 steps]
+  Product rule:  diff(ln(x)/x, x)=(diff(ln(x), x)/x+ln(x)*diff(1/x, x))
+      Known derivative:  diff(ln(x), x)=(1/x)
+      Power rule:  diff(1/x, x)=(-1/x^2)
+  = diff(ln(x)/x, x)=(1/(x*x)-ln(x)/x^2)
+   FlowCE answer: (1-ln(x))/x^2
+== integrate(x*sin(x),x)   [ok, 5 steps]
+  Integration by parts:  u=x, dv=(sin(x)*dx)
+  = du=dx, v=(-cos(x))
+  = integrate(x*sin(x),x)=(-x*cos(x)+integrate(cos(x),x))
+      Known integral:  integrate(cos(x),x)=(sin(x))
+  = integrate(x*sin(x),x)=(-x*cos(x)+sin(x))
+   FlowCE answer: sin(x)-x*cos(x)
+== integrate(1/(x^2+4),x)   [ok, 1 steps]
+  Arctangent formula:  integrate(1/(x^2+4),x)=(1/2*atan(1/2*x))
+   FlowCE answer: atan(x/2)/2
+== integrate(x^2,x,0,3)   [ok, 3 steps]
+  Power rule:  integrate(x^2,x)=(1/3*x^3)
+  Evaluate from a to b:  integrate(x^2,x,0,3)=(1/3*3^3)
+  = integrate(x^2,x,0,3)=9
+   FlowCE answer: 9
+== limit(sin(x)/x,x,0)   [ok, 5 steps]
+  Indeterminate form:  limit(sin(x),x,0)=0, limit(x,x,0)=0
+  = diff(sin(x), x)=(cos(x))
+  = diff(x, x)=1
+  L'Hopital's rule:  limit(sin(x)/x,x,0)=(limit(cos(x),x,0))
+  Direct substitution:  limit(cos(x),x,0)=1
+   FlowCE answer: 1
+== limit((x^2-1)/(x-1),x,1)   [ok, 2 steps]
+  Factor and cancel:  limit((x^2-1)/(x-1),x,1)=(limit(x+1,x,1))
+  Direct substitution:  limit(x+1,x,1)=2
+   FlowCE answer: 2
+== limit(1/x,x,0)   [ok, 1 steps]
+  The one-sided limits differ: no limit:  limit(1/x,x,0,-1)=(-infinity), limit(1/x,x,0,1)=(+infinity)
+   FlowCE answer: does not exist: -infinity from the left, +infinity from the right
+== sum(1/2^n,n,0,inf)   [ok, 3 steps]
+  Ratio of consecutive terms:  2^n/2^(n+1)=(1/2)
+  Geometric series with |r| < 1:  sum(1/2^n,n,0,+infinity)=(1/(1-1/2))
+  = sum(1/2^n,n,0,+infinity)=2
+   FlowCE answer: 2
+== sum(1/(n*(n+1)),n,1,inf)   [ok, 3 steps]
+  Partial fractions:  1/(n*(n+1))=(1/n-1/(n+1))
+  Partial sum: the middle terms cancel:  sum(1/n-1/(n+1),n,1,N)=(1-1/(N+1))
+  Its limit:  limit(1-1/(N+1),N,+infinity)=1
+   FlowCE answer: 1
+== series(e^x,x,0,4)   [ok, 10 steps]
+  Derivatives:  diff(exp(x), x)=(exp(x))
+  = diff(exp(x), x)=(exp(x))
+  = diff(exp(x), x)=(exp(x))
+  = diff(exp(x), x)=(exp(x))
+  Their values at the center:  exp(0)=1
+  = exp(0)=1
+  = exp(0)=1
+  = exp(0)=1
+  = exp(0)=1
+  Taylor polynomial:  1+x+x^2/(2!)+x^3/(3!)+x^4/(4!)=(1+x+1/2*x^2+1/6*x^3+1/24*x^4)
+   FlowCE answer: 1+x+x^2/2+x^3/6+x^4/24+O(x^5)
+== series(sin(x),x,0,5)   [ok, 12 steps]
+  Derivatives:  diff(sin(x), x)=(cos(x))
+  = diff(cos(x), x)=(-sin(x))
+  = diff(-sin(x), x)=(-cos(x))
+  = diff(-cos(x), x)=(sin(x))
+  = diff(sin(x), x)=(cos(x))
+  Their values at the center:  sin(0)=0
+  = cos(0)=1
+  = -sin(0)=0
+  = -cos(0)=-1
+  = sin(0)=0
+  = cos(0)=1
+  Taylor polynomial:  x-x^3/(3!)+x^5/(5!)=(x-1/6*x^3+1/120*x^5)
+   FlowCE answer: x-x^3/6+x^5/120+O(x^6)
+== taylor(ln(x),x=1,3)   [ok, 8 steps]
+  Derivatives:  diff(ln(x), x)=(1/x)
+  = diff(1/x, x)=(-1/x^2)
+  = diff(-1/x^2, x)=(2/x^3)
+  Their values at the center:  ln(1)=0
+  = 1/1=1
+  = -1/1^2=-1
+  = 2/1^3=2
+  Taylor polynomial:  x-1-(x-1)^2/(2!)+2*(x-1)^3/(3!)=(x-1-1/2*(x-1)^2+1/3*(x-1)^3)
+   FlowCE answer: x-1-(x-1)^2/2+(x-1)^3/3+O((x-1)^4)

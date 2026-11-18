@@ -1,0 +1,12 @@
+integrate(1/(x^2+9),x) -> atan(x/3)/3
+integrate(1/(x+1),x) -> ln(abs(x+1))
+integrate(1/(x^2-1),x) -> (ln(abs(x-1))-ln(abs(x+1)))/2
+partfrac(1/(x^2+9)) -> 1/(x^2+9)
+integrate(sqrt(x^2+9),x) -> (x*sqrt(x^2+9)+9*ln(x+sqrt(x^2+9)))/2
+integrate(x^2/sqrt(x^2+9),x) -> (x*sqrt(x^2+9)-9*ln(x+sqrt(x^2+9)))/2
+1+1 -> 2
+diff(x^3,x) -> 3*x^2
+factor(x^2-1) -> (x-1)*(x+1)
+solve(x^2=2,x) -> x=-sqrt(2), x=sqrt(2)
+sqrt(x^2+9) -> sqrt(x^2+9)
+normal((x^2-1)/(x-1)) -> x+1

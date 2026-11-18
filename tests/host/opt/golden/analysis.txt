@@ -1,0 +1,642 @@
+== x^3-3x   [ok]
+    f(x)=x^3-3*x
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (-sqrt(3),0)|(0,0)|(sqrt(3),0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=3*(x-1)*(x+1)
+    Critical numbers:  x=-1|x=1
+    Increasing:  x<-1|x>1
+    Decreasing:  -1<x<1
+  EXTREMA
+    Local max:  (-1,2)
+    Local min:  (1,-2)
+  CONCAVITY
+    f''(x)=6*x
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  (0,0)
+== x^2-4   [ok]
+    f(x)=x^2-4
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,-4)
+    x-intercepts:  (-2,0)|(2,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=2*x
+    Critical numbers:  x=0
+    Increasing:  x>0
+    Decreasing:  x<0
+  EXTREMA
+    Local min:  (0,-4)
+  CONCAVITY
+    f''(x)=2
+    Concave up:  ~all real numbers
+    Concave down:  ~nowhere
+    Inflection points:  ~none
+== 1/x   [ok]
+    f(x)=1/x
+  DOMAIN
+    x!=0
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  ~none
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    Vertical:  x=0
+    Horizontal:  y=0
+  INCREASING / DECREASING
+    f'(x)=-1/x^2
+    Critical numbers:  ~none
+    Increasing:  ~nowhere
+    Decreasing:  x<0|x>0
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=2/x^3
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  ~none
+== (x^2-1)/(x-2)   [ok]
+    f(x)=(x^2-1)/(x-2)
+  DOMAIN
+    x!=2
+  INTERCEPTS
+    y-intercept:  (0,1/2)
+    x-intercepts:  (-1,0)|(1,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    Vertical:  x=2
+    Slant:  y=x+2
+  INCREASING / DECREASING
+    f'(x)=(x^2-4*x+1)/(x-2)^2
+    Critical numbers:  x=2-sqrt(3)|x=2+sqrt(3)
+    Increasing:  x<2-sqrt(3)|x>2+sqrt(3)
+    Decreasing:  2-sqrt(3)<x<2|2<x<2+sqrt(3)
+  EXTREMA
+    Local max:  (2-sqrt(3),-2*sqrt(3)+4)
+    Local min:  (2+sqrt(3),2*sqrt(3)+4)
+  CONCAVITY
+    f''(x)=6/(x-2)^3
+    Concave up:  x>2
+    Concave down:  x<2
+    Inflection points:  ~none
+== x/(x^2+1)   [ok]
+    f(x)=x/(x^2+1)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    Horizontal:  y=0
+  INCREASING / DECREASING
+    f'(x)=-(x-1)*(x+1)/(x^2+1)^2
+    Critical numbers:  x=-1|x=1
+    Increasing:  -1<x<1
+    Decreasing:  x<-1|x>1
+  EXTREMA
+    Local max:  (1,1/2)
+    Local min:  (-1,-1/2)
+  CONCAVITY
+    f''(x)=2*x*(x^2-3)/(x^2+1)^3
+    Concave up:  -sqrt(3)<x<0|x>sqrt(3)
+    Concave down:  x<-sqrt(3)|0<x<sqrt(3)
+    Inflection points:  (-sqrt(3),-sqrt(3)/4)|(0,0)|(sqrt(3),sqrt(3)/4)
+== sqrt(x-1)   [ok]
+    f(x)=sqrt(x-1)
+  DOMAIN
+    x>=1
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  (1,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=1/(2*sqrt(x-1))
+    Critical numbers:  ~none
+    Increasing:  x>1
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=-sqrt(x-1)/(4*(x-1)^2)
+    Concave up:  ~nowhere
+    Concave down:  x>1
+    Inflection points:  ~none
+== ln(x)   [ok]
+    f(x)=ln(x)
+  DOMAIN
+    x>0
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  (1,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    Vertical:  x=0
+  INCREASING / DECREASING
+    f'(x)=1/x
+    Critical numbers:  ~none
+    Increasing:  x>0
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=-1/x^2
+    Concave up:  ~nowhere
+    Concave down:  x>0
+    Inflection points:  ~none
+== e^x   [ok]
+    f(x)=exp(x)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,1)
+    x-intercepts:  ~none
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    Horizontal:  y=0|~as x → −∞
+  INCREASING / DECREASING
+    f'(x)=exp(x)
+    Critical numbers:  ~none
+    Increasing:  ~all real numbers
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=exp(x)
+    Concave up:  ~all real numbers
+    Concave down:  ~nowhere
+    Inflection points:  ~none
+== e^(-x^2)   [ok]
+    f(x)=exp(-x^2)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,1)
+    x-intercepts:  ~none
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    Horizontal:  y=0
+  INCREASING / DECREASING
+    f'(x)=-2*exp(-x^2)*x
+    Critical numbers:  x=0
+    Increasing:  x<0
+    Decreasing:  x>0
+  EXTREMA
+    Local max:  (0,1)
+  CONCAVITY
+    f''(x)=2*(2*x^2-1)*exp(-x^2)
+    Concave up:  x<-sqrt(2)/2|x>sqrt(2)/2
+    Concave down:  -sqrt(2)/2<x<sqrt(2)/2
+    Inflection points:  (-sqrt(2)/2,exp(-1/2))|(sqrt(2)/2,exp(-1/2))
+== sin(x)   [ok]
+    f(x)=sin(x)
+    Periodic, period:  2*pi
+    Shown for:  0<=x<=2*pi
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)|(pi,0)|(2*pi,0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=cos(x)
+    Critical numbers:  x=pi/2|x=3*pi/2
+    Increasing:  0<x<pi/2|3*pi/2<x<2*pi
+    Decreasing:  pi/2<x<3*pi/2
+  EXTREMA
+    Local max:  (pi/2,1)
+    Local min:  (3*pi/2,-1)
+  CONCAVITY
+    f''(x)=-sin(x)
+    Concave up:  pi<x<2*pi
+    Concave down:  0<x<pi
+    Inflection points:  (0,0)|(pi,0)
+== cos(2x)   [ok]
+    f(x)=cos(2*x)
+    Periodic, period:  pi
+    Shown for:  0<=x<=pi
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,1)
+    x-intercepts:  (pi/4,0)|(3*pi/4,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=-2*sin(2*x)
+    Critical numbers:  x=0|x=pi/2|x=pi
+    Increasing:  pi/2<x<pi
+    Decreasing:  0<x<pi/2
+  EXTREMA
+    Local max:  (0,1)
+    Local min:  (pi/2,-1)
+  CONCAVITY
+    f''(x)=-4*cos(2*x)
+    Concave up:  pi/4<x<3*pi/4
+    Concave down:  0<x<pi/4|3*pi/4<x<pi
+    Inflection points:  (pi/4,0)|(3*pi/4,0)
+== tan(x)   [ok]
+    f(x)=tan(x)
+    Periodic, period:  pi
+    Shown for:  0<=x<=pi
+  DOMAIN
+    x!=pi/2+k*pi
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)|(pi,0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    Vertical:  x=pi/2+k*pi
+  INCREASING / DECREASING
+    f'(x)=tan(x)^2+1
+    Critical numbers:  ~none
+    Increasing:  0<x<pi/2|pi/2<x<pi
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=2*tan(x)*(tan(x)^2+1)
+    Concave up:  0<x<pi/2
+    Concave down:  pi/2<x<pi
+    Inflection points:  (0,0)
+== x^4-4x^2   [ok]
+    f(x)=x^4-4*x^2
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (-2,0)|(0,0)|(2,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=4*x*(x^2-2)
+    Critical numbers:  x=-sqrt(2)|x=0|x=sqrt(2)
+    Increasing:  -sqrt(2)<x<0|x>sqrt(2)
+    Decreasing:  x<-sqrt(2)|0<x<sqrt(2)
+  EXTREMA
+    Local max:  (0,0)
+    Local min:  (-sqrt(2),-4)|(sqrt(2),-4)
+  CONCAVITY
+    f''(x)=4*(3*x^2-2)
+    Concave up:  x<-sqrt(6)/3|x>sqrt(6)/3
+    Concave down:  -sqrt(6)/3<x<sqrt(6)/3
+    Inflection points:  (-sqrt(6)/3,-20/9)|(sqrt(6)/3,-20/9)
+== (x+1)/(x-1)   [ok]
+    f(x)=(x+1)/(x-1)
+  DOMAIN
+    x!=1
+  INTERCEPTS
+    y-intercept:  (0,-1)
+    x-intercepts:  (-1,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    Vertical:  x=1
+    Horizontal:  y=1
+  INCREASING / DECREASING
+    f'(x)=-2/(x-1)^2
+    Critical numbers:  ~none
+    Increasing:  ~nowhere
+    Decreasing:  x<1|x>1
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=4/(x-1)^3
+    Concave up:  x>1
+    Concave down:  x<1
+    Inflection points:  ~none
+== x*e^x   [ok]
+    f(x)=x*exp(x)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    Horizontal:  y=0|~as x → −∞
+  INCREASING / DECREASING
+    f'(x)=exp(x)*(x+1)
+    Critical numbers:  x=-1
+    Increasing:  x>-1
+    Decreasing:  x<-1
+  EXTREMA
+    Local min:  (-1,-1/exp(1))
+  CONCAVITY
+    f''(x)=exp(x)*(x+2)
+    Concave up:  x>-2
+    Concave down:  x<-2
+    Inflection points:  (-2,-2/exp(2))
+== x^2*ln(x)   [ok]
+    f(x)=x^2*ln(x)
+  DOMAIN
+    x>0
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  (1,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=(2*ln(x)+1)*x
+    Critical numbers:  x=exp(-1/2)
+    Increasing:  x>exp(-1/2)
+    Decreasing:  0<x<exp(-1/2)
+  EXTREMA
+    Local min:  (exp(-1/2),-1/(2*exp(1)))
+  CONCAVITY
+    f''(x)=2*ln(x)+3
+    Concave up:  x>exp(-3/2)
+    Concave down:  0<x<exp(-3/2)
+    Inflection points:  (exp(-3/2),-3/(2*exp(3)))
+== abs(x)   [ok]
+    f(x)=abs(x)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=abs(x)/x
+    Critical numbers:  x=0
+    Increasing:  x>0
+    Decreasing:  x<0
+  EXTREMA
+    Local min:  (0,0)
+  CONCAVITY
+    f''(x)=0
+    No concavity
+== 1/(x^2-4)   [ok]
+    f(x)=1/(x^2-4)
+  DOMAIN
+    x!=-2|x!=2
+  INTERCEPTS
+    y-intercept:  (0,1/-4)
+    x-intercepts:  ~none
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    Vertical:  x=-2|x=2
+    Horizontal:  y=0
+  INCREASING / DECREASING
+    f'(x)=-2*x/((x-2)^2*(x+2)^2)
+    Critical numbers:  x=0
+    Increasing:  x<-2|-2<x<0
+    Decreasing:  0<x<2|x>2
+  EXTREMA
+    Local max:  (0,1/-4)
+  CONCAVITY
+    f''(x)=2*(3*x^2+4)/((x-2)^3*(x+2)^3)
+    Concave up:  x<-2|x>2
+    Concave down:  -2<x<2
+    Inflection points:  ~none
+== x^3   [ok]
+    f(x)=x^3
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=3*x^2
+    Critical numbers:  x=0
+    Increasing:  ~all real numbers
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=6*x
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  (0,0)
+== x+1/x   [ok]
+    f(x)=x+1/x
+  DOMAIN
+    x!=0
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  ~none
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    Vertical:  x=0
+    Slant:  y=x
+  INCREASING / DECREASING
+    f'(x)=(x-1)*(x+1)/x^2
+    Critical numbers:  x=-1|x=1
+    Increasing:  x<-1|x>1
+    Decreasing:  -1<x<0|0<x<1
+  EXTREMA
+    Local max:  (-1,-2)
+    Local min:  (1,2)
+  CONCAVITY
+    f''(x)=2/x^3
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  ~none
+== sqrt(4-x^2)   [ok]
+    f(x)=sqrt(4-x^2)
+  DOMAIN
+    -2<=x<=2
+  INTERCEPTS
+    y-intercept:  (0,2)
+    x-intercepts:  (-2,0)|(2,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=-x/sqrt(-x^2+4)
+    Critical numbers:  x=0
+    Increasing:  -2<x<0
+    Decreasing:  0<x<2
+  EXTREMA
+    Local max:  (0,2)
+  CONCAVITY
+    f''(x)=-4*sqrt(-x^2+4)/((x-2)^2*(x+2)^2)
+    Concave up:  ~nowhere
+    Concave down:  -2<x<2
+    Inflection points:  ~none
+== x^5-5x   [ok]
+    f(x)=x^5-5*x
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (-5^(1/4),0)|(0,0)|(5^(1/4),0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=5*(x-1)*(x+1)*(x^2+1)
+    Critical numbers:  x=-1|x=1
+    Increasing:  x<-1|x>1
+    Decreasing:  -1<x<1
+  EXTREMA
+    Local max:  (-1,4)
+    Local min:  (1,-4)
+  CONCAVITY
+    f''(x)=20*x^3
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  (0,0)
+== (x^2+1)/x   [ok]
+    f(x)=(x^2+1)/x
+  DOMAIN
+    x!=0
+  INTERCEPTS
+    y-intercept:  ~none
+    x-intercepts:  ~none
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    Vertical:  x=0
+    Slant:  y=x
+  INCREASING / DECREASING
+    f'(x)=(x-1)*(x+1)/x^2
+    Critical numbers:  x=-1|x=1
+    Increasing:  x<-1|x>1
+    Decreasing:  -1<x<0|0<x<1
+  EXTREMA
+    Local max:  (-1,-2)
+    Local min:  (1,2)
+  CONCAVITY
+    f''(x)=2/x^3
+    Concave up:  x>0
+    Concave down:  x<0
+    Inflection points:  ~none
+== ln(x^2+1)   [ok]
+    f(x)=ln(x^2+1)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Even: symmetric about the y-axis
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=2*x/(x^2+1)
+    Critical numbers:  x=0
+    Increasing:  x>0
+    Decreasing:  x<0
+  EXTREMA
+    Local min:  (0,0)
+  CONCAVITY
+    f''(x)=-2*(x-1)*(x+1)/(x^2+1)^2
+    Concave up:  -1<x<1
+    Concave down:  x<-1|x>1
+    Inflection points:  (-1,ln(2))|(1,ln(2))
+== sin(x)+cos(x)   [ok]
+    f(x)=sin(x)+cos(x)
+    Periodic, period:  2*pi
+    Shown for:  0<=x<=2*pi
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,1)
+    x-intercepts:  (3*pi/4,0)|(7*pi/4,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=cos(x)-sin(x)
+    Critical numbers:  x=pi/4|x=5*pi/4
+    Increasing:  0<x<pi/4|5*pi/4<x<2*pi
+    Decreasing:  pi/4<x<5*pi/4
+  EXTREMA
+    Local max:  (pi/4,sqrt(2))
+    Local min:  (5*pi/4,-sqrt(2))
+  CONCAVITY
+    f''(x)=-cos(x)-sin(x)
+    Concave up:  3*pi/4<x<7*pi/4
+    Concave down:  0<x<3*pi/4|7*pi/4<x<2*pi
+    Inflection points:  (3*pi/4,0)|(7*pi/4,0)
+== 2x+3   [ok]
+    f(x)=2*x+3
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,3)
+    x-intercepts:  (-3/2,0)
+  SYMMETRY
+    Neither even nor odd
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=2
+    Critical numbers:  ~none
+    Increasing:  ~all real numbers
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=0
+    No concavity
+== 7   [Type a function of x]
+== x^(1/3)   [ok]
+    f(x)=x^(1/3)
+  DOMAIN
+    ~all real numbers
+  INTERCEPTS
+    y-intercept:  (0,0)
+    x-intercepts:  (0,0)
+  SYMMETRY
+    Odd: symmetric about the origin
+  ASYMPTOTES
+    None
+  INCREASING / DECREASING
+    f'(x)=surd(x,3)/(3*x)
+    Critical numbers:  x=0
+    Increasing:  ~all real numbers
+    Decreasing:  ~nowhere
+  EXTREMA
+    None
+  CONCAVITY
+    f''(x)=-2*surd(x,3)/(9*x^2)
+    Concave up:  x<0
+    Concave down:  x>0
+    Inflection points:  (0,0)

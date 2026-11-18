@@ -1,0 +1,6 @@
+# selftest: fail same four terms
+== factor(x*y+6+2x+3y)   [ok, 3 steps]
+  Rearrange the terms:  x*y+6+2*x+3*y=(x*y+2*x+6+y*3)
+  Factor by grouping:  x*y+6+2*x+3*y=(x*y+2*x)+(6+3*y)=x*(y+2)+3*(y+2)
+  = x*y+6+2*x+3*y=(x+3)*(y+2)
+   FlowCE answer: (y+2)*(x+3)

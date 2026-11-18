@@ -1,0 +1,391 @@
+== area(x^2,x,0,2)   [ok, 18 steps]
+  Where the curves meet:  x^2=x
+  = seq[x=1]
+  Area between curves:  A=(integrate(x-x^2,x,0,1)+integrate(x^2-x,x,1,2))
+  Compute:  integrate(x-x^2,x,0,1)
+      Sum rule:  integrate(x-x^2,x)=(integrate(x,x)-integrate(x^2,x))
+          Power rule:  integrate(x,x)=(1/2*x^2)
+          Power rule:  integrate(x^2,x)=(1/3*x^3)
+      = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
+      Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
+      = integrate(x-x^2,x,0,1)=(1/6)
+  Compute:  integrate(x^2-x,x,1,2)
+      Sum rule:  integrate(x^2-x,x)=(integrate(x^2,x)-integrate(x,x))
+          Power rule:  integrate(x^2,x)=(1/3*x^3)
+          Power rule:  integrate(x,x)=(1/2*x^2)
+      = integrate(x^2-x,x)=(1/3*x^3-1/2*x^2)
+      Evaluate from a to b:  integrate(x^2-x,x,1,2)=(1/3*2^3-1/2*2^2-(1/3*1^3-1/2*1^2))
+      = integrate(x^2-x,x,1,2)=(5/6)
+  = A=1
+   FlowCE answer: 1
+== area(x^2,x,0,1)   [ok, 7 steps]
+  Area between curves:  A=(integrate(x-x^2,x,0,1))
+  Sum rule:  integrate(x-x^2,x)=(integrate(x,x)-integrate(x^2,x))
+      Power rule:  integrate(x,x)=(1/2*x^2)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
+  Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
+  = integrate(x-x^2,x,0,1)=(1/6)
+   FlowCE answer: 1/6  ~ 0.166667
+== area(sin(x),0,pi)   [ok, 4 steps]
+  Area between curves:  A=(integrate(sin(x),x,0,pi))
+  Known integral:  integrate(sin(x),x)=(-cos(x))
+  Evaluate from a to b:  integrate(sin(x),x,0,pi)=(-cos(pi)-(-cos(0)))
+  = integrate(sin(x),x,0,pi)=2
+   FlowCE answer: 2
+== area(x,x^2)   [ok, 9 steps]
+  Where the curves meet:  x=(x^2)
+  = x=0, x=1
+  Area between curves:  A=(integrate(x-x^2,x,0,1))
+  Sum rule:  integrate(x-x^2,x)=(integrate(x,x)-integrate(x^2,x))
+      Power rule:  integrate(x,x)=(1/2*x^2)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
+  Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
+  = integrate(x-x^2,x,0,1)=(1/6)
+   FlowCE answer: 1/6  ~ 0.166667
+== area(x^2,2x)   [ok, 9 steps]
+  Where the curves meet:  x^2=(2*x)
+  = x=0, x=2
+  Area between curves:  A=(integrate(2*x-x^2,x,0,2))
+  Sum rule:  integrate(2*x-x^2,x)=(integrate(2*x,x)-integrate(x^2,x))
+      Power rule:  integrate(2*x,x)=(x^2)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(2*x-x^2,x)=(x^2-1/3*x^3)
+  Evaluate from a to b:  integrate(2*x-x^2,x,0,2)=(2^2-1/3*2^3)
+  = integrate(2*x-x^2,x,0,2)=(4/3)
+   FlowCE answer: 4/3  ~ 1.33333
+== area(x,x^2,0,1)   [ok, 7 steps]
+  Area between curves:  A=(integrate(x-x^2,x,0,1))
+  Sum rule:  integrate(x-x^2,x)=(integrate(x,x)-integrate(x^2,x))
+      Power rule:  integrate(x,x)=(1/2*x^2)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
+  Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
+  = integrate(x-x^2,x,0,1)=(1/6)
+   FlowCE answer: 1/6  ~ 0.166667
+== area(x^3,x,-1,1)   [ok, 18 steps]
+  Where the curves meet:  x^3=x
+  = seq[x=0]
+  Area between curves:  A=(integrate(x^3-x,x,-1,0)+integrate(x-x^3,x,0,1))
+  Compute:  integrate(x^3-x,x,-1,0)
+      Sum rule:  integrate(x^3-x,x)=(integrate(x^3,x)-integrate(x,x))
+          Power rule:  integrate(x^3,x)=(1/4*x^4)
+          Power rule:  integrate(x,x)=(1/2*x^2)
+      = integrate(x^3-x,x)=(1/4*x^4-1/2*x^2)
+      Evaluate from a to b:  integrate(x^3-x,x,-1,0)=(1/4*0^4-1/2*0^2-(1/4*(-1)^4-1/2*(-1)^2))
+      = integrate(x^3-x,x,-1,0)=(1/4)
+  Compute:  integrate(x-x^3,x,0,1)
+      Sum rule:  integrate(x-x^3,x)=(integrate(x,x)-integrate(x^3,x))
+          Power rule:  integrate(x,x)=(1/2*x^2)
+          Power rule:  integrate(x^3,x)=(1/4*x^4)
+      = integrate(x-x^3,x)=(1/2*x^2-1/4*x^4)
+      Evaluate from a to b:  integrate(x-x^3,x,0,1)=(1/2*1^2-1/4*1^4)
+      = integrate(x-x^3,x,0,1)=(1/4)
+  = A=(1/2)
+   FlowCE answer: 1/2  ~ 0.5
+== area(sqrt(x),x^2,0,1)   [ok, 7 steps]
+  Area between curves:  A=(integrate(sqrt(x)-x^2,x,0,1))
+  Sum rule:  integrate(sqrt(x)-x^2,x)=(integrate(sqrt(x),x)-integrate(x^2,x))
+      Power rule:  integrate(sqrt(x),x)=(2/3*x^(3/2))
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(sqrt(x)-x^2,x)=(2/3*x^(3/2)-1/3*x^3)
+  Evaluate from a to b:  integrate(sqrt(x)-x^2,x,0,1)=(2/3*sqrt(1)-1/3*1^3)
+  = integrate(sqrt(x)-x^2,x,0,1)=(1/3)
+   FlowCE answer: 1/3  ~ 0.333333
+== area(x=y^2,x=2y,0,2)   [ok, 7 steps]
+  Area between curves:  A=(integrate(2*y-y^2,y,0,2))
+  Sum rule:  integrate(2*y-y^2,y)=(integrate(2*y,y)-integrate(y^2,y))
+      Power rule:  integrate(2*y,y)=(y^2)
+      Power rule:  integrate(y^2,y)=(1/3*y^3)
+  = integrate(2*y-y^2,y)=(y^2-1/3*y^3)
+  Evaluate from a to b:  integrate(2*y-y^2,y,0,2)=(2^2-1/3*2^3)
+  = integrate(2*y-y^2,y,0,2)=(4/3)
+   FlowCE answer: 4/3  ~ 1.33333
+== area(x^2-4,0,2)   [ok, 7 steps]
+  Area between curves:  A=(integrate(4-x^2,x,0,2))
+  Sum rule:  integrate(4-x^2,x)=(integrate(4,x)-integrate(x^2,x))
+      Integral of a constant:  integrate(4,x)=(4*x)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+  = integrate(4-x^2,x)=(4*x-1/3*x^3)
+  Evaluate from a to b:  integrate(4-x^2,x,0,2)=(8-1/3*2^3)
+  = integrate(4-x^2,x,0,2)=(16/3)
+   FlowCE answer: 16/3  ~ 5.33333
+== area(e^x,1,0,1)   [ok, 7 steps]
+  Area between curves:  A=(integrate(exp(x)-1,x,0,1))
+  Sum rule:  integrate(exp(x)-1,x)=(integrate(exp(x),x)+integrate(-1,x))
+      Known integral:  integrate(exp(x),x)=(exp(x))
+      Integral of a constant:  integrate(-1,x)=(-x)
+  = integrate(exp(x)-1,x)=(exp(x)-x)
+  Evaluate from a to b:  integrate(exp(x)-1,x,0,1)=(exp(1)-1-(exp(0)-0))
+  = integrate(exp(x)-1,x,0,1)=(exp(1)-2)
+   FlowCE answer: e-2  ~ 0.718282
+== volume(x^2,0,1)   [ok, 7 steps]
+  Disk method:  R(x)=(x^2)
+  = V=(pi*integrate(x^4,x,0,1))
+  Compute:  integrate(x^4,x,0,1)
+      Power rule:  integrate(x^4,x)=(1/5*x^5)
+      Evaluate from a to b:  integrate(x^4,x,0,1)=(1/5*1^5)
+      = integrate(x^4,x,0,1)=(1/5)
+  = V=(1/5*pi)
+   FlowCE answer: pi/5  ~ 0.628319
+== volume(sqrt(x),0,4)   [ok, 7 steps]
+  Disk method:  R(x)=(sqrt(x))
+  = V=(pi*integrate(x,x,0,4))
+  Compute:  integrate(x,x,0,4)
+      Power rule:  integrate(x,x)=(1/2*x^2)
+      Evaluate from a to b:  integrate(x,x,0,4)=(1/2*4^2)
+      = integrate(x,x,0,4)=8
+  = V=(8*pi)
+   FlowCE answer: 8*pi  ~ 25.1327
+== volume(x,x^2,0,1)   [ok, 10 steps]
+  Washer method:  R(x)=x, r(x)=(x^2)
+  = V=(pi*integrate(x^2-x^4,x,0,1))
+  Compute:  integrate(x^2-x^4,x,0,1)
+      Sum rule:  integrate(x^2-x^4,x)=(integrate(x^2,x)-integrate(x^4,x))
+          Power rule:  integrate(x^2,x)=(1/3*x^3)
+          Power rule:  integrate(x^4,x)=(1/5*x^5)
+      = integrate(x^2-x^4,x)=(1/3*x^3-1/5*x^5)
+      Evaluate from a to b:  integrate(x^2-x^4,x,0,1)=(1/3*1^3-1/5*1^5)
+      = integrate(x^2-x^4,x,0,1)=(2/15)
+  = V=(2/15*pi)
+   FlowCE answer: 2*pi/15  ~ 0.418879
+== volume(x^2,0,1,y=0)   [ok, 7 steps]
+  Disk method:  R(x)=(x^2)
+  = V=(pi*integrate(x^4,x,0,1))
+  Compute:  integrate(x^4,x,0,1)
+      Power rule:  integrate(x^4,x)=(1/5*x^5)
+      Evaluate from a to b:  integrate(x^4,x,0,1)=(1/5*1^5)
+      = integrate(x^4,x,0,1)=(1/5)
+  = V=(1/5*pi)
+   FlowCE answer: pi/5  ~ 0.628319
+== volume(x^2,0,1,x=0)   [ok, 7 steps]
+  Shell method:  r(x)=x, h(x)=(x^2)
+  = V=(2*pi*integrate(x^3,x,0,1))
+  Compute:  integrate(x^3,x,0,1)
+      Power rule:  integrate(x^3,x)=(1/4*x^4)
+      Evaluate from a to b:  integrate(x^3,x,0,1)=(1/4*1^4)
+      = integrate(x^3,x,0,1)=(1/4)
+  = V=(1/2*pi)
+   FlowCE answer: pi/2  ~ 1.5708
+== volume(x,x^2,0,1,y=-1)   [ok, 15 steps]
+  Washer method:  R(x)=(x+1), r(x)=(x^2+1)
+  = V=(pi*integrate((x+1)^2-(x^2+1)^2,x,0,1))
+  Compute:  integrate((x+1)^2-(x^2+1)^2,x,0,1)
+      Sum rule:  integrate((x+1)^2-(x^2+1)^2,x)=(integrate((x+1)^2,x)-integrate((x^2+1)^2,x))
+          Power rule:  integrate((x+1)^2,x)=(1/3*(x+1)^3)
+          Expand:  (x^2+1)^2=(x^4+2*x^2+1)
+          Sum rule:  integrate(x^4+2*x^2+1,x)=(integrate(x^4,x)+integrate(2*x^2,x)+integrate(1,x))
+              Power rule:  integrate(x^4,x)=(1/5*x^5)
+              Power rule:  integrate(2*x^2,x)=(2/3*x^3)
+              Integral of a constant:  integrate(1,x)=x
+          = integrate(x^4+2*x^2+1,x)=(1/5*x^5+2/3*x^3+x)
+      = integrate((x+1)^2-(x^2+1)^2,x)=(-1/5*x^5-2/3*x^3-x+1/3*(x+1)^3)
+      Evaluate from a to b:  integrate((x+1)^2-(x^2+1)^2,x,0,1)=(-1/5*1^5-2/3*1^3-1+1/3*(1+1)^3-(-1/5*0^5-2/3*0^3-0+1/3*(0+1)^3))
+      = integrate((x+1)^2-(x^2+1)^2,x,0,1)=(7/15)
+  = V=(7/15*pi)
+   FlowCE answer: 7*pi/15  ~ 1.46608
+== volume(sqrt(x),0,4,x=0)   [ok, 7 steps]
+  Shell method:  r(x)=x, h(x)=(sqrt(x))
+  = V=(2*pi*integrate(x^(3/2),x,0,4))
+  Compute:  integrate(x^(3/2),x,0,4)
+      Power rule:  integrate(x^(3/2),x)=(2/5*x^(5/2))
+      Evaluate from a to b:  integrate(x^(3/2),x,0,4)=(2/5*4^(5/2))
+      = integrate(x^(3/2),x,0,4)=(64/5)
+  = V=(128/5*pi)
+   FlowCE answer: 128*pi/5  ~ 80.4248
+== volume(x,x^2)   [ok, 12 steps]
+  Where the curves meet:  x=(x^2)
+  = x=0, x=1
+  Washer method:  R(x)=x, r(x)=(x^2)
+  = V=(pi*integrate(x^2-x^4,x,0,1))
+  Compute:  integrate(x^2-x^4,x,0,1)
+      Sum rule:  integrate(x^2-x^4,x)=(integrate(x^2,x)-integrate(x^4,x))
+          Power rule:  integrate(x^2,x)=(1/3*x^3)
+          Power rule:  integrate(x^4,x)=(1/5*x^5)
+      = integrate(x^2-x^4,x)=(1/3*x^3-1/5*x^5)
+      Evaluate from a to b:  integrate(x^2-x^4,x,0,1)=(1/3*1^3-1/5*1^5)
+      = integrate(x^2-x^4,x,0,1)=(2/15)
+  = V=(2/15*pi)
+   FlowCE answer: 2*pi/15  ~ 0.418879
+== volume(x^2,0,2,y=1)   [ok, 15 steps]
+  Washer method:  R(x)=(abs(x^2-1)), r(x)=(1-0)
+  = V=(pi*integrate((x^2-1)^2-1,x,0,2))
+  Compute:  integrate((x^2-1)^2-1,x,0,2)
+      Sum rule:  integrate((x^2-1)^2-1,x)=(integrate((x^2-1)^2,x)+integrate(-1,x))
+          Expand:  (x^2-1)^2=(x^4-2*x^2+1)
+          Sum rule:  integrate(x^4-2*x^2+1,x)=(integrate(x^4,x)-integrate(2*x^2,x)+integrate(1,x))
+              Power rule:  integrate(x^4,x)=(1/5*x^5)
+              Power rule:  integrate(2*x^2,x)=(2/3*x^3)
+              Integral of a constant:  integrate(1,x)=x
+          = integrate(x^4-2*x^2+1,x)=(1/5*x^5-2/3*x^3+x)
+          Integral of a constant:  integrate(-1,x)=(-x)
+      = integrate((x^2-1)^2-1,x)=(1/5*x^5-2/3*x^3+x-x)
+      Evaluate from a to b:  integrate((x^2-1)^2-1,x,0,2)=(1/5*2^5-2/3*2^3+2-2)
+      = integrate((x^2-1)^2-1,x,0,2)=(16/15)
+  = V=(16/15*pi)
+   FlowCE answer: 16*pi/15  ~ 3.35103
+== arclength(x^2,0,1)   [ok, 10 steps]
+  Arc length:  diff(f(x), x)=(2*x)
+  = L=(integrate(sqrt(4*x^2+1),x,0,1))
+  Trig substitution:  x=(1/2*tan(t)), dx=(1/2*(1+tan(t)^2)*dt)
+  = sqrt(4*x^2+1)=(sec(t))
+  = integrate(sqrt(4*x^2+1),x)=(integrate(1/(2*cos(t)^3),t))
+      Known integral:  integrate(1/(2*cos(t)^3),t)=(1/4*(sec(t)*tan(t)+ln(abs(sec(t)+tan(t)))))
+  Back to x with a right triangle:  sin(t)=(2*x/sqrt(4*x^2+1)), cos(t)=(1/sqrt(4*x^2+1))
+  = integrate(sqrt(4*x^2+1),x)=(1/4*(2*x*sqrt(4*x^2+1)+ln(2*x+sqrt(4*x^2+1))))
+  Evaluate from a to b:  integrate(sqrt(4*x^2+1),x,0,1)=(1/4*(2*sqrt(4*1^2+1)+ln(2+sqrt(4*1^2+1))))
+  = integrate(sqrt(4*x^2+1),x,0,1)=(1/4*(2*sqrt(5)+ln(sqrt(5)+2)))
+   FlowCE answer: (2*sqrt(5)+ln(sqrt(5)+2))/4  ~ 1.47894
+== arclength(x^3,0,1)   [ok, 3 steps]
+  Arc length:  diff(f(x), x)=(3*x^2)
+  = L=(integrate(sqrt(9*x^4+1),x,0,1))
+  No elementary antiderivative: the decimal value:  integrate(sqrt(9*x^4+1),x,0,1)=1.54787
+   FlowCE answer: 1.54787
+== arclength(sqrt(x),0,1)   [NO STEPS, 2 steps]
+   FlowCE answer: (4*sqrt(5)+ln((4*sqrt(5)+9)/4)+ln(4))/8  ~ 1.47894
+== arclength(cosh(x),0,1)   [ok, 5 steps]
+  Arc length:  diff(f(x), x)=(sinh(x))
+  = L=(integrate(sqrt(sinh(x)^2+1),x,0,1))
+  Known integral:  integrate(sqrt(sinh(x)^2+1),x)=(sinh(x))
+  Evaluate from a to b:  integrate(sqrt(sinh(x)^2+1),x,0,1)=(sinh(1))
+  = integrate(sqrt(sinh(x)^2+1),x,0,1)=(sinh(1))
+   FlowCE answer: 1.1752
+== arclength([cos(t),sin(t)],0,pi)   [ok, 6 steps]
+  Arc length of a parametric curve:  diff(x, t)=(-sin(t)), diff(y, t)=(cos(t))
+  = L=(integrate(sqrt(cos(t)^2+sin(t)^2),t,0,pi))
+  Simplify:  sqrt(cos(t)^2+sin(t)^2)=1
+  Integral of a constant:  integrate(1,t)=t
+  Evaluate from a to b:  integrate(sqrt(cos(t)^2+sin(t)^2),t,0,pi)=pi
+  = integrate(sqrt(cos(t)^2+sin(t)^2),t,0,pi)=pi
+   FlowCE answer: pi  ~ 3.14159
+== arclength([t,t^2],0,1)   [NO STEPS, 2 steps]
+   FlowCE answer: (2*sqrt(5)+ln(sqrt(5)+2))/4  ~ 1.47894
+== arclength([t^2,t^3],0,1)   [ok, 10 steps]
+  Arc length of a parametric curve:  diff(x, t)=(2*t), diff(y, t)=(3*t^2)
+  = L=(integrate(sqrt(9*t^4+4*t^2),t,0,1))
+  Simplify:  sqrt(9*t^4+4*t^2)=(abs(t)*sqrt(9*t^2+4))
+  Sign on the interval:  abs(t)*sqrt(9*t^2+4)=(t*sqrt(9*t^2+4))
+  Substitution:  u=(9*t^2+4), du=(18*t*dt)
+  = integrate(t*sqrt(9*t^2+4),t)=(integrate(1/18*sqrt(u),u))
+      Power rule:  integrate(1/18*sqrt(u),u)=(1/27*u^(3/2))
+  Substitute back:  integrate(t*sqrt(9*t^2+4),t)=(1/27*(9*t^2+4)^(3/2))
+  Evaluate from a to b:  integrate(sqrt(9*t^4+4*t^2),t,0,1)=(1/27*(9*1^2+4)^(3/2)-1/27*(9*0^2+4)^(3/2))
+  = integrate(sqrt(9*t^4+4*t^2),t,0,1)=(1/27*(13*sqrt(13)-8))
+   FlowCE answer: (13*sqrt(13)-8)/27  ~ 1.43971
+== arclength(ln(x),1,2)   [NO STEPS, 2 steps]
+   FlowCE answer: (-2*sqrt(2)+2*sqrt(5)+ln(sqrt(2)+1)-ln(sqrt(2)-1)-ln(sqrt(5)+1)+ln(sqrt(5)-1))/2  ~ 1.22202
+== surfacearea(x,0,1)   [ok, 8 steps]
+  Surface area:  r(x)=x, diff(f(x), x)=1
+  A perfect square:  sqrt(1+1^2)=(sqrt(2))
+  = S=(2*pi*integrate(x*sqrt(2),x,0,1))
+  Compute:  integrate(x*sqrt(2),x,0,1)
+      Power rule:  integrate(x*sqrt(2),x)=(1/2*x^2*sqrt(2))
+      Evaluate from a to b:  integrate(x*sqrt(2),x,0,1)=(1/2*1^2*sqrt(2))
+      = integrate(x*sqrt(2),x,0,1)=(1/2*sqrt(2))
+  = S=(pi*sqrt(2))
+   FlowCE answer: pi*sqrt(2)  ~ 4.44288
+== surfacearea(sqrt(x),0,1)   [ok, 14 steps]
+  Surface area:  r(x)=(sqrt(x)), diff(f(x), x)=(1/(2*sqrt(x)))
+  = S=(2*pi*integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x,0,1))
+  Compute:  integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x,0,1)
+      Substitution:  u=(sqrt(x)), du=(dx/(2*sqrt(x)))
+      = integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x)=(integrate(sqrt(4*u^2+1)*abs(u),u))
+          Sign on the interval:  sqrt(4*u^2+1)*abs(u)=(u*sqrt(4*u^2+1))
+          Substitution:  w=(4*u^2+1), dw=(8*u*du)
+          = integrate(u*sqrt(4*u^2+1),u)=(integrate(1/8*sqrt(w),w))
+              Power rule:  integrate(1/8*sqrt(w),w)=(1/12*w^(3/2))
+          Substitute back:  integrate(u*sqrt(4*u^2+1),u)=(1/12*(4*u^2+1)^(3/2))
+      Substitute back:  integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x)=(1/12*(4*x+1)^(3/2))
+      Evaluate from a to b:  integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x,0,1)=(1/12*(4+1)^(3/2)-1/12*(0+1)^(3/2))
+      = integrate(sqrt(x)*sqrt((4*x+1)/(4*x)),x,0,1)=(1/12*(5*sqrt(5)-1))
+  = S=(1/6*pi*(5*sqrt(5)-1))
+   FlowCE answer: (5*pi*sqrt(5)-pi)/6  ~ 5.33041
+== surfacearea(x^3,0,1)   [ok, 10 steps]
+  Surface area:  r(x)=(x^3), diff(f(x), x)=(3*x^2)
+  = S=(2*pi*integrate(x^3*sqrt(9*x^4+1),x,0,1))
+  Compute:  integrate(x^3*sqrt(9*x^4+1),x,0,1)
+      Substitution:  u=(9*x^4+1), du=(36*x^3*dx)
+      = integrate(x^3*sqrt(9*x^4+1),x)=(integrate(1/36*sqrt(u),u))
+          Power rule:  integrate(1/36*sqrt(u),u)=(1/54*u^(3/2))
+      Substitute back:  integrate(x^3*sqrt(9*x^4+1),x)=(1/54*(9*x^4+1)^(3/2))
+      Evaluate from a to b:  integrate(x^3*sqrt(9*x^4+1),x,0,1)=(1/54*(9*1^4+1)^(3/2)-1/54*(9*0^4+1)^(3/2))
+      = integrate(x^3*sqrt(9*x^4+1),x,0,1)=(1/54*(10*sqrt(10)-1))
+  = S=(1/27*pi*(10*sqrt(10)-1))
+   FlowCE answer: (10*pi*sqrt(10)-pi)/27  ~ 3.56312
+== surfacearea(x,0,2,y=0)   [ok, 8 steps]
+  Surface area:  r(x)=x, diff(f(x), x)=1
+  A perfect square:  sqrt(1+1^2)=(sqrt(2))
+  = S=(2*pi*integrate(x*sqrt(2),x,0,2))
+  Compute:  integrate(x*sqrt(2),x,0,2)
+      Power rule:  integrate(x*sqrt(2),x)=(1/2*x^2*sqrt(2))
+      Evaluate from a to b:  integrate(x*sqrt(2),x,0,2)=(1/2*2^(5/2))
+      = integrate(x*sqrt(2),x,0,2)=(2*sqrt(2))
+  = S=(4*pi*sqrt(2))
+   FlowCE answer: 4*pi*sqrt(2)  ~ 17.7715
+== surfacearea(x^2,0,1,x=0)   [ok, 10 steps]
+  Surface area:  r(x)=x, diff(f(x), x)=(2*x)
+  = S=(2*pi*integrate(x*sqrt(4*x^2+1),x,0,1))
+  Compute:  integrate(x*sqrt(4*x^2+1),x,0,1)
+      Substitution:  u=(4*x^2+1), du=(8*x*dx)
+      = integrate(x*sqrt(4*x^2+1),x)=(integrate(1/8*sqrt(u),u))
+          Power rule:  integrate(1/8*sqrt(u),u)=(1/12*u^(3/2))
+      Substitute back:  integrate(x*sqrt(4*x^2+1),x)=(1/12*(4*x^2+1)^(3/2))
+      Evaluate from a to b:  integrate(x*sqrt(4*x^2+1),x,0,1)=(1/12*(4*1^2+1)^(3/2)-1/12*(4*0^2+1)^(3/2))
+      = integrate(x*sqrt(4*x^2+1),x,0,1)=(1/12*(5*sqrt(5)-1))
+  = S=(1/6*pi*(5*sqrt(5)-1))
+   FlowCE answer: (5*pi*sqrt(5)-pi)/6  ~ 5.33041
+== surfacearea(sqrt(4-x^2),0,2)   [ok, 14 steps]
+  Surface area:  r(x)=(sqrt(4-x^2)), diff(f(x), x)=(-x/sqrt(4-x^2))
+  = S=(2*pi*integrate(sqrt(4-x^2)*sqrt((x^2+4-x^2)/(4-x^2)),x,0,2))
+  Compute:  integrate(sqrt(4-x^2)*sqrt((x^2+4-x^2)/(4-x^2)),x,0,2)
+      Simplify:  sqrt(4-x^2)*sqrt((x^2+4-x^2)/(4-x^2))=(-2*abs(x^2-4)/(x^2-4))
+      Sign on the interval:  -2*abs(x^2-4)/(x^2-4)=(-2*(-x^2+4)/(x^2-4))
+      Constant multiple:  integrate(-2*(-x^2+4)/(x^2-4),x)=(-integrate(2*(-x^2+4)/(x^2-4),x))
+      Constant multiple:  integrate(2*(-x^2+4)/(x^2-4),x)=(2*integrate((-x^2+4)/(x^2-4),x))
+      Simplify:  (-x^2+4)/(x^2-4)=-1
+      Integral of a constant:  integrate(-1,x)=(-x)
+      = integrate(2*(-x^2+4)/(x^2-4),x)=(-2*x)
+      = integrate(-2*(-x^2+4)/(x^2-4),x)=(2*x)
+      Evaluate from a to b:  integrate(sqrt(4-x^2)*sqrt((x^2+4-x^2)/(4-x^2)),x,0,2)=4
+      = integrate(sqrt(4-x^2)*sqrt((x^2+4-x^2)/(4-x^2)),x,0,2)=4
+  = S=(8*pi)
+   FlowCE answer: 8*pi  ~ 25.1327
+== average(x^2,0,3)   [ok, 6 steps]
+  Average value:  average=(1/3*integrate(x^2,x,0,3))
+  Compute:  integrate(x^2,x,0,3)
+      Power rule:  integrate(x^2,x)=(1/3*x^3)
+      Evaluate from a to b:  integrate(x^2,x,0,3)=(1/3*3^3)
+      = integrate(x^2,x,0,3)=9
+  = average=3
+   FlowCE answer: 3
+== average(sin(x),0,pi)   [ok, 6 steps]
+  Average value:  average=(integrate(sin(x),x,0,pi)/pi)
+  Compute:  integrate(sin(x),x,0,pi)
+      Known integral:  integrate(sin(x),x)=(-cos(x))
+      Evaluate from a to b:  integrate(sin(x),x,0,pi)=(-cos(pi)-(-cos(0)))
+      = integrate(sin(x),x,0,pi)=2
+  = average=(2/pi)
+   FlowCE answer: 2/pi  ~ 0.63662
+== average(x,0,4)   [ok, 6 steps]
+  Average value:  average=(1/4*integrate(x,x,0,4))
+  Compute:  integrate(x,x,0,4)
+      Power rule:  integrate(x,x)=(1/2*x^2)
+      Evaluate from a to b:  integrate(x,x,0,4)=(1/2*4^2)
+      = integrate(x,x,0,4)=8
+  = average=2
+   FlowCE answer: 2
+== average(e^x,0,1)   [ok, 4 steps]
+  Average value:  average=(integrate(exp(x),x,0,1))
+  Known integral:  integrate(exp(x),x)=(exp(x))
+  Evaluate from a to b:  integrate(exp(x),x,0,1)=(exp(1)-exp(0))
+  = integrate(exp(x),x,0,1)=(exp(1)-1)
+   FlowCE answer: e-1  ~ 1.71828
+== average(1/x,1,e)   [ok, 6 steps]
+  Average value:  average=(integrate(1/x,x,1,exp(1))/(exp(1)-1))
+  Compute:  integrate(1/x,x,1,exp(1))
+      Integral of 1/x:  integrate(1/x,x)=(ln(abs(x)))
+      Evaluate from a to b:  integrate(1/x,x,1,exp(1))=(ln(abs(exp(1))))
+      = integrate(1/x,x,1,exp(1))=1
+  = average=(1/(exp(1)-1))
+   FlowCE answer: 1/(e-1)  ~ 0.581977

@@ -1,0 +1,6 @@
+# selftest: fail
+== factor(x^3-x)   [ok, 3 steps]
+  Factor out the greatest common factor:  x^3-2*x=(x*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^3-x=(x*(x-1)*(x+1))
+   FlowCE answer: x*(x-1)*(x+1)

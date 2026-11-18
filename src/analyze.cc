@@ -52,6 +52,12 @@ static NOINL bool real(const gen & g,double & d){
   return d-d==0;
 }
 static NOINL bool realat(const gen & g,double t,double & d){ return real(subst(g,X,gen(t),false,CTX),d); }
+// g depends on x
+static NOINL bool dep(const gen & g){ return depend(g,*X._IDNTptr); }
+// g at the point v is a real number
+static NOINL bool defat(const gen & g,const gen & v){ double d; return real(at(g,v),d); }
+// the limit of g at p (dir: -1 left, 1 right, 0 both)
+static NOINL gen lim(const gen & g,const gen & p,int dir){ return limit(g,*X._IDNTptr,p,dir,CTX); }
 static bool near(double a,double b){ return mag(a-b)<=100*TOL*(1+mag(a)); }
 
 // ---------------------------------------------------------------- points
@@ -66,6 +72,10 @@ static NOINL void add(pts & v,const gen & p0,double d){
   pt q; q.v=p; q.d=d;
   v.insert(v.begin()+i,q);
 }
+// a sin, cos or tan
+static NOINL bool istrig(const gen & g){ return g.is_symb_of_sommet(at_sin) || g.is_symb_of_sommet(at_cos) || g.is_symb_of_sommet(at_tan); }
+// -g: g (the sign is not a factor's zero)
+static NOINL void unneg(gen & g){ if (g.is_symb_of_sommet(at_neg)) g=g._SYMBptr->feuille; }
 static bool inwin(double d){ return !win_ || (d>=lo_-TOL && d<=hi_+TOL); }
 // x itself and a sin, cos or tan of x in u (x cos(x) - sin(x)): no exact solution, giac's
 // approximations over many periods took 100 s on the calculator
@@ -74,7 +84,7 @@ static NOINL bool mixed(const gen & u){
   bool bare=false,trig=false;
   EACH(it,k){
     if (*it==X || (it->is_symb_of_sommet(at_pow) && it->_SYMBptr->feuille[0]==X)) bare=true;
-    else if (it->is_symb_of_sommet(at_sin) || it->is_symb_of_sommet(at_cos) || it->is_symb_of_sommet(at_tan)) trig=true;
+    else if (istrig(*it)) trig=true;
   }
   return bare && trig;
 }
@@ -84,7 +94,7 @@ static NOINL gen nice(const gen & g);
 static NOINL int kinds(const gen & u){
   vecteur k=lvarx(u,X);
   int n=0;
-  EACH(it,k) n+=it->is_symb_of_sommet(at_sin) || it->is_symb_of_sommet(at_cos) || it->is_symb_of_sommet(at_tan);
+  EACH(it,k) n+=istrig(*it);
   return n;
 }
 // r found as a zero of u: k pi/12 when it is one exactly (pi/4, not 0.785398), else the decimal
@@ -144,18 +154,18 @@ static NOINL void numroots(const gen & u,pts & v){
 // the real zeros of u (in the window), into v
 static NOINL void solve0(const gen & u,pts & v);
 static NOINL void zeros(const gen & u,pts & v){
-  if (stop() || !depend(u,*X._IDNTptr)) return;
+  if (stop() || !dep(u)) return;
   // each factor of the numerator on its own: -cos(x)(2 sin(x)+1) solved in 4 ms on the PC, 20 ms
   // expanded; exactly, unless mixed on a window
   gen n=_numer(ratnormal(u,CTX),CTX), fa=_factor(n,CTX);
-  if (fa.is_symb_of_sommet(at_neg)) fa=fa._SYMBptr->feuille;
+  unneg(fa);
   vecteur fs;
   if (fa.is_symb_of_sommet(at_prod) && fa._SYMBptr->feuille.type==_VECT) fs=*fa._SYMBptr->feuille._VECTptr;
   else fs.push_back(fa);
   EACH(it,fs){
     gen g=it->is_symb_of_sommet(at_pow)?it->_SYMBptr->feuille[0]:*it;
-    if (g.is_symb_of_sommet(at_neg)) g=g._SYMBptr->feuille;
-    if (!depend(g,*X._IDNTptr) || g.is_symb_of_sommet(at_exp)) continue; // (exp: never 0)
+    unneg(g);
+    if (!dep(g) || g.is_symb_of_sommet(at_exp)) continue; // (exp: never 0)
     if (win_ && (mixed(g) || kinds(g)>1)) numroots(g,v); else solve0(g,v);
   }
 }
@@ -186,14 +196,14 @@ static NOINL void solve0(const gen & u,pts & v){
 // roots, the arguments of logarithms, of asin and acos (minus and plus 1), of tan (its cos)
 static NOINL void guards(const gen & g,vecteur & u){
   if (g.type==_VECT){ EACH(it,*g._VECTptr) guards(*it,u); return; }
-  if (g.type!=_SYMB || !depend(g,*X._IDNTptr)) return;
+  if (g.type!=_SYMB || !dep(g)) return;
   const gen & a=g._SYMBptr->feuille;
   guards(a,u);
   const unary_function_ptr & s=g._SYMBptr->sommet;
   if (s==at_inv || s==at_ln || s==at_log10 || s==at_sqrt) u.push_back(a);
   else if (s==at_pow && a.type==_VECT && a._VECTptr->size()==2){
     const gen & b=a[0], & e=a[1];
-    if (depend(e,*X._IDNTptr) || is_strictly_positive(-e,CTX) || (e.type==_FRAC && e._FRACptr->den.type==_INT_ && !(e._FRACptr->den.val&1))) u.push_back(b);
+    if (dep(e) || is_strictly_positive(-e,CTX) || (e.type==_FRAC && e._FRACptr->den.type==_INT_ && !(e._FRACptr->den.val&1))) u.push_back(b);
   }
   else if (s==at_asin || s==at_acos){ u.push_back(a-1); u.push_back(a+1); }
   else if (s==at_tan) u.push_back(symbolic(at_cos,a));
@@ -231,7 +241,7 @@ static NOINL void chart(const gen & g,const pts & v,std::vector<signed char> & s
     if (!empty_iv(v,j) && realat(*f_,t,y)) c=realat(g,t,y)?(y>0?1:y<0?-1:0):2;
     s.push_back(c);
   }
-  if (dp){ dp->clear(); for (unsigned i=0;i<v.size();++i){ double y; dp->push_back(real(at(*f_,v[i].v),y)); } }
+  if (dp){ dp->clear(); for (unsigned i=0;i<v.size();++i) dp->push_back(defat(*f_,v[i].v)); }
 }
 
 // the sign just left (side -1) or right (1) of point i: a period's window wraps around; 2: none
@@ -258,6 +268,10 @@ static NOINL void line(int kind,const char * text,const std::string & m,int sep=
   an_line l; l.kind=kind; l.sep=sep; l.text=text; l.math=m;
   out_->push_back(l);
 }
+// a line with no math (a section's title: DOMAIN, or a row of text only: None)
+static NOINL void lone(int kind,const char * text){ line(kind,text,std::string()); }
+// a row of the report, "none" when its list m is empty (x-intercepts: none)
+static NOINL void rown(const char * text,const std::string & m,int sep=AN_COMMA){ line(AN_ROW,text,m.empty()?std::string("\1none"):m,sep); }
 static NOINL void item(std::string & m,const std::string & s){ if (!m.empty()) m+='\n'; m+=s; }
 static NOINL std::string P(const gen & g){ return g.print(CTX); }
 // odd roots as real roots (the textbooks' cube root of -8 is -2; giac's x^(1/3) is complex there)
@@ -267,7 +281,7 @@ static NOINL gen realroots(const gen & g){
   gen a=realroots(g._SYMBptr->feuille);
   if (g.is_symb_of_sommet(at_pow) && a.type==_VECT && a._VECTptr->size()==2 && a[1].type==_FRAC){
     const gen & e=a[1], & q=e._FRACptr->den;
-    if (q.type==_INT_ && (q.val&1) && q.val>1 && depend(a[0],*X._IDNTptr)){
+    if (q.type==_INT_ && (q.val&1) && q.val>1 && dep(a[0])){
       gen r=symbolic(at_surd,makesequence(a[0],q));
       return is_one(e._FRACptr->num)?r:symbolic(at_pow,makesequence(r,e._FRACptr->num));
     }
@@ -286,6 +300,10 @@ static NOINL std::string point(const gen & a,const gen & b){
   s+=P(a); s+=","; s+=P(nice(b)); s+=")";
   return s;
 }
+// "x<op>b" (x!=2: the variable, an operator, a point)
+static NOINL std::string xop(const char * op,const gen & b){ std::string s=P(X); s+=op; s+=P(b); return s; }
+// "y=" and g shown as nice (y=3/4)
+static NOINL std::string yeq(const gen & g){ std::string s="y="; s+=P(nice(g)); return s; }
 // the points a periodic function repeats: a + k*period
 static NOINL std::string family(const char * op,const gen & a){
   std::string s=P(X); s+=op;
@@ -308,8 +326,8 @@ static NOINL std::string runs(const pts & v,const std::vector<signed char> & s,c
     const gen & a=j?v[j-1].v:*wlo_, & b=e<k?v[e].v:*whi_;
     const bool ca=closed && j && dp[j-1], cb=closed && e<k && dp[e];
     if (!left && !right) t="\1all real numbers";
-    else if (!left){ t=P(X); t+=cb?"<=":"<"; t+=P(b); }
-    else if (!right){ t=P(X); t+=ca?">=":">"; t+=P(a); }
+    else if (!left) t=xop(cb?"<=":"<",b);
+    else if (!right) t=xop(ca?">=":">",a);
     else { t=P(a); t+=ca?"<=":"<"; t+=P(X); t+=cb?"<=":"<"; t+=P(b); }
     item(m,t); ++n;
     j=e+1;
@@ -327,10 +345,10 @@ static NOINL gen period(const gen & f,bool & trig){
   gen num=0,den=1; // the period over pi: the lcm of the arguments' periods
   for (unsigned i=0;i<ts.size();++i){
     const gen & a=ts[i]._SYMBptr->feuille;
-    if (!depend(a,*X._IDNTptr)) continue;
+    if (!dep(a)) continue;
     trig=true;
     gen k=ev(derive(a,X,CTX));
-    if ((k.type!=_INT_ && k.type!=_FRAC) || is_zero(k) || depend(ev(a-k*X),*X._IDNTptr)) return 0;
+    if ((k.type!=_INT_ && k.type!=_FRAC) || is_zero(k) || dep(ev(a-k*X))) return 0;
     gen r=ev(gen(i<nst?2:1)/abs(k,CTX)); // over pi
     gen rn=r.type==_FRAC?r._FRACptr->num:r, rd=r.type==_FRAC?r._FRACptr->den:gen(1);
     num=is_zero(num)?rn:lcm(num,rn); den=gcd(den,rd);
@@ -351,6 +369,17 @@ static NOINL gen period(const gen & f,bool & trig){
   }
   return p;
 }
+
+// giac's settings the analysis changes: the solutions of trig equations (a window: all of them, listed,
+// else the families), sqrt in factor, and the log of solve's notes; env() sets them, back() restores
+struct Env { bool ats,ws; stdostream * log; };
+static NOINL void env(Env & e,bool all){
+  e.ats=all_trig_sol(CTX); e.ws=withsqrt(CTX); e.log=logptr(CTX);
+  logptr(0,CTX); // (solve's notes, "Unable to isolate x...", went to the history)
+  all_trig_sol(all,CTX);
+  withsqrt(false,CTX); // factor: x^2-4x+1, not (x+sqrt(3)-2)(x-sqrt(3)-2)
+}
+static NOINL void back(const Env & e){ all_trig_sol(e.ats,CTX); withsqrt(e.ws,CTX); logptr(e.log,CTX); }
 
 const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
   ctx_=contextptr; out_=&out;
@@ -376,11 +405,8 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
     real(wlo,lo_); real(whi,hi_);
   }
   wlo_=&wlo; whi_=&whi;
-  const bool ats=all_trig_sol(CTX),ws=withsqrt(CTX);
-  stdostream * log=logptr(CTX);
-  logptr(0,CTX); // (solve's notes, "Unable to isolate x...", went to the history)
-  all_trig_sol(win_,CTX);
-  withsqrt(false,CTX); // factor: x^2-4x+1, not (x+sqrt(3)-2)(x-sqrt(3)-2)
+  Env en;
+  env(en,win_);
   std::string m;
   gen d1;
   { std::string h="f("; h+=P(x); h+=")="; h+=P(fe); line(AN_HEAD,0,h); }
@@ -398,33 +424,33 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
   int n=0;
   for (unsigned j=0;j<sd.size();++j) if (sd[j]!=2) ++n;
   if (stop()) goto done;
-  if (!n){ all_trig_sol(ats,CTX); withsqrt(ws,CTX); logptr(log,CTX); return "No real values"; }
-  line(AN_SECTION,"DOMAIN",m);
+  if (!n){ back(en); return "No real values"; }
+  lone(AN_SECTION,"DOMAIN");
   {
     bool holes=true,all=true; // only points missing: x != a, b; none
     for (unsigned j=0;j<sd.size();++j) if (sd[j]==2 && !empty_iv(B,j)) holes=all=false;
     for (unsigned i=0;i<B.size();++i){ if (dp[i]) holes=false; else all=false; }
     if (all) m="\1all real numbers";
     else if (holes && B.size() && per_){ for (unsigned i=0;i<B.size();++i) if (B[i].d<hi_-TOL) item(m,family("!=",B[i].v)); }
-    else if (holes && B.size() && !win_){ for (unsigned i=0;i<B.size();++i){ std::string t=P(x); t+="!="; t+=P(B[i].v); item(m,t); } }
+    else if (holes && B.size() && !win_){ for (unsigned i=0;i<B.size();++i)item(m,xop("!=",B[i].v)); }
     else {
       // every sign but 2 counts: the domain
       std::vector<signed char> in(sd);
       for (unsigned j=0;j<in.size();++j) in[j]=in[j]!=2;
       m=runs(B,in,dp,1,true,n);
     }
-    line(AN_ROW,"",m,holes?AN_COMMA:AN_OR); m="";
+    line(AN_ROW,"",m,holes?AN_COMMA:AN_OR); m.clear();
   }
   // intercepts
-  line(AN_SECTION,"INTERCEPTS",m);
+  lone(AN_SECTION,"INTERCEPTS");
   {
     double y;
     if (inwin(0) && real(at(f,0),y)){ line(AN_ROW,"y-intercept",point(0,at(f,0))); kp(1,0,at(f,0)); }
-    else line(AN_ROW,"y-intercept",std::string("\1none"));
+    else rown("y-intercept",std::string());
     pts Z;
     zeros(f,Z);
     for (unsigned i=0;i<Z.size();++i) if (real(at(f,Z[i].v),y) && mag(y)<=1000*TOL){ item(m,point(Z[i].v,0)); kp(0,Z[i].v,0); }
-    line(AN_ROW,"x-intercepts",m.empty()?std::string("\1none"):m); m="";
+    rown("x-intercepts",m); m.clear();
   }
   // symmetry
   if (!kp_){
@@ -440,27 +466,25 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
       if (mag(a+b)>100*TOL*(1+mag(a))) od=0;
     }
     if (both){
-      line(AN_SECTION,"SYMMETRY",m);
+      lone(AN_SECTION,"SYMMETRY");
       line(AN_ROW,ev_?"Even: symmetric about the y-axis":od?"Odd: symmetric about the origin":"Neither even nor odd",m);
     }
   }
   if (stop()) goto done;
   // asymptotes and holes
   if (!kp_){
-    line(AN_SECTION,"ASYMPTOTES",m);
+    lone(AN_SECTION,"ASYMPTOTES");
     std::string va,ho;
     int k=0;
     for (unsigned i=0;i<B.size() && !stop();++i){
       if (dp[i]) continue;
       const bool l=sd[i]!=2 && !empty_iv(B,i), r=sd[i+1]!=2 && !empty_iv(B,i+1);
       if (!l && !r) continue;
-      gen L1=l?limit(f,*x._IDNTptr,B[i].v,-1,CTX):undef, L2=r?limit(f,*x._IDNTptr,B[i].v,1,CTX):undef;
+      gen L1=l?lim(f,B[i].v,-1):undef, L2=r?lim(f,B[i].v,1):undef;
       double a,b;
       if (is_inf(L1) || is_inf(L2)){
         if (per_ && B[i].d>=hi_-TOL) continue;
-        std::string t;
-        if (per_) t=family("=",B[i].v); else { t=P(x); t+="="; t+=P(B[i].v); }
-        item(va,t);
+        item(va,per_?family("=",B[i].v):xop("=",B[i].v));
       }
       else if (l && r && real(L1,a) && real(L2,b) && near(a,b)) item(ho,point(B[i].v,L1));
     }
@@ -471,20 +495,20 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
       for (int s=0;s<2 && !stop();++s){
         if (sd[s?sd.size()-1:0]==2) continue;
         const gen inf=s?plus_inf:minus_inf;
-        gen L=limit(f,*x._IDNTptr,inf,0,CTX);
+        gen L=lim(f,inf,0);
         double d;
-        if (real(L,d)){ side[s]="y="; side[s]+=P(nice(L)); kind[s]="Horizontal"; continue; }
+        if (real(L,d)){ side[s]=yeq(L); kind[s]="Horizontal"; continue; }
         if (!is_inf(L)) continue;
-        gen M=limit(ev(f/x),*x._IDNTptr,inf,0,CTX);
+        gen M=lim(ev(f/x),inf,0);
         if (!real(M,d) || near(d,0)) continue;
-        gen C=limit(ev(f-M*x),*x._IDNTptr,inf,0,CTX);
+        gen C=lim(ev(f-M*x),inf,0);
         if (!real(C,d)) continue;
         { // (f is the line itself out there, a line or abs(x): no asymptote)
           gen r=ev(f-M*x-C);
           double a,b;
           if (realat(r,s?37.3:-37.3,a) && realat(r,s?91.7:-91.7,b) && mag(a)<100*TOL && mag(b)<100*TOL) continue;
         }
-        side[s]="y="; side[s]+=P(nice(ev(M*x+C))); kind[s]="Slant";
+        side[s]=yeq(ev(M*x+C)); kind[s]="Slant";
       }
       if (kind[0] && kind[1] && side[0]==side[1]){ line(AN_ROW,kind[0],side[0]); ++k; }
       else for (int s=0;s<2;++s) if (kind[s]){ // the side: as x -> oo, as x -> -oo
@@ -494,7 +518,7 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
       }
     }
     if (!ho.empty()){ line(AN_ROW,"Hole",ho); ++k; }
-    if (!k) line(AN_ROW,"None",m);
+    if (!k) lone(AN_ROW,"None");
   }
   if (stop()) goto done;
   // the first and the second derivative: their sign charts
@@ -502,35 +526,34 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
     gen d=ev(derive(o==1?f:d1,x,CTX)), dn=nice(d);
     if (o==1) d1=d;
     if (taille(dn,100)<100){ gen fd=TIMED("factor",_factor(dn,CTX)); if (taille(fd,200)<=2*taille(dn,200)+4) dn=fd; } // (factored: its sign is read off)
-    line(AN_SECTION,o==1?"INCREASING / DECREASING":"CONCAVITY",m);
+    lone(AN_SECTION,o==1?"INCREASING / DECREASING":"CONCAVITY");
     { std::string t=o==1?"f'(":"f''("; t+=P(x); t+=")="; t+=P(dn); line(AN_ROW,"",t); }
     if (is_zero(dn)){
-      line(AN_ROW,o==1?"Constant: no extrema":"No concavity",m); break;
+      lone(AN_ROW,o==1?"Constant: no extrema":"No concavity"); break;
     }
     pts C, Q=B;
     zeros(d,C);
     edges(d,C);
     for (unsigned i=0;i<C.size();){ // in the domain
-      double y;
-      if (real(at(f,C[i].v),y) && interior(B,sd,C[i].d)) ++i;
+      if (defat(f,C[i].v) && interior(B,sd,C[i].d)) ++i;
       else C.erase(C.begin()+i);
     }
     for (unsigned i=0;i<C.size();++i) add(Q,C[i].v,C[i].d);
     if (o==1){
-      for (unsigned i=0;i<C.size();++i){ std::string t=P(x); t+="="; t+=P(C[i].v); item(m,t); }
-      line(AN_ROW,"Critical numbers",m.empty()?std::string("\1none"):m); m="";
+      for (unsigned i=0;i<C.size();++i)item(m,xop("=",C[i].v));
+      rown("Critical numbers",m); m.clear();
     }
     std::vector<signed char> s;
     std::vector<char> qp;
     chart(d,Q,s,&qp);
     if (stop()) break;
     std::vector<char> qm(qp); // the intervals merged across these points (concavity: not across a cusp)
-    if (o==2) for (unsigned i=0;i<Q.size();++i){ double y; if (!real(at(d1,Q[i].v),y)) qm[i]=0; }
+    if (o==2) for (unsigned i=0;i<Q.size();++i) if (!defat(d1,Q[i].v)) qm[i]=0;
     for (int c=1;c>=-1;c-=2){
       m=runs(Q,s,qm,c,false,n);
       line(AN_ROW,o==1?(c>0?"Increasing":"Decreasing"):(c>0?"Concave up":"Concave down"),n?m:std::string("\1nowhere"),AN_OR);
     }
-    m="";
+    m.clear();
     // where the sign changes (a period's window: its end is its start)
     std::string mx,mn;
     for (int i=0;i<(int)Q.size();++i){
@@ -543,18 +566,16 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
       else item(a>0?mx:mn,t);
     }
     if (o==1){
-      line(AN_SECTION,"EXTREMA",std::string());
+      lone(AN_SECTION,"EXTREMA");
       if (!mx.empty()) line(AN_ROW,"Local max",mx);
       if (!mn.empty()) line(AN_ROW,"Local min",mn);
-      if (mx.empty() && mn.empty()) line(AN_ROW,"None",std::string());
+      if (mx.empty() && mn.empty()) lone(AN_ROW,"None");
     }
-    else line(AN_ROW,"Inflection points",m.empty()?std::string("\1none"):m);
-    m="";
+    else rown("Inflection points",m);
+    m.clear();
   }
  done:
-  all_trig_sol(ats,CTX);
-  withsqrt(ws,CTX);
-  logptr(log,CTX);
+  back(en);
   return stop()?"Stopped":0;
 }
 void analyze_zeros(const gen & g,const gen & x,double lo,double hi,bool edg,vecteur & out,GIAC_CONTEXT){
@@ -562,15 +583,12 @@ void analyze_zeros(const gen & g,const gen & x,double lo,double hi,bool edg,vect
   gen xx=x;
   var_=&xx; per_=0;
   win_=lo<hi; lo_=lo; hi_=hi;
-  const bool ats=all_trig_sol(CTX),ws=withsqrt(CTX);
-  stdostream * log=logptr(CTX);
-  logptr(0,CTX);
-  all_trig_sol(win_,CTX);
-  withsqrt(false,CTX);
+  Env en;
+  env(en,win_);
   pts v;
   zeros(g,v);
   if (edg) edges(g,v);
-  all_trig_sol(ats,CTX); withsqrt(ws,CTX); logptr(log,CTX);
+  back(en);
   for (unsigned i=0;i<v.size();++i) out.push_back(v[i].v);
 }
 const char * analyze_points(const gen & f,std::vector<an_pt> & pts,gen & per,GIAC_CONTEXT){

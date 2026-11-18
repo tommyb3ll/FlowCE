@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __SANITIZE_ADDRESS__
 // <sanitizer/allocator_interface.h> is not shipped with GCC 11: its two functions used here
 extern "C" {
   size_t __sanitizer_get_current_allocated_bytes(void);
@@ -32,6 +33,16 @@ extern "C" {
 #include <sanitizer/asan_interface.h>
 #include <sanitizer/common_interface_defs.h>
 #include <sanitizer/lsan_interface.h>
+#else
+// no AddressSanitizer in this build (e.g. MSYS2): the heap options (-m, -t, STEPS_PEAK) report
+// nothing; the evaluation options are unaffected
+static size_t __sanitizer_get_current_allocated_bytes(void){ return 0; }
+static int __sanitizer_install_malloc_and_free_hooks(void (*)(const volatile void *,size_t),void (*)(const volatile void *)){
+  fprintf(stderr,"heap tracking (-m, -t, STEPS_PEAK) needs AddressSanitizer: not available in this build\n"); return 0; }
+static void __sanitizer_print_stack_trace(void){}
+static void __sanitizer_symbolize_pc(void *,const char *,char * buf,size_t){ buf[0]=0; }
+static size_t __asan_get_alloc_stack(void *,void **,size_t,int *){ return 0; }
+#endif
 
 using namespace giac;
 

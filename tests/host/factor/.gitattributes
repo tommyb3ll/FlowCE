@@ -1,0 +1,2 @@
+# goldens and corpora are compared byte for byte: keep LF on Windows checkouts too
+* text eol=lf

@@ -1,0 +1,119 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/prime_misc.in). Only on purpose.
+== factor(x^2+9)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+9
+   FlowCE answer: x^2+9
+== factor(x^2+x+1)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+x+1
+   FlowCE answer: x^2+x+1
+== factor(x^2+1)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+1
+   FlowCE answer: x^2+1
+== factor(2x^2+3)   [ok, 1 steps]
+  No real roots: does not factor:  2*x^2+3
+   FlowCE answer: 2*x^2+3
+== factor(x^2+2x+5)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+2*x+5
+   FlowCE answer: x^2+2*x+5
+== factor(x^3+x+1)   [ok, 1 steps]
+  Does not factor further:  x^3+x+1
+   FlowCE answer: x^3+x+1
+== factor(x^3-2)   [ok, 1 steps]
+  Does not factor further:  x^3-2
+   FlowCE answer: x^3-2
+== factor(x^4+x^2+1)   [NO STEPS, 1 steps]
+   FlowCE answer: (x^2-x+1)*(x^2+x+1)
+== factor(x^4+4)   [NO STEPS, 1 steps]
+   FlowCE answer: (x^2+2*x+2)*(x^2-2*x+2)
+== factor(7x)   [ok, 1 steps]
+  Does not factor further:  7*x
+   FlowCE answer: 7*x
+== factor(x+1)   [ok, 1 steps]
+  Does not factor further:  x+1
+   FlowCE answer: x+1
+== factor(x)   [ok, 1 steps]
+  Does not factor further:  x
+   FlowCE answer: x
+== factor(5x-10)   [ok, 2 steps]
+  Factor out the greatest common factor:  5*x-10=(5*(x-2))
+  Check: multiply the factors:  5*(x-2)=(5*x-10)
+   FlowCE answer: 5*(x-2)
+== factor(x^2+5999x+7998000)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2000*3999=7998000,2000+3999=5999
+  = x^2+5999*x+7998000=(x+2000)*(x+3999)
+  Check: multiply the factors:  (x+2000)*(x+3999)=(x^2+5999*x+7998000)
+   FlowCE answer: (x+2000)*(x+3999)
+== factor(x^2+6002x+8006001)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-6002±sqrt(4000000))/2
+  = x=-3001-1000,x=-3001+1000
+  = x^2+6002*x+8006001=(x-(-3001-1000))*(x-(-3001+1000))
+  Check: multiply the factors:  (x+4001)*(x+2001)=(x^2+6002*x+8006001)
+   FlowCE answer: (x+2001)*(x+4001)
+== factor(x^2-3001x+2002000)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-1001)*(-2000)=2002000,(-1001)+(-2000)=-3001
+  = x^2-3001*x+2002000=(x-1001)*(x-2000)
+  Check: multiply the factors:  (x-1001)*(x-2000)=(x^2-3001*x+2002000)
+   FlowCE answer: (x-1001)*(x-2000)
+== factor(x^2+3x-7000000)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-3±sqrt(28000009))/2
+  = x=-3/2-sqrt(28000009)/2,x=-3/2+sqrt(28000009)/2
+  = x^2+3*x-7000000=(x-(-3/2-sqrt(28000009)/2))*(x-(-3/2+sqrt(28000009)/2))
+  Check: multiply the factors:  (x-(-sqrt(28000009)-3)/2)*(x-(sqrt(28000009)-3)/2)=(x^2+3*x-7000000)
+   FlowCE answer: (2*x+sqrt(28000009)+3)*(2*x-sqrt(28000009)+3)/4
+== factor(2000x^2+5999x+3)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-5999±sqrt(35964001))/4000
+  = x=-5999/4000-sqrt(35964001)/4000,x=-5999/4000+sqrt(35964001)/4000
+  = 2000*x^2+5999*x+3=2000(x-(-5999/4000-sqrt(35964001)/4000))*(x-(-5999/4000+sqrt(35964001)/4000))
+  Check: multiply the factors:  2000*(x-(-sqrt(35964001)-5999)/4000)*(x-(sqrt(35964001)-5999)/4000)=(2000*x^2+5999*x+3)
+   FlowCE answer: (4000*x+sqrt(35964001)+5999)*(4000*x-sqrt(35964001)+5999)/8000
+== factor(4001x^2-12003x+8002)   [ok, 5 steps]
+  Factor out the greatest common factor:  4001*x^2-12003*x+8002=(4001*(x^2-3*x+2))
+  Two numbers: product c, sum b:  (-1)*(-2)=2,(-1)+(-2)=-3
+  = x^2-3*x+2=(x-1)*(x-2)
+  = 4001*x^2-12003*x+8002=(4001*(x-1)*(x-2))
+  Check: multiply the factors:  4001*(x-1)*(x-2)=(4001*x^2-12003*x+8002)
+   FlowCE answer: 4001*(x-1)*(x-2)
+== factor(x^2+10000000001x+10000000000)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-10000000001±sqrt(99999999980000000001))/2
+  = x=-10000000001/2-9999999999/2,x=-10000000001/2+9999999999/2
+  = x^2+10000000001*x+10000000000=(x-(-10000000001/2-9999999999/2))*(x-(-10000000001/2+9999999999/2))
+  Check: multiply the factors:  (x+10000000000)*(x+1)=(x^2+10000000001*x+10000000000)
+   FlowCE answer: (x+1)*(x+10000000000)
+== factor(t^2-5t+6)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = t^2-5*t+6=(t-2)*(t-3)
+  Check: multiply the factors:  (t-2)*(t-3)=(t^2-5*t+6)
+   FlowCE answer: (t-2)*(t-3)
+== factor(a^2-9)   [ok, 2 steps]
+  Difference of squares:  a^2-9=a^2-3^2=(a-3)*(a+3)
+  Check: multiply the factors:  (a-3)*(a+3)=(a^2-9)
+   FlowCE answer: (a-3)*(a+3)
+== factor(y^3-8)   [ok, 3 steps]
+  Difference of cubes:  y^3-8=y^3-2^3=(y-2)*(y^2+2*y+4)
+  SOAP: Same, Opposite, Always Positive:  -2,+2*y,+4
+  Check: multiply the factors:  (y-2)*(y^2+2*y+4)=(y^3-8)
+   FlowCE answer: (y-2)*(y^2+2*y+4)
+== factor(z^2+2z+1)   [ok, 2 steps]
+  Perfect square trinomial:  z^2+2*z+1=(z+1)^2
+  Check: multiply the factors:  (z+1)^2=(z^2+2*z+1)
+   FlowCE answer: (z+1)^2
+== factor(m^2+m-12)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*4=-12,(-3)+4=1
+  = m^2+m-12=(m-3)*(m+4)
+  Check: multiply the factors:  (m-3)*(m+4)=(m^2+m-12)
+   FlowCE answer: (m-3)*(m+4)
+== factor(u^4-1)   [ok, 4 steps]
+  Difference of squares:  u^4-1=(u^2)^2-1^2=(u^2-1)*(u^2+1)
+  Difference of squares:  u^2-1=u^2-1^2=(u-1)*(u+1)
+  = u^4-1=((u-1)*(u+1)*(u^2+1))
+  Check: multiply the factors:  (u-1)*(u+1)*(u^2+1)=(u^4-1)
+   FlowCE answer: (u-1)*(u+1)*(u^2+1)
+== factor(n^3+3n^2+2n+6)   [ok, 3 steps]
+  Factor by grouping:  n^3+3*n^2+2*n+6=(n^3+3*n^2)+(2*n+6)=n^2*(n+3)+2*(n+3)
+  = n^3+3*n^2+2*n+6=(n^2+2)*(n+3)
+  Check: multiply the factors:  (n^2+2)*(n+3)=(n^3+3*n^2+2*n+6)
+   FlowCE answer: (n+3)*(n^2+2)
+== factor(12)   [NO STEPS, 0 steps]
+   FlowCE answer: 12
+== factor(sqrt(2)*x^2-2)   [NO STEPS, 0 steps]
+   FlowCE answer: sqrt(2)*(x^2-sqrt(2))

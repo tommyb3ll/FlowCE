@@ -1,0 +1,4 @@
+# selftest: fail plain evaluator
+== factor(x^3-x)   [ok, 1 steps]
+  Factor out the greatest common factor:  x^3-x=(x*(x^2-1))
+   FlowCE answer: x*(x^2-1)

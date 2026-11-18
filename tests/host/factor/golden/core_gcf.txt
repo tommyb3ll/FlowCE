@@ -1,0 +1,65 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/core_gcf.in). Only on purpose.
+== factor(6x^2*y+9x*y^2)   [ok, 2 steps]
+  Factor out the greatest common factor:  6*x^2*y+9*x*y^2=(3*x*y*(2*x+3*y))
+  Check: multiply the factors:  3*x*y*(2*x+3*y)=(6*x^2*y+9*x*y^2)
+   FlowCE answer: 3*y*x*(2*x+3*y)
+== factor(-4x^2*y-8x*y)   [ok, 2 steps]
+  Factor out the greatest common factor:  -4*x^2*y-8*x*y=(-4*x*y*(x+2))
+  Check: multiply the factors:  -4*x*y*(x+2)=(-4*x^2*y-8*x*y)
+   FlowCE answer: -4*x*y*(x+2)
+== factor(2x+4y)   [ok, 2 steps]
+  Factor out the greatest common factor:  2*x+4*y=(2*(x+2*y))
+  Check: multiply the factors:  2*(x+2*y)=(2*x+4*y)
+   FlowCE answer: 2*(x+2*y)
+== factor(3a^2*b-6a*b^2+9a*b)   [ok, 2 steps]
+  Factor out the greatest common factor:  3*a^2*b-6*a*b^2+9*a*b=(3*a*b*(a-2*b+3))
+  Check: multiply the factors:  3*a*b*(a-2*b+3)=(3*a^2*b-6*a*b^2+9*a*b)
+   FlowCE answer: 3*b*a*(a-2*b+3)
+== factor(x^2*y^3+x^3*y^2)   [ok, 2 steps]
+  Factor out the greatest common factor:  x^2*y^3+x^3*y^2=(x^2*y^2*(x+y))
+  Check: multiply the factors:  x^2*y^2*(x+y)=(x^2*y^3+x^3*y^2)
+   FlowCE answer: y^2*x^2*(x+y)
+== factor(-x*y-x)   [ok, 2 steps]
+  Factor out the greatest common factor:  -x*y-x=(-x*(y+1))
+  Check: multiply the factors:  -x*(y+1)=(-x*y-x)
+   FlowCE answer: -x*(y+1)
+== factor(x*y/2+x/4)   [ok, 2 steps]
+  Factor out the greatest common factor:  x*y/2+x/4=(1/4*x*(2*y+1))
+  Check: multiply the factors:  1/4*x*(2*y+1)=(x*y/2+x/4)
+   FlowCE answer: x*(2*y+1)/4
+== factor(8x*y*z+12x*y)   [ok, 2 steps]
+  Factor out the greatest common factor:  8*x*y*z+12*x*y=(4*x*y*(2*z+3))
+  Check: multiply the factors:  4*x*y*(2*z+3)=(8*x*y*z+12*x*y)
+   FlowCE answer: 4*y*x*(2*z+3)
+== factor(x^2+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2+y^2
+   FlowCE answer: x^2+y^2
+== factor(x+y+1)   [ok, 1 steps]
+  Does not factor further:  x+y+1
+   FlowCE answer: x+y+1
+== factor(2x+y)   [ok, 1 steps]
+  Does not factor further:  2*x+y
+   FlowCE answer: 2*x+y
+== factor(2x^3*y-8x*y^3)   [ok, 4 steps]
+  Factor out the greatest common factor:  2*x^3*y-8*x*y^3=(2*x*y*(x^2-4*y^2))
+  Difference of squares:  x^2-4*y^2=x^2-(2*y)^2=(x-2*y)*(x+2*y)
+  = 2*x^3*y-8*x*y^3=(2*x*y*(x-2*y)*(x+2*y))
+  Check: multiply the factors:  2*x*y*(x-2*y)*(x+2*y)=(2*x^3*y-8*x*y^3)
+   FlowCE answer: 2*y*x*(x-2*y)*(x+2*y)
+== factor(x*y+2x+3y+6)   [ok, 3 steps]
+  Factor by grouping:  x*y+2*x+3*y+6=(x*y+2*x)+(3*y+6)=x*(y+2)+3*(y+2)
+  = x*y+2*x+3*y+6=(x+3)*(y+2)
+  Check: multiply the factors:  (x+3)*(y+2)=(x*y+2*x+3*y+6)
+   FlowCE answer: (y+2)*(x+3)
+== factor(x^2-y^2)   [ok, 2 steps]
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  Check: multiply the factors:  (x-y)*(x+y)=(x^2-y^2)
+   FlowCE answer: (x-y)*(x+y)
+== factor(x^2+5x*y+6y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*3=6,2+3=5
+  = x^2+5*x*y+6*y^2=(x+2*y)*(x+3*y)
+  Check: multiply the factors:  (x+2*y)*(x+3*y)=(x^2+5*x*y+6*y^2)
+   FlowCE answer: (x+2*y)*(x+3*y)
+== factor(x*y)   [NO STEPS, 0 steps]
+   FlowCE answer: y*x

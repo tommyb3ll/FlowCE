@@ -38,6 +38,7 @@ pick one, click Install, and follow the short calculator prompts.
 
 ## What's new
 
+- **Factoring, step by step (this fork):** `factor(` now explains the common factor with several variables, grouping of any four terms, trinomials and special patterns in two variables (`x²+5xy+6y²`, `4x²−9y²`, `8x³+27y³`), and problems that combine them. Each step is checked against a second evaluation on a PC (see [Factoring, step by step](#factoring-step-by-step)). The calculator build of this change has not been tested.
 - **2.4:** logs with any base: `math`, `0` (or `log`, the number, a comma, the base) draws log₂(8) as textbooks write it, with exact answers (log₄ 8 is 3/2) and steps for log equations; algebra's steps show for problems typed with `^` or `x²` (they did not); the TI-83 Premium CE's trig key offers all six functions.
 - **2.3:** the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).
 - **KhiCAS + Flow 1.2:** the graph shows the slope m and the radius R (`X,T,θ,n`: the full equation), the Config in khicasce's order, the TI-83 Premium CE's trig key offers sin, cos, tan and their inverses, faster menus.
@@ -46,6 +47,65 @@ pick one, click Install, and follow the short calculator prompts.
 - **2.2:** themes you can tell apart on the calculator's screen, their colors picked on a TI-84 Plus CE (2.2.1: a clean start screen).
 - **2.1:** faster: menus open in about half the time, everyday problems answer 25 to 45% sooner.
 - **2.0:** steps for algebra, Calculus → Applications, a real graph screen, nine themes, and more.
+
+## Factoring, step by step
+
+`factor(...)` gives giac's answer. After it, `enter` explains how to get there. Steps are shown only
+when they end at giac's answer: same product, same number of non-constant factors.
+
+What it explains:
+
+- the greatest common factor: a number, powers of one or several variables, a negative leading term, a common factor of a linear sum (`7y+14`);
+- grouping of any four terms, one or two variables; when the pairing as typed fails it shows `Rearrange the terms` and tries another;
+- `x²+bx+c` and `x²+bxy+cy²`; `ax²+bx+c` and `ax²+bxy+cy²` by the ac method;
+- difference of squares, perfect squares, sum and difference of cubes, with monomial terms (`4x²−9y²`, `8x³+27y³`);
+- problems that combine them: the common factor first, then each factor again until giac's answer is reached;
+- irreducible input: one line, `Does not factor further`.
+
+Three examples (steps as the host build prints them):
+
+    factor(x*y+2x+3y+6)
+      Factor by grouping:  x*y+2*x+3*y+6=(x*y+2*x)+(3*y+6)=x*(y+2)+3*(y+2)
+      = x*y+2*x+3*y+6=(x+3)*(y+2)
+
+    factor(x^3-x)
+      Factor out the greatest common factor:  x^3-x=(x*(x^2-1))
+      Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+      = x^3-x=(x*(x-1)*(x+1))
+
+    factor(6x^2*y+9x*y^2)
+      Factor out the greatest common factor:  6*x^2*y+9*x*y^2=(3*x*y*(2*x+3*y))
+
+What it does not explain (the screen says "No steps for this one"): three or more variables beyond the
+common factor and grouping, factoring over radicals in two variables, decimals, grouping of six or
+more terms. Very large coefficients (products beyond about 10⁶ to 10⁷) may also have no steps.
+
+The calculator build with these steps was not tested: there is no CE toolchain on the machine they were
+written on. The steps and the steps screen were tested through the host build described below.
+
+### Running the factoring tests on a PC
+
+The steps code (`src/steps.cc`) and the steps screen (`src/focus_steps.cc`) are compiled for x86-64
+into a host giac binary. On Windows, use MSYS2 with `gcc`, `make`, `patch`, `diffutils`, `findutils`
+(`pacman -S gcc make patch diffutils findutils`) and a Python 3.6 or later (the checker uses only the
+standard library). From the repository root, in the MSYS2 shell:
+
+    SAN= bash tools/hostgiac/build.sh worktree         # builds $HG_BUILD/bin/hostgiac-worktree (default ~/hostgiac)
+    bash tests/host/run_factor_tests.sh $HG_BUILD/bin/hostgiac-worktree
+
+`run_factor_tests.sh` compares the steps of the goldens in `tests/host/factor/golden`, runs
+`tools/hostgiac/factorcheck.py` (every displayed step proved algebraically valid by the plain
+evaluator) on the goldens and corpora, and runs the checker's own self-test. `--regen` rewrites the
+goldens, on purpose only. `tools/hostgiac/gen_factor.py` generates more problems (`--family NAME --seed N`).
+`tests/host/factor/known_wrong.txt` lists inputs known to fail a check.
+
+To see what the binary does by hand:
+
+    $HG_BUILD/bin/hostgiac-worktree -S -e "factor(x^2-5x+6)"           # the steps as text
+    $HG_BUILD/bin/hostgiac-worktree -V /tmp/v -e "factor(x^2-5x+6)"    # the steps screen, one .ppm per stop
+
+`bash tests/host/factor/render/run_render.sh <binary> <outdir>` renders a list of problems with `-V`
+(and converts to PNG when `ffmpeg` is on the PATH).
 
 ## Which one?
 

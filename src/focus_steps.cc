@@ -39,6 +39,34 @@ static void quiet(int) {}
 #endif
 
 static bool starts(const char * s, const char * p) { return !strncmp(s, p, strlen(p)); }
+// the name in s (its length in vn) besides the calls: the first one; 0 if there is none, or, when one
+// is set, if a different second one is met (3x+2=11: x; x+y: 0 for one, x for any number)
+static const char * names(const char * s, int & vn, bool one) {
+  const char * v = 0;
+  for (const char * p = s; *p;) {
+    if (!isalpha((unsigned char)*p) && *p != '_') { ++p; continue; }
+    const char * q = p;
+    while (isalnum((unsigned char)*q) || *q == '_') ++q;
+    if (*q != '(') {
+      if (!v) { v = p; vn = q - p; }
+      else if (one && (q - p != vn || strncmp(v, p, vn))) return 0;
+    }
+    p = q;
+  }
+  return v;
+}
+// the substrings the checks refuse, each with the checks it is refused by (bits): solve( and factor(
+// (NA), factor( only (NF: x in sqrt( and /( stay possible for solve( ), one_name (N1), ineq_able (NI);
+// a line holding one of a check's is not for it (sin(x), x^(y), x<2: not an equation in one letter)
+enum { NA = 1, NF = 2, N1 = 4, NI = 8 };
+static bool refused(const char * s, int who) {
+  static const struct { const char * w; unsigned char m; } no[] = {
+    {"<", NA}, {">", NA}, {"[", NA | NI}, {"abs(", NA | N1}, {"surd(", NA | NI}, {"log", NA | N1 | NI}, {"ln(", NA | N1 | NI},
+    {"exp(", NA | N1 | NI}, {"sin(", NA | N1 | NI}, {"cos(", NA | N1 | NI}, {"tan(", NA | N1 | NI}, {"^(", NA | N1 | NI},
+    {"e^", NA | N1 | NI}, {"!", NA | NI}, {"%", NA | NI}, {"|", NA}, {"sqrt(", NF | N1 | NI}, {"/(", NF}, {"=>", NI}, {":=", NI}};
+  for (unsigned k = 0; k < sizeof(no) / sizeof(no[0]); ++k) if ((no[k].m & who) && strstr(s, no[k].w)) return true;
+  return false;
+}
 // a calculation the steps screen can show: a derivative, an integral, a limit, a sum, a Taylor
 // polynomial, also inside another command (subst(diff(f,x,3),x=0), solve(diff(f,x)=0,x): the
 // steps take the calculus part first, then the rest); an application (area, volume...)
@@ -52,21 +80,10 @@ static int alg_able(const char * s) {
   if (!c || !*c || c[1]) return 0;
   // (solve: square roots and x in a denominator too, the radical and rational equations; one root a side)
   const bool eq = starts(s, "solve(");
-  static const char * const no[] = {"<", ">", "[", "abs(", "surd(", "log", "ln(", "exp(", "sin(", "cos(", "tan(", "^(", "e^", "!", "%", "|", "sqrt(", "/("};
-  for (unsigned k = 0; k < sizeof(no) / sizeof(no[0]) - (eq ? 2 : 0); ++k) if (strstr(s, no[k])) return 0;
+  if (refused(s, eq ? NA : NA | NF)) return 0;
   if (eq) { int n = 0; for (const char * p = s; (p = strstr(p, "sqrt(")); ++p) ++n; if (n > 2) return 0; }
-  const char * v = 0;
-  int vn = 0;
-  for (const char * p = s; *p;) { // one name besides the calls (3x+2=11 and its x: x)
-    if (!isalpha((unsigned char)*p) && *p != '_') { ++p; continue; }
-    const char * q = p;
-    while (isalnum((unsigned char)*q) || *q == '_') ++q;
-    if (*q != '(') {
-      if (!v) { v = p; vn = q - p; }
-      else if (q - p != vn || strncmp(v, p, vn)) return 0;
-    }
-    p = q;
-  }
+  int vn = 0; // one name besides the calls (3x+2=11 and its x: x); factor: any number (x^2-y^2)
+  const char * v = names(s, vn, eq);
   for (const char * p = s; (p = strpbrk(p, "/^")); ++p) // (factor(1/x): x in a denominator; 2^x: in an exponent)
     if (isalpha((unsigned char)p[1]) && (*p == '^' || !eq)) return 0;
   if (v && starts(s, "solve(") && !strncmp(s + 6, v, vn) && s[6 + vn] == '=') { // x=5: already solved
@@ -80,21 +97,9 @@ static int alg_able(const char * s) {
 }
 // (DeltaCE) one name besides the calls, no function of it (canonical_form(x^2+6x+5), propfrac((x^3+1)/(x-2)))
 static int one_name(const char * s) {
-  static const char * const no[] = {"sin(", "cos(", "tan(", "log", "ln(", "exp(", "e^", "abs(", "sqrt(", "^("};
-  for (unsigned k = 0; k < sizeof(no) / sizeof(no[0]); ++k) if (strstr(s, no[k])) return 0;
-  const char * v = 0;
-  int vn = 0;
-  for (const char * p = s; *p;) {
-    if (!isalpha((unsigned char)*p) && *p != '_') { ++p; continue; }
-    const char * q = p;
-    while (isalnum((unsigned char)*q) || *q == '_') ++q;
-    if (*q != '(') {
-      if (!v) { v = p; vn = q - p; }
-      else if (q - p != vn || strncmp(v, p, vn)) return 0;
-    }
-    p = q;
-  }
-  return v != 0;
+  if (refused(s, N1)) return 0;
+  int vn;
+  return names(s, vn, true) != 0;
 }
 // (DeltaCE) the steps' systems, exponential, log and trig equations, told from the text too. v: the
 // one name besides the calls, pi and e (e^x); its every place inside the argument of a call of fs
@@ -227,8 +232,7 @@ static int div_able(const char * s, const char * ans) {
 // function but abs; -1: neither (another check's)
 static int ineq_able(const char * s) {
   if (!strchr(s, '<') && !strchr(s, '>') && !strstr(s, "abs(")) return -1;
-  static const char * const no[] = {"[", "log", "ln(", "exp(", "sin(", "cos(", "tan(", "^(", "e^", "!", "%", "sqrt(", "surd(", "=>", ":="};
-  for (unsigned k = 0; k < sizeof(no) / sizeof(no[0]); ++k) if (strstr(s, no[k])) return 0;
+  if (refused(s, NI)) return 0;
   if (const char * a = strstr(s, "abs(")) if (strstr(a + 4, "abs(") || strchr(s, '^')) return 0; // (one absolute value, linear)
   const char * v = 0; // one name besides solve( and abs(
   int vn = 0;
