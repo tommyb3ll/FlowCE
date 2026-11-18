@@ -1,0 +1,281 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/trinomials.in). Only on purpose.
+== factor(x^2+5x+6)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*3=6,2+3=5
+  = x^2+5*x+6=(x+2)*(x+3)
+  Check: multiply the factors:  (x+2)*(x+3)=(x^2+5*x+6)
+   FlowCE answer: (x+2)*(x+3)
+== factor(x^2-5x+6)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x+6=(x-2)*(x-3)
+  Check: multiply the factors:  (x-2)*(x-3)=(x^2-5*x+6)
+   FlowCE answer: (x-2)*(x-3)
+== factor(x^2+x-6)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*3=-6,(-2)+3=1
+  = x^2+x-6=(x-2)*(x+3)
+  Check: multiply the factors:  (x-2)*(x+3)=(x^2+x-6)
+   FlowCE answer: (x-2)*(x+3)
+== factor(x^2-x-6)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*(-3)=-6,2+(-3)=-1
+  = x^2-x-6=(x+2)*(x-3)
+  Check: multiply the factors:  (x+2)*(x-3)=(x^2-x-6)
+   FlowCE answer: (x+2)*(x-3)
+== factor(x^2+2x-8)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*4=-8,(-2)+4=2
+  = x^2+2*x-8=(x-2)*(x+4)
+  Check: multiply the factors:  (x-2)*(x+4)=(x^2+2*x-8)
+   FlowCE answer: (x-2)*(x+4)
+== factor(x^2-7x+12)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*(-4)=12,(-3)+(-4)=-7
+  = x^2-7*x+12=(x-3)*(x-4)
+  Check: multiply the factors:  (x-3)*(x-4)=(x^2-7*x+12)
+   FlowCE answer: (x-3)*(x-4)
+== factor(x^2+7x+10)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*5=10,2+5=7
+  = x^2+7*x+10=(x+2)*(x+5)
+  Check: multiply the factors:  (x+2)*(x+5)=(x^2+7*x+10)
+   FlowCE answer: (x+2)*(x+5)
+== factor(x^2-2x-15)   [ok, 3 steps]
+  Two numbers: product c, sum b:  3*(-5)=-15,3+(-5)=-2
+  = x^2-2*x-15=(x+3)*(x-5)
+  Check: multiply the factors:  (x+3)*(x-5)=(x^2-2*x-15)
+   FlowCE answer: (x+3)*(x-5)
+== factor(x^2+8x+15)   [ok, 3 steps]
+  Two numbers: product c, sum b:  3*5=15,3+5=8
+  = x^2+8*x+15=(x+3)*(x+5)
+  Check: multiply the factors:  (x+3)*(x+5)=(x^2+8*x+15)
+   FlowCE answer: (x+3)*(x+5)
+== factor(x^2-9x+20)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-4)*(-5)=20,(-4)+(-5)=-9
+  = x^2-9*x+20=(x-4)*(x-5)
+  Check: multiply the factors:  (x-4)*(x-5)=(x^2-9*x+20)
+   FlowCE answer: (x-4)*(x-5)
+== factor(x^2+4x-21)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*7=-21,(-3)+7=4
+  = x^2+4*x-21=(x-3)*(x+7)
+  Check: multiply the factors:  (x-3)*(x+7)=(x^2+4*x-21)
+   FlowCE answer: (x-3)*(x+7)
+== factor(x^2-3x-10)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*(-5)=-10,2+(-5)=-3
+  = x^2-3*x-10=(x+2)*(x-5)
+  Check: multiply the factors:  (x+2)*(x-5)=(x^2-3*x-10)
+   FlowCE answer: (x+2)*(x-5)
+== factor(x^2+x-12)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*4=-12,(-3)+4=1
+  = x^2+x-12=(x-3)*(x+4)
+  Check: multiply the factors:  (x-3)*(x+4)=(x^2+x-12)
+   FlowCE answer: (x-3)*(x+4)
+== factor(2x^2+7x+3)   [ok, 5 steps]
+  Split the middle term (ac method):  2*3=6,6+1=7
+  = 2*x^2+7*x+3=(2*x^2+6*x+x+3)
+  Factor by grouping:  2*x^2+7*x+3=2*x*(x+3)+1*(x+3)
+  = 2*x^2+7*x+3=(2*x+1)*(x+3)
+  Check: multiply the factors:  (2*x+1)*(x+3)=(2*x^2+7*x+3)
+   FlowCE answer: (2*x+1)*(x+3)
+== factor(2x^2-7x+3)   [ok, 5 steps]
+  Split the middle term (ac method):  2*3=6,(-6)+(-1)=-7
+  = 2*x^2-7*x+3=(2*x^2-6*x-x+3)
+  Factor by grouping:  2*x^2-7*x+3=2*x*(x-3)-1*(x-3)
+  = 2*x^2-7*x+3=(2*x-1)*(x-3)
+  Check: multiply the factors:  (2*x-1)*(x-3)=(2*x^2-7*x+3)
+   FlowCE answer: (2*x-1)*(x-3)
+== factor(2x^2+x-3)   [ok, 5 steps]
+  Split the middle term (ac method):  2*(-3)=-6,(-2)+3=1
+  = 2*x^2+x-3=(2*x^2-2*x+3*x-3)
+  Factor by grouping:  2*x^2+x-3=2*x*(x-1)+3*(x-1)
+  = 2*x^2+x-3=(2*x+3)*(x-1)
+  Check: multiply the factors:  (2*x+3)*(x-1)=(2*x^2+x-3)
+   FlowCE answer: (x-1)*(2*x+3)
+== factor(2x^2-x-3)   [ok, 5 steps]
+  Split the middle term (ac method):  2*(-3)=-6,2+(-3)=-1
+  = 2*x^2-x-3=(2*x^2+2*x-3*x-3)
+  Factor by grouping:  2*x^2-x-3=2*x*(x+1)-3*(x+1)
+  = 2*x^2-x-3=(2*x-3)*(x+1)
+  Check: multiply the factors:  (2*x-3)*(x+1)=(2*x^2-x-3)
+   FlowCE answer: (x+1)*(2*x-3)
+== factor(6x^2+7x-3)   [ok, 5 steps]
+  Split the middle term (ac method):  6*(-3)=-18,(-2)+9=7
+  = 6*x^2+7*x-3=(6*x^2-2*x+9*x-3)
+  Factor by grouping:  6*x^2+7*x-3=2*x*(3*x-1)+3*(3*x-1)
+  = 6*x^2+7*x-3=(2*x+3)*(3*x-1)
+  Check: multiply the factors:  (2*x+3)*(3*x-1)=(6*x^2+7*x-3)
+   FlowCE answer: (3*x-1)*(2*x+3)
+== factor(6x^2-x-2)   [ok, 5 steps]
+  Split the middle term (ac method):  6*(-2)=-12,3+(-4)=-1
+  = 6*x^2-x-2=(6*x^2+3*x-4*x-2)
+  Factor by grouping:  6*x^2-x-2=3*x*(2*x+1)-2*(2*x+1)
+  = 6*x^2-x-2=(3*x-2)*(2*x+1)
+  Check: multiply the factors:  (3*x-2)*(2*x+1)=(6*x^2-x-2)
+   FlowCE answer: (2*x+1)*(3*x-2)
+== factor(6x^2+5x+1)   [ok, 5 steps]
+  Split the middle term (ac method):  6*1=6,2+3=5
+  = 6*x^2+5*x+1=(6*x^2+2*x+3*x+1)
+  Factor by grouping:  6*x^2+5*x+1=2*x*(3*x+1)+1*(3*x+1)
+  = 6*x^2+5*x+1=(2*x+1)*(3*x+1)
+  Check: multiply the factors:  (2*x+1)*(3*x+1)=(6*x^2+5*x+1)
+   FlowCE answer: (2*x+1)*(3*x+1)
+== factor(3x^2+10x+8)   [ok, 5 steps]
+  Split the middle term (ac method):  3*8=24,6+4=10
+  = 3*x^2+10*x+8=(3*x^2+6*x+4*x+8)
+  Factor by grouping:  3*x^2+10*x+8=3*x*(x+2)+4*(x+2)
+  = 3*x^2+10*x+8=(3*x+4)*(x+2)
+  Check: multiply the factors:  (3*x+4)*(x+2)=(3*x^2+10*x+8)
+   FlowCE answer: (x+2)*(3*x+4)
+== factor(4x^2+8x+3)   [ok, 5 steps]
+  Split the middle term (ac method):  4*3=12,2+6=8
+  = 4*x^2+8*x+3=(4*x^2+2*x+6*x+3)
+  Factor by grouping:  4*x^2+8*x+3=2*x*(2*x+1)+3*(2*x+1)
+  = 4*x^2+8*x+3=(2*x+3)*(2*x+1)
+  Check: multiply the factors:  (2*x+3)*(2*x+1)=(4*x^2+8*x+3)
+   FlowCE answer: (2*x+1)*(2*x+3)
+== factor(-2x^2-7x-3)   [ok, 7 steps]
+  Factor out the greatest common factor:  -2*x^2-7*x-3=(-(2*x^2+7*x+3))
+  Split the middle term (ac method):  2*3=6,6+1=7
+  = 2*x^2+7*x+3=(2*x^2+6*x+x+3)
+  Factor by grouping:  2*x^2+7*x+3=2*x*(x+3)+1*(x+3)
+  = 2*x^2+7*x+3=(2*x+1)*(x+3)
+  = -2*x^2-7*x-3=(-(2*x+1)*(x+3))
+  Check: multiply the factors:  -(2*x+1)*(x+3)=(-2*x^2-7*x-3)
+   FlowCE answer: -(2*x+1)*(x+3)
+== factor(-6x^2+x+2)   [ok, 7 steps]
+  Factor out the greatest common factor:  -6*x^2+x+2=(-(6*x^2-x-2))
+  Split the middle term (ac method):  6*(-2)=-12,3+(-4)=-1
+  = 6*x^2-x-2=(6*x^2+3*x-4*x-2)
+  Factor by grouping:  6*x^2-x-2=3*x*(2*x+1)-2*(2*x+1)
+  = 6*x^2-x-2=(3*x-2)*(2*x+1)
+  = -6*x^2+x+2=(-(3*x-2)*(2*x+1))
+  Check: multiply the factors:  -(3*x-2)*(2*x+1)=(-6*x^2+x+2)
+   FlowCE answer: -(2*x+1)*(3*x-2)
+== factor(12x^2-7x-12)   [ok, 5 steps]
+  Split the middle term (ac method):  12*(-12)=-144,9+(-16)=-7
+  = 12*x^2-7*x-12=(12*x^2+9*x-16*x-12)
+  Factor by grouping:  12*x^2-7*x-12=3*x*(4*x+3)-4*(4*x+3)
+  = 12*x^2-7*x-12=(3*x-4)*(4*x+3)
+  Check: multiply the factors:  (3*x-4)*(4*x+3)=(12*x^2-7*x-12)
+   FlowCE answer: (4*x+3)*(3*x-4)
+== factor(x^4-5x^2+4)   [ok, 8 steps]
+  Quadratic form: substitute u:  x^4-5*x^2+4=u^2-5*u+4,u=x^2
+  Two numbers: product c, sum b:  (-1)*(-4)=4,(-1)+(-4)=-5
+  = x^4-5*x^2+4=(x^2-1)*(x^2-4)
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = x^4-5*x^2+4=((x-1)*(x+1)*(x-2)*(x+2))
+  Check: multiply the factors:  (x-1)*(x+1)*(x-2)*(x+2)=(x^4-5*x^2+4)
+   FlowCE answer: (x-1)*(x+1)*(x-2)*(x+2)
+== factor(x^4+5x^2+4)   [ok, 4 steps]
+  Quadratic form: substitute u:  x^4+5*x^2+4=u^2+5*u+4,u=x^2
+  Two numbers: product c, sum b:  1*4=4,1+4=5
+  = x^4+5*x^2+4=(x^2+1)*(x^2+4)
+  Check: multiply the factors:  (x^2+1)*(x^2+4)=(x^4+5*x^2+4)
+   FlowCE answer: (x^2+1)*(x^2+4)
+== factor(x^4-x^2-6)   [ok, 8 steps]
+  Quadratic form: substitute u:  x^4-x^2-6=u^2-u-6,u=x^2
+  Two numbers: product c, sum b:  2*(-3)=-6,2+(-3)=-1
+  = x^4-x^2-6=(x^2+2)*(x^2-3)
+  No whole numbers: roots by the formula:  x=(±sqrt(12))/2
+  = x=-sqrt(3),x=sqrt(3)
+  = x^2-3=(x+sqrt(3))*(x-sqrt(3))
+  = x^4-x^2-6=((x^2+2)*(x+sqrt(3))*(x-sqrt(3)))
+  Check: multiply the factors:  (x^2+2)*(x+sqrt(3))*(x-sqrt(3))=(x^4-x^2-6)
+   FlowCE answer: (x^2+2)*(x+sqrt(3))*(x-sqrt(3))
+== factor(2x^4-5x^2+2)   [ok, 14 steps]
+  Quadratic form: substitute u:  2*x^4-5*x^2+2=2*u^2-5*u+2,u=x^2
+  Split the middle term (ac method):  2*2=4,(-4)+(-1)=-5
+  = 2*x^4-5*x^2+2=(2*x^4-4*x^2-x^2+2)
+  Factor by grouping:  2*x^4-5*x^2+2=2*x^2*(x^2-2)-1*(x^2-2)
+  = 2*x^4-5*x^2+2=(2*x^2-1)*(x^2-2)
+  No whole numbers: roots by the formula:  x=(±sqrt(8))/4
+  = x=-sqrt(2)/2,x=sqrt(2)/2
+  = 2*x^2-1=2(x+sqrt(2)/2)*(x-sqrt(2)/2)
+  = 2*x^4-5*x^2+2=(2*(x+sqrt(2)/2)*(x-sqrt(2)/2)*(x^2-2))
+  No whole numbers: roots by the formula:  x=(±sqrt(8))/2
+  = x=-sqrt(2),x=sqrt(2)
+  = x^2-2=(x+sqrt(2))*(x-sqrt(2))
+  = 2*x^4-5*x^2+2=(2*(x+sqrt(2)/2)*(x-sqrt(2)/2)*(x+sqrt(2))*(x-sqrt(2)))
+  Check: multiply the factors:  2*(x+sqrt(2)/2)*(x-sqrt(2)/2)*(x+sqrt(2))*(x-sqrt(2))=(2*x^4-5*x^2+2)
+   FlowCE answer: (2*x+sqrt(2))*(2*x-sqrt(2))*(x+sqrt(2))*(x-sqrt(2))/2
+== factor(x^6-7x^3-8)   [ok, 10 steps]
+  Quadratic form: substitute u:  x^6-7*x^3-8=u^2-7*u-8,u=x^3
+  Two numbers: product c, sum b:  1*(-8)=-8,1+(-8)=-7
+  = x^6-7*x^3-8=(x^3+1)*(x^3-8)
+  Sum of cubes:  x^3+1=x^3+1^3=(x+1)*(x^2-x+1)
+  = x^6-7*x^3-8=((x+1)*(x^2-x+1)*(x^3-8))
+  SOAP: Same, Opposite, Always Positive:  +1,-x,+1
+  Difference of cubes:  x^3-8=x^3-2^3=(x-2)*(x^2+2*x+4)
+  = x^6-7*x^3-8=((x+1)*(x^2-x+1)*(x-2)*(x^2+2*x+4))
+  SOAP: Same, Opposite, Always Positive:  -2,+2*x,+4
+  Check: multiply the factors:  (x+1)*(x^2-x+1)*(x-2)*(x^2+2*x+4)=(x^6-7*x^3-8)
+   FlowCE answer: (x+1)*(x-2)*(x^2-x+1)*(x^2+2*x+4)
+== factor(x^6+7x^3-8)   [ok, 10 steps]
+  Quadratic form: substitute u:  x^6+7*x^3-8=u^2+7*u-8,u=x^3
+  Two numbers: product c, sum b:  (-1)*8=-8,(-1)+8=7
+  = x^6+7*x^3-8=(x^3-1)*(x^3+8)
+  Difference of cubes:  x^3-1=x^3-1^3=(x-1)*(x^2+x+1)
+  = x^6+7*x^3-8=((x-1)*(x^2+x+1)*(x^3+8))
+  SOAP: Same, Opposite, Always Positive:  -1,+x,+1
+  Sum of cubes:  x^3+8=x^3+2^3=(x+2)*(x^2-2*x+4)
+  = x^6+7*x^3-8=((x-1)*(x^2+x+1)*(x+2)*(x^2-2*x+4))
+  SOAP: Same, Opposite, Always Positive:  +2,-2*x,+4
+  Check: multiply the factors:  (x-1)*(x^2+x+1)*(x+2)*(x^2-2*x+4)=(x^6+7*x^3-8)
+   FlowCE answer: (x-1)*(x+2)*(x^2+x+1)*(x^2-2*x+4)
+== factor(x^2-3x+1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(3±sqrt(5))/2
+  = x=3/2-sqrt(5)/2,x=3/2+sqrt(5)/2
+  = x^2-3*x+1=(x-(3/2-sqrt(5)/2))*(x-(3/2+sqrt(5)/2))
+  Check: multiply the factors:  (x-(-sqrt(5)+3)/2)*(x-(sqrt(5)+3)/2)=(x^2-3*x+1)
+   FlowCE answer: (2*x+sqrt(5)-3)*(2*x-sqrt(5)-3)/4
+== factor(x^2-2)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(±sqrt(8))/2
+  = x=-sqrt(2),x=sqrt(2)
+  = x^2-2=(x+sqrt(2))*(x-sqrt(2))
+  Check: multiply the factors:  (x+sqrt(2))*(x-sqrt(2))=(x^2-2)
+   FlowCE answer: (x+sqrt(2))*(x-sqrt(2))
+== factor(x^2+x-1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-1±sqrt(5))/2
+  = x=-1/2-sqrt(5)/2,x=-1/2+sqrt(5)/2
+  = x^2+x-1=(x-(-1/2-sqrt(5)/2))*(x-(-1/2+sqrt(5)/2))
+  Check: multiply the factors:  (x-(-sqrt(5)-1)/2)*(x-(sqrt(5)-1)/2)=(x^2+x-1)
+   FlowCE answer: (2*x+sqrt(5)+1)*(2*x-sqrt(5)+1)/4
+== factor(x^2-6x+7)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(6±sqrt(8))/2
+  = x=3-sqrt(2),x=3+sqrt(2)
+  = x^2-6*x+7=(x-(3-sqrt(2)))*(x-(3+sqrt(2)))
+  Check: multiply the factors:  (sqrt(2)-3+x)*(-sqrt(2)-3+x)=(x^2-6*x+7)
+   FlowCE answer: (x+sqrt(2)-3)*(x-sqrt(2)-3)
+== factor(x^2+4x+1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(-4±sqrt(12))/2
+  = x=-2-sqrt(3),x=-2+sqrt(3)
+  = x^2+4*x+1=(x-(-2-sqrt(3)))*(x-(-2+sqrt(3)))
+  Check: multiply the factors:  (sqrt(3)+2+x)*(-sqrt(3)+2+x)=(x^2+4*x+1)
+   FlowCE answer: (x+sqrt(3)+2)*(x+2-sqrt(3))
+== factor(2x^2-4x+1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(4±sqrt(8))/4
+  = x=1-sqrt(2)/2,x=1+sqrt(2)/2
+  = 2*x^2-4*x+1=2(x-(1-sqrt(2)/2))*(x-(1+sqrt(2)/2))
+  Check: multiply the factors:  2*(x-(-sqrt(2)+2)/2)*(x-(sqrt(2)+2)/2)=(2*x^2-4*x+1)
+   FlowCE answer: (2*x+sqrt(2)-2)*(2*x-sqrt(2)-2)/2
+== factor(3x^2-2)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(±sqrt(24))/6
+  = x=-sqrt(6)/3,x=sqrt(6)/3
+  = 3*x^2-2=3(x+sqrt(6)/3)*(x-sqrt(6)/3)
+  Check: multiply the factors:  3*(x+sqrt(6)/3)*(x-sqrt(6)/3)=(3*x^2-2)
+   FlowCE answer: (3*x+sqrt(6))*(3*x-sqrt(6))/3
+== factor(3x^2-3x-1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(3±sqrt(21))/6
+  = x=1/2-sqrt(21)/6,x=1/2+sqrt(21)/6
+  = 3*x^2-3*x-1=3(x-(1/2-sqrt(21)/6))*(x-(1/2+sqrt(21)/6))
+  Check: multiply the factors:  3*(x-(-sqrt(21)+3)/6)*(x-(sqrt(21)+3)/6)=(3*x^2-3*x-1)
+   FlowCE answer: (6*x+sqrt(21)-3)*(6*x-sqrt(21)-3)/12
+== factor(x^2-8)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(±sqrt(32))/2
+  = x=-2*sqrt(2),x=2*sqrt(2)
+  = x^2-8=(x+2*sqrt(2))*(x-2*sqrt(2))
+  Check: multiply the factors:  (x+2*sqrt(2))*(x-2*sqrt(2))=(x^2-8)
+   FlowCE answer: (x+2*sqrt(2))*(x-2*sqrt(2))
+== factor(x^2-12)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(±sqrt(48))/2
+  = x=-2*sqrt(3),x=2*sqrt(3)
+  = x^2-12=(x+2*sqrt(3))*(x-2*sqrt(3))
+  Check: multiply the factors:  (x+2*sqrt(3))*(x-2*sqrt(3))=(x^2-12)
+   FlowCE answer: (x+2*sqrt(3))*(x-2*sqrt(3))

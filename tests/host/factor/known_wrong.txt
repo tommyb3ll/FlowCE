@@ -1,0 +1,3 @@
+# Problems (factor(...), one per line) that fail a factorcheck check because of an engine defect that is written up
+# in a report (.orch/done/verification2.md, "Engine findings"). The checker shows them as KNOWN-WRONG instead of FAIL,
+# and the last line of run_factor_tests.sh counts them. Delete a line when the defect is fixed. Empty today.

@@ -1,0 +1,315 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/trinomials_multi.in). Only on purpose.
+== factor(x^2+5x*y+6y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*3=6,2+3=5
+  = x^2+5*x*y+6*y^2=(x+2*y)*(x+3*y)
+  Check: multiply the factors:  (x+2*y)*(x+3*y)=(x^2+5*x*y+6*y^2)
+   FlowCE answer: (x+2*y)*(x+3*y)
+== factor(x^2-5x*y+6y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x*y+6*y^2=(x-2*y)*(x-3*y)
+  Check: multiply the factors:  (x-2*y)*(x-3*y)=(x^2-5*x*y+6*y^2)
+   FlowCE answer: (x-2*y)*(x-3*y)
+== factor(x^2+x*y-6y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*3=-6,(-2)+3=1
+  = x^2+x*y-6*y^2=(x-2*y)*(x+3*y)
+  Check: multiply the factors:  (x-2*y)*(x+3*y)=(x^2+x*y-6*y^2)
+   FlowCE answer: (x-2*y)*(x+3*y)
+== factor(x^2-x*y-12y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  3*(-4)=-12,3+(-4)=-1
+  = x^2-x*y-12*y^2=(x+3*y)*(x-4*y)
+  Check: multiply the factors:  (x+3*y)*(x-4*y)=(x^2-x*y-12*y^2)
+   FlowCE answer: (x+3*y)*(x-4*y)
+== factor(x^2+7x*y+10y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  2*5=10,2+5=7
+  = x^2+7*x*y+10*y^2=(x+2*y)*(x+5*y)
+  Check: multiply the factors:  (x+2*y)*(x+5*y)=(x^2+7*x*y+10*y^2)
+   FlowCE answer: (x+2*y)*(x+5*y)
+== factor(x^2-2x*y-15y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  3*(-5)=-15,3+(-5)=-2
+  = x^2-2*x*y-15*y^2=(x+3*y)*(x-5*y)
+  Check: multiply the factors:  (x+3*y)*(x-5*y)=(x^2-2*x*y-15*y^2)
+   FlowCE answer: (x+3*y)*(x-5*y)
+== factor(x^2+4x*y-21y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*7=-21,(-3)+7=4
+  = x^2+4*x*y-21*y^2=(x-3*y)*(x+7*y)
+  Check: multiply the factors:  (x-3*y)*(x+7*y)=(x^2+4*x*y-21*y^2)
+   FlowCE answer: (x-3*y)*(x+7*y)
+== factor(x^2-9x*y+20y^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-4)*(-5)=20,(-4)+(-5)=-9
+  = x^2-9*x*y+20*y^2=(x-4*y)*(x-5*y)
+  Check: multiply the factors:  (x-4*y)*(x-5*y)=(x^2-9*x*y+20*y^2)
+   FlowCE answer: (x-4*y)*(x-5*y)
+== factor(a^2+2a*b-15b^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*5=-15,(-3)+5=2
+  = a^2+2*a*b-15*b^2=(a-3*b)*(a+5*b)
+  Check: multiply the factors:  (a-3*b)*(a+5*b)=(a^2+2*a*b-15*b^2)
+   FlowCE answer: (a-3*b)*(a+5*b)
+== factor(m^2-7m*n+12n^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-3)*(-4)=12,(-3)+(-4)=-7
+  = m^2-7*m*n+12*n^2=(m-3*n)*(m-4*n)
+  Check: multiply the factors:  (m-3*n)*(m-4*n)=(m^2-7*m*n+12*n^2)
+   FlowCE answer: (m-3*n)*(m-4*n)
+== factor(p^2+11p*q+28q^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  4*7=28,4+7=11
+  = p^2+11*p*q+28*q^2=(p+4*q)*(p+7*q)
+  Check: multiply the factors:  (p+4*q)*(p+7*q)=(p^2+11*p*q+28*q^2)
+   FlowCE answer: (p+4*q)*(p+7*q)
+== factor(x^2+3x*y^2+2y^4)   [ok, 3 steps]
+  Two numbers: product c, sum b:  1*2=2,1+2=3
+  = x^2+3*x*y^2+2*y^4=(x+y^2)*(x+2*y^2)
+  Check: multiply the factors:  (x+y^2)*(x+2*y^2)=(x^2+3*x*y^2+2*y^4)
+   FlowCE answer: (x+2*y^2)*(x+y^2)
+== factor(x^2-5x*y^2+6y^4)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x*y^2+6*y^4=(x-2*y^2)*(x-3*y^2)
+  Check: multiply the factors:  (x-2*y^2)*(x-3*y^2)=(x^2-5*x*y^2+6*y^4)
+   FlowCE answer: (x-3*y^2)*(x-2*y^2)
+== factor(x^2+x*y*z-6y^2*z^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-2)*3=-6,(-2)+3=1
+  = x^2+x*y*z-6*y^2*z^2=(x-2*y*z)*(x+3*y*z)
+  Check: multiply the factors:  (x-2*y*z)*(x+3*y*z)=(x^2+x*y*z-6*y^2*z^2)
+   FlowCE answer: (x+3*y*z)*(x-2*y*z)
+== factor(x^2-3x*y*z+2y^2*z^2)   [ok, 3 steps]
+  Two numbers: product c, sum b:  (-1)*(-2)=2,(-1)+(-2)=-3
+  = x^2-3*x*y*z+2*y^2*z^2=(x-y*z)*(x-2*y*z)
+  Check: multiply the factors:  (x-y*z)*(x-2*y*z)=(x^2-3*x*y*z+2*y^2*z^2)
+   FlowCE answer: (x-2*y*z)*(x-y*z)
+== factor(x^4+5x^2*y+6y^2)   [ok, 4 steps]
+  Quadratic form: substitute u:  x^4+5*x^2*y+6*y^2=u^2+5*y*u+6*y^2,u=x^2
+  Two numbers: product c, sum b:  2*3=6,2+3=5
+  = x^4+5*x^2*y+6*y^2=(x^2+2*y)*(x^2+3*y)
+  Check: multiply the factors:  (x^2+2*y)*(x^2+3*y)=(x^4+5*x^2*y+6*y^2)
+   FlowCE answer: (3*y+x^2)*(2*y+x^2)
+== factor(x^4-x^2*y-12y^2)   [ok, 4 steps]
+  Quadratic form: substitute u:  x^4-x^2*y-12*y^2=u^2-y*u-12*y^2,u=x^2
+  Two numbers: product c, sum b:  3*(-4)=-12,3+(-4)=-1
+  = x^4-x^2*y-12*y^2=(x^2+3*y)*(x^2-4*y)
+  Check: multiply the factors:  (x^2+3*y)*(x^2-4*y)=(x^4-x^2*y-12*y^2)
+   FlowCE answer: -(3*y+x^2)*(4*y-x^2)
+== factor(2x^2+7x*y+3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  2*3=6,6+1=7
+  = 2*x^2+7*x*y+3*y^2=(2*x^2+6*x*y+x*y+3*y^2)
+  Factor by grouping:  2*x^2+7*x*y+3*y^2=2*x*(x+3*y)+y*(x+3*y)
+  = 2*x^2+7*x*y+3*y^2=(2*x+y)*(x+3*y)
+  Check: multiply the factors:  (2*x+y)*(x+3*y)=(2*x^2+7*x*y+3*y^2)
+   FlowCE answer: (x+3*y)*(2*x+y)
+== factor(2x^2-7x*y+3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  2*3=6,(-6)+(-1)=-7
+  = 2*x^2-7*x*y+3*y^2=(2*x^2-6*x*y-x*y+3*y^2)
+  Factor by grouping:  2*x^2-7*x*y+3*y^2=2*x*(x-3*y)-y*(x-3*y)
+  = 2*x^2-7*x*y+3*y^2=(2*x-y)*(x-3*y)
+  Check: multiply the factors:  (2*x-y)*(x-3*y)=(2*x^2-7*x*y+3*y^2)
+   FlowCE answer: (x-3*y)*(2*x-y)
+== factor(2x^2+x*y-3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  2*(-3)=-6,(-2)+3=1
+  = 2*x^2+x*y-3*y^2=(2*x^2-2*x*y+3*x*y-3*y^2)
+  Factor by grouping:  2*x^2+x*y-3*y^2=2*x*(x-y)+3*y*(x-y)
+  = 2*x^2+x*y-3*y^2=(2*x+3*y)*(x-y)
+  Check: multiply the factors:  (2*x+3*y)*(x-y)=(2*x^2+x*y-3*y^2)
+   FlowCE answer: (x-y)*(2*x+3*y)
+== factor(2x^2-x*y-3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  2*(-3)=-6,2+(-3)=-1
+  = 2*x^2-x*y-3*y^2=(2*x^2+2*x*y-3*x*y-3*y^2)
+  Factor by grouping:  2*x^2-x*y-3*y^2=2*x*(x+y)-3*y*(x+y)
+  = 2*x^2-x*y-3*y^2=(2*x-3*y)*(x+y)
+  Check: multiply the factors:  (2*x-3*y)*(x+y)=(2*x^2-x*y-3*y^2)
+   FlowCE answer: (x+y)*(2*x-3*y)
+== factor(6x^2+7x*y-3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  6*(-3)=-18,(-2)+9=7
+  = 6*x^2+7*x*y-3*y^2=(6*x^2-2*x*y+9*x*y-3*y^2)
+  Factor by grouping:  6*x^2+7*x*y-3*y^2=2*x*(3*x-y)+3*y*(3*x-y)
+  = 6*x^2+7*x*y-3*y^2=(2*x+3*y)*(3*x-y)
+  Check: multiply the factors:  (2*x+3*y)*(3*x-y)=(6*x^2+7*x*y-3*y^2)
+   FlowCE answer: (2*x+3*y)*(3*x-y)
+== factor(6x^2-x*y-2y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  6*(-2)=-12,3+(-4)=-1
+  = 6*x^2-x*y-2*y^2=(6*x^2+3*x*y-4*x*y-2*y^2)
+  Factor by grouping:  6*x^2-x*y-2*y^2=3*x*(2*x+y)-2*y*(2*x+y)
+  = 6*x^2-x*y-2*y^2=(3*x-2*y)*(2*x+y)
+  Check: multiply the factors:  (3*x-2*y)*(2*x+y)=(6*x^2-x*y-2*y^2)
+   FlowCE answer: (2*x+y)*(3*x-2*y)
+== factor(6x^2+5x*y+y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  6*1=6,2+3=5
+  = 6*x^2+5*x*y+y^2=(6*x^2+2*x*y+3*x*y+y^2)
+  Factor by grouping:  6*x^2+5*x*y+y^2=2*x*(3*x+y)+y*(3*x+y)
+  = 6*x^2+5*x*y+y^2=(2*x+y)*(3*x+y)
+  Check: multiply the factors:  (2*x+y)*(3*x+y)=(6*x^2+5*x*y+y^2)
+   FlowCE answer: (2*x+y)*(3*x+y)
+== factor(3x^2+10x*y+8y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  3*8=24,6+4=10
+  = 3*x^2+10*x*y+8*y^2=(3*x^2+6*x*y+4*x*y+8*y^2)
+  Factor by grouping:  3*x^2+10*x*y+8*y^2=3*x*(x+2*y)+4*y*(x+2*y)
+  = 3*x^2+10*x*y+8*y^2=(3*x+4*y)*(x+2*y)
+  Check: multiply the factors:  (3*x+4*y)*(x+2*y)=(3*x^2+10*x*y+8*y^2)
+   FlowCE answer: (x+2*y)*(3*x+4*y)
+== factor(4x^2+8x*y+3y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  4*3=12,2+6=8
+  = 4*x^2+8*x*y+3*y^2=(4*x^2+2*x*y+6*x*y+3*y^2)
+  Factor by grouping:  4*x^2+8*x*y+3*y^2=2*x*(2*x+y)+3*y*(2*x+y)
+  = 4*x^2+8*x*y+3*y^2=(2*x+3*y)*(2*x+y)
+  Check: multiply the factors:  (2*x+3*y)*(2*x+y)=(4*x^2+8*x*y+3*y^2)
+   FlowCE answer: (2*x+y)*(2*x+3*y)
+== factor(12x^2-7x*y-12y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  12*(-12)=-144,9+(-16)=-7
+  = 12*x^2-7*x*y-12*y^2=(12*x^2+9*x*y-16*x*y-12*y^2)
+  Factor by grouping:  12*x^2-7*x*y-12*y^2=3*x*(4*x+3*y)-4*y*(4*x+3*y)
+  = 12*x^2-7*x*y-12*y^2=(3*x-4*y)*(4*x+3*y)
+  Check: multiply the factors:  (3*x-4*y)*(4*x+3*y)=(12*x^2-7*x*y-12*y^2)
+   FlowCE answer: (3*x-4*y)*(4*x+3*y)
+== factor(5x^2-11x*y-36y^2)   [ok, 5 steps]
+  Split the middle term (ac method):  5*(-36)=-180,(-20)+9=-11
+  = 5*x^2-11*x*y-36*y^2=(5*x^2-20*x*y+9*x*y-36*y^2)
+  Factor by grouping:  5*x^2-11*x*y-36*y^2=5*x*(x-4*y)+9*y*(x-4*y)
+  = 5*x^2-11*x*y-36*y^2=(5*x+9*y)*(x-4*y)
+  Check: multiply the factors:  (5*x+9*y)*(x-4*y)=(5*x^2-11*x*y-36*y^2)
+   FlowCE answer: (5*x+9*y)*(x-4*y)
+== factor(-3x^2+x*y+2y^2)   [ok, 7 steps]
+  Factor out the greatest common factor:  -3*x^2+x*y+2*y^2=(-(3*x^2-x*y-2*y^2))
+  Split the middle term (ac method):  3*(-2)=-6,(-3)+2=-1
+  = 3*x^2-x*y-2*y^2=(3*x^2-3*x*y+2*x*y-2*y^2)
+  Factor by grouping:  3*x^2-x*y-2*y^2=3*x*(x-y)+2*y*(x-y)
+  = 3*x^2-x*y-2*y^2=(3*x+2*y)*(x-y)
+  = -3*x^2+x*y+2*y^2=(-(3*x+2*y)*(x-y))
+  Check: multiply the factors:  -(3*x+2*y)*(x-y)=(-3*x^2+x*y+2*y^2)
+   FlowCE answer: -(x-y)*(3*x+2*y)
+== factor(-2x^2-7x*y-3y^2)   [ok, 7 steps]
+  Factor out the greatest common factor:  -2*x^2-7*x*y-3*y^2=(-(2*x^2+7*x*y+3*y^2))
+  Split the middle term (ac method):  2*3=6,6+1=7
+  = 2*x^2+7*x*y+3*y^2=(2*x^2+6*x*y+x*y+3*y^2)
+  Factor by grouping:  2*x^2+7*x*y+3*y^2=2*x*(x+3*y)+y*(x+3*y)
+  = 2*x^2+7*x*y+3*y^2=(2*x+y)*(x+3*y)
+  = -2*x^2-7*x*y-3*y^2=(-(2*x+y)*(x+3*y))
+  Check: multiply the factors:  -(2*x+y)*(x+3*y)=(-2*x^2-7*x*y-3*y^2)
+   FlowCE answer: -(x+3*y)*(2*x+y)
+== factor(-6x^2+x*y+2y^2)   [ok, 7 steps]
+  Factor out the greatest common factor:  -6*x^2+x*y+2*y^2=(-(6*x^2-x*y-2*y^2))
+  Split the middle term (ac method):  6*(-2)=-12,3+(-4)=-1
+  = 6*x^2-x*y-2*y^2=(6*x^2+3*x*y-4*x*y-2*y^2)
+  Factor by grouping:  6*x^2-x*y-2*y^2=3*x*(2*x+y)-2*y*(2*x+y)
+  = 6*x^2-x*y-2*y^2=(3*x-2*y)*(2*x+y)
+  = -6*x^2+x*y+2*y^2=(-(3*x-2*y)*(2*x+y))
+  Check: multiply the factors:  -(3*x-2*y)*(2*x+y)=(-6*x^2+x*y+2*y^2)
+   FlowCE answer: -(2*x+y)*(3*x-2*y)
+== factor(-x^2+5x*y-6y^2)   [ok, 5 steps]
+  Factor out the greatest common factor:  -x^2+5*x*y-6*y^2=(-(x^2-5*x*y+6*y^2))
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x*y+6*y^2=(x-2*y)*(x-3*y)
+  = -x^2+5*x*y-6*y^2=(-(x-2*y)*(x-3*y))
+  Check: multiply the factors:  -(x-2*y)*(x-3*y)=(-x^2+5*x*y-6*y^2)
+   FlowCE answer: -(x-2*y)*(x-3*y)
+== factor(3a^2-8a*b+4b^2)   [ok, 5 steps]
+  Split the middle term (ac method):  3*4=12,(-6)+(-2)=-8
+  = 3*a^2-8*a*b+4*b^2=(3*a^2-6*a*b-2*a*b+4*b^2)
+  Factor by grouping:  3*a^2-8*a*b+4*b^2=3*a*(a-2*b)-2*b*(a-2*b)
+  = 3*a^2-8*a*b+4*b^2=(3*a-2*b)*(a-2*b)
+  Check: multiply the factors:  (3*a-2*b)*(a-2*b)=(3*a^2-8*a*b+4*b^2)
+   FlowCE answer: (a-2*b)*(3*a-2*b)
+== factor(4m^2+4m*n-3n^2)   [ok, 5 steps]
+  Split the middle term (ac method):  4*(-3)=-12,(-2)+6=4
+  = 4*m^2+4*m*n-3*n^2=(4*m^2-2*m*n+6*m*n-3*n^2)
+  Factor by grouping:  4*m^2+4*m*n-3*n^2=2*m*(2*m-n)+3*n*(2*m-n)
+  = 4*m^2+4*m*n-3*n^2=(2*m+3*n)*(2*m-n)
+  Check: multiply the factors:  (2*m+3*n)*(2*m-n)=(4*m^2+4*m*n-3*n^2)
+   FlowCE answer: (2*m-n)*(2*m+3*n)
+== factor(2x^2+5x*y^2+2y^4)   [ok, 5 steps]
+  Split the middle term (ac method):  2*2=4,4+1=5
+  = 2*x^2+5*x*y^2+2*y^4=(2*x^2+4*x*y^2+x*y^2+2*y^4)
+  Factor by grouping:  2*x^2+5*x*y^2+2*y^4=2*x*(x+2*y^2)+y^2*(x+2*y^2)
+  = 2*x^2+5*x*y^2+2*y^4=(2*x+y^2)*(x+2*y^2)
+  Check: multiply the factors:  (2*x+y^2)*(x+2*y^2)=(2*x^2+5*x*y^2+2*y^4)
+   FlowCE answer: (x+2*y^2)*(2*x+y^2)
+== factor(3x^2-10x*y*z+8y^2*z^2)   [ok, 5 steps]
+  Split the middle term (ac method):  3*8=24,(-6)+(-4)=-10
+  = 3*x^2-10*x*y*z+8*y^2*z^2=(3*x^2-6*x*y*z-4*x*y*z+8*y^2*z^2)
+  Factor by grouping:  3*x^2-10*x*y*z+8*y^2*z^2=3*x*(x-2*y*z)-4*y*z*(x-2*y*z)
+  = 3*x^2-10*x*y*z+8*y^2*z^2=(3*x-4*y*z)*(x-2*y*z)
+  Check: multiply the factors:  (3*x-4*y*z)*(x-2*y*z)=(3*x^2-10*x*y*z+8*y^2*z^2)
+   FlowCE answer: (x-2*y*z)*(3*x-4*y*z)
+== factor(2x^4+7x^2*y+3y^2)   [ok, 6 steps]
+  Quadratic form: substitute u:  2*x^4+7*x^2*y+3*y^2=2*u^2+7*y*u+3*y^2,u=x^2
+  Split the middle term (ac method):  2*3=6,6+1=7
+  = 2*x^4+7*x^2*y+3*y^2=(2*x^4+6*x^2*y+x^2*y+3*y^2)
+  Factor by grouping:  2*x^4+7*x^2*y+3*y^2=2*x^2*(x^2+3*y)+y*(x^2+3*y)
+  = 2*x^4+7*x^2*y+3*y^2=(2*x^2+y)*(x^2+3*y)
+  Check: multiply the factors:  (2*x^2+y)*(x^2+3*y)=(2*x^4+7*x^2*y+3*y^2)
+   FlowCE answer: (3*y+x^2)*(y+2*x^2)
+== factor(2x^3*y+10x^2*y^2+12x*y^3)   [ok, 5 steps]
+  Factor out the greatest common factor:  2*x^3*y+10*x^2*y^2+12*x*y^3=(2*x*y*(x^2+5*x*y+6*y^2))
+  Two numbers: product c, sum b:  2*3=6,2+3=5
+  = x^2+5*x*y+6*y^2=(x+2*y)*(x+3*y)
+  = 2*x^3*y+10*x^2*y^2+12*x*y^3=(2*x*y*(x+2*y)*(x+3*y))
+  Check: multiply the factors:  2*x*y*(x+2*y)*(x+3*y)=(2*x^3*y+10*x^2*y^2+12*x*y^3)
+   FlowCE answer: 2*y*x*(x+2*y)*(x+3*y)
+== factor(12x^2*y-2x*y^2-4y^3)   [ok, 7 steps]
+  Factor out the greatest common factor:  12*x^2*y-2*x*y^2-4*y^3=(2*y*(6*x^2-x*y-2*y^2))
+  Split the middle term (ac method):  6*(-2)=-12,3+(-4)=-1
+  = 6*x^2-x*y-2*y^2=(6*x^2+3*x*y-4*x*y-2*y^2)
+  Factor by grouping:  6*x^2-x*y-2*y^2=3*x*(2*x+y)-2*y*(2*x+y)
+  = 6*x^2-x*y-2*y^2=(3*x-2*y)*(2*x+y)
+  = 12*x^2*y-2*x*y^2-4*y^3=(2*y*(3*x-2*y)*(2*x+y))
+  Check: multiply the factors:  2*y*(3*x-2*y)*(2*x+y)=(12*x^2*y-2*x*y^2-4*y^3)
+   FlowCE answer: 2*y*(2*x+y)*(3*x-2*y)
+== factor(3x^2*y+9x*y^2+6y^3)   [ok, 5 steps]
+  Factor out the greatest common factor:  3*x^2*y+9*x*y^2+6*y^3=(3*y*(x^2+3*x*y+2*y^2))
+  Two numbers: product c, sum b:  1*2=2,1+2=3
+  = x^2+3*x*y+2*y^2=(x+y)*(x+2*y)
+  = 3*x^2*y+9*x*y^2+6*y^3=(3*y*(x+y)*(x+2*y))
+  Check: multiply the factors:  3*y*(x+y)*(x+2*y)=(3*x^2*y+9*x*y^2+6*y^3)
+   FlowCE answer: 3*y*(x+y)*(x+2*y)
+== factor(5x^3-5x^2*y-30x*y^2)   [ok, 5 steps]
+  Factor out the greatest common factor:  5*x^3-5*x^2*y-30*x*y^2=(5*x*(x^2-x*y-6*y^2))
+  Two numbers: product c, sum b:  2*(-3)=-6,2+(-3)=-1
+  = x^2-x*y-6*y^2=(x+2*y)*(x-3*y)
+  = 5*x^3-5*x^2*y-30*x*y^2=(5*x*(x+2*y)*(x-3*y))
+  Check: multiply the factors:  5*x*(x+2*y)*(x-3*y)=(5*x^3-5*x^2*y-30*x*y^2)
+   FlowCE answer: -5*x*(2*y+x)*(3*y-x)
+== factor(4x^2*z-12x*y*z+8y^2*z)   [ok, 5 steps]
+  Factor out the greatest common factor:  4*x^2*z-12*x*y*z+8*y^2*z=(4*z*(x^2-3*x*y+2*y^2))
+  Two numbers: product c, sum b:  (-1)*(-2)=2,(-1)+(-2)=-3
+  = x^2-3*x*y+2*y^2=(x-y)*(x-2*y)
+  = 4*x^2*z-12*x*y*z+8*y^2*z=(4*z*(x-y)*(x-2*y))
+  Check: multiply the factors:  4*z*(x-y)*(x-2*y)=(4*x^2*z-12*x*y*z+8*y^2*z)
+   FlowCE answer: 4*z*(x-y)*(x-2*y)
+== factor(-2x^2+2x*y+12y^2)   [ok, 5 steps]
+  Factor out the greatest common factor:  -2*x^2+2*x*y+12*y^2=(-2*(x^2-x*y-6*y^2))
+  Two numbers: product c, sum b:  2*(-3)=-6,2+(-3)=-1
+  = x^2-x*y-6*y^2=(x+2*y)*(x-3*y)
+  = -2*x^2+2*x*y+12*y^2=(-2*(x+2*y)*(x-3*y))
+  Check: multiply the factors:  -2*(x+2*y)*(x-3*y)=(-2*x^2+2*x*y+12*y^2)
+   FlowCE answer: -2*(x+2*y)*(x-3*y)
+== factor(x^3*y-x^2*y^2-2x*y^3)   [ok, 5 steps]
+  Factor out the greatest common factor:  x^3*y-x^2*y^2-2*x*y^3=(x*y*(x^2-x*y-2*y^2))
+  Two numbers: product c, sum b:  1*(-2)=-2,1+(-2)=-1
+  = x^2-x*y-2*y^2=(x+y)*(x-2*y)
+  = x^3*y-x^2*y^2-2*x*y^3=(x*y*(x+y)*(x-2*y))
+  Check: multiply the factors:  x*y*(x+y)*(x-2*y)=(x^3*y-x^2*y^2-2*x*y^3)
+   FlowCE answer: y*x*(x+y)*(x-2*y)
+== factor(6x^2*y^2+13x*y^3+6y^4)   [ok, 7 steps]
+  Factor out the greatest common factor:  6*x^2*y^2+13*x*y^3+6*y^4=(y^2*(6*x^2+13*x*y+6*y^2))
+  Split the middle term (ac method):  6*6=36,4+9=13
+  = 6*x^2+13*x*y+6*y^2=(6*x^2+4*x*y+9*x*y+6*y^2)
+  Factor by grouping:  6*x^2+13*x*y+6*y^2=2*x*(3*x+2*y)+3*y*(3*x+2*y)
+  = 6*x^2+13*x*y+6*y^2=(2*x+3*y)*(3*x+2*y)
+  = 6*x^2*y^2+13*x*y^3+6*y^4=(y^2*(2*x+3*y)*(3*x+2*y))
+  Check: multiply the factors:  y^2*(2*x+3*y)*(3*x+2*y)=(6*x^2*y^2+13*x*y^3+6*y^4)
+   FlowCE answer: y^2*(2*x+3*y)*(3*x+2*y)
+== factor(x^2+x*y+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2+x*y+y^2
+   FlowCE answer: x^2+y^2+x*y
+== factor(x^2+3x*y+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2+3*x*y+y^2
+   FlowCE answer: x^2+y^2+3*x*y
+== factor(2x^2+x*y+y^2)   [ok, 1 steps]
+  Does not factor further:  2*x^2+x*y+y^2
+   FlowCE answer: 2*x^2+y^2+x*y
+== factor(x^2-4x*y+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2-4*x*y+y^2
+   FlowCE answer: x^2+y^2-4*x*y
+== factor(3x^2+2x*y+2y^2)   [ok, 1 steps]
+  Does not factor further:  3*x^2+2*x*y+2*y^2
+   FlowCE answer: 3*x^2+2*y^2+2*x*y
+== factor(x^2+2x*y+y^2)   [ok, 2 steps]
+  Perfect square trinomial:  x^2+2*x*y+y^2=(x+y)^2
+  Check: multiply the factors:  (x+y)^2=(x^2+2*x*y+y^2)
+   FlowCE answer: (x+y)^2

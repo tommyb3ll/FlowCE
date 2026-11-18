@@ -1,0 +1,11 @@
+# selftest: pass
+== factor(x^6-64)   [ok, 8 steps]
+  Difference of squares:  x^6-64=(x^3)^2-8^2=(x^3-8)*(x^3+8)
+  Difference of cubes:  x^3-8=x^3-2^3=(x-2)*(x^2+2*x+4)
+  = x^6-64=((x-2)*(x^2+2*x+4)*(x^3+8))
+  SOAP: Same, Opposite, Always Positive:  -2,+2*x,+4
+  Sum of cubes:  x^3+8=x^3+2^3=(x+2)*(x^2-2*x+4)
+  = x^6-64=((x-2)*(x^2+2*x+4)*(x+2)*(x^2-2*x+4))
+  SOAP: Same, Opposite, Always Positive:  +2,-2*x,+4
+  Check: multiply the factors:  (x-2)*(x^2+2*x+4)*(x+2)*(x^2-2*x+4)=(x^6-64)
+   FlowCE answer: (x-2)*(x+2)*(x^2-2*x+4)*(x^2+2*x+4)

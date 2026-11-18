@@ -1,0 +1,4 @@
+# selftest: pass
+== factor(x^2+9)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+9
+   FlowCE answer: x^2+9

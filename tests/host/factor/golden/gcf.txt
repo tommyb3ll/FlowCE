@@ -1,0 +1,122 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/gcf.in). Only on purpose.
+== factor(6x+9)   [ok, 2 steps]
+  Factor out the greatest common factor:  6*x+9=(3*(2*x+3))
+  Check: multiply the factors:  3*(2*x+3)=(6*x+9)
+   FlowCE answer: 3*(2*x+3)
+== factor(4x^2-8)   [ok, 6 steps]
+  Factor out the greatest common factor:  4*x^2-8=(4*(x^2-2))
+  No whole numbers: roots by the formula:  x=(±sqrt(8))/2
+  = x=-sqrt(2),x=sqrt(2)
+  = x^2-2=(x+sqrt(2))*(x-sqrt(2))
+  = 4*x^2-8=(4*(x+sqrt(2))*(x-sqrt(2)))
+  Check: multiply the factors:  4*(x+sqrt(2))*(x-sqrt(2))=(4*x^2-8)
+   FlowCE answer: 4*(x+sqrt(2))*(x-sqrt(2))
+== factor(6x^2+9x)   [ok, 2 steps]
+  Factor out the greatest common factor:  6*x^2+9*x=(3*x*(2*x+3))
+  Check: multiply the factors:  3*x*(2*x+3)=(6*x^2+9*x)
+   FlowCE answer: 3*x*(2*x+3)
+== factor(x^3+x^2)   [ok, 2 steps]
+  Factor out the greatest common factor:  x^3+x^2=(x^2*(x+1))
+  Check: multiply the factors:  x^2*(x+1)=(x^3+x^2)
+   FlowCE answer: x^2*(x+1)
+== factor(x^5-x^2)   [ok, 5 steps]
+  Factor out the greatest common factor:  x^5-x^2=(x^2*(x^3-1))
+  Difference of cubes:  x^3-1=x^3-1^3=(x-1)*(x^2+x+1)
+  = x^5-x^2=(x^2*(x-1)*(x^2+x+1))
+  SOAP: Same, Opposite, Always Positive:  -1,+x,+1
+  Check: multiply the factors:  x^2*(x-1)*(x^2+x+1)=(x^5-x^2)
+   FlowCE answer: x^2*(x-1)*(x^2+x+1)
+== factor(x^3-x)   [ok, 4 steps]
+  Factor out the greatest common factor:  x^3-x=(x*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^3-x=(x*(x-1)*(x+1))
+  Check: multiply the factors:  x*(x-1)*(x+1)=(x^3-x)
+   FlowCE answer: x*(x-1)*(x+1)
+== factor(-x^2+4)   [ok, 4 steps]
+  Factor out the greatest common factor:  -x^2+4=(-(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = -x^2+4=(-(x-2)*(x+2))
+  Check: multiply the factors:  -(x-2)*(x+2)=(-x^2+4)
+   FlowCE answer: -(x-2)*(x+2)
+== factor(-2x^3+8x)   [ok, 4 steps]
+  Factor out the greatest common factor:  -2*x^3+8*x=(-2*x*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = -2*x^3+8*x=(-2*x*(x-2)*(x+2))
+  Check: multiply the factors:  -2*x*(x-2)*(x+2)=(-2*x^3+8*x)
+   FlowCE answer: -2*x*(x-2)*(x+2)
+== factor(-3x^2-6x)   [ok, 2 steps]
+  Factor out the greatest common factor:  -3*x^2-6*x=(-3*x*(x+2))
+  Check: multiply the factors:  -3*x*(x+2)=(-3*x^2-6*x)
+   FlowCE answer: -3*x*(x+2)
+== factor(-x^3+x)   [ok, 4 steps]
+  Factor out the greatest common factor:  -x^3+x=(-x*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = -x^3+x=(-x*(x-1)*(x+1))
+  Check: multiply the factors:  -x*(x-1)*(x+1)=(-x^3+x)
+   FlowCE answer: -x*(x-1)*(x+1)
+== factor(2x^2-2)   [ok, 4 steps]
+  Factor out the greatest common factor:  2*x^2-2=(2*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = 2*x^2-2=(2*(x-1)*(x+1))
+  Check: multiply the factors:  2*(x-1)*(x+1)=(2*x^2-2)
+   FlowCE answer: 2*(x-1)*(x+1)
+== factor(3x^2-12)   [ok, 4 steps]
+  Factor out the greatest common factor:  3*x^2-12=(3*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = 3*x^2-12=(3*(x-2)*(x+2))
+  Check: multiply the factors:  3*(x-2)*(x+2)=(3*x^2-12)
+   FlowCE answer: 3*(x-2)*(x+2)
+== factor(5x^3-45x)   [ok, 4 steps]
+  Factor out the greatest common factor:  5*x^3-45*x=(5*x*(x^2-9))
+  Difference of squares:  x^2-9=x^2-3^2=(x-3)*(x+3)
+  = 5*x^3-45*x=(5*x*(x-3)*(x+3))
+  Check: multiply the factors:  5*x*(x-3)*(x+3)=(5*x^3-45*x)
+   FlowCE answer: 5*x*(x-3)*(x+3)
+== factor(1/2*x^2-2)   [ok, 4 steps]
+  Factor out the greatest common factor:  1/2*x^2-2=(1/2*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = 1/2*x^2-2=(1/2*(x-2)*(x+2))
+  Check: multiply the factors:  1/2*(x-2)*(x+2)=(1/2*x^2-2)
+   FlowCE answer: (x-2)*(x+2)/2
+== factor(x^2/3-1/3)   [ok, 4 steps]
+  Factor out the greatest common factor:  1/3*x^2-1/3=(1/3*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = 1/3*x^2-1/3=(1/3*(x-1)*(x+1))
+  Check: multiply the factors:  1/3*(x-1)*(x+1)=(1/3*x^2-1/3)
+   FlowCE answer: (x-1)*(x+1)/3
+== factor(3/4*x^2-3)   [ok, 4 steps]
+  Factor out the greatest common factor:  3/4*x^2-3=(3/4*(x^2-4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = 3/4*x^2-3=(3/4*(x-2)*(x+2))
+  Check: multiply the factors:  3/4*(x-2)*(x+2)=(3/4*x^2-3)
+   FlowCE answer: 3*(x-2)*(x+2)/4
+== factor(x^2/2+x/2)   [ok, 2 steps]
+  Factor out the greatest common factor:  1/2*x^2+1/2*x=(1/2*x*(x+1))
+  Check: multiply the factors:  1/2*x*(x+1)=(1/2*x^2+1/2*x)
+   FlowCE answer: x*(x+1)/2
+== factor(1/3*x^2+x+2/3)   [ok, 5 steps]
+  Factor out the greatest common factor:  1/3*x^2+x+2/3=(1/3*(x^2+3*x+2))
+  Two numbers: product c, sum b:  1*2=2,1+2=3
+  = x^2+3*x+2=(x+1)*(x+2)
+  = 1/3*x^2+x+2/3=(1/3*(x+1)*(x+2))
+  Check: multiply the factors:  1/3*(x+1)*(x+2)=(1/3*x^2+x+2/3)
+   FlowCE answer: (x+1)*(x+2)/3
+== factor(x^4-x^2)   [ok, 4 steps]
+  Factor out the greatest common factor:  x^4-x^2=(x^2*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^4-x^2=(x^2*(x-1)*(x+1))
+  Check: multiply the factors:  x^2*(x-1)*(x+1)=(x^4-x^2)
+   FlowCE answer: x^2*(x-1)*(x+1)
+== factor(2x^4+4x^3+2x^2)   [ok, 4 steps]
+  Factor out the greatest common factor:  2*x^4+4*x^3+2*x^2=(2*x^2*(x^2+2*x+1))
+  Perfect square trinomial:  x^2+2*x+1=(x+1)^2
+  = 2*x^4+4*x^3+2*x^2=(2*x^2*(x+1)^2)
+  Check: multiply the factors:  2*x^2*(x+1)^2=(2*x^4+4*x^3+2*x^2)
+   FlowCE answer: 2*x^2*(x+1)^2
+== factor(12x^3-27x)   [ok, 4 steps]
+  Factor out the greatest common factor:  12*x^3-27*x=(3*x*(4*x^2-9))
+  Difference of squares:  4*x^2-9=(2*x)^2-3^2=(2*x-3)*(2*x+3)
+  = 12*x^3-27*x=(3*x*(2*x-3)*(2*x+3))
+  Check: multiply the factors:  3*x*(2*x-3)*(2*x+3)=(12*x^3-27*x)
+   FlowCE answer: 3*x*(2*x-3)*(2*x+3)

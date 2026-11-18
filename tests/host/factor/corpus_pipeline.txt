@@ -1,0 +1,110 @@
+# The whole of the factoring driver: combined problems (a common factor, then a pattern, then a pattern again on each
+# new factor; grouping then differences of squares or cubes; repeated factors; term orders other than giac's),
+# the irreducible ones (one "does not factor" step), and the degenerate ones. Tags as in corpus_onevar.txt;
+# "; factors" is what the problem was built from (the checker multiplies them back and counts them).
+# combined: expanded from factors, every one with steps
+factor(2x^3*y-8x*y^3)   # expect: steps ; 2*x*y*(x-2*y)*(x+2*y)
+factor(3x^3-3x*y^2)   # expect: steps ; 3*x*(x-y)*(x+y)
+factor(20x^2*y-45y^3)   # expect: steps ; 5*y*(2*x-3*y)*(2*x+3*y)
+factor(4x^3*y-36x*y)   # expect: steps ; 4*x*y*(x-3)*(x+3)
+factor(-2x^3+2x*y^2)   # expect: steps ; -2*x*(x-y)*(x+y)
+factor(6x^4-24x^2*y^2)   # expect: steps ; 6*x^2*(x-2*y)*(x+2*y)
+factor(7a^3*b-7a*b)   # expect: steps ; 7*a*b*(a-1)*(a+1)
+factor(2x^2*y^2-18)   # expect: steps ; 2*(x*y-3)*(x*y+3)
+factor(3x^2*y^2-12)   # expect: steps ; 3*(x*y-2)*(x*y+2)
+factor(x^2*y-16y)   # expect: steps ; y*(x-4)*(x+4)
+factor(x^3*y-4x*y^3)   # expect: steps ; x*y*(x-2*y)*(x+2*y)
+factor(2x^4-2x*y^3)   # expect: steps ; 2*x*(x-y)*(x^2+x*y+y^2)
+factor(3x^3*y+24y^4)   # expect: steps ; 3*y*(x+2*y)*(x^2-2*x*y+4*y^2)
+factor(40x^4*y-5x*y^4)   # expect: steps ; 5*x*y*(2*x-y)*(4*x^2+2*x*y+y^2)
+factor(2x^3*y-2y)   # expect: steps ; 2*y*(x-1)*(x^2+x+1)
+factor(-3x^3*y-12x^2*y^2-12x*y^3)   # expect: steps ; -3*x*y*(x+2*y)*(x+2*y)
+factor(18x^3-12x^2*y+2x*y^2)   # expect: steps ; 2*x*(3*x-y)*(3*x-y)
+factor(4x^2*y-24x*y+36y)   # expect: steps ; 4*y*(x-3)*(x-3)
+factor(-5a^3-20a^2*b-20a*b^2)   # expect: steps ; -5*a*(a+2*b)*(a+2*b)
+factor(x^3*y-10x^2*y^2+25x*y^3)   # expect: steps ; x*y*(x-5*y)*(x-5*y)
+factor(4x^3*y-4x^2*y-24x*y)   # expect: steps ; 4*x*y*(x+2)*(x-3)
+factor(3x^3+9x^2*y+6x*y^2)   # expect: steps ; 3*x*(x+y)*(x+2*y)
+factor(2x^2*y+2x*y^2-24y^3)   # expect: steps ; 2*y*(x-3*y)*(x+4*y)
+factor(5x^3*y-25x^2*y^2+30x*y^3)   # expect: steps ; 5*x*y*(x-2*y)*(x-3*y)
+factor(4x^3-10x^2*y-6x*y^2)   # expect: steps ; 2*x*(2*x+y)*(x-3*y)
+factor(9x^2*y+3x*y^2-6y^3)   # expect: steps ; 3*y*(3*x-2*y)*(x+y)
+factor(8x^3*y-14x^2*y^2-15x*y^3)   # expect: steps ; x*y*(4*x+3*y)*(2*x-5*y)
+factor(-2m^3+8m^2*n+10m*n^2)   # expect: steps ; -2*m*(m+n)*(m-5*n)
+factor(12x^2-30x-18)   # expect: steps ; 6*(2*x+1)*(x-3)
+factor(-x^2*y+4x*y+12y)   # expect: steps ; -y*(x-6)*(x+2)
+factor(3x^3+6x^2-27x-54)   # expect: steps ; 3*(x+2)*(x-3)*(x+3)
+factor(2x^3-2x^2+8x-8)   # expect: steps ; 2*(x-1)*(x^2+4)
+factor(5x^4+5x^3+10x^2+10x)   # expect: steps ; 5*x*(x+1)*(x^2+2)
+factor(x^3*y+2x^2*y+5x*y+10y)   # expect: steps ; y*(x+2)*(x^2+5)
+factor(a^2*x+a^2-b^2*x-b^2)   # expect: steps ; (a-b)*(a+b)*(x+1)
+factor(a^2*x-3a^2-4b^2*x+12b^2)   # expect: steps ; (a-2*b)*(a+2*b)*(x-3)
+factor(x^2*z+x^2-y^2*z-y^2)   # expect: steps ; (x-y)*(x+y)*(z+1)
+factor(x*z^2-x+2z^2-2)   # expect: steps ; (z-1)*(z+1)*(x+2)
+factor(x^2*y^2-x^2-y^2+1)   # expect: steps ; (x-1)*(x+1)*(y-1)*(y+1)
+factor(x^2*y^2-9x^2-4y^2+36)   # expect: steps ; (x-2)*(x+2)*(y-3)*(y+3)
+factor(x^3-x^2*y-x*y^2+y^3)   # expect: steps ; (x-y)*(x-y)*(x+y)
+factor(x^3+x^2*y-x*y^2-y^3)   # expect: steps ; (x+y)*(x+y)*(x-y)
+factor(x^3*y+2x^3-y-2)   # expect: steps ; (x-1)*(x^2+x+1)*(y+2)
+factor(x^3*y-x^3+8y-8)   # expect: steps ; (x+2)*(x^2-2*x+4)*(y-1)
+factor(x^4-y^4)   # expect: steps ; (x-y)*(x+y)*(x^2+y^2)
+factor(x^4-16y^4)   # expect: steps ; (x-2*y)*(x+2*y)*(x^2+4*y^2)
+factor(2x^4-2y^4)   # expect: steps ; 2*(x-y)*(x+y)*(x^2+y^2)
+factor(3x^5-3x*y^4)   # expect: steps ; 3*x*(x-y)*(x+y)*(x^2+y^2)
+factor(x^8-y^8)   # expect: steps ; (x-y)*(x+y)*(x^2+y^2)*(x^4+y^4)
+factor(x^6-y^6)   # expect: steps ; (x-y)*(x+y)*(x^2-x*y+y^2)*(x^2+x*y+y^2)
+factor(x^8+x^6*y^2-x^2*y^6-y^8)   # expect: steps ; (x-y)*(x+y)*(x^2+y^2)*(x^2-x*y+y^2)*(x^2+x*y+y^2)
+factor(x^6-64)   # expect: steps ; (x-2)*(x+2)*(x^2+2*x+4)*(x^2-2*x+4)
+factor(x^6-1)   # expect: steps ; (x-1)*(x+1)*(x^2+x+1)*(x^2-x+1)
+factor(x^4-16)   # expect: steps ; (x-2)*(x+2)*(x^2+4)
+factor(-2x^4+32)   # expect: steps ; -2*(x-2)*(x+2)*(x^2+4)
+factor(x^5-x)   # expect: steps ; x*(x-1)*(x+1)*(x^2+1)
+factor(2x^5-32x)   # expect: steps ; 2*x*(x-2)*(x+2)*(x^2+4)
+factor(x^5-x^2)   # expect: steps ; x^2*(x-1)*(x^2+x+1)
+factor(x^4+2x^3-13x^2-14x+24)   # expect: steps ; (x-1)*(x+2)*(x-3)*(x+4)
+factor(x^3-3x-2)   # expect: steps ; (x+1)*(x+1)*(x-2)
+factor(2x^3-3x^2-23x+12)   # expect: steps ; (2*x-1)*(x+3)*(x-4)
+factor(-8x*y^3+2x^3*y)   # expect: steps ; 2*x*y*(x-2*y)*(x+2*y)
+factor(6x*y^3+9x^2*y^2+3x^3*y)   # expect: steps ; 3*x*y*(x+y)*(x+2*y)
+factor(-5x^2*y^2+x^4+4y^4)   # expect: steps ; (x-y)*(x+y)*(x-2*y)*(x+2*y)
+factor(2x^3+2x^2*y-12x*y^2)   # expect: steps ; 2*x*(x+3*y)*(x-2*y)
+factor(-y+x^4*y)   # expect: steps ; y*(x-1)*(x+1)*(x^2+1)
+factor(-b^2*x+a^2*x+2a^2-2b^2)   # expect: steps ; (a-b)*(a+b)*(x+2)
+factor(3x+2y+6+x*y)   # expect: steps ; (x+2)*(y+3)
+factor(-8x-y+4+2x*y)   # expect: steps ; (2*x-1)*(y-4)
+factor(-y^3+x^3)   # expect: steps ; (x-y)*(x^2+x*y+y^2)
+factor(3x^2-6x*y+3y^2)   # expect: steps ; 3*(x-y)*(x-y)
+factor(-9x*y^3+x^3*y)   # expect: steps ; x*y*(x-3*y)*(x+3*y)
+factor(x*y^2*z-x*z)   # expect: steps ; x*z*(y-1)*(y+1)
+factor(x^2*y*z-y*z^3)   # expect: steps ; y*z*(x-z)*(x+z)
+factor(a*b*x^2-a*b)   # expect: steps ; a*b*(x-1)*(x+1)
+# irreducible, or a number or a name only: one "does not factor" step, or a common factor with nothing after it
+factor(x^2+y^2)   # expect: prime
+factor(x^2+x*y+y^2)   # expect: prime
+factor(x^2+9)   # expect: prime
+factor(x^3+x+1)   # expect: prime
+factor(2x^2+2y^2)   # expect: steps
+factor(3x^2+3)   # expect: steps
+factor(5x^2*y+5y)   # expect: steps
+factor(x^2+4y^2)   # expect: prime
+factor(x^4+y^4)   # expect: prime
+factor(2x^2+x*y+y^2)   # expect: prime
+factor(x*y+x+y+2)   # expect: prime
+factor(x^2+y^2+1)   # expect: prime
+factor(7y+14)   # expect: steps
+factor(6x-9)   # expect: steps
+factor(-4x-12)   # expect: steps
+factor(7x)   # expect: prime
+factor(x+1)   # expect: prime
+factor(2x+1)   # expect: prime
+factor(x)   # expect: prime
+factor(x+y)   # expect: prime
+# no steps (out of scope or nothing to explain): a number, a monomial, 3+1 terms, a cube of a binomial, x^4+4
+factor(0)   # expect: nosteps-ok
+factor(7)   # expect: nosteps-ok
+factor(6x^2*y)   # expect: nosteps-ok
+factor(x*y)   # expect: nosteps-ok
+factor(6x^2)   # expect: nosteps-ok
+factor(x^4+4)   # expect: nosteps-ok
+factor(x^2+2x*y+y^2-1)   # expect: nosteps-ok
+factor(x^3+3x^2*y+3x*y^2+y^3)   # expect: nosteps-ok

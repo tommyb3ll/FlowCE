@@ -1,0 +1,32 @@
+# Problems whose steps screen is rendered and looked at (run_render.sh). One per strategy, then combined
+# ones and long ones (lines that must wrap or scale, not be cut). Plain factor(...) lines.
+# gcf, several variables
+factor(6x^2*y+9x*y^2)
+# x^2+bx+c
+factor(x^2-5x+6)
+# ax^2+bx+c (ac method)
+factor(6x^2+7x-3)
+# two-variable trinomial
+factor(x^2+5x*y+6y^2)
+# difference of squares, monomial terms
+factor(4x^2-9y^2)
+# perfect square
+factor(4x^2+12x*y+9y^2)
+# sum of cubes
+factor(8x^3+27y^3)
+# grouping, two variables
+factor(x*y+2x+3y+6)
+# grouping, terms in another order (rearrange line)
+factor(x*y+6+2x+3y)
+# does not factor
+factor(x^2+x*y+y^2)
+# combined: gcf then difference of squares
+factor(2x^3*y-8x*y^3)
+# combined: grouping then difference of squares
+factor(x^3+x^2-4x-4)
+# combined: gcf, then differences of squares twice
+factor(2x^4-32)
+# long: three-variable gcf then a pattern
+factor(-12x^5*y^2*z+75x^3*y^2*z^3)
+# long: large coefficients
+factor(299209x^2-505428x+213444)

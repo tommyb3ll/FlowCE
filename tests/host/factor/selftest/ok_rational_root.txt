@@ -1,0 +1,9 @@
+# selftest: pass
+== factor(x^3-6x^2+11x-6)   [ok, 6 steps]
+  A rational root: divide by its factor:  1^3-6*1^2+11*1-6=0
+  = x^3-6*x^2+11*x-6=(x-1)*(x^2-5*x+6)
+  Two numbers: product c, sum b:  (-2)*(-3)=6,(-2)+(-3)=-5
+  = x^2-5*x+6=(x-2)*(x-3)
+  = x^3-6*x^2+11*x-6=((x-1)*(x-2)*(x-3))
+  Check: multiply the factors:  (x-1)*(x-2)*(x-3)=(x^3-6*x^2+11*x-6)
+   FlowCE answer: (x-1)*(x-2)*(x-3)

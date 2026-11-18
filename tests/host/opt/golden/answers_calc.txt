@@ -1,0 +1,615 @@
+diff(ln(x)/x^3,x) -> (1-3*ln(x))/x^4
+diff(sqrt(1-x^2)*asin(x),x) -> (x*sqrt(1-x^2)*asin(x)+x^2-1)/(x^2-1)
+diff(ln(x)^x,x) -> (ln(ln(x))+1/ln(x))*ln(x)^x
+diff(10^(5*x),x) -> 5*ln(10)*10^x*(10^x)^4
+diff(exp(sin(5*x^2+7*x+9)),x) -> exp(sin(5*x^2+7*x+9))*(10*x+7)*cos(5*x^2+7*x+9)
+diff(ln(x)*acos(x),x) -> 1/x*acos(x)-ln(x)/sqrt(1-x^2)
+diff(csc(2*x)*ln(x)+exp(x)*ln(x+2)*sin(1/x),x) -> -2*csc(2*x)*cot(2*x)*ln(x)+csc(2*x)/x+exp(x)*ln(x+2)*sin(1/x)+exp(x)*(sin(1/x)/(x+2)-ln(x+2)*cos(1/x)/x^2)
+diff(acos(x)/(1+tan(x)),x) -> -(sqrt(1-x^2)*acos(x)*sec(x)^2+tan(x)+1)/sqrt(1-x^2)/(1+tan(x))^2
+diff(cos(x^2+7),x) -> -2*x*sin(x^2+7)
+diff(ln(x)/(1+tan(x)),x) -> ((1+tan(x))/x-ln(x)*sec(x)^2)/(1+tan(x))^2
+diff(ln(sin(x)),x) -> cos(x)/sin(x)
+diff(10^x*ln(3*x-5)*cos(3*x^2-x),x) -> ln(10)*10^x*ln(3*x-5)*cos(3*x^2-x)+3*10^x/(3*x-5)*cos(3*x^2-x)-(6*x-1)*10^x*ln(3*x-5)*sin(3*x^2-x)
+diff((1+1/x)^x,x) -> (ln(1+1/x)-1/(x*(1+1/x)))*(1+1/x)^x
+diff(5^x*cot(x),x) -> 5^x*ln(5)*cot(x)-5^x*csc(x)^2
+diff(atan(exp(3*x)),x) -> 3*exp(3*x)/(1+exp(3*x)^2)
+diff(ln(x)/x,x) -> (1-ln(x))/x^2
+diff(atan(exp(sqrt(x))),x) -> exp(sqrt(x))/(2*sqrt(x)*(exp(sqrt(x))^2+1))
+diff(atan(exp(-x))-sqrt(1+sin(x)),x) -> sqrt(2)*sin((2*x-pi)/4)*abs(cos((2*x-pi)/4))/(2*cos((2*x-pi)/4))-exp(-x)/(1+exp(-x)^2)
+diff(cot(x)/x,x) -> -csc(x)^2/x-cot(x)/x^2
+diff(ln(x^3+x^2)+atan(x)+cos(x),x) -> (3*x^2+2*x)/(x^3+x^2)+1/(1+x^2)-sin(x)
+diff(atan(x)*cos(2*x),x) -> 1/(1+x^2)*cos(2*x)-2*atan(x)*sin(2*x)
+diff(x^(3*x),x) -> 3*x^x*(ln(x)+1)*(x^x)^2
+diff(sin(1/x),x) -> -cos(1/x)/x^2
+diff(asin((3-x)/5),x) -> -1/sqrt(-x^2+6*x+16)
+diff(sqrt(1+exp(tan(3*x))),x) -> 3*exp(tan(3*x))*sec(3*x)^2/(2*sqrt(1+exp(tan(3*x))))
+diff(ln(2*x^2-1),x) -> 4*x/(2*x^2-1)
+diff(10^x*sin(3*x),x) -> 3*10^x*cos(3*x)+10^x*ln(10)*sin(3*x)
+diff(atan(1/x)+9*exp(3*x),x) -> 27*exp(3*x)-1/(x^2*(1+(1/x)^2))
+diff(x^(1/x),x) -> (x^(1/x)-x^(1/x)*ln(x))/x^2
+diff(sqrt(sec(3*x^2-4)),x) -> 3*x*sec(3*x^2-4)*tan(3*x^2-4)/sqrt(sec(3*x^2-4))
+diff(atan(x)/(1+x^2),x) -> (1-2*x*atan(x))/(x^2+1)^2
+diff(exp(1/x),x) -> -exp(1/x)/x^2
+diff(8*asin(2*x)*ln(4*x-7),x) -> 16/sqrt(1-4*x^2)*ln(4*x-7)+32*asin(2*x)/(4*x-7)
+diff(ln(sqrt(3*x^2+7)),x) -> 3*x/(3*x^2+7)
+diff(x^3*2^x,x) -> x^3*2^x*ln(2)+3*x^2*2^x
+diff(acos(x)/sqrt(2*x^2+7),x) -> -(2*x^2+2*x*sqrt(1-x^2)*acos(x)+7)/((2*x^2+7)*sqrt(2*x^2+7)*sqrt(1-x^2))
+diff(sqrt(sec(3*x^2-7*x)),x) -> (6*x-7)*sec(3*x^2-7*x)*tan(3*x^2-7*x)/(2*sqrt(sec(3*x^2-7*x)))
+diff(x^(4*x),x) -> 4*x^x*(ln(x)+1)*(x^x)^3
+diff(atan(1/x),x) -> -1/(x^2+1)
+diff(sqrt(2+sin(3*x))+4*sqrt(4*x^2+3*x-3)*ln(x)+atan(x),x) -> 2*(8*x+3)/sqrt(4*x^2+3*x-3)*ln(x)+4*sqrt(4*x^2+3*x-3)/x+3*cos(3*x)/(2*sqrt(2+sin(3*x)))+1/(1+x^2)
+diff(ln(x)/(3*x^2-4),x) -> ((3*x^2-4)/x-6*x*ln(x))/(3*x^2-4)^2
+diff(ln(sec(x)+tan(x)),x) -> sec(x)
+diff(3^(4*x),x) -> 4*ln(3)*3^x*(3^x)^3
+diff((2+tan(2*x))^7,x) -> 14*(2+tan(2*x))^6*sec(2*x)^2
+diff(5^x*ln(x),x) -> ln(5)*5^x*ln(x)+5^x/x
+diff(cos(5*x^3+x^2+8*x-5),x) -> -(15*x^2+2*x+8)*sin(5*x^3+x^2+8*x-5)
+diff(cos(x)^ln(x),x) -> (1/x*ln(cos(x))-ln(x)*sin(x)/cos(x))*cos(x)^(ln(x))
+diff(sin(cos(x)^2),x) -> -2*sin(x)*cos(x)*cos(cos(x)^2)
+diff(ln(x^4*sqrt(2*x^2+3*x)),x) -> (20*x+27)/(2*x*(2*x+3))
+diff(x*asin(x),x) -> asin(x)+x/sqrt(1-x^2)
+diff(acos(x)*ln(x)*cos(ln(x)),x) -> -1/sqrt(1-x^2)*ln(x)*cos(ln(x))+acos(x)/x*cos(ln(x))-acos(x)*ln(x)/x*sin(ln(x))
+diff(7*csc(2*x)-(2+exp(2*x))^6,x) -> -14*csc(2*x)*cot(2*x)-12*exp(2*x)*(2+exp(2*x))^5
+diff(3^(2*x),x) -> 2*ln(3)*3^x*3^x
+diff(tan(3*x)/(1+exp(2*x)),x) -> (3*sec(3*x)^2*(1+exp(2*x))-2*exp(2*x)*tan(3*x))/(1+exp(2*x))^2
+diff((x+5)*exp(2*x)-sqrt(3*x-5)*10^x+ln(3*x+2)*acos(3*x)*(x^2+6*x)^8,x) -> exp(2*x)+2*exp(2*x)*(x+5)-3*10^x/(2*sqrt(3*x-5))-sqrt(3*x-5)*ln(10)*10^x+3/(3*x+2)*acos(3*x)*(x^2+6*x)^8-3*ln(3*x+2)/sqrt(1-9*x^2)*(x^2+6*x)^8+16*(x+3)*ln(3*x+2)*acos(3*x)*(x^2+6*x)^7
+diff((5*x^2-8*x)*sqrt(x^2+5),x) -> (15*x^3-16*x^2+50*x-40)/sqrt(x^2+5)
+diff(1/sin(ln(x)),x) -> -cos(ln(x))/(x*sin(ln(x))^2)
+diff(ln(x)^3,x) -> 3*ln(x)^2/x
+diff(acos(x)^2,x) -> -2*acos(x)/sqrt(1-x^2)
+diff(x^5/(1+exp(x)),x) -> (5*x^4*(1+exp(x))-x^5*exp(x))/(1+exp(x))^2
+diff(3^x,x) -> ln(3)*3^x
+diff(x^exp(x),x) -> x^(exp(x))*(exp(x)*ln(x)+exp(x)/x)
+diff(ln(4*x^2-2*x+1),x) -> 2*(4*x-1)/(4*x^2-2*x+1)
+diff(exp(cos(ln(x))),x) -> -exp(cos(ln(x)))*sin(ln(x))/x
+diff(atan(x)^2,x) -> 2/(1+x^2)*atan(x)
+diff(2^x/x^2,x) -> (x*2^x*ln(2)-2*2^x)/x^3
+diff(x^tan(x),x) -> x^(tan(x))*(sec(x)^2*ln(x)+tan(x)/x)
+diff(atan(x)/x,x) -> (x/(1+x^2)-atan(x))/x^2
+diff(cos(x^3-3*x-4),x) -> -3*(x^2-1)*sin(x^3-3*x-4)
+diff(cos(2*x)+sqrt(2*x-9)*acos(x)*atan(ln(x))-x^(1/3)*sqrt(4*x+7),x) -> -2*x^(1/3)/sqrt(4*x+7)+1/sqrt(2*x-9)*acos(x)*atan(ln(x))-sqrt(2*x-9)/sqrt(1-x^2)*atan(ln(x))+sqrt(2*x-9)*acos(x)/(x*(1+ln(x)^2))-2*sin(2*x)-sqrt(4*x+7)/(3*x^(2/3))
+diff(ln(x^4*sqrt(3*x^2-5*x-1)),x) -> (30*x^2-45*x-8)/(6*x^3-10*x^2-2*x)
+diff(ln(x)*sqrt(x-8)*atan(exp(3*x)),x) -> (6*x^2*exp(3*x)*ln(x)+x*ln(x)*exp(3*x)^2*atan(exp(3*x))-48*x*exp(3*x)*ln(x)+x*ln(x)*atan(exp(3*x))+2*x*exp(3*x)^2*atan(exp(3*x))+2*x*atan(exp(3*x))-16*exp(3*x)^2*atan(exp(3*x))-16*atan(exp(3*x)))/(sqrt(x-8)*(2*exp(3*x)^2+2)*x)
+diff(x^x,x) -> x^x*(ln(x)+1)
+diff(x^2/sqrt(5*x+9),x) -> 3*x*(5*x+12)/(2*(5*x+9)^(3/2))
+diff(ln(1+tan(sqrt(x))),x) -> sec(sqrt(x))^2/(2*sqrt(x)*(1+tan(sqrt(x))))
+diff(exp(x)*acos(x),x) -> exp(x)*acos(x)-exp(x)/sqrt(1-x^2)
+diff(x^2*acos(x),x) -> 2*x*acos(x)-x^2/sqrt(1-x^2)
+diff(10^x/x^2,x) -> (x*10^x*ln(10)-2*10^x)/x^3
+diff(x*ln(x),x) -> ln(x)+1
+diff(ln(4+exp(x))-sqrt(ln(x))-2*(5*x^3-2*x^2-4)*sqrt(3*x-7)*atan(5*x^3+6*x^2+6*x-6),x) -> exp(x)/(4+exp(x))-1/(2*x*sqrt(ln(x)))-2*(15*x^2-4*x)*sqrt(3*x-7)*atan(5*x^3+6*x^2+6*x-6)-3*(5*x^3-2*x^2-4)/sqrt(3*x-7)*atan(5*x^3+6*x^2+6*x-6)-6*(5*x^2+4*x+2)*(5*x^3-2*x^2-4)*sqrt(3*x-7)/(1+(5*x^3+6*x^2+6*x-6)^2)
+diff((4+exp(-x))^5,x) -> -5*exp(-x)*(4+exp(-x))^4
+diff(exp(2*x)*5^x,x) -> exp(2*x)*5^x*ln(5)+2*exp(2*x)*5^x
+diff((3*x+1)/(1+exp(2*x)),x) -> (-6*x*exp(2*x)+exp(2*x)+3)/(exp(2*x)+1)^2
+diff(sqrt(ln(x)),x) -> ln(x)^(9/2)/(ln(x)^4*2*x*ln(x))
+diff(sin((3+tan(x))^8),x) -> 8*cos((3+tan(x))^8)*(3+tan(x))^7*sec(x)^2
+diff(ln(x)/x^4,x) -> (1-4*ln(x))/x^5
+diff(2^(3*x^3+2*x),x) -> (9*x^2+2)*ln(2)*2^(3*x^3+2*x)
+diff(x*acos(x),x) -> acos(x)-x/sqrt(1-x^2)
+diff(x^sqrt(x),x) -> (x^(sqrt(x))*ln(x)+2*x^(sqrt(x)))/(2*sqrt(x))
+diff(exp(sqrt(x))+cos(1/x),x) -> exp(sqrt(x))/(2*sqrt(x))+1/x^2*sin(1/x)
+diff(2^x,x) -> ln(2)*2^x
+diff(atan((9-5*x)/3),x) -> -3/(5*x^2-18*x+18)
+diff(x^atan(x),x) -> x^(atan(x))*(1/(1+x^2)*ln(x)+atan(x)/x)
+diff(5^x+2*exp(2*x),x) -> 5^x*ln(5)+4*exp(2*x)
+diff((3*x^2-x)/(1+exp(2*x)),x) -> (-6*x^2*exp(2*x)+8*x*exp(2*x)+6*x-exp(2*x)-1)/(exp(2*x)+1)^2
+diff(6*sqrt(x^2+4*x)*tan(x),x) -> 6*(2*(x+2)*tan(x)/(2*sqrt(x^2+4*x))+sqrt(x^2+4*x)*sec(x)^2)
+diff(sqrt(tan(sqrt(x))),x) -> sec(sqrt(x))^2/(4*sqrt(x)*sqrt(tan(sqrt(x))))
+diff(ln(x)^2,x) -> 2*ln(x)/x
+diff(ln(3+exp(x)),x) -> exp(x)/(exp(x)+3)
+diff(ln(cos(exp(2*x))),x) -> -2*exp(2*x)*sin(exp(2*x))/cos(exp(2*x))
+integrate(1/(x^2*sqrt(7-x^2)),x) -> (x^2+sqrt(7-x^2)*sqrt(7)-7)/(7*x*(sqrt(7-x^2)-sqrt(7)))
+integrate(3/((x-2)*(x+1)),x) -> ln(abs(x-2))-ln(abs(x+1))
+integrate(x/sqrt(2*x-x^2),x) -> asin(x-1)-sqrt(2*x-x^2)
+integrate(tan(2*x)^5*sec(2*x),x) -> sec(2*x)^5/5/2-sec(2*x)^3/3+sec(2*x)/2
+integrate(x^2*ln(x),x) -> (3*x^3*ln(x)-x^3)/9
+integrate(7*x^6-3*x^3+8*x^2,x) -> x^7-3*x^4/4+8*x^3/3
+integrate(1/(9*x^2+6*x+8),x,0,1) -> (atan(4/sqrt(7))-atan(1/sqrt(7)))/(3*sqrt(7))  ~ 0.0787496
+integrate(cos(3*x),x) -> sin(3*x)/3
+integrate(cos(sqrt(x))/sqrt(x),x) -> 2*sin(sqrt(x))
+integrate(1/sqrt(6*x-x^2-7),x) -> asin((x-3)/sqrt(2))
+integrate(x^3/sqrt(9+x^2),x) -> (x^2-18)*sqrt(x^2+9)/3
+integrate(x^6-x^4-6/sqrt(x)+1/x^3,x) -> x^7/7-x^5/5-12*sqrt(x)-1/(2*x^2)
+integrate(x*atan(x),x) -> (x^2*atan(x)-x+atan(x))/2
+integrate(8*cos(2*x+9),x) -> 8*sin(2*x+9)/2
+integrate(1/sqrt(1-x^2),x,0,1) -> pi/2  ~ 1.5708
+integrate(cos(4*x)*cos(5*x),x) -> (sin(9*x)+9*sin(x))/18
+integrate(4*sec(x)^2*(1+tan(x))^2,x) -> 4*(tan(x)^3+3*tan(x)^2+3*tan(x))/3
+integrate(1/(x^3+5*x^2+3*x-9),x) -> ln(abs(x-1))/16-ln(abs(x+3))/16+1/(4*(x+3))
+integrate(x/(x^2+1)^2,x,0,inf) -> 1/2  ~ 0.5
+integrate(asin(2*x),x,0,1/2) -> (pi-2)/4  ~ 0.285398
+integrate(7*csc(5*x)*cot(5*x),x) -> -7*csc(5*x)/5
+integrate(x^6-sqrt(x)-9/x^(1/3),x,1,8) -> (1797319-64*sqrt(2))/6  ~ 299538
+integrate(tan(x)*sec(x)^6,x,0,pi/4) -> 7/6  ~ 1.16667
+integrate(1/(x^2*sqrt(x^2-25)),x,10,20) -> (2*sqrt(15)-sqrt(3)-6)/(100*(sqrt(3)-2)*(sqrt(15)-4))  ~ 0.00408882
+integrate(4/(x^3-2*x^2-7*x-4),x) -> 4*(-x*ln(abs(x+1))+x*ln(abs(x-4))-ln(abs(x+1))+ln(abs(x-4))+5)/(x+1)/25
+integrate(x*sec(x^2+7)^2,x) -> tan(x^2+7)/2
+integrate((x+4)/(x^2-2*x+4),x) -> 5*atan((x-1)/sqrt(3))/sqrt(3)+ln(x^2-2*x+4)/2
+integrate(exp(x+5),x,0,ln(2)) -> exp(5)  ~ 148.413
+integrate(5*x^2/(x^2+2*x-8),x) -> 5*(3*x-8*ln(abs(x+4))+2*ln(abs(x-2)))/3
+integrate(3*x^6-x^2-x^(5/3),x) -> (72*x^7-56*x^3-63*x^(8/3))/168
+integrate(1/sqrt(1-x^2),x) -> asin(x)
+integrate(x*cos(4*x),x) -> (4*x*sin(4*x)+cos(4*x))/16
+integrate(1/(5-2*x)^2,x) -> 1/(2*(5-2*x))
+integrate(1/(9*x^2+12*x+13),x) -> atan((3*x+2)/3)/9
+integrate(sin(x)^2,x) -> (2*x-sin(2*x))/4
+integrate((4*x^3+x^2+6*x+4)/((x+1)*(x-3)),x,-3,-2) -> (-5*ln(2)+139*ln(5)-139*ln(6)-4)/4  ~ -8.20211
+integrate(8*x-6/x^2,x) -> 2*(2*x^3+3)/x
+integrate((2*x-3)/((x+5)*(x+4)),x) -> 13*ln(abs(x+5))-11*ln(abs(x+4))
+integrate(cos(x)*sin(5*x),x) -> -cos(4*x)/8-cos(6*x)/12
+integrate(ln(x)/x^3,x) -> -(2*ln(x)+1)/(4*x^2)
+integrate(1/(x*sqrt(x^2-9)),x) -> atan(sqrt(x^2-9)/3)/3
+integrate(1/(9*x^2-18*x+14),x) -> atan(3*(x-1)/sqrt(5))/(3*sqrt(5))
+integrate(3*cos(5*x),x) -> 3*sin(5*x)/5
+integrate((2*x+8)/(x*(x-2)),x,3,6) -> 4*ln(3)+6*ln(4)-4*ln(6)  ~ 5.54518
+integrate(exp(tan(3*x))*sec(3*x)^2,x) -> exp(tan(3*x))/3
+integrate(x^3*sqrt(9+4*x^2),x) -> (2*x^2-3)*(4*x^2+9)^(3/2)/40
+integrate(cos(3*x),x,0,pi/6) -> 1/3  ~ 0.333333
+integrate(1/sqrt(4-4*x-x^2),x) -> asin((x+2)/(2*sqrt(2)))
+integrate(sin(x)^4,x) -> (12*x-8*sin(2*x)+sin(4*x))/32
+integrate(8*sqrt(3*x+7),x) -> 8*2*(3*x+7)^(3/2)/9
+integrate(4*exp(sqrt(x))/sqrt(x),x) -> 8*exp(sqrt(x))
+integrate((5*x+3)/(x^3-4*x^2+4*x-16),x) -> (8*atan(x/2)+46*ln(abs(x-4))-23*ln(x^2+4))/40
+integrate(exp(3*x)*cos(2*x),x) -> exp(3*x)*(2*sin(2*x)+3*cos(2*x))/13
+integrate(2*x^6-4*x^4+6*sqrt(x)+x^(2/5),x) -> (10*x^7-28*x^5+140*x^(3/2)+25*x^(7/5))/35
+integrate(x^3*ln(x),x) -> (4*x^4*ln(x)-x^4)/16
+integrate(1/((x+4)*(x+7)),x,0,inf) -> (ln(7)-ln(4))/3  ~ 0.186539
+integrate(8/sqrt(2-x^2),x) -> 8*asin(x/sqrt(2))
+integrate(sin(x)^3*cos(x),x) -> sin(x)^4/4
+integrate((2*x-5)/(x^2+2*x+9),x) -> ln(x^2+2*x+9)+(-7*sqrt(2)/4)*atan((x+1)/(2*sqrt(2)))
+integrate(1/(x^3+7*x),x,-4,-1) -> ln(23)/14-ln(2)/2  ~ -0.12261
+integrate(1/x^(1/4)+1/sqrt(x)+8/x^2,x) -> 4*x^(3/4)/3+2*sqrt(x)-8/x
+integrate(sin(x)^3*cos(x)^4,x) -> cos(x)^7/7-cos(x)^5/5
+integrate(1/(x^2*sqrt(16-9*x^2)),x) -> -sqrt(16-9*x^2)/(16*x)
+integrate(1/sqrt(8-2*x-x^2),x) -> asin((x+1)/3)
+integrate((x+1)*(x^2+2*x+9)^2,x) -> (x^2+2*x+9)^3/6
+integrate(x*exp(-3*x^2),x,0,inf) -> 1/6  ~ 0.166667
+integrate(tan(x)^3*sec(x)^5,x,0,pi/4) -> 2*(6*sqrt(2)+1)/35  ~ 0.542016
+integrate(1/(9*x^2-4)^(3/2),x) -> -x/(4*sqrt(9*x^2-4))
+integrate(5/((x-5)^2*(x+2)),x) -> 5*(x*ln(abs(x+2))-x*ln(abs(x-5))-5*ln(abs(x+2))+5*ln(abs(x-5))-7)/(x-5)/49
+integrate(2*x^4-x^(2/5)+9*x^(1/4)-3/x^3,x) -> (28*x^7-50*x^(17/5)+504*x^(13/4)+105)/(70*x^2)
+integrate(ln(x)^2,x) -> x*ln(x)^2-2*x*ln(x)+2*x
+integrate(csc(4*x+1)*cot(4*x+1),x) -> -csc(4*x+1)/4
+integrate((2*x+7)/sqrt(x),x) -> 2*sqrt(x)*(2*x+21)/3
+integrate(7*sec(2*x-5),x) -> 7*ln(abs(sec((2*x)-5)+tan((2*x)-5)))/2
+integrate(1/(x*sqrt(x^2+9)),x,3,6) -> (ln(3*sqrt(2)+3)-ln(3*sqrt(2)-3)-ln(3*sqrt(5)+3)+ln(3*sqrt(5)-3))/6  ~ 0.133387
+integrate(sqrt(1+4*x-x^2),x) -> (x-2)*sqrt(-x^2+4*x+1)/2+5*asin((x-2)/sqrt(5))/2
+integrate(tan(x)^5*sec(x)^3,x) -> sec(x)^7/7-2*sec(x)^5/5+sec(x)^3/3
+integrate(5/(x^2+x-20),x) -> 5*(ln(abs(x-4))-ln(abs(x+5)))/9
+integrate(sin(x)/(1+cos(x)^2),x) -> -atan(cos(x))
+integrate(asin(x),x) -> x*asin(x)+sqrt(1-x^2)
+integrate(4*exp(tan(3*x))*sec(3*x)^2,x,0,pi/12) -> 4*(e-1)/3  ~ 2.29104
+integrate(1/(5*x+9)^2,x) -> -1/(5*(5*x+9))
+integrate(4*sin(x)/(3+cos(x)),x) -> -4*ln(3+cos(x))
+integrate(5*exp(-4*x),x,0,inf) -> 5/4  ~ 1.25
+integrate(x/((x-2)^2*(x+5)),x) -> 5*ln(abs(x-2))/49-5*ln(abs(x+5))/49-2/(7*(x-2))
+integrate(1/sqrt(6*x-x^2-1),x) -> asin((x-3)/(2*sqrt(2)))
+integrate(sqrt(25+9*x^2)/x^2,x,5/3,10/3) -> 6*(-sqrt(2)*ln(5*sqrt(2)-5)+ln(5*sqrt(2)-5)-1)/(2-2*sqrt(2))+6*(2*sqrt(5)*ln(5*sqrt(5)-10)-4*ln(5*sqrt(5)-10)+1)/(8-4*sqrt(5))
+integrate(9*x^5-9*sqrt(x)+3/sqrt(x),x) -> 3*x^6/2-6*x^(3/2)+6*sqrt(x)
+integrate(cot(x)^2*csc(x)^2,x) -> -cot(x)^3/3
+integrate(acos(x),x) -> x*acos(x)-sqrt(1-x^2)
+integrate((2*x^2-5)/x^2,x) -> 2*x+5/x
+integrate(1/(x^2+6*x+12),x) -> atan((x+3)/sqrt(3))/sqrt(3)
+integrate(1/(1-9*x^2)^(3/2),x,0,1/6) -> 2*sqrt(3/4)/9  ~ 0.19245
+integrate(sqrt(x^2+9)/x,x) -> sqrt(x^2+9)-3*ln(sqrt(x^2+9)+3)/2+3*ln(sqrt(x^2+9)-3)/2
+integrate(10^(5*x+6),x,0,1) -> 19999800000/ln(10)  ~ 8.6858e9
+integrate(asin(3*x),x,0,1/6) -> (pi+12*sqrt(3/4)-12)/36  ~ 0.0426083
+integrate(3*sin(3*x)^4*cos(3*x),x) -> sin(3*x)^5/5
+integrate(3/(x^3+3*x^2-4),x) -> (-x*ln(abs(x+2))+x*ln(abs(x-1))-2*ln(abs(x+2))+2*ln(abs(x-1))+3)/(x+2)/3
+integrate(tan(2*x)*sec(2*x)^3,x) -> sec(2*x)^3/3/2
+integrate((4*x-5)/sqrt(x),x) -> 2*sqrt(x)*(4*x-15)/3
+integrate(x^3*sin(x),x,0,pi) -> pi^3-6*pi  ~ 12.1567
+integrate((5*x^2-2*x+1)/((x+2)*(x-3)),x) -> 5*x-5*ln(abs(x+2))+8*ln(abs(x-3))
+integrate(1/sqrt(9-x^2),x,0,3/2) -> pi/6  ~ 0.523599
+integrate(tan(x)^2,x,0,pi/4) -> (4-pi)/4  ~ 0.214602
+integrate(tan(4*x),x) -> -ln(abs(cos(4*x)))/4
+integrate(5*cos(x)^3*sin(x),x,0,pi/4) -> 15/16  ~ 0.9375
+integrate(exp(4*x)*sin(2*x),x,0,pi) -> (1-exp(4*pi))/10  ~ -28675.0
+integrate(1/(x^2+2*x+10),x) -> atan((x+1)/3)/3
+integrate(exp(x)*sin(x),x) -> exp(x)*(sin(x)-cos(x))/2
+integrate(1/sqrt(x^2+4*x+10),x) -> ln(x+2+sqrt(x^2+4*x+10))
+integrate(3*x/(x^3+4*x^2+3*x+12),x) -> 3*sqrt(3)/19*atan(x/sqrt(3))-12*ln(abs(x+4))/19+6*ln(x^2+3)/19
+integrate(sqrt(x)*(4*x-1),x) -> 2*x^(3/2)*(12*x-5)/15
+integrate(6/(sqrt(x)*(4+sqrt(x))),x) -> 12*ln(sqrt(x)+4)
+integrate(sec(x)^4,x) -> tan(x)+tan(x)^3/3
+integrate(2*exp(4*x+5),x,0,ln(2)) -> 15*exp(5)/2  ~ 1113.1
+integrate(csc(3*x)*cot(3*x),x) -> -csc(3*x)/3
+integrate(1/sqrt(x^2-4),x) -> ln(abs(x+sqrt(x^2-4)))
+integrate(x^2/(3*x^3+8),x) -> ln(abs(3*x^3+8))/9
+integrate(1/(x^2+8*x+21),x,0,1) -> (atan(sqrt(5))-atan(4/sqrt(5)))/sqrt(5)  ~ 0.0398938
+integrate(sin(x)^3*cos(x)^5,x) -> cos(x)^8/8-cos(x)^6/6
+integrate(sqrt(2+x^2),x) -> x*sqrt(x^2+2)/2+ln(x+sqrt(x^2+2))
+integrate((4*x^2-2)/(x^3-x^2+9*x-9),x) -> (38*atan(x/3)+6*ln(abs(x-1))+57*ln(x^2+9))/30
+integrate(1/(x+2)^3,x,0,inf) -> 1/8  ~ 0.125
+integrate(x*ln(x),x) -> (2*x^2*ln(x)-x^2)/4
+integrate(x^6+1/x^4,x) -> (3*x^10-7)/(21*x^3)
+integrate(7*sec(2*x),x) -> 7*ln(abs(sec(2*x)+tan(2*x)))/2
+integrate(cot(3*x)^4,x) -> (72*x*tan(3*x/2)^3+tan(3*x/2)^6-15*tan(3*x/2)^4+15*tan(3*x/2)^2-1)/(72*tan(3*x/2)^3)
+integrate(x^2+8/x^2,x) -> (x^4-24)/(3*x)
+integrate(x^2/(25-x^2)^(3/2),x) -> x/sqrt(25-x^2)-asin(x/5)
+integrate(3*x/(x^2+7)^2,x) -> -3/(2*(x^2+7))
+integrate(exp(-2*x)*sin(2*x),x,0,pi/2) -> (exp(-pi)+1)/4  ~ 0.260803
+integrate(sqrt(2*x+3),x) -> (2*x+3)^(3/2)/3
+integrate(1/(x^2+4*x+7),x) -> atan((x+2)/sqrt(3))/sqrt(3)
+integrate(x*exp(-2*x^2),x,0,inf) -> 1/4  ~ 0.25
+integrate((5*x^2+6*x-2)/(x^2+6*x+5),x) -> (20*x-3*ln(abs(x+1))-93*ln(abs(x+5)))/4
+integrate(8*x^6+1,x) -> 8*x^7/7+x
+integrate(1/sqrt(3-2*x-x^2),x) -> asin((x+1)/2)
+integrate(9*exp(3*x+2),x,0,ln(2)) -> 21*exp(2)  ~ 155.17
+integrate(cos(4*x)*cos(3*x),x) -> (sin(7*x)+7*sin(x))/14
+integrate(4/(4*x^2+12*x+14),x,0,1) -> 2*(atan(sqrt(5))-atan(3/sqrt(5)))/sqrt(5)  ~ 0.196763
+integrate(sqrt(x^2+16),x) -> x*sqrt(x^2+16)/2+8*ln(x+sqrt(x^2+16))
+integrate(5*(2*x+9)^2,x) -> 5*(2*x+9)^3/6
+integrate((2*x^2+9*x-6)/(x^2+8*x+15),x) -> (4*x-15*ln(abs(x+3))+ln(abs(x+5)))/2
+integrate(x*ln(x),x,1,exp(1)) -> (e^2+1)/4  ~ 2.09726
+integrate(sqrt(16+x^2)/x,x) -> sqrt(x^2+16)-2*ln(sqrt(x^2+16)+4)+2*ln(sqrt(x^2+16)-4)
+integrate(x^3*sin(2*x),x) -> 3*(2*x^2-1)*sin(2*x)/8+(3*x-2*x^3)*cos(2*x)/4
+integrate((3*x-9)/(x^2-8*x+24),x) -> 3*sqrt(2)/4*atan((x-4)/(2*sqrt(2)))+3*ln(x^2-8*x+24)/2
+integrate(3*ln(x)^6/x,x,1,exp(1)) -> 3/7  ~ 0.428571
+integrate(4*x*sec(2*x^2)^2,x) -> tan(2*x^2)
+integrate(1/(9+4*x^2),x,0,3/2) -> pi/24  ~ 0.1309
+integrate(x^4+x^3,x) -> x^5/5+x^4/4
+integrate((x^2-6*x)/((x-1)*(x-4)),x) -> x+5*ln(abs(x-1))/3-8*ln(abs(x-4))/3
+integrate(sin(2*x)^3*cos(2*x)^4,x) -> cos(2*x)^7/14-cos(2*x)^5/10
+integrate(x^4+6*x^2+6*x^(3/2)+1/x^(3/2),x) -> (x^6+10*x^4+2*sqrt(x)*(6*x^3-5))/(5*x)
+integrate(exp(2*x),x) -> exp(2*x)/2
+integrate(3*cos(sqrt(x))/sqrt(x),x) -> 6*sin(sqrt(x))
+integrate(asin(3*x),x) -> x*asin(3*x)+sqrt(1-9*x^2)/3
+integrate(2*x^2/(x^2+2*x-8),x) -> 2*(3*x-8*ln(abs(x+4))+2*ln(abs(x-2)))/3
+integrate(x^2/(9*x^2-5)^(3/2),x) -> -x/(9*sqrt(9*x^2-5))-(ln(5)-ln(abs(3*x+sqrt(9*x^2-5))))/27
+integrate(tan(x)^3*sec(x)^4,x) -> tan(x)^4/4+tan(x)^6/6
+integrate(1/sqrt(x^2+4*x+6),x,0,1) -> ln(sqrt(6)-2)-ln(sqrt(11)-3)  ~ 0.350396
+integrate(2/(x^2-2*x+6),x,0,1) -> 2*atan(1/sqrt(5))/sqrt(5)  ~ 0.376137
+integrate(1/(x^2-6*x+10),x) -> atan(x-3)
+integrate(atan(2*x),x) -> (4*x*atan(2*x)-ln((2*x)^2+1))/4
+integrate(exp(5*x+2),x,0,1) -> (exp(7)-exp(2))/5  ~ 217.849
+integrate(sqrt(x^2+4),x) -> x*sqrt(x^2+4)/2+2*ln(x+sqrt(x^2+4))
+integrate(5*sin(x),x) -> 5*(-cos(x))
+integrate((4*x-2)/(x^2+3*x+2),x) -> 10*ln(abs(x+2))-6*ln(abs(x+1))
+integrate(x^6+7*x^2,x,0,2) -> 776/21  ~ 36.9524
+integrate(sin(5*x)*sin(2*x),x) -> sin(3*x)/6-sin(7*x)/14
+integrate(x^2/(5-x^3)^3,x) -> 1/(6*(5-x^3)^2)
+integrate(sin(3*x)^5*cos(3*x),x) -> sin(3*x)^6/18
+integrate((3*x^2-6*x+3)/(x^3-6*x^2+9*x),x) -> ln(abs(x))/3+8*ln(abs(x-3))/3-4/(x-3)
+integrate(1/(x^2-2*x+6),x) -> atan((x-1)/sqrt(5))/sqrt(5)
+integrate(3*cos(3*x)*exp(sin(3*x)),x) -> exp(sin(3*x))
+integrate(csc(2*x-9)^2,x) -> -cot((2*x)-9)/2
+integrate(x+1/x^2,x) -> (x^3-2)/(2*x)
+integrate(x^3*sin(x),x) -> 3*(x^2-2)*sin(x)+(6*x-x^3)*cos(x)
+integrate(sqrt(x^2-4)/x,x) -> sqrt(x^2-4)-2*atan(sqrt(x^2-4)/2)
+integrate(x^5-6*x^2+2/x^3,x,1,4) -> 8919/16  ~ 557.438
+integrate(tan(5*x),x) -> -ln(abs(cos(5*x)))/5
+integrate(x^2/sqrt(x^2+1),x) -> (x*sqrt(x^2+1)-ln(x+sqrt(x^2+1)))/2
+integrate(x*exp(-4*x),x,0,inf) -> 1/16  ~ 0.0625
+integrate(3/(9*x^2+24*x+24),x) -> atan((3*x+4)/(2*sqrt(2)))/(2*sqrt(2))
+integrate(atan(2*x),x,0,1/4) -> (atan(1/2)-ln(5/4))/4  ~ 0.060126
+integrate((2*x+5)/(x^3-2*x^2-4*x+8),x) -> ln(abs(x+2))/16-ln(abs(x-2))/16-9/(4*(x-2))
+integrate(x^5-7/x,x,1,8) -> 7*(12483-2*ln(8))/2  ~ 43675.9
+integrate(cos(5*x)*sin(4*x),x) -> (9*cos(x)-cos(9*x))/18
+integrate(4/(x*sqrt(ln(x))),x) -> 8*sqrt(ln(x))
+integrate((x^2+3)/(x*(x-2)),x) -> x-3*ln(abs(x))/2+7*ln(abs(x-2))/2
+integrate(sin(3*x)^4*cos(3*x)^3,x) -> sin(3*x)^5/15-sin(3*x)^7/21
+integrate(6*cos(x)/sin(x)^3,x,pi/6,pi/2) -> 9
+integrate(3*sqrt(2*x-5),x) -> 3*(2*x-5)^(3/2)/3
+integrate(5/(4*x^2-8*x+11),x,0,1) -> 5*atan(2/sqrt(7))/(2*sqrt(7))  ~ 0.611627
+integrate(exp(-x)*sin(x),x) -> -exp(-x)*(sin(x)+cos(x))/2
+integrate(1/sqrt(9-x^2),x,0,3) -> pi/2  ~ 1.5708
+integrate(sqrt(9+x^2)/x^2,x) -> (x*ln(x+sqrt(x^2+9))-sqrt(x^2+9))/x
+integrate(5*x^(2/5)-5/x^3-1,x) -> 25*x^(7/5)/7-x+5/(2*x^2)
+integrate(1/sqrt(2-2*x-x^2),x) -> asin((x+1)/sqrt(3))
+integrate(3*x/((x-5)*(x^2+1)),x) -> 3*(2*atan(x)+10*ln(abs(x-5))-5*ln(x^2+1))/52
+integrate(3*csc(3*x+1)*cot(3*x+1),x) -> -csc(3*x+1)
+integrate(sin(3*x)*cos(3*x)^3,x) -> -cos(3*x)^4/12
+integrate(sec(ln(x))^2/x,x) -> tan(ln(x))
+integrate(x^2*sin(x^3),x,0,1) -> (1-cos(1))/3  ~ 0.153233
+integrate(x*ln(x)^2,x,1,exp(1)) -> (e^2-1)/4  ~ 1.59726
+integrate(sqrt(25-x^2)/x,x) -> sqrt(25-x^2)-5*ln(sqrt(25-x^2)+5)/2+5*ln(5-sqrt(25-x^2))/2
+integrate(sqrt(x)*(4*x-5),x,1,4) -> 394/15  ~ 26.2667
+integrate(1/(sqrt(x)*(1+x)),x) -> 2*atan(sqrt(x))
+integrate(cot(2*x)^5*csc(2*x)^3,x) -> -csc(2*x)^7/7/2+csc(2*x)^5/5-csc(2*x)^3/3/2
+integrate(1/sqrt(x^2-6*x+10),x) -> ln(x-3+sqrt(x^2-6*x+10))
+integrate((5*x+7)/(x*(x+2)),x,1,3) -> (4*ln(3)+3*ln(5))/2  ~ 4.61138
+integrate(x^3*sqrt(x^2-2),x) -> (3*x^2+4)*(x^2-2)^(3/2)/15
+integrate((5*x^3+6*x^2)/x,x) -> 5*x^3/3+3*x^2
+integrate(2*x/((x-5)*(x^2+9)),x,7,10) -> (6*atan(10/3)-6*atan(7/3)-5*ln(109)-10*ln(2)+10*ln(5)+5*ln(58))/34  ~ 0.196735
+integrate(1/sqrt(3*x-1),x,1,2) -> 2*(sqrt(5)-sqrt(2))/3  ~ 0.547903
+integrate(ln(x),x) -> x*ln(x)-x
+integrate((5*x+7)/(x*(x+1)),x) -> 7*ln(abs(x))-2*ln(abs(x+1))
+integrate(sin(2*x)/(3+cos(2*x)),x) -> -ln(3+cos(2*x))/2
+integrate(5^(2*x),x,0,1) -> 12/ln(5)  ~ 7.45602
+integrate(1/sqrt(x^2-8*x+24),x) -> ln(x-4+sqrt(x^2-8*x+24))
+integrate(1/x^3-9,x,1,4) -> -849/32  ~ -26.5313
+integrate(sqrt(2-x^2)/x,x) -> sqrt(2-x^2)+ln((sqrt(2)-sqrt(2-x^2))/(sqrt(2-x^2)+sqrt(2)))/sqrt(2)
+integrate(x^3*cos(x),x,0,pi/2) -> (pi^3-24*pi+48)/8  ~ 0.451007
+integrate(tan(3*x)^4*sec(3*x)^2,x,0,pi/12) -> 1/15  ~ 0.0666667
+integrate(cot(2*x)^5,x,pi/8,pi/4) -> -(1-2*ln(2))/8  ~ 0.0482868
+integrate(exp(3*x)*cos(x),x) -> exp(3*x)*(sin(x)+3*cos(x))/10
+integrate(x^5-sqrt(x)+1/x^(3/2),x,1,4) -> 4073/6  ~ 678.833
+integrate(6*x^(4/3)+2*x^(2/5)+3/x+3,x) -> (18*x^(7/3)+10*x^(7/5)+21*x+21*ln(abs(x)))/7
+integrate(1/(x^2+6*x+16),x) -> atan((x+3)/sqrt(7))/sqrt(7)
+integrate(sqrt(3*x+2),x) -> 2*(3*x+2)^(3/2)/9
+integrate(sin(2*x)^2,x) -> (4*x-sin(4*x))/8
+integrate(4*x*(3*x^2+5)^3,x) -> (3*x^2+5)^4/6
+integrate(1/(9-4*x^2)^(3/2),x) -> x/(9*sqrt(9-4*x^2))
+integrate((3*x+6)/(x^2-4*x-5),x) -> (7*ln(abs(x-5))-ln(abs(x+1)))/2
+integrate((2*x-6)/(x^3+2*x^2+x+2),x) -> -2*atan(x)-2*ln(abs(x+2))+ln(x^2+1)
+integrate(x^3-x^2-9*x^(5/3)-1,x) -> x^4/4-x^3/3-27*x^(8/3)/8-x
+integrate(cos(x)*sin(x)^2,x) -> sin(x)^3/3
+integrate(3/(4*x^2+16*x+17),x) -> 3*atan(2*x+4)/2
+integrate(1/sqrt(4-x^2),x) -> asin(x/2)
+integrate(ln(x)/sqrt(x),x,0,1) -> -4
+integrate(x^2*atan(x),x,0,1) -> (pi+2*ln(2)-2)/12  ~ 0.210657
+integrate(sin(x)^4,x,0,pi) -> 3*pi/8  ~ 1.1781
+integrate(1/sqrt(3*x+1),x) -> 2*sqrt(3*x+1)/3
+integrate(sin(x),x) -> -cos(x)
+integrate(sqrt(x)+7/x,x) -> 2*x^(3/2)/3+7*ln(abs(x))
+integrate(sin(3*x)^3*cos(3*x)^2,x) -> cos(3*x)^5/15-cos(3*x)^3/9
+integrate(5*x/((x-1)^2*(x-4)),x) -> 5*(-4*x*ln(abs(x-1))+4*x*ln(abs(x-4))+4*ln(abs(x-1))-4*ln(abs(x-4))+3)/(x-1)/9
+integrate(1/(x^2+4*x+5),x) -> atan(x+2)
+integrate(sqrt(16+9*x^2),x) -> (3*x*sqrt(9*x^2+16)+16*ln(3*x+sqrt(9*x^2+16)))/6
+integrate(cos(x)*(4+sin(x))^2,x) -> (4+sin(x))^3/3
+integrate(1/(9*x^2+24*x+18),x,0,1) -> (atan(7/sqrt(2))-atan(4/sqrt(2)))/(3*sqrt(2))  ~ 0.0331137
+integrate(sqrt(x)*ln(x),x,1,2) -> 4*(3*sqrt(2)*ln(2)-2*sqrt(2)+1)/9  ~ 0.494377
+integrate((x-9)/(x^2+5*x+6),x) -> 12*ln(abs(x+3))-11*ln(abs(x+2))
+integrate(1/sqrt(8*x-x^2-15),x) -> asin(x-4)
+integrate(1/sqrt(1-9*x^2),x) -> asin(3*x)/3
+integrate(sin(2*x)*cos(2*x)^4,x) -> -cos(2*x)^5/10
+integrate(6*x+6*x^(2/5)+6/x^4,x) -> 3*x^2+30*x^(7/5)/7-2/x^3
+integrate(x^2/sqrt(16-x^2),x,0,2) -> 4*pi/3-2*sqrt(3)  ~ 0.724689
+integrate(x*sin(x^2+8),x) -> -cos(x^2+8)/2
+integrate(1/((x+3)*(x+7)),x,0,inf) -> (ln(7)-ln(3))/4  ~ 0.211824
+integrate(exp(4*x)*cos(3*x),x) -> exp(4*x)*(3*sin(3*x)+4*cos(3*x))/25
+integrate(sqrt(4*x-x^2),x) -> (x-2)*sqrt(4*x-x^2)/2+2*asin((x-2)/2)
+integrate(exp(3*x)*cos(4*x),x) -> exp(3*x)*(4*sin(4*x)+3*cos(4*x))/25
+integrate(sqrt(x^2-1)/x,x) -> sqrt(x^2-1)-atan(sqrt(x^2-1))
+integrate(2*sin(exp(2*x))*exp(2*x),x) -> -cos(exp(2*x))
+integrate((2*x^3-7*x^2-x+5)/x^2,x) -> x^2-7*x-ln(abs(x))-5/x
+integrate(tan(3*x)^3*sec(3*x),x,0,pi/12) -> (2-sqrt(2))/9  ~ 0.0650874
+integrate(csc(2*x)*cot(2*x),x) -> -csc(2*x)/2
+integrate(cos(5*x)*cos(x),x) -> sin(4*x)/8+sin(6*x)/12
+integrate((x^2-6*x)/((x+5)*(x^2+8)),x) -> -4*atan(x/(2*sqrt(2)))/(3*sqrt(2))-ln(x^2+8)/3+5*ln(abs(x+5))/3
+integrate(cos(4*x)*sin(2*x),x) -> (3*cos(2*x)-cos(6*x))/12
+integrate(6*x^5+6*x^4-6*x^(4/3),x) -> x^6+6*x^5/5-18*x^(7/3)/7
+integrate(x^3*sqrt(2-x^2),x) -> -(3*x^2+4)*(2-x^2)^(3/2)/15
+integrate(x*atan(x),x,0,1) -> (pi-2)/4  ~ 0.285398
+integrate(exp(3*x),x,0,ln(2)) -> 7/3  ~ 2.33333
+integrate(3*exp(sqrt(x))/sqrt(x),x) -> 6*exp(sqrt(x))
+integrate(x/sqrt(4-4*x-x^2),x) -> -sqrt(-x^2-4*x+4)-2*asin((x+2)/(2*sqrt(2)))
+integrate((x-9)/(x^2-25),x) -> (7*ln(abs(x+5))-2*ln(abs(x-5)))/5
+integrate(cot(2*x)*csc(2*x)^2,x,pi/8,pi/4) -> 1/4  ~ 0.25
+integrate((5*x-2)/(x*(x+1)),x) -> 7*ln(abs(x+1))-2*ln(abs(x))
+integrate(sin(x)^2*cos(x)^3,x) -> sin(x)^3/3-sin(x)^5/5
+integrate(5*csc(x+9),x) -> 5*ln(abs(csc(x+9)-cot(x+9)))
+integrate(1/sqrt(8*x-x^2-8),x) -> asin((x-4)/(2*sqrt(2)))
+integrate(x^2*cos(3*x),x,0,pi/3) -> -2*pi/27  ~ -0.232711
+integrate(1/(x*sqrt(16+x^2)),x) -> (ln(sqrt(x^2+16)-4)-ln(sqrt(x^2+16)+4))/8
+integrate(6*x^2/(6-x^3)^3,x) -> 1/(6-x^3)^2
+integrate(sqrt(x)+8/x^(2/3),x) -> 2*x^(3/2)/3+24*x^(1/3)
+integrate(1/(x^2+16),x,-4,4) -> pi/8  ~ 0.392699
+integrate(x/(x^2+4)^2,x,0,inf) -> 1/8  ~ 0.125
+integrate(cos(x)/(1+sin(x)^2),x) -> atan(sin(x))
+integrate(sqrt(9+4*x^2),x) -> (2*x*sqrt(4*x^2+9)+9*ln(2*x+sqrt(4*x^2+9)))/4
+integrate(tan(3*x)^2*sec(3*x)^2,x) -> tan(3*x)^3/9
+integrate(9*csc(2*x+7)*cot(2*x+7),x) -> -9*csc(2*x+7)/2
+integrate(sqrt(x)*ln(x),x,1,exp(1)) -> 2*(e*exp(1/2)+2)/9  ~ 1.44038
+integrate(sqrt(7-2*x-x^2),x) -> (x+1)*sqrt(-x^2-2*x+7)/2+4*asin((x+1)/(2*sqrt(2)))
+integrate(5*x^(3/2)-9/sqrt(x)+3/x-4,x) -> 3*ln(abs(x))+2*sqrt(x)*(x^2-9)-4*x
+integrate((4*x-9)/((x-3)*(x-2)),x) -> ln(abs(x-2))+3*ln(abs(x-3))
+integrate(sin(3*x)^4,x) -> (36*x+sin(12*x)-8*sin(6*x))/96
+integrate(exp(-4*x)*sin(4*x),x) -> -exp(-4*x)*(sin(4*x)+cos(4*x))/8
+integrate(7*cot(4*x-1),x) -> 7*ln(abs(sin(4*x-1)))/4
+diff(x^5/(cos(x)-2*x^2),x) -> (-6*x^6+x^5*sin(x)+5*x^4*cos(x))/(cos(x)-2*x^2)^2
+diff((x^2*sin(x)+3)/(x^2*cos(x)+2),x) -> (x^4+2*x^2*cos(x)+3*x^2*sin(x)-6*x*cos(x)+4*x*sin(x))/(x^4*cos(x)^2+4*x^2*cos(x)+4)
+diff(x^2*exp(x)*tan(x),x) -> 2*x*exp(x)*tan(x)+x^2*(exp(x)*tan(x)+exp(x)*sec(x)^2)
+diff((x^2+x)^5*(3*x^4+2*x)^3,x) -> 5*(2*x+1)*(x^2+x)^4*(3*x^4+2*x)^3+6*(6*x^3+1)*(x^2+x)^5*(3*x^4+2*x)^2
+diff(sin(4*x+1)/(5*x-9)^3,x) -> (20*x*cos(4*x+1)-36*cos(4*x+1)-15*sin(4*x+1))/(5*x-9)^4
+diff((2*x)^(x^2),x) -> 2*x*(2*x)^(x^2)*ln(2*x)+x*(2*x)^(x^2)
+diff(asin(x)/acos(x),x) -> -(-(acos(x)+asin(x))/(sqrt(1-x^2)*acos(x)^2))
+diff(acosh(2*x^2),x) -> 4*x/sqrt(4*x^4-1)
+diff(atanh(cos(x)),x) -> sin(x)/((cos(x)-1)*(cos(x)+1))
+diff(cos(x)/(x^6*6^x),x) -> -(x*cos(x)*ln(6)+x*sin(x)+6*cos(x))/(x^7*6^x)
+diff(x^x*acos(x),x) -> x^x*(ln(x)+1)*acos(x)-x^x/sqrt(1-x^2)
+diff(x*tan(x)/(x^2*sec(x)+1)+3*exp(x)+1,x) -> ((tan(x)+x*sec(x)^2)*(x^2*sec(x)+1)-x*tan(x)*(2*x*sec(x)+x^2*sec(x)*tan(x)))/(x^2*sec(x)+1)^2+3*exp(x)
+diff(2^(x^2*sec(x)),x) -> 2^(x^2*sec(x))*ln(2)*(2*x*sec(x)+x^2*sec(x)*tan(x))
+diff(exp(exp(x^3)),x) -> 3*x^2*exp(x^3)*exp(exp(x^3))
+diff((7*x^2+4*x+5)^(1/4),x) -> (7*x+2)/(2*((7*x^2+4*x+5)^(1/4))^3)
+diff((asin(5*x)+atan(4-x))^27,x) -> 27*(5/sqrt(1-25*x^2)-1/(1+(4-x)^2))*(asin(5*x)+atan(4-x))^26
+diff(atan(ln(x)/(1+x^2)),x) -> (-2*x^2*ln(x)+x^2+1)/(x*(x^4+2*x^2+ln(x)^2+1))
+diff(atan(3*x)^2*asin(7*x)^4,x) -> 6/(1+(3*x)^2)*atan(3*x)*asin(7*x)^4+28*atan(3*x)^2/sqrt(1-49*x^2)*asin(7*x)^3
+diff(x^10*(x^2+1)^10,x) -> 10*x^9*(x^2+1)^10+20*x^11*(x^2+1)^9
+diff(1/ln(x),x) -> -1/(x*ln(x)^2)
+diff((1-exp(x))/(1+exp(x)),x) -> -2*exp(x)/(exp(x)+1)^2
+diff(ln(x^2*sin(x)),x) -> 2/x+1/sin(x)*cos(x)
+diff(sec(sqrt(1-x^2)),x) -> -x*sec(sqrt(1-x^2))*tan(sqrt(1-x^2))/sqrt(1-x^2)
+diff(tan(x/(x+1))^2,x) -> 2*sec(x/(x+1))^2*tan(x/(x+1))/(x^2+2*x+1)
+diff(asin((x-1)/(x+1)),x) -> 1/(sqrt(x)*abs(x+1))
+diff(ln(x+sqrt(x^2+1)),x) -> 1/sqrt(x^2+1)
+diff(atan(x/sqrt(1-x^2)),x) -> 1/sqrt(1-x^2)
+diff(diff(diff(diff(x*sin(x),x),x),x),x) -> x*sin(x)-4*cos(x)
+diff(diff(csc(x),x),x) -> (2-sin(x)^2)/sin(x)^3
+diff(diff(3*x^2+2*x+4*sqrt(x),x),x) -> 6-1/x^(3/2)
+diff(diff(x/(x+5),x),x) -> -10/(x+5)^3
+diff(diff(diff(1/(x+1),x),x),x) -> -6/(x+1)^4
+diff(cos(5*x*y^3),y) -> -15*x*y^2*sin(5*x*y^3)
+diff(sqrt(4*x*y^2+1),x) -> 2*y^2/sqrt(4*x*y^2+1)
+diff(ln(x+sqrt(x^2+y^2)),x) -> 1/sqrt(x^2+y^2)
+diff((5*x^2*y^6-y^6)/(16*x*y-7),y) -> 2*(21*y^5+200*x^3*y^6-105*x^2*y^5-40*x*y^6)/(16*x*y-7)^2
+diff(diff(sin(4*x/y),x),y) -> 4*(4*x*sin(4*x/y)-y*cos(4*x/y))/y^3
+diff(tan(t),t)/diff(sec(t),t) -> csc(t)
+diff(exp(t/10)*sin(t),t)/diff(exp(t/10)*cos(t),t) -> (10*cos(t)+sin(t))/(cos(t)-10*sin(t))
+diff(cos(t)^3-3*cos(t),t)/diff(sin(t)^4,t) -> 3/(4*cos(t))
+integrate(1/(3*x^2),x) -> -1/(3*x)
+integrate(sec(x)*tan(x)+csc(x)*cot(x),x) -> sec(x)-csc(x)
+integrate(5^x/2,x) -> 5^x/(2*ln(5))
+integrate((2*x+3)^2,x) -> (2*x+3)^3/6
+integrate((x^2+3)*(x^3-2*x),x) -> x^6/6+x^4/4-3*x^2
+integrate(5*8^x,x) -> 5*8^x/ln(8)
+integrate((x^3+x^2+x+1)/x,x) -> x^3/3+x^2/2+x+ln(abs(x))
+integrate(2*x^4+3*x^2+x+8,x) -> 2*x^5/5+x^3+x^2/2+8*x
+integrate(sqrt(x)+1/sqrt(x),x) -> 2*sqrt(x)*(x+3)/3
+integrate(x/(x+5),x) -> x-5*ln(abs(x+5))
+integrate(x/sqrt(x+3),x) -> 2*(x-6)*sqrt(x+3)/3
+integrate(exp(sqrt(x))/sqrt(x),x) -> 2*exp(sqrt(x))
+integrate(x^4/sqrt(x^5+1),x) -> 2*sqrt(x^5+1)/5
+integrate(exp(x^2-2*x+1)*(x-1),x) -> exp(x^2-2*x+1)/2
+integrate(1/(x*ln(x^2)),x) -> ln(abs(ln(abs(x))))/2
+integrate(5/sqrt(x^4-16*x^2),x) -> 5*(atan(sqrt(x^2-16)/4)-atan(i)*sign(x)^2)/sign(x)/4  ~ undef-undefi
+integrate(2/sqrt(-x^2+6*x+7),x) -> 2*asin((x-3)/4)
+integrate(x^2*csc(x^3+1)^2,x) -> -1/(3*tan(x^3+1))
+integrate(x/(x^4+81),x) -> atan(x^2/9)/18
+integrate((3*x-2)/(x^2-2*x+10),x) -> (2*atan((x-1)/3)+9*ln(x^2-2*x+10))/6
+integrate(csc(2*x+1)*cot(2*x+1),x) -> -csc(2*x+1)/2
+integrate(1/sqrt(1-16*x^2),x) -> asin(4*x)/4
+integrate(exp(x)*sin(exp(x)),x) -> -cos(exp(x))
+integrate(-2*sec(4*x)*tan(4*x)/sec(4*x)^2,x) -> cos(4*x)/2
+integrate(-6*csc(5*x)^2*exp(cot(5*x)),x) -> integrate(-6*exp(cot(5*x))*csc(5*x)^2,x)
+integrate(-2*(1+tan(x))^5*sec(x)^2,x) -> -(tan(x)^6+6*tan(x)^5+15*tan(x)^4+20*tan(x)^3+15*tan(x)^2+6*tan(x))/3
+integrate(3*cot(x)*ln(sin(x)),x) -> 3*ln(sin(x))^2/2
+integrate(cos(x)/(2+3*sin(x)),x) -> ln(abs(2+3*sin(x)))/3
+integrate(exp(x)*(1+exp(x))^(-1/3),x) -> 3*((exp(x)+1)^(1/3))^2/2
+integrate(x^2/(1+x^6),x) -> atan(x^3)/3
+integrate(exp(5*x)*cos(5*x),x) -> exp(5*x)*(sin(5*x)+cos(5*x))/10
+integrate((x-2)*ln(x),x) -> (2*x^2*ln(x)-x^2-8*x*ln(x)+8*x)/4
+integrate(x*ln(x-1),x) -> (2*x^2*ln(x-1)-x^2-2*x-2*ln(x-1))/4
+integrate(x*ln(x^2),x) -> (2*x^2*ln(abs(x))-x^2)/2
+integrate(ln(x+1)^2,x) -> (x+1)*ln(x+1)^2-2*(x+1)*ln(x+1)+2*(x+1)
+integrate(x*csc(x)*cot(x),x) -> ln(abs((1-cos(x))/sin(x)))-x/sin(x)
+integrate(exp(2*x)*cos(exp(x)),x) -> integrate(exp(2*x)*cos(exp(x)),x)
+integrate(asinh(x),x) -> x*ln(x+sqrt(x^2+1))-sqrt(x^2+1)
+integrate(atanh(x),x) -> (x*ln((x+1)/(1-x))+ln(abs(x^2-1)))/2
+integrate(x^3*sin(x^2),x) -> (sin(x^2)-x^2*cos(x^2))/2
+integrate(x^2*exp(3*x),x) -> exp(3*x)*(9*x^2-6*x+2)/27
+integrate(x^2*ln(7*x),x) -> (3*x^3*ln(7*x)-x^3)/9
+integrate(x*(x+1)^(1/5),x) -> 5*(6*x^2*(x+1)^(1/5)+x*(x+1)^(1/5)-5*(x+1)^(1/5))/66
+integrate(x^7*cos(x^4),x) -> (x^4*sin(x^4)+cos(x^4))/4
+integrate(asin(4*x),x) -> x*asin(4*x)+sqrt(1-16*x^2)/4
+integrate(sin(x)^6*cos(x)^5,x) -> sin(x)^7/7-2*sin(x)^9/9+sin(x)^11/11
+integrate(sin(5*x)*cos(3*x),x) -> -(4*cos(2*x)+cos(8*x))/16
+integrate(sin(3*x)*sin(7*x),x) -> sin(4*x)/8-sin(10*x)/20
+integrate(tan(x)^3*sec(x)^4,x) -> tan(x)^4/4+tan(x)^6/6
+integrate(tan(x)^5*sec(x)^5,x) -> sec(x)^9/9-2*sec(x)^7/7+sec(x)^5/5
+integrate(sec(x)^5,x) -> -3*ln(abs(sin(x)-1))/16+3*ln(abs(sin(x)+1))/16+(5*sin(x)-3*sin(x)^3)/(8*(sin(x)^2-1)^2)
+integrate(tan(x)^2*sec(x)^3,x) -> ln(abs(sin(x)+1/sin(x)-2))/32-ln(abs(sin(x)+1/sin(x)+2))/32-(-(sin(x)^2+1)/sin(x)/(8*((sin(x)+1/sin(x))^2-4)))
+integrate(sin(x/2)^3,x) -> 2*cos(x/2)^3/3-2*cos(x/2)
+integrate(cos(3*x)^3,x) -> sin(3*x)/3-sin(3*x)^3/9
+integrate(sin(4*x)^2*cos(4*x)^2,x) -> (16*x-sin(16*x))/128
+integrate(sqrt(x^2-16),x) -> x*sqrt(x^2-16)/2-8*ln(abs(x+sqrt(x^2-16)))
+integrate(sqrt(x^2-11)/x,x) -> sqrt(x^2-11)-sqrt(11)*atan(sqrt(x^2-11)/sqrt(11))
+integrate(sqrt(5-x^2)/(7*x^2),x) -> (-x^2-2*x*sqrt(5)*asin(x/sqrt(5))+2*x*sqrt(5-x^2)*asin(x/sqrt(5))+5-2*sqrt(5)*sqrt(5-x^2)+5-x^2)/(x*sqrt(5)-x*sqrt(5-x^2))/14
+integrate(x^2/sqrt(x^2+3),x) -> (x*sqrt(x^2+3)-3*ln(x+sqrt(x^2+3)))/2
+integrate(1/(x^2*sqrt(49-36*x^2)),x) -> -sqrt(49-36*x^2)/(49*x)
+integrate(1/(x*sqrt(9*x^2+25)),x) -> (ln(sqrt(9*x^2+25)-5)-ln(sqrt(9*x^2+25)+5))/10
+integrate(1/(x^2+4*x+13)^(3/2),x) -> (x+2)/(9*sqrt(x^2+4*x+13))
+integrate(x*sqrt(-8+6*x-x^2),x) -> (2*x^2-3*x-11)*sqrt(-x^2+6*x-8)/6+3*asin(x-3)/2
+integrate((9*x^2+11*x+7)/(x*(x+1)^2),x) -> 7*ln(abs(x))+2*ln(abs(x+1))+5/(x+1)
+integrate((-12*x^2-x+33)/((x-1)*(x+3)*(3-2*x)),x) -> -ln(abs(2*x-3))+2*ln(abs(x+3))+5*ln(abs(x-1))
+integrate(x^3/(x^2-x-20),x) -> (9*x^2+18*x+128*ln(abs(x+4))+250*ln(abs(x-5)))/18
+integrate((6*x^2+8*x-4)/((x-3)*(x^2+6*x+10)),x) -> -4*atan(x+3)+2*ln(abs(x-3))+2*ln(x^2+6*x+10)
+integrate((x-2)/(x^4+x^2),x) -> 2*atan(x)-ln(x^2+1)/2+ln(abs(x))+2/x
+integrate((x^3+x+1)/(x^4-1),x) -> (-2*atan(x)+ln(abs(x+1))+3*ln(abs(x-1)))/4
+integrate((x^2-x-1)/(x-3)^3,x) -> 5*(5-2*x)/(2*(x-3)^2)+ln(abs(x-3))
+integrate((3*x^2+4*x-11)/((x^2-1)*(x-2)),x) -> -2*ln(abs(x+1))+2*ln(abs(x-1))+3*ln(abs(x-2))
+integrate((2*x-9)/((x^2+9)*(x+2)),x) -> ln(x^2+9)/2-ln(abs(x+2))
+integrate(x^3/((x+1)^2*(x-1)),x) -> x-5*ln(abs(x+1))/4+ln(abs(x-1))/4-1/(2*(x+1))
+integrate(tanh(2*x),x) -> (ln(exp(4*x)+1)-2*x)/2
+integrate(2*x/sqrt(x^4-4),x) -> -ln(x^2-sqrt(x^4-4))
+integrate(sqrt(x)/sqrt(1+x^3),x) -> -2*ln(sqrt(x^3+1)-x^(3/2))/3
+integrate((3*x^3+4*x^2+2*x-22)/(x^2+3*x+5),x) -> 3*x^2/2-5*x+ln(x^2+3*x+5)
+integrate(exp(x)*sqrt(4+exp(2*x)),x) -> exp(x)*sqrt(exp(x)^2+4)/2+2*ln(sqrt(exp(x)^2+4)+exp(x))
+integrate(tan(x)/sqrt(9-cos(x)^2),x) -> -ln(-6*sqrt(9*tan(x)^4+17*tan(x)^2+8)+18*tan(x)^2+17)/6
+integrate((tan(x)+cot(x))^2,x) -> tan(x)-1/tan(x)
+integrate(2*cos(x)-2*sin(x),x,0,pi) -> -4
+integrate(csc(x)*cot(x),x,pi/6,pi/3) -> 2*(3-sqrt(3))/3  ~ 0.845299
+integrate(x*sqrt(x-2),x,2,6) -> 352/15  ~ 23.4667
+integrate(1/(x^2-6*x+10),x,2,4) -> pi/2  ~ 1.5708
+integrate(exp(2*x)*cos(x),x,-pi/2,pi/2) -> (exp(-pi)+exp(pi))/5  ~ 4.63678
+integrate(sin(x)^2*cos(x)^7,x,-pi/2,pi/2) -> 32/315  ~ 0.101587
+integrate(sqrt(x^2+4),x,0,2) -> 2*sqrt(2)-2*ln(2)+2*ln(2*sqrt(2)+2)  ~ 4.59117
+integrate((x^2+5*x-5)/((x-10)*(x^2+4*x+5)),x,-1,1) -> -(4*ln(11)+pi)/4+atan(3)+ln(9)  ~ 0.262977
+integrate(exp(5-2*x),x,0,inf) -> exp(5)/2  ~ 74.2066
+integrate(1/sqrt(abs(x)),x,-2,1) -> 2*sqrt(2)+2  ~ 4.82843
+integrate(x^2*ln(x),x,0,1) -> -1/9  ~ -0.111111
+integrate(2*sin(x)-4*cos(x)+sec(x)^2-pi,x,0,pi/3) -> (-pi^2-3*sqrt(3)+3)/3  ~ -4.02192
+integrate((x^8-x^4)/x^6,x,1,4) -> 81/4  ~ 20.25
+integrate(x*(sqrt(x)+x^(1/4)),x,0,1) -> 38/45  ~ 0.844444
+integrate(exp(-x)*(2*exp(-x)+3)^9,x,0,1) -> (2426644*e^10-98415*e^9-295245*e^8-524880*e^7-612360*e^6-489888*e^5-272160*e^4-103680*e^3-25920*e^2-3840*e-256)/(5*e^10)
+integrate(cos(1/x)/x^2,x,2/pi,4/pi) -> (2-sqrt(2))/2  ~ 0.292893
+integrate(exp(-cos(x))*sin(x),x,3*pi,3*pi/2) -> 1-e  ~ -1.71828
+integrate(3/(x+2)^(5/4),x,4,inf) -> 12/6^(1/4)  ~ 7.66732
+integrate(x^2*exp(-x^3),x,0,inf) -> 1/3  ~ 0.333333
+integrate(exp(3*x)/(1+exp(3*x)),x,-inf,2) -> ln(exp(6)+1)/3  ~ 2.00083
+integrate(sqrt(3*x+5),x,0,2) -> 2*(11*sqrt(11)-5*sqrt(5))/9  ~ 5.62279
+integrate(sin(x)/(2+cos(x))^3,x,0,pi) -> 4/9  ~ 0.444444
+integrate(1/(x^2-34*x+289),x,18,19) -> 1/2  ~ 0.5
+integrate(sin(x)^3*cos(x),x,0,pi/3) -> 9/64  ~ 0.140625
+integrate(ln(x)^(3/2)/x,x,1,exp(1)) -> 0.4
+integrate(sin(x)*cos(2*x),x,0,pi) -> -2/3  ~ -0.666667
+integrate(1/(1+sin(x))^2,x,0,pi) -> 4/3  ~ 1.33333
+integrate(exp(-2*x)*cos(x),x,0,inf) -> 2/5  ~ 0.4
+integrate(cos(x^2),x,0,1/2) -> 0.496884
+integrate(sin(x^2),x,0,sqrt(pi)) -> 0.894831
+limit((x^2+6*x-16)/(x^2-3*x+2),x,2) -> 10
+limit(sin(x)*cos(1/x^2),x,0) -> 0
+limit((x^2-16)/(x^2-4*x-32),x,-4) -> 2/3  ~ 0.666667
+limit((x^2-1)/(x^2-x-6),x,3,-1) -> -infinity
+limit((sin(x)-cos(x))/cos(2*x),x,pi/4) -> -sqrt(2)/2  ~ -0.707107
+limit((x^3-5*x^2+3*x+9)/(x^3-7*x^2+15*x-9),x,3) -> 2
+limit(1/ln(x)-1/(x-1),x,1,1) -> 1/2  ~ 0.5
+limit(x*tan(1/x),x,inf) -> 1
+limit((2*x)^x,x,0,1) -> 1
+limit(sin(x)^x,x,0,1) -> 1
+limit((1+x^2)^(1/x),x,inf) -> 1
+limit((sqrt(9+x)-3)/x,x,0) -> 1/6  ~ 0.166667
+limit(1/(x+8)+(x-8)/(x^2-64),x,8) -> 1/8  ~ 0.125
+limit((16-x^4)/(x^2-4),x,2) -> -8
+limit(-abs(x+3)/(x+3),x,-3,1) -> -1
+limit(2*ln(x)/(1-exp(x-1)),x,1) -> -2
+limit((sin(x)-x)/(cos(2*x)-1),x,0) -> 0
+limit((exp(x)+x)/(2*exp(x)+x^2),x,inf) -> 1/2  ~ 0.5
+limit(tan(x)/(x-pi/2),x,pi/2,-1) -> -infinity
+limit(sin(15*x)/tan(2*x),x,0) -> 15/2  ~ 7.5
+limit(sqrt(8+11*x^2)/(4+8*x),x,inf) -> sqrt(11)/8  ~ 0.414578
+limit(sqrt(x^2+10)-sqrt(x^2-4),x,inf) -> 0
+limit(4*x^2/(2-x),x,2,1) -> -infinity
+limit(4*x^2/(x-2)-4*x,x,inf) -> 8
+limit(cos(x)/(x-pi/2),x,pi/2) -> -1
+limit(ln(sin(x/2))/(x-pi)^2,x,pi) -> -1/8  ~ -0.125
+limit((1+3*x)^(10/x),x,0,1) -> exp(3)^10  ~ 1.06865e13
+limit((x/sin(x))^(1/x^2),x,0,1) -> exp(1/6)  ~ 1.18136
+limit((sqrt(1+x)-1-x/2)/sin(x)^2,x,0) -> -1/8  ~ -0.125
+limit((cos(x)-1)/(ln(1+x)-x),x,0) -> 1
+sum(3*k^2-2*k,k,1,10) -> 1045
+sum(-4*k^3+10*k^2-7*k+11,k,1,10) -> -8525
+sum(k^3,k,16,25) -> 91225
+sum((k/n)^3*(1/n),k,1,n) -> (n+1)^2/(4*n^2)
+sum((2*(1+3*(k-1)/n)^2-3)*(3/n),k,1,n) -> 3*(11*n^2-15*n+3)/n^2
+sum((1/3)^k,k,5,13) -> 9841/1594323  ~ 0.00617253
+sum(5*(3/4)^k,k,0,inf) -> 20
+sum(-2*(-2/3)^k,k,1,inf) -> 4/5  ~ 0.8
+sum(2^(k+4)/9^(k-1),k,1,inf) -> 288/7  ~ 41.1429
+sum(sin(1)^k,k,0,inf) -> 1/(1-sin(1))  ~ 6.30799
+sum(1/(k*(k+3)),k,1,inf) -> 11/18  ~ 0.611111
+sum(2/(2*k+8)^2,k,1,inf) -> 0.11071
+sum(1/(2*k),k,1,inf) -> diverges (to +infinity)
+sum(ln(k/(k+1)),k,1,inf) -> diverges (to -infinity)
+sum(1/k^5,k,1,inf) -> 1.03693
+sum(cos(pi/k)-cos(pi/(k+1)),k,3,inf) -> sum(cos(pi/k)-cos(pi/(k+1)),k,3,+infinity)
+sum(ln(2^(1/k)),k,1,inf) -> diverges (to +infinity)
+sum(2^(k-1)/3^k,k,1,inf) -> 1
+sum((-1)^k/3^k,k,0,inf) -> 3/4  ~ 0.75
+sum(1/sqrt(k)-1/sqrt(k+1),k,1,inf) -> 1.0
+series(x*exp(x),x,0,5) -> x+x^2+x^3/2+x^4/6+x^5/24+O(x^6)
+series(sqrt(x),x,1,4) -> 1+(x-1)/2-(x-1)^2/8+(x-1)^3/16-5*(x-1)^4/128+O((x-1)^5)
+series(cos(x),x,pi/4,6) -> sqrt(2)/2-sqrt(2)/2*(x-pi/4)-sqrt(2)/4*(x-pi/4)^2+sqrt(2)/12*(x-pi/4)^3+sqrt(2)/48*(x-pi/4)^4-sqrt(2)/240*(x-pi/4)^5-sqrt(2)/1440*(x-pi/4)^6+O((x-pi/4)^7)
+series(1/x^2,x,1,8) -> 1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8+O((x-1)^9)
+series(1/(x^2+1),x,-1,3) -> 1/2+(x+1)/2+(x+1)^2/4+O((x+1)^4)
+series(x^2*cos(x),x,pi,2) -> -pi^2-2*pi*(x-pi)+(1/2*pi^2-1)*(x-pi)^2+O((x-pi)^3)
+series(sqrt(1+x)*cos(x),x,0,3) -> 1+x/2-5*x^2/8-3*x^3/16+O(x^4)
+series(ln(x+1),x,7,3) -> ln(8)+(x-7)/8-(x-7)^2/128+(x-7)^3/1536+O((x-7)^4)
+series(sin(x),x,pi/2,6) -> 1-(x-pi/2)^2/2+(x-pi/2)^4/24-(x-pi/2)^6/720+O((x-pi/2)^7)
+series(x^2*ln(1+x^4),x,0,14) -> x^6-x^10/2+x^14/3+O(x^18)
+series((exp(3*x)-1)/(3*x),x,0,4) -> 1+3*x/2+3*x^2/2+9*x^3/8+27*x^4/40+O(x^5)
+series(2*x*atan(5*x),x,0,4) -> 10*x^2-250*x^4/3+O(x^6)
+series(cos(sqrt(x)),x,0,3) -> 1-x/2+x^2/24+O(x^3)
+series(cos(x)^2,x,0,6) -> 1-x^2+x^4/3-2*x^6/45+O(x^7)
+series(sin(x)/(1-x),x,0,3) -> x+x^2+5*x^3/6+O(x^4)

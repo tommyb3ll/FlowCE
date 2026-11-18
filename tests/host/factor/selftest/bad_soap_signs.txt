@@ -1,0 +1,6 @@
+# selftest: fail SOAP signs are wrong
+== factor(x^3-64y^3)   [ok, 3 steps]
+  Difference of cubes:  x^3-64*y^3=x^3-(4*y)^3=(x-4*y)*(x^2+16*y^2+4*x*y)
+  SOAP: Same, Opposite, Always Positive:  -4*y,-4*x*y,+16*y^2
+  Check: multiply the factors:  (x-4*y)*(x^2+16*y^2+4*x*y)=(x^3-64*y^3)
+   FlowCE answer: (x-4*y)*(x^2+16*y^2+4*x*y)

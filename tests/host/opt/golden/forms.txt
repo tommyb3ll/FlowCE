@@ -1,0 +1,41 @@
+(x^2-1)/(x-1) -> x+1 | back
+1/(x+1)+1/(x-1) -> 1/(x+1)+1/(x-1) | one fraction: 2*x/(x^2-1) | factored: 2*x/((x-1)*(x+1)) | back
+(x+1)^3 -> (x+1)^3 | expanded: x^3+3*x^2+3*x+1 | back
+x^2+6x+5 -> x^2+6*x+5 | factored: (x+1)*(x+5) | completed square: (x+3)^2-4 | back
+(x^3+1)/(x-2) -> (x^3+1)/(x-2) | factored: (x+1)*(x^2-x+1)/(x-2) | long division: x^2+2*x+4+9/(x-2) | back
+sin(x)^2+cos(x)^2 -> 1 | back
+integrate(1/(x^2+9),x) -> atan(x/3)/3 | back
+integrate(x*e^x,x) -> exp(x)*(x-1) | expanded: x*exp(x)-exp(x) | back
+integrate(1/(x^2-1),x) -> (ln(abs(x-1))-ln(abs(x+1)))/2 | simplified: ln(abs(x-1)/abs(x+1))/2 | expanded: ln(abs(x-1))/2-ln(abs(x+1))/2 | back
+diff(x^3*sin(x),x) -> x^3*cos(x)+3*x^2*sin(x) | factored: x^2*(x*cos(x)+3*sin(x)) | back
+diff(ln(x)/x,x) -> (1-ln(x))/x^2 | back
+limit(sin(x)/x,x,0) -> 1 | back
+limit((1+1/x)^x,x,inf) -> e  ~ 2.71828 | decimal: 2.71828 | back
+sum(1/n^2,n,1,inf) -> pi^2/6  ~ 1.64493 | decimal: 1.64493 | back
+series(e^x,x,0,4) -> 1+x+x^2/2+x^3/6+x^4/24+O(x^5) | one fraction: (x^4+4*x^3+12*x^2+24*x+24*O(x^5)+24)/24 | back
+solve(x^2-5x+6=0,x) -> x=2, x=3 | back
+solve(x^2=2,x) -> x=-sqrt(2), x=sqrt(2) | decimal: x=-1.41421, x=1.41421 | back
+solve(2x+3=7,x) -> x=2 | back
+factor(x^4-1) -> (x-1)*(x+1)*(x^2+1) | simplified: x^4-1 | back
+factor(x^2-y^2) -> (x-y)*(x+y) | expanded: x^2-y^2 | back
+expand((x+2)^4) -> x^4+8*x^3+24*x^2+32*x+16 | factored: (x+2)^4 | back
+1/3+1/6 -> 1/2  ~ 0.5 | decimal: 0.5 | back
+sqrt(12) -> 2*sqrt(3)  ~ 3.4641 | decimal: 3.4641 | back
+sqrt(8)*sqrt(2) -> 4 | back
+2^10 -> 1024 | back
+pi^2/6 -> pi^2/6  ~ 1.64493 | decimal: 1.64493 | back
+e^(i*pi) -> -1 | back
+[[1,2],[3,4]]^2 -> [[7, 10],  
+[15, 22]] | back
+det([[1,2],[3,4]]) -> -2 | back
+partfrac(1/(x^3-x)) -> -1/x+1/(2*(x-1))+1/(2*(x+1)) | simplified: 1/(x^3-x) | factored: 1/(x*(x-1)*(x+1)) | expanded: -1/x+1/(2*x+2)+1/(2*x-2) | back
+simplify((x^2-4)/(x+2)) -> x-2 | back
+x^2/4-1 -> (x^2-4)/4 | factored: (x-2)*(x+2)/4 | expanded: x^2/4-1 | back
+(2x+1)/(3x-2) -> (2*x+1)/(3*x-2) | long division: 2/3+7/(3*(3*x-2)) | back
+ln(e^3) -> 3 | back
+cos(pi/3) -> 1/2  ~ 0.5 | decimal: 0.5 | back
+asin(1/2) -> pi/6  ~ 0.523599 | decimal: 0.523599 | back
+3x^2-12 -> 3*x^2-12 | factored: 3*(x-2)*(x+2) | back
+abs(-5) -> 5 | back
+integrate(x^2,x,0,3) -> 9 | back
+integrate(sin(x),x,0,pi) -> 2 | back

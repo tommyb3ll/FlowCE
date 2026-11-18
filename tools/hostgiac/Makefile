@@ -13,7 +13,7 @@ SAN ?= -fsanitize=address -fno-omit-frame-pointer
 OPT ?= -O1
 # CEdev: -fno-exceptions -fno-threadsafe-statics, its own small C++ headers (here: include/).
 # -fno-sized-deallocation: delete must reach uSTL's inline operator delete (free), like operator new.
-CXXFLAGS := -std=c++14 -nostdinc++ -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-sized-deallocation -g $(OPT) $(SAN) \
+CXXFLAGS := -std=c++14 -nostdinc++ -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-sized-deallocation -D_GNU_SOURCE -g $(OPT) $(SAN) \
             $(DEFS) -I$(T)/src -I$(T)/ustl -I$(REPO)/src/tommath -isystem $(HG)/include -w -MMD -MP
 CFLAGS := -g $(OPT) $(SAN) -DMP_16BIT -I$(REPO)/src/tommath -w -MMD -MP
 
