@@ -482,3 +482,49 @@ details.manual li { margin-bottom: .45rem; }
   .chat { inset: 0; width: auto; height: auto; z-index: 7; border: 0; border-radius: 0; }
   .chat-open { right: 14px; bottom: 14px; }
 }
+
+/* the history: Show earlier messages, above the messages (chat.js) */
+.msg-more { align-self: center; list-style: none; }
+.msg-more button { border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--acc); font: inherit; font-size: .8rem; padding: 4px 12px; cursor: pointer; }
+.msg-more button:hover:not(:disabled) { border-color: var(--acc); }
+.msg-more button:disabled { color: var(--sub); cursor: default; border-style: dashed; }
+/* the corner chat's link to the chat page */
+.chat-top-act { display: flex; align-items: center; gap: 6px; }
+.chat-full { font-size: .82rem; color: var(--acc); text-decoration: none; white-space: nowrap; }
+.chat-full:hover { text-decoration: underline; }
+
+/* the common questions (index.html #faq; chat.html shows them too) */
+.faq { display: grid; gap: 8px; max-width: 860px; }
+.faq-more { color: var(--sub); max-width: 760px; margin: -.4rem 0 1rem; }
+.faq-item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+.faq-item > summary { cursor: pointer; padding: 12px 0; font-weight: 700; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+.faq-item > summary::-webkit-details-marker { display: none; }
+.faq-item > summary::before { content: "+"; flex: none; width: 1em; color: var(--acc); font-weight: 700; }
+.faq-item[open] > summary::before { content: "\2212"; }
+.faq-item > p { margin: 0 0 14px 1.6em; color: var(--sub); line-height: 1.55; }
+.faq-item > p b, .faq-item > p code { color: var(--ink); }
+
+/* the chat page (chat.html): its tabs; the chat the page's whole height; the answered questions */
+.cp { padding-top: 18px; padding-bottom: 28px; }
+.cp-tabs { display: flex; width: fit-content; max-width: 100%; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 999px; background: var(--acc-soft); overflow-x: auto; }
+.cp-tabs button { border: 0; background: transparent; color: var(--acc); font: inherit; font-size: .95rem; font-weight: 650; padding: .45rem 1.05rem; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.cp-tabs button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.cp-lead { color: var(--sub); margin: 0 0 12px; }
+.chat-page .chat { position: static; inset: auto; z-index: auto; width: auto; height: calc(100vh - 150px); min-height: 440px; max-width: 980px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.chat-page .msg-main { max-width: 70%; }
+.cp-search { width: 100%; max-width: 560px; font: inherit; padding: 9px 12px; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+.cp-search:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
+.qa-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-width: 860px; }
+.qa { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.qa-q { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; }
+.qa-q .face { grid-row: span 2; align-self: start; }
+.qa-q p { grid-column: 2; margin: 2px 0 0; overflow-wrap: anywhere; }
+.qa-a { margin: 10px 0 0 42px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--gold-bg) 18%, var(--card)); font-size: .95rem; }
+.qa-a p { margin: 2px 0 0; overflow-wrap: anywhere; }
+.qa-wait { color: var(--sub); list-style: none; }
+@media (max-width: 560px) {
+  .chat-page .chat { height: calc(100vh - 128px); min-height: 380px; }
+  .chat-page .msg-main { max-width: 84%; }
+  .qa-a { margin-left: 0; }
+}
+.qa-a .reply-from::after { display: none; }

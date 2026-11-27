@@ -9,7 +9,11 @@
 // delete it to show the message again), and so is one a visitor reported, for them. A visitor is
 // signed in anonymously (no account, nothing personal) when they open the chat, to be counted in it and
 // to write, and stays so in this browser (their messages: deletable) until Firebase clears accounts
-// unused for 30 days. The creator (Tommy Bell) signs in with Google from the page opened with ?creator:
+// unused for 30 days. Show earlier messages (at the top of the messages) reads the history before them, 100
+// at a time, back to the first. chat.html is the chat page: the chat the whole height (no corner button), and
+// tabs: the questions the creator answered (with his replies, searchable), the common questions (index.html's
+// #faq, read from it).
+// The creator (Tommy Bell) signs in with Google from the page opened with ?creator:
 // the rules know his account; his messages are marked (TommyB3LL in gold, a Creator badge), have no
 // limits and cannot be reported, he can delete any message, and no one else can take his name. He alone
 // replies to a message (chat/replies/<its id>, gone with it): one line under it, "Reply from FlowCE" and
@@ -34,6 +38,7 @@ const REPLIER = 'FlowCE'; // (the creator's replies under a message: "Reply from
 const FRESH = 43200000; // (in the chat: came in the last 12 hours; an older place is one a lost disconnect left)
 const $ = id => document.getElementById(id);
 const ARGS = new URLSearchParams(location.search), MOCK = ARGS.has('chatmock'), ASK = ARGS.has('creator');
+const PAGE = document.body.classList.contains('chat-page'); // (chat.html)
 const store = { // (none in some private windows: then only this visit remembers)
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* */ } },
@@ -99,6 +104,12 @@ async function firebase() {
         }
       }
     },
+    async earlier(before, n) { // the n messages before the time before, oldest first (the history, a page at a time)
+      const s = await db.get(db.query(db.ref(d, 'chat/messages'), db.orderByChild('t'), db.endBefore(before), db.limitToLast(n)));
+      const out = [];
+      s.forEach(c => { out.push([c.key, c.val()]); });
+      return out;
+    },
     remove(id) { return db.update(chat, { [`messages/${id}`]: null, [`replies/${id}`]: null }); }, // (its replies too)
     async reply(id, m) { await db.push(db.ref(d, `chat/replies/${id}`), { m, t: db.serverTimestamp() }); }, // (the creator)
     unreply(id, rid) { return db.remove(db.ref(d, `chat/replies/${id}/${rid}`)); },
@@ -125,7 +136,7 @@ async function firebase() {
 
 function memory() {
   const subs = [], reports = {}, replies = {};
-  let k = 0, creator = false;
+  let k = 0, creator = false, gave = false;
   const replied = id => subs.forEach(s => s[3](id, replies[id] ? { ...replies[id] } : null));
   return {
     me: 'me',
@@ -143,6 +154,11 @@ function memory() {
       const id = 'm' + ++k, v = { n, m, u: 'me', t: Date.now() };
       if (creator) v.o = true;
       subs.forEach(s => s[0](id, v));
+    },
+    async earlier(before) { // (?chatmock: one older message, once)
+      if (gave) return [];
+      gave = true;
+      return [['s0', { n: 'Ana', m: 'Is there a list of common questions?', u: 'ana', t: before - 600000 }]];
     },
     async remove(id) { subs.forEach(s => s[1](id)); delete replies[id]; replied(id); },
     async reply(id, m) { replies[id] = { ...replies[id], ['r' + ++k]: { m, t: Date.now() } }; replied(id); },
@@ -238,6 +254,13 @@ async function start(panel) {
   const items = new Map(), people_ = new Map(), vals = new Map(); // (each message's li, its author: {n, o}, it)
   const replied = new Map(), opened = new Set(); // (the creator's replies to a message: [id, {m, t}], oldest first; shown whole)
   let replyTo = null; // (the creator: the message his next send replies to)
+  let oldest = null; // (the time of the oldest message shown: Show earlier messages reads before it)
+  const more = document.createElement('li'), moreb = document.createElement('button');
+  more.className = 'msg-more';
+  moreb.type = 'button';
+  moreb.textContent = 'Show earlier messages';
+  more.append(moreb);
+  log.prepend(more);
   const hidden = id => (!(people_.get(id) || {}).o && counts[id] >= HIDE) || reported.includes(id);
   const button = () => people(recent([...items].filter(([, li]) => !li.hidden).map(([id]) => people_.get(id))), online, unread);
   const atEnd = () => log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
@@ -297,9 +320,10 @@ async function start(panel) {
     $('chat-replying-gist').textContent = clean(vals.get(id).m);
     text.focus();
   };
-  const add = (id, v) => { // (a message sent from this page shows at once, before the database has it)
-    if (!v || typeof v.n !== 'string' || typeof v.m !== 'string' || items.has(id)) return;
+  const add = (id, v, top) => { // (a message sent from this page shows at once, before the database has it; top: an
+    if (!v || typeof v.n !== 'string' || typeof v.m !== 'string' || items.has(id)) return; // earlier one, above the others)
     const mine = v.u === chat.me, o = v.o === true, end = atEnd();
+    if (typeof v.t === 'number' && (oldest === null || v.t < oldest)) oldest = v.t;
     const li = document.createElement('li'), main = document.createElement('div'), head = document.createElement('div');
     const who = document.createElement('strong'), when = document.createElement('span'), body = document.createElement('p');
     const act = document.createElement('button');
@@ -336,20 +360,39 @@ async function start(panel) {
     body.textContent = clean(v.m);
     main.append(head, body);
     if (mine) li.append(main); else li.append(face({ n, o }), main);
-    log.append(li);
+    if (top) more.after(li); else log.append(li);
     items.set(id, li);
     answers(id);
+    if (top) return;
     if (end || mine) log.scrollTop = log.scrollHeight;
     if (panel.hidden && !li.hidden) unread = true;
     button();
   };
+  moreb.addEventListener('click', async () => { // the history: the 100 before the oldest shown, the view kept where it was
+    if (oldest === null || moreb.disabled) return;
+    moreb.disabled = true;
+    moreb.textContent = 'Loading…';
+    try {
+      const page = await chat.earlier(oldest, MAX), h0 = log.scrollHeight, s0 = log.scrollTop;
+      for (let i = page.length - 1; i >= 0; --i) add(page[i][0], page[i][1], true); // (each above the one after it)
+      log.scrollTop = s0 + log.scrollHeight - h0;
+      const start_ = page.length < MAX;
+      moreb.textContent = start_ ? 'The start of the chat' : 'Show earlier messages';
+      moreb.disabled = start_;
+      count('chat-earlier');
+    } catch (e) {
+      moreb.textContent = 'Show earlier messages';
+      moreb.disabled = false;
+      say('Could not load them. Try again.', true);
+    }
+  });
   const drop = id => { // (deleted, or refused by the database)
     const li = items.get(id);
     if (li) { li.remove(); items.delete(id); people_.delete(id); vals.delete(id); button(); }
     if (replyTo === id) replying(null);
   };
   const redraw = () => { // (signed in or out as the creator: whose messages are whose, which can go)
-    const all = [...vals];
+    const all = [...vals].sort((a, b) => a[1].t - b[1].t); // (the earlier ones read later: in their places)
     items.forEach(li => li.remove());
     items.clear(); people_.clear(); vals.clear();
     all.forEach(([id, v]) => add(id, v));
@@ -477,6 +520,13 @@ async function start(panel) {
 function init() {
   const panel = $('chat'), opener = $('chat-open');
   if (!panel || !opener || (!CONFIG && !MOCK)) return; // (no database: no chat)
+  if (PAGE) { // (chat.html: the chat open the whole time, no corner button; the tabs)
+    panel.hidden = false;
+    start(panel);
+    count('chat-page');
+    tabs();
+    return;
+  }
   let started = false;
   const open = () => {
     panel.hidden = false;
@@ -502,6 +552,78 @@ function init() {
   });
   if (location.hash === '#chat' || ASK) open();
   else if (!MOCK) peek();
+}
+
+// The chat page's tabs: the live chat; the questions the creator answered, with his replies (the database's
+// messages that have replies of a dozen characters or more, newest answer first, none of the hidden ones; read
+// when the tab opens), with a
+// search; the common questions (index.html's #faq, read from it once)
+function tabs() {
+  const bs = document.querySelectorAll('[data-tab]');
+  let faqDone = false;
+  const show = (k, keep) => {
+    bs.forEach(b => { const on = b.dataset.tab === k; b.setAttribute('aria-selected', String(on)); b.classList.toggle('on', on); });
+    document.querySelectorAll('.cp-panel').forEach(p => { p.hidden = p.id !== 'tab-' + k; });
+    if (k === 'answered') answered();
+    if (k === 'faq' && !faqDone) {
+      faqDone = true;
+      fetch('index.html').then(r => r.text()).then(t => {
+        const f = new DOMParser().parseFromString(t, 'text/html').getElementById('faq-list');
+        if (f) $('faq-here').replaceChildren(document.importNode(f, true));
+      }).catch(() => { faqDone = false; });
+    }
+    if (!keep) history.replaceState(null, '', k === 'live' ? location.pathname + location.search : '#' + k);
+    if (k === 'live') { const log = $('chat-log'); log.scrollTop = log.scrollHeight; }
+  };
+  bs.forEach(b => b.addEventListener('click', () => show(b.dataset.tab)));
+  const h = location.hash.slice(1);
+  if (h === 'answered' || h === 'faq') show(h, true);
+  const q = $('ans-search');
+  if (q) q.addEventListener('input', () => {
+    const w = q.value.trim().toLowerCase();
+    $('ans-list').querySelectorAll('.qa').forEach(li => { li.hidden = !!w && !li.textContent.toLowerCase().includes(w); });
+  });
+}
+async function answered() {
+  const list = $('ans-list'), get = p => fetch(`${CONFIG.databaseURL}/chat/${p}.json`).then(r => (r.ok ? r.json() : null));
+  if (!list.children.length) list.innerHTML = '<li class="qa-wait">Loading the answers…</li>';
+  try {
+    const [m, r, c] = MOCK ? [{}, {}, {}] : await Promise.all([get('messages'), get('replies'), get('reports')]);
+    const qs = Object.entries(r || {}).map(([id, rs]) => [id, (m || {})[id], Object.values(rs || {})
+      .filter(x => x && typeof x.m === 'string' && typeof x.t === 'number' && x.m.trim().length >= 12).sort((a, b) => a.t - b.t)]) // (not a word or two: ":(", "yes")
+      .filter(([id, v, rs]) => v && typeof v.n === 'string' && typeof v.m === 'string' && rs.length && (v.o === true || !((c || {})[id] >= HIDE)))
+      .sort((a, b) => b[2][b[2].length - 1].t - a[2][a[2].length - 1].t);
+    const lis = qs.map(([, v, rs]) => {
+      const li = document.createElement('li'), q = document.createElement('div'), head = document.createElement('div');
+      const who = document.createElement('strong'), when = document.createElement('span'), p = document.createElement('p');
+      li.className = 'qa';
+      q.className = 'qa-q';
+      head.className = 'msg-head';
+      who.textContent = clean(v.n);
+      when.className = 'msg-time';
+      when.textContent = new Date(v.t).toLocaleDateString();
+      head.append(who, when);
+      p.textContent = clean(v.m);
+      q.append(face({ n: clean(v.n), o: v.o === true }), head, p);
+      li.append(q);
+      rs.forEach(x => {
+        const a = document.createElement('div'), from = document.createElement('span'), t = document.createElement('p');
+        a.className = 'qa-a';
+        from.className = 'reply-from';
+        from.textContent = `Reply from ${REPLIER}`;
+        t.textContent = clean(x.m);
+        a.append(from, t);
+        li.append(a);
+      });
+      return li;
+    });
+    list.replaceChildren(...lis);
+    if (!lis.length) list.innerHTML = '<li class="qa-wait">No answers yet.</li>';
+    const q = $('ans-search');
+    if (q && q.value) q.dispatchEvent(new Event('input'));
+  } catch (e) {
+    list.innerHTML = '<li class="qa-wait">The answers could not be read. Reload to try again.</li>';
+  }
 }
 
 init();

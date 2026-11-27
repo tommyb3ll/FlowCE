@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowCE live chat</title>
+<meta name="description" content="The FlowCE live chat: talk with other FlowCE users, read the questions already answered, and the common questions about installing and using FlowCE on a TI-84 Plus CE.">
+<link rel="icon" href="media/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=STIX+Two+Text:ital,wght@1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="chat-page">
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="wordmark" href="./">Flow<span>CE</span></a>
+    <nav>
+      <a href="./#install">Install</a>
+      <a href="./#faq">Questions</a>
+      <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="cp wrap">
+  <div class="cp-tabs" role="tablist" aria-label="Chat">
+    <button type="button" role="tab" class="on" data-tab="live" aria-selected="true">Live chat</button>
+    <button type="button" role="tab" data-tab="answered" aria-selected="false">Answered</button>
+    <button type="button" role="tab" data-tab="faq" aria-selected="false">Common questions</button>
+  </div>
+
+  <section class="cp-panel" id="tab-live" role="tabpanel" aria-label="Live chat">
+    <aside class="chat" id="chat" aria-label="Live chat" hidden>
+      <div class="chat-top">
+        <div>
+          <h2><span class="live" aria-hidden="true"></span>Live chat</h2>
+          <p class="chat-sub" id="chat-sub">Public chat with other FlowCE users</p>
+        </div>
+        <button class="chat-close" id="chat-close" type="button" aria-label="Close the chat" hidden>×</button>
+      </div>
+      <ul class="chat-log" id="chat-log" aria-live="polite" aria-label="Messages"></ul>
+      <form class="chat-form" id="chat-form" autocomplete="off">
+        <p class="chat-replying" id="chat-replying" hidden><span class="chat-replying-text">Replying to <b id="chat-replying-to"></b>: <span id="chat-replying-gist"></span></span><button class="chat-close" id="chat-reply-cancel" type="button" aria-label="Cancel the reply">×</button></p>
+        <input id="chat-name" maxlength="24" placeholder="Your name (everyone sees it)" aria-label="Your name" disabled>
+        <input id="chat-text" maxlength="300" placeholder="Message everyone" aria-label="Message" disabled>
+        <button class="btn primary" type="submit" disabled>Send</button>
+      </form>
+      <p class="fine chat-note"><span id="chat-as" hidden>Posting as <b id="chat-as-name"></b><span class="chat-badge" id="chat-as-badge" hidden>Creator</span> (<button class="chat-rename" id="chat-rename" type="button">change</button>). </span>Be kind, and leave out anything personal. <button class="chat-rename" id="chat-creator" type="button" hidden>Creator sign-in</button> <span id="chat-status" class="chat-status" role="status"></span></p>
+    </aside>
+  </section>
+
+  <section class="cp-panel" id="tab-answered" role="tabpanel" aria-label="Answered" hidden>
+    <p class="cp-lead">Questions from the chat that have an answer from FlowCE, newest answer first.</p>
+    <input class="cp-search" id="ans-search" type="search" placeholder="Search the answers (steps, degrees, Mac...)" aria-label="Search the answers">
+    <ul class="qa-list" id="ans-list"></ul>
+  </section>
+
+  <section class="cp-panel" id="tab-faq" role="tabpanel" aria-label="Common questions" hidden>
+    <p class="cp-lead">The questions people ask most. Also on the <a href="./#faq">main page</a>.</p>
+    <div id="faq-here"><p class="fine">Loading…</p></div>
+  </section>
+</main>
+
+<!-- (the corner button: chat.js needs it; on this page it stays hidden) -->
+<button class="chat-open" id="chat-open" type="button" hidden>
+  <span class="chat-faces" id="chat-faces" aria-hidden="true"></span>
+  <span class="chat-open-text"><strong><span class="live" aria-hidden="true"></span>Live chat</strong><span class="chat-open-sub" id="chat-open-sub">with other FlowCE users</span></span>
+</button>
+
+<script type="module" src="chat.js"></script>
+<!-- visits, counted by GoatCounter: no cookies, nothing personal; the counts are private -->
+<script data-goatcounter="https://flowce.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
