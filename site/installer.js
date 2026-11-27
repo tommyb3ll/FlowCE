@@ -31,14 +31,13 @@ let build = 'normal';     // the version picked
 // each combination that fits in an app (43 flash pages), by its code: a digit for each pack of
 // packs.packs, 1 in ('0011': statistics and differential equations, FlowCE.b84). Without that file
 // (a site from before 3.0), FlowCE.b84 alone and no customizer.
-const PACK_NAMES = { series: 'Series and sequences', vectors: 'Vectors, lines and curves', stats: 'Statistics and probability', diffeq: 'Differential equations' };
-const PACK_SHORT = { series: 'Series', vectors: 'Vectors', stats: 'Statistics', diffeq: 'Differential equations' };
+const PACK_NAMES = { series: 'Series and sequences', vectors: 'Vectors and curves', stats: 'Statistics and probability', diffeq: 'Differential equations' };
+const PACK_SHORT = { series: 'Series & sequences', vectors: 'Vectors & curves', stats: 'Statistics', diffeq: 'Differential equations' };
 let packs = null;         // packs.json: { packs: ['series', 'vectors', 'stats', 'diffeq'], default: '0011', max, builds: { code: { file, size } } }
 let code = null;          // the combination picked
-let picked = [];          // its packs, in the order they were checked (one that doesn't fit: the oldest go first)
-let lastDrop = null;      // { p, off }: checking p turned off these; unchecking p brings them back
+let picked = [];          // its packs, in the order they were turned on (one that doesn't fit: the oldest go first)
+let lastDrop = null;      // { p, off }: turning p on turned off these; turning p off brings them back
 let note = '';            // what the last change turned off
-const KB = n => Math.round(n / 1000) + ' KB';
 const inCode = (c, p) => c[packs.packs.indexOf(p)] === '1';
 const codeWith = (c, p, on) => { const i = packs.packs.indexOf(p); return c.slice(0, i) + (on ? '1' : '0') + c.slice(i + 1); };
 const packsOf = c => packs.packs.filter(p => inCode(c, p));
@@ -246,7 +245,7 @@ function showBuild() {
   const pk = build === 'normal' && packs && code ? packsOf(code) : null;
   $('btn-install').textContent = 'Install ' + b.name;
   $('version').textContent = (b.name + ' ' + (versions[build] || '')).trim() +
-    (!pk ? '' : pk.length ? ' with ' + listText(pk.map(p => PACK_SHORT[p])) : ', no packs');
+    (!pk ? '' : pk.length ? ' with ' + listText(pk.map(p => PACK_SHORT[p])) : ', no add-ons');
   const dl = $('dl');
   dl.href = 'files/' + file;
   dl.textContent = file;
@@ -258,41 +257,13 @@ function showBuild() {
   showPacks();
 }
 
-// The customizer: each pack checked or not, what one not checked would turn off, and the bar: the
-// room for packs (the most an app can be, less FlowCE without them), each pack picked its part
+// The add-ons: each tile on or off (its pack in the combination), and the line saying what the last one
+// turned on turned off
 function showPacks() {
   const box = $('packs');
   box.hidden = !(packs && build === 'normal');
   if (!packs) return;
-  const b = packs.builds[code], max = packs.max || 2818045;
-  const none = '0'.repeat(packs.packs.length), base = packs.builds[none];
-  box.querySelectorAll('.pack').forEach(l => {
-    if (l.hidden) return;
-    const p = l.dataset.pack, on = inCode(code, p);
-    l.querySelector('input').checked = on;
-    l.classList.toggle('on', on);
-    let why = '';
-    if (!on && !packs.builds[codeWith(code, p, true)]) {
-      const r = withPack(code, p, true);
-      const off = r ? packsOf(code).filter(q => !inCode(r, q)) : [];
-      const n = packsOf(code).length + 1; // (the packs checked and this one: no room for them together)
-      if (off.length) why = `Turns off ${listText(off.map(q => PACK_SHORT[q]))}: not enough room for ${n > 2 ? 'all ' + ['three', 'four'][n - 3] : 'both'}.`;
-    }
-    l.querySelector('.pack-why').textContent = why;
-  });
-  const bar = $('pk-bar');
-  if (base) {
-    const room = max - base.size, used = Math.max(0, b.size - base.size), on = packsOf(code);
-    const own = on.map(p => { const one = packs.builds[codeWith(none, p, true)]; return one ? one.size - base.size : 0; });
-    const sum = own.reduce((a, x) => a + x, 0) || 1; // (each pack's part: its own size, scaled to the combination's)
-    bar.innerHTML = on.map((p, i) => `<span title="${PACK_NAMES[p]}" style="width:${Math.min(100, 100 * used * own[i] / sum / room).toFixed(2)}%"></span>`).join('');
-    $('pk-size').innerHTML = on.length
-      ? `<strong>${KB(used)}</strong> of the ${KB(room)} of room for packs` + (room - used >= 1000 ? `, ${KB(room - used)} left` : '') + `. FlowCE with ${on.length > 1 ? 'them' : 'it'}: ${MB(b.size)}.`
-      : `No packs: ${KB(room)} of room for them. FlowCE without them: ${MB(b.size)}.`;
-  } else { // (no bundle without packs to measure from: the app against the most it can be)
-    bar.innerHTML = `<span style="width:${Math.min(100, 100 * b.size / max).toFixed(2)}%"></span>`;
-    $('pk-size').innerHTML = `<strong>${MB(b.size)}</strong> of ${MB(max)}, the most an app can be.`;
-  }
+  box.querySelectorAll('.addon').forEach(t => { t.setAttribute('aria-pressed', String(inCode(code, t.dataset.pack))); });
   $('pk-note').hidden = !note;
   $('pk-note').textContent = note;
 }
@@ -315,7 +286,7 @@ function withPack(c, p, on) {
 // A pack checked or unchecked: the combination that has room, then the calculator checked again
 // (the memory it needs) if one is connected
 async function togglePack(p, on) {
-  if (busy || waitingReset || v3Stage) { showPacks(); return; } // (the boxes are disabled then anyway)
+  if (busy || waitingReset || v3Stage) { showPacks(); return; } // (the tiles are disabled then anyway)
   let next;
   if (!on && lastDrop && lastDrop.p === p) { // (the pack that turned others off: they come back)
     next = codeWith(code, p, false);
@@ -327,8 +298,7 @@ async function togglePack(p, on) {
   picked = picked.filter(q => inCode(next, q));
   picked = picked.concat(packsOf(next).filter(q => !picked.includes(q)));
   lastDrop = on && off.length ? { p, off } : null;
-  note = off.length ? `${PACK_SHORT[p]} doesn't fit with ${listText(off.map(q => PACK_SHORT[q]))}, so ` +
-    `${off.length > 1 ? 'they are' : 'it is'} off now. Uncheck ${PACK_SHORT[p]} to bring ${off.length > 1 ? 'them' : 'it'} back.` : '';
+  note = off.length ? `${listText(off.map(q => PACK_SHORT[q]))} turned off: ${off.length > 1 ? "they don't" : "it doesn't"} fit with ${PACK_SHORT[p]}.` : '';
   code = next;
   showBuild();
   if (!calc) return;
@@ -341,8 +311,8 @@ async function togglePack(p, on) {
   }
 }
 
-// files/packs.json read: the customizer shows, with the packs a link asks for (?packs=vectors,stats;
-// ?packs=none) if they were built together
+// files/packs.json read: the add-ons show, with the packs a link asks for (?packs=vectors,stats; ?packs=none)
+// if they were built together; a pack no bundle has: no tile
 function setupPacks(j) {
   if (!j || !Array.isArray(j.packs) || !j.builds || !j.builds[j.default] || j.packs.some(p => !PACK_NAMES[p])) return;
   packs = j;
@@ -355,13 +325,11 @@ function setupPacks(j) {
     if (j.builds[c]) code = c;
   }
   picked = packsOf(code);
-  const none = '0'.repeat(j.packs.length), base = j.builds[none];
-  document.querySelectorAll('#packs .pack').forEach(l => {
-    const p = l.dataset.pack, one = j.packs.includes(p) ? j.builds[codeWith(none, p, true)] : null;
-    if (!one) { l.hidden = true; return; } // (no bundle has it)
-    l.querySelector('.pack-kb').textContent = base ? '+' + KB(one.size - base.size) : '';
-    const box = l.querySelector('input');
-    box.addEventListener('change', () => togglePack(p, box.checked));
+  const none = '0'.repeat(j.packs.length);
+  document.querySelectorAll('#packs .addon').forEach(t => {
+    const p = t.dataset.pack;
+    if (!j.packs.includes(p) || !j.builds[codeWith(none, p, true)]) { t.hidden = true; return; }
+    t.addEventListener('click', () => togglePack(p, !inCode(code, p)));
   });
   showBuild();
   updateInstall();
@@ -392,7 +360,7 @@ function updateInstall() {
   $('btn-install').disabled = locked || !calc || !state || state.blocked ||
     ((state.needErase || state.route === 'v3') && !$('erase-ok').checked);
   document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = locked || r.dataset.off === '1'; });
-  document.querySelectorAll('#packs input').forEach(i => { i.disabled = locked; });
+  document.querySelectorAll('#packs .addon').forEach(i => { i.disabled = locked; });
   $('packs').classList.toggle('locked', locked);
   $('btn-v3-next').disabled = busy;
 }
