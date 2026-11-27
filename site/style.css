@@ -490,6 +490,7 @@ details.manual li { margin-bottom: .45rem; }
 .cp-tabs button { border: 0; background: transparent; color: var(--acc); font: inherit; font-size: .95rem; font-weight: 650; padding: .45rem 1.05rem; border-radius: 999px; cursor: pointer; white-space: nowrap; }
 .cp-tabs button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
 .cp-lead { color: var(--sub); margin: 0 0 12px; }
+.cp-panel { padding-top: 0; } /* (the tabs' panels: right under the tabs, not a page section's space) */
 .chat-page .chat { position: static; inset: auto; z-index: auto; width: auto; height: calc(100vh - 150px); min-height: 440px; max-width: 980px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .chat-page .msg-main { max-width: 70%; }
 .cp-search { width: 100%; max-width: 560px; font: inherit; padding: 9px 12px; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
@@ -542,3 +543,77 @@ details.manual li { margin-bottom: .45rem; }
 .addon-what { color: var(--sub); font-size: .85rem; line-height: 1.35; padding-right: 34px; }
 @media (prefers-reduced-motion: reduce) { .addon { transition: none; } }
 @media (max-width: 640px) { .addons { grid-template-columns: 1fr; } }
+
+/* the creator's tools (chat.js): edit in place (a pencil by the creator's messages and replies), the small text
+   buttons on Answered and Admin, the Admin tab (its count, its parts, the problem reports) */
+.msg-edit:hover, .msg-edit:focus-visible { color: var(--acc); }
+.msg-edit::before {
+  content: "";
+  display: block;
+  width: 13px;
+  height: 13px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17.2V21h3.8L17.9 9.9l-3.8-3.8zM20.7 7.1a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17.2V21h3.8L17.9 9.9l-3.8-3.8zM20.7 7.1a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9 3.8 3.8z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.reply-text .msg-edit { display: inline-block; margin-left: 6px; vertical-align: -1px; }
+.ed { display: grid; gap: 6px; width: 100%; min-width: min(300px, 100%); margin: 4px 0 2px; }
+.ed textarea { box-sizing: border-box; width: 100%; font: inherit; font-size: .92rem; line-height: 1.4; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); resize: vertical; }
+.ed textarea:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
+.ed-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed .btn { min-height: 34px; padding: 0 .9rem; font-size: .88rem; }
+.msg.mine .ed .btn:not(.primary) { color: var(--ink); }
+.qa > .ed { width: auto; margin: 10px 0 0 42px; }
+.ad-anchor { display: none; }
+.qa-tools { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 6px; }
+.qa-a .qa-tools { margin-top: 4px; }
+.qa-tool { border: 0; background: none; padding: 2px 0; font: inherit; font-size: .84rem; font-weight: 650; color: var(--acc); cursor: pointer; }
+.qa-tool:hover, .qa-tool:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
+.qa-tool.danger { color: var(--red); }
+.qa-tool:disabled { opacity: .5; cursor: default; text-decoration: none; }
+.qa-off { padding: 1px 9px; border-radius: 999px; background: var(--beta-bg); color: var(--beta-ink); font-size: .78rem; font-weight: 700; }
+.qa.off { border-style: dashed; }
+.qa.off .qa-q p, .qa.off .qa-a { opacity: .7; }
+.cp-count { display: inline-block; min-width: 1.4em; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-size: .74rem; font-weight: 700; line-height: 1.55; text-align: center; }
+.cp-count[hidden] { display: none; }
+.cp-status { min-height: 1.3em; margin: -6px 0 8px; color: var(--green); font-size: .9rem; }
+.cp-status.err { color: var(--red); }
+.ad-top, .ad-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; max-width: 860px; }
+.ad-seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.ad-seg button { border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: .9rem; font-weight: 650; padding: .35rem .85rem; cursor: pointer; }
+.ad-seg button.on { border-color: var(--acc); background: var(--acc-soft); color: var(--acc); }
+.ad-n { color: var(--sub); font-weight: 400; }
+.ad-seg button.on .ad-n { color: inherit; }
+.ad-more { display: block; margin: 12px 0 0; }
+.ad-done { max-width: 860px; margin-top: 18px; }
+.ad-done > summary { cursor: pointer; padding: 6px 0; color: var(--sub); font-weight: 650; }
+.ad-done[open] > summary { margin-bottom: 8px; }
+.bug-item.new { border-color: var(--acc); }
+.bug-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 8px 0 0; }
+.bug-dl dt { color: var(--sub); font-size: .86rem; }
+.bug-dl dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bug-item > .qa-tools { margin-top: 10px; }
+.bug-state { font: inherit; font-size: .86rem; padding: 3px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+.bug-pic { display: block; max-width: 220px; max-height: 160px; border: 1px solid var(--line); border-radius: 8px; cursor: zoom-in; }
+.bug-pic.big { max-width: 100%; max-height: none; cursor: zoom-out; }
+@media (max-width: 640px) { .qa > .ed { margin-left: 0; } }
+
+/* the bug report form (index.html #report) */
+.bug { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; max-width: 860px; padding: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.bug-f { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.bug-wide { grid-column: 1 / -1; }
+.bug-l { font-weight: 700; font-size: .95rem; }
+.bug-opt { color: var(--sub); font-weight: 400; }
+.bug input:not([type="file"]), .bug textarea, .bug select { box-sizing: border-box; width: 100%; min-width: 0; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+.bug textarea { resize: vertical; line-height: 1.45; }
+.bug input:focus, .bug textarea:focus, .bug select:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
+.bug-photo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.bug-pick { position: relative; min-height: 40px; font-size: .95rem; overflow: hidden; }
+.bug-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.bug-pick:focus-within { outline: 2px solid var(--acc); outline-offset: 2px; }
+.bug-thumb { max-width: 120px; max-height: 64px; border: 1px solid var(--line); border-radius: 8px; }
+.bug-go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.bug-status { color: var(--green); font-size: .92rem; }
+.bug-status.err { color: var(--red); }
+#report .fine { margin-top: .8rem; }
+@media (max-width: 640px) { .bug { grid-template-columns: 1fr; padding: 14px; } }

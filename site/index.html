@@ -24,6 +24,7 @@
       <a href="#install">Install</a>
       <a href="#screens">Screens</a>
       <a href="#faq">Questions</a>
+      <a href="#report">Report a bug</a>
       <a href="chat.html">Live chat</a>
       <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
     </nav>
@@ -255,13 +256,13 @@
       <li><strong>OS 5.8.5:</strong> the page selects v3. Follow its calculator prompts, or use <a href="#manual-585">TI Connect CE</a>. OS 5.8.4.0058 uses v2.1.</li>
       <li><strong>INST says “Unknown OS version”:</strong> see <a href="#os-help">OS help and update instructions</a>. Updating is not a confirmed fix for newer boot code.</li>
     </ul>
-    <p class="fine">Something else, or a wrong answer? <a href="https://github.com/tommyb3ll/FlowCE/issues/new/choose">Report it on GitHub</a> or on the <a href="https://www.cemetech.net/forum/viewtopic.php?t=21437">Cemetech thread</a>.</p>
+    <p class="fine">Something else, or a wrong answer? <a href="#report">Report a bug</a>, or ask in the <a href="chat.html">live chat</a>.</p>
   </details>
 </section>
 
 <section id="faq" class="wrap">
   <h2>Questions</h2>
-  <p class="faq-more">The questions people ask most in the chat. Something else? <a href="chat.html">Ask in the live chat</a>, or see <a href="chat.html#answered">the ones already answered</a>.</p>
+  <p class="faq-more">The questions people ask most in the chat. Something else? <a href="chat.html">Ask in the live chat</a>, or see <a href="chat.html#answered">the ones already answered</a>. Found a bug? <a href="#report">Report it</a>.</p>
   <div class="faq" id="faq-list">
     <details class="faq-item"><summary>Which calculators does it work on?</summary><p>The TI-84 Plus CE (the CE Python edition too) and the TI-83 Premium CE, with OS 5.3 to 5.8.5. Not the TI-84 Evo, the older TI-84 Plus or Casio calculators (Bernard Parisse's <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a>, which FlowCE comes from, runs on the Casio fx-CG50). Your OS: <kbd>2nd</kbd> <kbd>+</kbd> &rarr; <kbd>1</kbd> (About).</p></details>
     <details class="faq-item"><summary>It says "No compatible devices found", or the calculator doesn't show up.</summary><p>Turn the calculator on, use a USB cable that carries data (the one it came with: some phone charging cables don't), then unplug it and plug it back in. On Windows, close TI Connect CE (it keeps the calculator, even from the taskbar's corner) and other tabs of this page; still nothing: install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer (its driver), close it, and try again. School Chromebooks often block USB devices.</p></details>
@@ -280,6 +281,28 @@
     <details class="faq-item"><summary>Is it free? Is it safe?</summary><p>Free, and open source: every line is on <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>. This page sends it straight from your browser to the calculator.</p></details>
     <details class="faq-item"><summary>What's the difference between FlowCE and KhiCAS + Flow?</summary><p>FlowCE has the steps, the forms and the add-ons. KhiCAS + Flow is Bernard Parisse's KhiCAS as he made it (his menus, keys, spreadsheet and programs) in FlowCE's look, without steps.</p></details>
   </div>
+</section>
+
+<section id="report" class="wrap">
+  <h2>Report a bug</h2>
+  <p class="faq-more">A wrong answer, an error, a freeze? Say what happened. Only FlowCE's creator reads these.</p>
+  <form class="bug" id="bug-form" autocomplete="off" novalidate>
+    <label class="bug-f"><span class="bug-l">What did you type?</span><input id="bug-typed" maxlength="300" placeholder="factor(x^4-16)"></label>
+    <label class="bug-f"><span class="bug-l">What came back?</span><input id="bug-got" maxlength="300" placeholder="The answer, an error, or &ldquo;it froze&rdquo;"></label>
+    <label class="bug-f bug-wide"><span class="bug-l">What's wrong?</span><textarea id="bug-issue" maxlength="1000" rows="3" placeholder="What should it have done?"></textarea></label>
+    <label class="bug-f"><span class="bug-l">Version</span><select id="bug-ver"><option>FlowCE (newest)</option><option>KhiCAS + Flow (newest)</option><option>An older version</option><option>Not sure</option></select></label>
+    <label class="bug-f"><span class="bug-l">Calculator</span><select id="bug-model"><option>TI-84 Plus CE</option><option>TI-84 Plus CE Python</option><option>TI-83 Premium CE</option><option>Other</option></select></label>
+    <div class="bug-f bug-wide">
+      <span class="bug-l">Photo of the screen <span class="bug-opt">(optional)</span></span>
+      <div class="bug-photo">
+        <label class="btn bug-pick">Add a photo<input type="file" id="bug-file" accept="image/*"></label>
+        <img id="bug-thumb" class="bug-thumb" alt="The photo to send" hidden>
+        <button type="button" class="qa-tool danger" id="bug-unpick" hidden>Remove</button>
+      </div>
+    </div>
+    <div class="bug-wide bug-go"><button class="btn primary" type="submit" id="bug-send">Send</button><span class="bug-status" id="bug-status" role="status"></span></div>
+  </form>
+  <p class="fine">You can also <a href="https://github.com/tommyb3ll/FlowCE/issues/new/choose">open an issue on GitHub</a> or post on the <a href="https://www.cemetech.net/forum/viewtopic.php?t=21437">Cemetech thread</a>.</p>
 </section>
 
 <section id="screens" class="wrap">

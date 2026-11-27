@@ -5,10 +5,12 @@
     "chat": {
       "messages": {
         ".read": true,
-        ".indexOn": ["t"],
+        ".indexOn": [
+          "t"
+        ],
         "$id": {
-          ".write": "auth != null && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && (data.child('u').val() === auth.uid || (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true))))",
-          ".validate": "newData.hasChildren(['n', 'm', 'u', 't']) && newData.child('u').val() === auth.uid && newData.child('t').val() === now && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 24 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && (!newData.child('o').exists() || (newData.child('o').val() === true && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true)) && ((auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true) || (!newData.child('n').val().matches(/(https?:|www\\.)/i) && !newData.child('m').val().matches(/(https?:|www\\.)/i) && !newData.child('n').val().matches(/t[^a-z0-9]*[o0][^a-z0-9]*m[^a-z0-9]*m[^a-z0-9]*[yi][^a-z0-9]*b[^a-z0-9]*[3e][^a-z0-9]*[l1i][^a-z0-9]*[l1i]/i) && (!root.child('chat/last/' + auth.uid).exists() || root.child('chat/last/' + auth.uid).val() <= now - 2000) && newData.parent().parent().child('last/' + auth.uid).val() === now && (newData.parent().parent().child('win/' + auth.uid + '/t').val() === now || newData.parent().parent().child('win/' + auth.uid + '/n').val() === root.child('chat/win/' + auth.uid + '/n').val() + 1) && newData.parent().parent().child('lastm/' + auth.uid).val() === newData.child('m').val() && !(root.child('chat/last/' + auth.uid).exists() && root.child('chat/last/' + auth.uid).val() > now - 60000 && root.child('chat/lastm/' + auth.uid).val() === newData.child('m').val())))",
+          ".write": "auth != null && ((!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && (data.child('u').val() === auth.uid || (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true))) || (data.exists() && newData.exists() && data.child('o').val() === true && (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true)))",
+          ".validate": "newData.hasChildren(['n', 'm', 'u', 't']) && newData.child('u').val() === auth.uid && (newData.child('t').val() === now || (data.exists() && newData.child('t').val() === data.child('t').val() && (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true))) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 24 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && (!newData.child('o').exists() || (newData.child('o').val() === true && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true)) && ((auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true) || (!newData.child('n').val().matches(/(https?:|www\\.)/i) && !newData.child('m').val().matches(/(https?:|www\\.)/i) && !newData.child('n').val().matches(/t[^a-z0-9]*[o0][^a-z0-9]*m[^a-z0-9]*m[^a-z0-9]*[yi][^a-z0-9]*b[^a-z0-9]*[3e][^a-z0-9]*[l1i][^a-z0-9]*[l1i]/i) && (!root.child('chat/last/' + auth.uid).exists() || root.child('chat/last/' + auth.uid).val() <= now - 2000) && newData.parent().parent().child('last/' + auth.uid).val() === now && (newData.parent().parent().child('win/' + auth.uid + '/t').val() === now || newData.parent().parent().child('win/' + auth.uid + '/n').val() === root.child('chat/win/' + auth.uid + '/n').val() + 1) && newData.parent().parent().child('lastm/' + auth.uid).val() === newData.child('m').val() && !(root.child('chat/last/' + auth.uid).exists() && root.child('chat/last/' + auth.uid).val() > now - 60000 && root.child('chat/lastm/' + auth.uid).val() === newData.child('m').val())))",
           "$other": {
             ".validate": "$other === 'n' || $other === 'm' || $other === 'u' || $other === 't' || $other === 'o'"
           }
@@ -44,7 +46,7 @@
         "$id": {
           ".write": "auth != null && ((auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true) || (!newData.exists() && root.child('chat/messages/' + $id + '/u').val() === auth.uid))",
           "$rid": {
-            ".validate": "newData.hasChildren(['m', 't']) && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && newData.child('t').val() === now && root.child('chat/messages/' + $id).exists()",
+            ".validate": "newData.hasChildren(['m', 't']) && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 300 && (newData.child('t').val() === now || (data.exists() && newData.child('t').val() === data.child('t').val())) && root.child('chat/messages/' + $id).exists()",
             "$other": {
               ".validate": "$other === 'm' || $other === 't'"
             }
@@ -54,7 +56,7 @@
       "reports": {
         ".read": true,
         "$id": {
-          ".write": "auth != null && newData.exists() && root.child('chat/messages/' + $id).exists() && !root.child('chat/messages/' + $id + '/o').exists()",
+          ".write": "auth != null && ((newData.exists() && root.child('chat/messages/' + $id).exists() && !root.child('chat/messages/' + $id + '/o').exists()) || (!newData.exists() && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true))",
           ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1 && !root.child('chat/reporters/' + $id + '/' + auth.uid).exists() && newData.parent().parent().child('reporters/' + $id + '/' + auth.uid).val() === true"
         }
       },
@@ -63,13 +65,51 @@
           "$uid": {
             ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('chat/messages/' + $id).exists()",
             ".validate": "newData.val() === true"
-          }
+          },
+          ".write": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true && !newData.exists()"
         }
       },
       "online": {
         ".read": true,
         "$uid": {
           ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.val() === now"
+        }
+      },
+      "answered": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true",
+          ".validate": "newData.isBoolean()"
+        }
+      },
+      "done": {
+        ".read": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true",
+          ".validate": "newData.isBoolean()"
+        }
+      },
+      "bugs": {
+        ".read": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true",
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && newData.exists() && (!root.child('chat/buglast/' + auth.uid).exists() || root.child('chat/buglast/' + auth.uid).val() <= now - 60000) && newData.parent().parent().child('buglast/' + auth.uid).val() === now) || (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true))",
+          ".validate": "newData.hasChildren(['issue', 't', 'u']) && newData.child('issue').isString() && newData.child('issue').val().length >= 1 && newData.child('issue').val().length <= 1000 && (!newData.child('typed').exists() || (newData.child('typed').isString() && newData.child('typed').val().length <= 300)) && (!newData.child('got').exists() || (newData.child('got').isString() && newData.child('got').val().length <= 300)) && (!newData.child('ver').exists() || (newData.child('ver').isString() && newData.child('ver').val().length <= 40)) && (!newData.child('model').exists() || (newData.child('model').isString() && newData.child('model').val().length <= 80)) && (!newData.child('status').exists() || (newData.child('status').isString() && newData.child('status').val().length <= 20)) && (!newData.child('pic').exists() || newData.child('pic').isBoolean()) && ((data.exists() && newData.child('t').val() === data.child('t').val() && newData.child('u').val() === data.child('u').val()) || (!data.exists() && newData.child('t').val() === now && newData.child('u').val() === auth.uid))",
+          "$other": {
+            ".validate": "$other === 'typed' || $other === 'got' || $other === 'issue' || $other === 'ver' || $other === 'model' || $other === 'pic' || $other === 'status' || $other === 't' || $other === 'u'"
+          }
+        }
+      },
+      "bugphotos": {
+        ".read": "auth != null && auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true",
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && newData.exists() && !root.child('chat/bugs/' + $id).exists() && newData.parent().parent().child('bugs/' + $id + '/u').val() === auth.uid) || (!newData.exists() && (auth.token.email === 'tjb435tjb@gmail.com' && auth.token.email_verified === true)))",
+          ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().beginsWith('data:image/jpeg;base64,')"
+        }
+      },
+      "buglast": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && newData.exists()",
           ".validate": "newData.val() === now"
         }
       }

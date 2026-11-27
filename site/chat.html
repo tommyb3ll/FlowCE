@@ -19,6 +19,7 @@
     <nav>
       <a href="./#install">Install</a>
       <a href="./#faq">Questions</a>
+      <a href="./#report">Report a bug</a>
       <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
     </nav>
   </div>
@@ -29,7 +30,9 @@
     <button type="button" role="tab" class="on" data-tab="live" aria-selected="true">Live chat</button>
     <button type="button" role="tab" data-tab="answered" aria-selected="false">Answered</button>
     <button type="button" role="tab" data-tab="faq" aria-selected="false">Common questions</button>
+    <button type="button" role="tab" data-tab="admin" aria-selected="false" id="tab-admin-btn" hidden>Admin<span class="cp-count" id="admin-count" hidden></span></button>
   </div>
+  <p class="cp-status" id="cp-status" role="status"></p>
 
   <section class="cp-panel" id="tab-live" role="tabpanel" aria-label="Live chat">
     <aside class="chat" id="chat" aria-label="Live chat" hidden>
@@ -60,6 +63,12 @@
   <section class="cp-panel" id="tab-faq" role="tabpanel" aria-label="Common questions" hidden>
     <p class="cp-lead">The questions people ask most. Also on the <a href="./#faq">main page</a>.</p>
     <div id="faq-here"><p class="fine">Loading…</p></div>
+  </section>
+
+  <!-- the creator's (chat.js): what waits for an answer, the problem reports, the reported messages -->
+  <section class="cp-panel" id="tab-admin" role="tabpanel" aria-label="Admin" hidden>
+    <div class="ad-top"><p class="cp-lead">Only you see this tab.</p><button type="button" class="qa-tool" id="ad-refresh">Refresh</button></div>
+    <div id="ad-body"></div>
   </section>
 </main>
 
