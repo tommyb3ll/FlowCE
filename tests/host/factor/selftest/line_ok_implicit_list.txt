@@ -1,0 +1,8 @@
+# selftest: pass
+factor(x^3-x)   # expect: steps ; x*(x-1)(x+1)
+== factor(x^3-x)   [ok, 4 steps]
+  Factor out the greatest common factor:  x^3-x=(x*(x^2-1))
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^3-x=(x*(x-1)*(x+1))
+  Check: multiply the factors:  x*(x-1)*(x+1)=(x^3-x)
+   FlowCE answer: x*(x-1)*(x+1)

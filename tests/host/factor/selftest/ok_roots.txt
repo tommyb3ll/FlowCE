@@ -1,0 +1,7 @@
+# selftest: pass
+== factor(x^2-3x+1)   [ok, 4 steps]
+  No whole numbers: roots by the formula:  x=(3±sqrt(5))/2
+  = x=3/2-sqrt(5)/2,x=3/2+sqrt(5)/2
+  = x^2-3*x+1=(x-(3/2-sqrt(5)/2))*(x-(3/2+sqrt(5)/2))
+  Check: multiply the factors:  (x-(3/2-sqrt(5)/2))*(x-(3/2+sqrt(5)/2))=(x^2-3*x+1)
+   FlowCE answer: (2*x+sqrt(5)-3)*(2*x-sqrt(5)-3)/4

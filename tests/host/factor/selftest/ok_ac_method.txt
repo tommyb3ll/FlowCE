@@ -1,0 +1,8 @@
+# selftest: pass
+== factor(6x^2+7x-3)   [ok, 5 steps]
+  Split the middle term (ac method):  6*(-3)=-18,(-2)+9=7
+  = 6*x^2+7*x-3=(6*x^2-2*x+9*x-3)
+  Factor by grouping:  6*x^2+7*x-3=2*x*(3*x-1)+3*(3*x-1)
+  = 6*x^2+7*x-3=(2*x+3)*(3*x-1)
+  Check: multiply the factors:  (2*x+3)*(3*x-1)=(6*x^2+7*x-3)
+   FlowCE answer: (3*x-1)*(2*x+3)

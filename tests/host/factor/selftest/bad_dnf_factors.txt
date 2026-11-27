@@ -1,0 +1,4 @@
+# selftest: fail non-constant
+== factor(x^2-1)   [ok, 1 steps]
+  Does not factor further:  x^2-1
+   FlowCE answer: (x-1)*(x+1)

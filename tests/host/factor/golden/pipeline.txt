@@ -1,0 +1,211 @@
+# golden: the exact -S output of the engine, times stripped ("[ok, 5 steps, 12 ms]" is "[ok, 5 steps]").
+# Written by: bash tests/host/run_factor_tests.sh <binary> --regen   (problems: golden/pipeline.in). Only on purpose.
+== factor(2x^3*y-8x*y^3)   [ok, 4 steps]
+  Factor out the greatest common factor:  2*x^3*y-8*x*y^3=(2*x*y*(x^2-4*y^2))
+  Difference of squares:  x^2-4*y^2=x^2-(2*y)^2=(x-2*y)*(x+2*y)
+  = 2*x^3*y-8*x*y^3=(2*x*y*(x-2*y)*(x+2*y))
+  Check: multiply the factors:  2*x*y*(x-2*y)*(x+2*y)=(2*x^3*y-8*x*y^3)
+   FlowCE answer: 2*y*x*(x-2*y)*(x+2*y)
+== factor(3x^3+6x^2-27x-54)   [ok, 7 steps]
+  Factor out the greatest common factor:  3*x^3+6*x^2-27*x-54=(3*(x^3+2*x^2-9*x-18))
+  Factor by grouping:  x^3+2*x^2-9*x-18=(x^3+2*x^2)+(-9*x-18)=x^2*(x+2)-9*(x+2)
+  = x^3+2*x^2-9*x-18=(x^2-9)*(x+2)
+  = 3*x^3+6*x^2-27*x-54=(3*(x^2-9)*(x+2))
+  Difference of squares:  x^2-9=x^2-3^2=(x-3)*(x+3)
+  = 3*x^3+6*x^2-27*x-54=(3*(x-3)*(x+3)*(x+2))
+  Check: multiply the factors:  3*(x-3)*(x+3)*(x+2)=(3*x^3+6*x^2-27*x-54)
+   FlowCE answer: 3*(x+2)*(x-3)*(x+3)
+== factor(-2x^4+32)   [ok, 6 steps]
+  Factor out the greatest common factor:  -2*x^4+32=(-2*(x^4-16))
+  Difference of squares:  x^4-16=(x^2)^2-4^2=(x^2-4)*(x^2+4)
+  = -2*x^4+32=(-2*(x^2-4)*(x^2+4))
+  Difference of squares:  x^2-4=x^2-2^2=(x-2)*(x+2)
+  = -2*x^4+32=(-2*(x-2)*(x+2)*(x^2+4))
+  Check: multiply the factors:  -2*(x-2)*(x+2)*(x^2+4)=(-2*x^4+32)
+   FlowCE answer: -2*(x-2)*(x+2)*(x^2+4)
+== factor(x^6-64)   [ok, 8 steps]
+  Difference of squares:  x^6-64=(x^3)^2-8^2=(x^3-8)*(x^3+8)
+  Difference of cubes:  x^3-8=x^3-2^3=(x-2)*(x^2+2*x+4)
+  = x^6-64=((x-2)*(x^2+2*x+4)*(x^3+8))
+  SOAP: Same, Opposite, Always Positive:  -2,+2*x,+4
+  Sum of cubes:  x^3+8=x^3+2^3=(x+2)*(x^2-2*x+4)
+  = x^6-64=((x-2)*(x^2+2*x+4)*(x+2)*(x^2-2*x+4))
+  SOAP: Same, Opposite, Always Positive:  +2,-2*x,+4
+  Check: multiply the factors:  (x-2)*(x^2+2*x+4)*(x+2)*(x^2-2*x+4)=(x^6-64)
+   FlowCE answer: (x-2)*(x+2)*(x^2-2*x+4)*(x^2+2*x+4)
+== factor(x^6-y^6)   [ok, 8 steps]
+  Difference of squares:  x^6-y^6=(x^3)^2-(y^3)^2=(x^3-y^3)*(x^3+y^3)
+  Difference of cubes:  x^3-y^3=x^3-y^3=(x-y)*(x^2+y^2+x*y)
+  = x^6-y^6=((x-y)*(x^2+y^2+x*y)*(x^3+y^3))
+  SOAP: Same, Opposite, Always Positive:  -y,+x*y,+y^2
+  Sum of cubes:  x^3+y^3=x^3+y^3=(x+y)*(x^2+y^2-x*y)
+  = x^6-y^6=((x-y)*(x^2+y^2+x*y)*(x+y)*(x^2+y^2-x*y))
+  SOAP: Same, Opposite, Always Positive:  +y,-x*y,+y^2
+  Check: multiply the factors:  (x-y)*(x^2+y^2+x*y)*(x+y)*(x^2+y^2-x*y)=(x^6-y^6)
+   FlowCE answer: (x-y)*(x+y)*(x^2+y^2+x*y)*(x^2+y^2-x*y)
+== factor(x^4-2x^2*y^2+y^4)   [ok, 4 steps]
+  Perfect square trinomial:  x^4-2*x^2*y^2+y^4=(x^2-y^2)^2
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  = x^4-2*x^2*y^2+y^4=((x-y)^2*(x+y)^2)
+  Check: multiply the factors:  (x-y)^2*(x+y)^2=(x^4-2*x^2*y^2+y^4)
+   FlowCE answer: (x-y)^2*(x+y)^2
+== factor(4x^3*y-4x^2*y-24x*y)   [ok, 5 steps]
+  Factor out the greatest common factor:  4*x^3*y-4*x^2*y-24*x*y=(4*x*y*(x^2-x-6))
+  Two numbers: product c, sum b:  2*(-3)=-6,2+(-3)=-1
+  = x^2-x-6=(x+2)*(x-3)
+  = 4*x^3*y-4*x^2*y-24*x*y=(4*x*y*(x+2)*(x-3))
+  Check: multiply the factors:  4*x*y*(x+2)*(x-3)=(4*x^3*y-4*x^2*y-24*x*y)
+   FlowCE answer: 4*x*y*(x+2)*(x-3)
+== factor(a^2*x+a^2*y-b^2*x-b^2*y)   [ok, 5 steps]
+  Factor by grouping:  a^2*x+a^2*y-b^2*x-b^2*y=(a^2*x+a^2*y)+(-b^2*x-b^2*y)=a^2*(x+y)-b^2*(x+y)
+  = a^2*x+a^2*y-b^2*x-b^2*y=(a^2-b^2)*(x+y)
+  Difference of squares:  a^2-b^2=a^2-b^2=(a-b)*(a+b)
+  = a^2*x+a^2*y-b^2*x-b^2*y=((a-b)*(a+b)*(x+y))
+  Check: multiply the factors:  (a-b)*(a+b)*(x+y)=(a^2*x+a^2*y-b^2*x-b^2*y)
+   FlowCE answer: (a-b)*(a+b)*(x+y)
+== factor(3x^2*y^2-12)   [ok, 4 steps]
+  Factor out the greatest common factor:  3*x^2*y^2-12=(3*(x^2*y^2-4))
+  Difference of squares:  x^2*y^2-4=(x*y)^2-2^2=(x*y-2)*(x*y+2)
+  = 3*x^2*y^2-12=(3*(x*y-2)*(x*y+2))
+  Check: multiply the factors:  3*(x*y-2)*(x*y+2)=(3*x^2*y^2-12)
+   FlowCE answer: 3*(x*y-2)*(x*y+2)
+== factor(-x^2*y+6x*y-9y)   [ok, 4 steps]
+  Factor out the greatest common factor:  -x^2*y+6*x*y-9*y=(-y*(x^2-6*x+9))
+  Perfect square trinomial:  x^2-6*x+9=(x-3)^2
+  = -x^2*y+6*x*y-9*y=(-y*(x-3)^2)
+  Check: multiply the factors:  -y*(x-3)^2=(-x^2*y+6*x*y-9*y)
+   FlowCE answer: -y*(x-3)^2
+== factor(x^2*y^2-x^2-y^2+1)   [ok, 7 steps]
+  Factor by grouping:  x^2*y^2-x^2-y^2+1=(x^2*y^2-x^2)+(-y^2+1)=x^2*(y^2-1)-1*(y^2-1)
+  = x^2*y^2-x^2-y^2+1=(x^2-1)*(y^2-1)
+  Difference of squares:  x^2-1=x^2-1^2=(x-1)*(x+1)
+  = x^2*y^2-x^2-y^2+1=((x-1)*(x+1)*(y^2-1))
+  Difference of squares:  y^2-1=y^2-1^2=(y-1)*(y+1)
+  = x^2*y^2-x^2-y^2+1=((x-1)*(x+1)*(y-1)*(y+1))
+  Check: multiply the factors:  (x-1)*(x+1)*(y-1)*(y+1)=(x^2*y^2-x^2-y^2+1)
+   FlowCE answer: (y-1)*(y+1)*(x-1)*(x+1)
+== factor(x^5-x*y^4)   [ok, 6 steps]
+  Factor out the greatest common factor:  x^5-x*y^4=(x*(x^4-y^4))
+  Difference of squares:  x^4-y^4=(x^2)^2-(y^2)^2=(x^2-y^2)*(x^2+y^2)
+  = x^5-x*y^4=(x*(x^2-y^2)*(x^2+y^2))
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  = x^5-x*y^4=(x*(x-y)*(x+y)*(x^2+y^2))
+  Check: multiply the factors:  x*(x-y)*(x+y)*(x^2+y^2)=(x^5-x*y^4)
+   FlowCE answer: -x*(y-x)*(y+x)*(y^2+x^2)
+== factor(x*y^2-x*z^2)   [ok, 4 steps]
+  Factor out the greatest common factor:  x*y^2-x*z^2=(x*(y^2-z^2))
+  Difference of squares:  y^2-z^2=y^2-z^2=(y-z)*(y+z)
+  = x*y^2-x*z^2=(x*(y-z)*(y+z))
+  Check: multiply the factors:  x*(y-z)*(y+z)=(x*y^2-x*z^2)
+   FlowCE answer: x*(y-z)*(y+z)
+== factor(x^8-y^8)   [ok, 6 steps]
+  Difference of squares:  x^8-y^8=(x^4)^2-(y^4)^2=(x^4-y^4)*(x^4+y^4)
+  Difference of squares:  x^4-y^4=(x^2)^2-(y^2)^2=(x^2-y^2)*(x^2+y^2)
+  = x^8-y^8=((x^2-y^2)*(x^2+y^2)*(x^4+y^4))
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  = x^8-y^8=((x-y)*(x+y)*(x^2+y^2)*(x^4+y^4))
+  Check: multiply the factors:  (x-y)*(x+y)*(x^2+y^2)*(x^4+y^4)=(x^8-y^8)
+   FlowCE answer: (x-y)*(x+y)*(x^2+y^2)*(x^4+y^4)
+== factor(3x*(x-y)*(x+y)*(x^2+y^2))   [ok, 6 steps]
+  Factor out the greatest common factor:  3*x^5-3*x*y^4=(3*x*(x^4-y^4))
+  Difference of squares:  x^4-y^4=(x^2)^2-(y^2)^2=(x^2-y^2)*(x^2+y^2)
+  = 3*x^5-3*x*y^4=(3*x*(x^2-y^2)*(x^2+y^2))
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  = 3*x^5-3*x*y^4=(3*x*(x-y)*(x+y)*(x^2+y^2))
+  Check: multiply the factors:  3*x*(x-y)*(x+y)*(x^2+y^2)=(3*x^5-3*x*y^4)
+   FlowCE answer: -3*x*(y-x)*(y+x)*(y^2+x^2)
+== factor(x^3-x^2*y-x*y^2+y^3)   [ok, 5 steps]
+  Factor by grouping:  x^3-x^2*y-x*y^2+y^3=(x^3-x^2*y)+(-x*y^2+y^3)=x^2*(x-y)-y^2*(x-y)
+  = x^3-x^2*y-x*y^2+y^3=(x^2-y^2)*(x-y)
+  Difference of squares:  x^2-y^2=x^2-y^2=(x-y)*(x+y)
+  = x^3-x^2*y-x*y^2+y^3=((x-y)^2*(x+y))
+  Check: multiply the factors:  (x-y)^2*(x+y)=(x^3-x^2*y-x*y^2+y^3)
+   FlowCE answer: (x+y)*(x-y)^2
+== factor(2x^2*y+2x*y^2-24y^3)   [ok, 5 steps]
+  Factor out the greatest common factor:  2*x^2*y+2*x*y^2-24*y^3=(2*y*(x^2+x*y-12*y^2))
+  Two numbers: product c, sum b:  (-3)*4=-12,(-3)+4=1
+  = x^2+x*y-12*y^2=(x-3*y)*(x+4*y)
+  = 2*x^2*y+2*x*y^2-24*y^3=(2*y*(x-3*y)*(x+4*y))
+  Check: multiply the factors:  2*y*(x-3*y)*(x+4*y)=(2*x^2*y+2*x*y^2-24*y^3)
+   FlowCE answer: 2*y*(x-3*y)*(x+4*y)
+== factor(x^3*y+2x^2*y+5x*y+10y)   [ok, 5 steps]
+  Factor out the greatest common factor:  x^3*y+2*x^2*y+5*x*y+10*y=(y*(x^3+2*x^2+5*x+10))
+  Factor by grouping:  x^3+2*x^2+5*x+10=(x^3+2*x^2)+(5*x+10)=x^2*(x+2)+5*(x+2)
+  = x^3+2*x^2+5*x+10=(x^2+5)*(x+2)
+  = x^3*y+2*x^2*y+5*x*y+10*y=(y*(x^2+5)*(x+2))
+  Check: multiply the factors:  y*(x^2+5)*(x+2)=(x^3*y+2*x^2*y+5*x*y+10*y)
+   FlowCE answer: y*(x+2)*(x^2+5)
+== factor(t^2*s+t*s^2+t*s)   [ok, 2 steps]
+  Factor out the greatest common factor:  t^2*s+t*s^2+t*s=(t*s*(s+t+1))
+  Check: multiply the factors:  t*s*(s+t+1)=(t^2*s+t*s^2+t*s)
+   FlowCE answer: s*t*(t+s+1)
+== factor(6x^2*y+9x*y^2)   [ok, 2 steps]
+  Factor out the greatest common factor:  6*x^2*y+9*x*y^2=(3*x*y*(2*x+3*y))
+  Check: multiply the factors:  3*x*y*(2*x+3*y)=(6*x^2*y+9*x*y^2)
+   FlowCE answer: 3*y*x*(2*x+3*y)
+== factor(10-5y+2x-x*y)   [ok, 3 steps]
+  Factor by grouping:  10-5*y+2*x-x*y=(10-5*y)+(2*x-x*y)=5*(-y+2)+x*(-y+2)
+  = 10-5*y+2*x-x*y=(5+x)*(-y+2)
+  Check: multiply the factors:  (5+x)*(-y+2)=(10-5*y+2*x-x*y)
+   FlowCE answer: -(x+5)*(y-2)
+== factor(4-x^2*y^2)   [ok, 4 steps]
+  Factor out the greatest common factor:  4-x^2*y^2=(-(x^2*y^2-4))
+  Difference of squares:  x^2*y^2-4=(x*y)^2-2^2=(x*y-2)*(x*y+2)
+  = 4-x^2*y^2=(-(x*y-2)*(x*y+2))
+  Check: multiply the factors:  -(x*y-2)*(x*y+2)=(4-x^2*y^2)
+   FlowCE answer: (2-x*y)*(x*y+2)
+== factor(2x^2+2y^2)   [ok, 2 steps]
+  Factor out the greatest common factor:  2*x^2+2*y^2=(2*(x^2+y^2))
+  Check: multiply the factors:  2*(x^2+y^2)=(2*x^2+2*y^2)
+   FlowCE answer: 2*(x^2+y^2)
+== factor(x^2+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2+y^2
+   FlowCE answer: x^2+y^2
+== factor(x^2+x*y+y^2)   [ok, 1 steps]
+  Does not factor further:  x^2+x*y+y^2
+   FlowCE answer: x^2+y^2+x*y
+== factor(x^2+9)   [ok, 1 steps]
+  No real roots: does not factor:  x^2+9
+   FlowCE answer: x^2+9
+== factor(x^3+x+1)   [ok, 1 steps]
+  Does not factor further:  x^3+x+1
+   FlowCE answer: x^3+x+1
+== factor(7y+14)   [ok, 2 steps]
+  Factor out the greatest common factor:  7*y+14=(7*(y+2))
+  Check: multiply the factors:  7*(y+2)=(7*y+14)
+   FlowCE answer: 7*(y+2)
+== factor(6x-9)   [ok, 2 steps]
+  Factor out the greatest common factor:  6*x-9=(3*(2*x-3))
+  Check: multiply the factors:  3*(2*x-3)=(6*x-9)
+   FlowCE answer: 3*(2*x-3)
+== factor(-4x-12)   [ok, 2 steps]
+  Factor out the greatest common factor:  -4*x-12=(-4*(x+3))
+  Check: multiply the factors:  -4*(x+3)=(-4*x-12)
+   FlowCE answer: -4*(x+3)
+== factor(7x)   [ok, 1 steps]
+  Does not factor further:  7*x
+   FlowCE answer: 7*x
+== factor(x+1)   [ok, 1 steps]
+  Does not factor further:  x+1
+   FlowCE answer: x+1
+== factor(2x+1)   [ok, 1 steps]
+  Does not factor further:  2*x+1
+   FlowCE answer: 2*x+1
+== factor(x)   [ok, 1 steps]
+  Does not factor further:  x
+   FlowCE answer: x
+== factor(x+y)   [ok, 1 steps]
+  Does not factor further:  x+y
+   FlowCE answer: x+y
+== factor(0)   [NO STEPS, 0 steps]
+   FlowCE answer: 0
+== factor(7)   [NO STEPS, 0 steps]
+   FlowCE answer: 7
+== factor(6x^2*y)   [NO STEPS, 0 steps]
+   FlowCE answer: 6*x^2*y
+== factor(x*y)   [NO STEPS, 0 steps]
+   FlowCE answer: y*x
+== factor(6x^2)   [NO STEPS, 0 steps]
+   FlowCE answer: 6*x^2
+== factor(x^2+2x*y+y^2-1)   [NO STEPS, 1 steps]
+   FlowCE answer: (x+y-1)*(x+y+1)
