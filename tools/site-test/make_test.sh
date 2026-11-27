@@ -13,6 +13,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 bash "$root/site/build.sh" "$1" "${2:-dev}" "${@:3}"
 cp "$here/fake_ce_test.js" "$here/fake_usb.js" "$root/_site/"
-sed 's|<script type="module" src="installer.js"></script>|<script src="fake_ce_test.js"></script><script src="fake_usb.js"></script>\n<script type="module" src="installer.js"></script>|' \
+# (installer.js carries build.sh's stamp, ?v=...)
+sed -E 's|(<script type="module" src="installer\.js[^"]*"></script>)|<script src="fake_ce_test.js"></script><script src="fake_usb.js"></script>\n\1|' \
   "$root/_site/index.html" > "$root/_site/test.html"
+grep -q 'fake_usb.js' "$root/_site/test.html" || { echo "make_test.sh: the fake calculator is not in test.html" >&2; exit 1; }
 echo "test page: _site/test.html"

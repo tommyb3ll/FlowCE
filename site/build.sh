@@ -18,6 +18,12 @@ OUT=_site
 rm -rf "$OUT"
 mkdir -p "$OUT/media/screenshots" "$OUT/media/install" "$OUT/files"
 cp site/index.html site/chat.html site/style.css site/installer.js site/dusb.js site/chat.js "$OUT/"
+# the page's scripts and style, stamped with a hash of them (?v=): GitHub Pages lets a browser keep a copy 10
+# minutes, and a new page must not run with the old scripts
+STAMP=$(cat site/style.css site/installer.js site/dusb.js site/chat.js | sha1sum | cut -c1-10)
+sed -i -e "s#href=\"style.css\"#href=\"style.css?v=$STAMP\"#" -e "s#src=\"installer.js\"#src=\"installer.js?v=$STAMP\"#" \
+  -e "s#src=\"chat.js\"#src=\"chat.js?v=$STAMP\"#" "$OUT/index.html" "$OUT/chat.html"
+sed -i "s#from './dusb.js'#from './dusb.js?v=$STAMP'#" "$OUT/installer.js"
 cp -R site/artifice-v3 "$OUT/"
 python3 site/fetch_inequalz.py "$OUT/artifice-v3" ${FLOWCE_INEQUALZ_FILE:+"$FLOWCE_INEQUALZ_FILE"}
 cp site/icon.svg "$OUT/media/icon.svg"
