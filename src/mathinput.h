@@ -33,7 +33,8 @@ struct mi_metrics { mi_font big, small; short opgap; mi_wfn wf; short bar, gap, 
 
 // display list op codes
 enum { MI_TEXT, MI_DOT, MI_HLINE, MI_SQRT, MI_INTEGRAL, MI_SIGMA, MI_LPAREN, MI_RPAREN,
-       MI_LBRACKET, MI_RBRACKET, MI_LBRACE, MI_RBRACE, MI_BAR, MI_BOX, MI_HINT };
+       MI_LBRACKET, MI_RBRACKET, MI_LBRACE, MI_RBRACE, MI_BAR, MI_BOX, MI_HINT,
+       MI_LANGLE, MI_RANGLE }; // (M3: a vector's angle brackets)
 
 // Display list op; coordinates in pixels, y grows DOWN, y=0 is the baseline of the
 // top-level line, x=0 its left edge.

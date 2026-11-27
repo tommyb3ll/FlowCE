@@ -44,13 +44,50 @@ static const fm_item m_calc[] = {
   {"implicitdiff(,x,y)", 5, "(dy)/(dx)", "Implicit dy/dx", 0, 0}, // (DeltaCE: kmisc.cc, steps.cc)
 #ifdef FLOWCE_STEPS // (the steps build: three by three, then Applications across the card: the 0 key)
   {"analyze()", 1, "f(x)", "Analyze f(x)", 0, 0}, // (DeltaCE: analyze.cc, the report on the steps' page)
+#ifdef WITH_DESOLVE // (the differential equations' pack)
   {"desolve(diff(y,x)=,x,y)", 5, "diff(y,x)=f", "Diff. equation", 0, 0},
+#elif defined FLOWCE_SERIES // (without it: the Taylor series in summation notation, steps.cc ksigma)
+  {"series(,x,0,inf)", 9, 0, "Taylor series (sum)", 0, 0}, // (the caret in f)
+#else
+  {"limit(,n,inf)", 7, 0, "Limit n\xe2\x86\x92\xe2\x88\x9e", 0, 0},
+#endif
   {0, 0, "integrate(f-g,x,a,b)", "Applications", "area, volume, arc length, more", FA_APPS},
 #endif
 };
+#ifdef FLOWCE_VECTORS
+// the vectors' card (3.0's vectors pack, opened from "more"): r(t) in t, u x v, u.v, |u|, proj, scal, the
+// angle; across it, the vectors' word problems, each its form (the steps' calls, steps_m3.inc)
+static const fm_item m_vec[] = {
+  {"integrate(,t)", 3, 0, "Antiderivative", 0, 0},
+  {"integrate(,t,,)", 5, 0, "Definite integral", 0, 0},
+  {"diff(,t)", 3, 0, "Derivative", 0, 0},
+  {"\xc3\x97", 0, "u\xc3\x97v", "Cross product", 0, 0},
+  {"\xc2\xb7", 0, "u\xc2\xb7v", "Dot product", 0, 0},
+  {"abs()", 1, "abs(u)", "Magnitude", 0, 0},
+  {"proj_()", 1, "proj_v u", "Projection", 0, 0}, // (the subscript box, then u after it: two boxes needed two right arrows)
+  {"scal_()", 1, "scal_v u", "Scalar projection", 0, 0},
+  {"angle(,)", 2, "\xce\xb8", "Angle between u, v", 0, 0},
+  {0, 0, "u=P+N", "Vectors, lines, curves", "u = P + N, lines, tangent lines, arc length", FA_VAPPS},
+};
+#endif
 #ifdef FLOWCE_STEPS
 // the calculus card's applications (steps.cc): each card shows its integral; a, b left empty: where
 // the curves meet
+#ifdef FLOWCE_VECTORS // (the vectors' word problems, each its form; the steps' calls, steps_m3.inc)
+static const fm_item m_vapps[] = {
+  {0, 0, "u=P+N", "Split u = P + N along v", 0, 0},
+  {0, 0, "l_1,l_2", "Two lines: parallel, meet, skew", 0, 0},
+  {0, 0, "l(t)", "Tangent line to r(t)", 0, 0},
+  {0, 0, "s", "Arc length of r(t)", 0, 0},
+  {0, 0, "p(s)", "Arclength parameterization", 0, 0},
+  {0, 0, "r(t)", "r(t) from r'(t) and r(t0)", 0, 0},
+  {0, 0, "t", "Where r(t) meets a surface", 0, 0},
+  {0, 0, "r(t)=P", "Is the point on r(t)?", 0, 0},
+  {0, 0, "PQ", "Line through two points", 0, 0},
+  {0, 0, "x=t", "Parameterize a line or curve", 0, 0},
+  {0, 0, "dom", "Domain of r(t)", 0, 0},
+};
+#endif
 static const fm_item m_apps[] = { // (each opens its form: app_form)
   {0, 0, "integrate(f-g,x,a,b)", "Area between curves", 0, 0},
   {0, 0, "pi*integrate(R^2-r^2,x,a,b)", "Disks / washers", 0, 0},
@@ -80,12 +117,16 @@ static const fm_item m_more[] = {
   {0, 0, 0, "Themes", "colors", FA_THEME},
 #endif
   {0, 0, 0, "Other plots", "kinds", FA_PLOT},
-#ifdef FLOWCE_STEPS
+#ifdef FLOWCE_VECTORS
+  {0, 0, 0, "Vectors", "dot, cross, lines, curves", FA_VEC},
+#endif
+#if defined FLOWCE_STEPS && defined WITH_STATS // (the statistics pack)
   {0, 0, 0, "Statistics", "data, fits", FA_STATS}, // (DeltaCE: focus_stats.cc)
   {0, 0, 0, "Probability", "curves, tests", FA_PROB}, // (DeltaCE: focus_stats.cc)
 #endif
   {0, 0, 0, "File", "sessions", FA_FILE},
   {0, 0, 0, "Clear history", 0, FA_CLEAR},
+  {0, 0, 0, "Quit", "or 2nd mode", FA_QUIT},
 };
 #ifdef FLOWCE_TILOOK // (a list as the OS's: named, the template small at the right when it fits)
 static const fm_item m_math[] = {
@@ -109,6 +150,10 @@ static const fm_item m_math[] = {
 static const fm_menu M_APPS = {0, 1, N(m_apps), m_apps}; // (a list, as the OS's menus)
 #else
 static const fm_menu M_APPS = {2, 2, N(m_apps), m_apps};
+#endif
+#ifdef FLOWCE_VECTORS
+static const fm_menu M_VEC = {2, 3, N(m_vec), m_vec, 1}; // (three by three, its forms across: the 0 key)
+static const fm_menu M_VAPPS = {0, 1, N(m_vapps), m_vapps}; // (a list, each its form)
 #endif
 #define CALC_MENU {2, 3, N(m_calc), m_calc, 1}
 #else
@@ -201,7 +246,7 @@ static signed char PLV[60];
 // The fixed menus' previews (the F-keys' cards, the applications'), kept once laid out: laying them
 // out again took a third of the calculus card's opening. Given back when the heap runs out.
 struct kept { mi_layout * L; short w, h; signed char lv[16]; };
-enum { NKEPT = 7 };
+enum { NKEPT = 9 }; // (the six tabs' cards; the applications', the vectors' card, its forms)
 static kept * KP[NKEPT];
 static void drop_pl() { // PL let go (kept ones stay)
   for (int c = 0; c < NKEPT; ++c) if (PL && KP[c] && PL == KP[c]->L) { PL = 0; return; }
@@ -576,6 +621,9 @@ static int run_keys(const fm_menu & m, int sel, int (*fk)(int)) {
     if (k >= KEY_CHAR_1 && k <= KEY_CHAR_9 && k < KEY_CHAR_1 + n) return k - KEY_CHAR_1; // not = < > (past 9)
     if (k == KEY_CHAR_0 && m.wide) return n - 1; // (the bar: the steps build's Applications)
     if (k == KEY_CHAR_0 && (IN == 2 || m.grid) && n >= 10) return 9; // (0 is the tenth, as on the OS: the math card's log base)
+#ifdef FLOWCE_VECTORS
+    if (k == KEY_CHAR_0 && m.items == m_vapps) return 9; // (the curves' list: its tenth)
+#endif
     if (k == KEY_CTRL_EXE || k == KEY_CTRL_OK) return sel;
     if (ns != sel) {
       int old = sel, nt = ns < top ? ns : ns >= top + vis ? ns - vis + 1 : top;
@@ -1422,7 +1470,11 @@ struct af_field { char role; const char * word, * var, * empty, * hint; }; // em
 // field c of an application: 1 2 its curves, a b its bounds (empty: where the curves meet), c f its
 // curve, A B its bounds, y x its axis (empty: y = 0, x = 0)
 static const af_field & af_field_of(char c) {
+#ifdef FLOWCE_VECTORS
+  static const char codes[] = "12abcfAByxuvLMrpsqdiwSPQE";
+#else
   static const char codes[] = "12abcfAByx";
+#endif
   static const af_field F[] = {
     {AF_F, "between", "y", 0, "a curve, in x"},
     {AF_G, "and", "y", "0: the x-axis", "the other curve"},
@@ -1434,11 +1486,40 @@ static const af_field & af_field_of(char c) {
     {AF_B, "to", "x", 0, "where it ends"},
     {AF_X, "around", 0, "y = 0: the x-axis", "the axis: y = c, or x = c"},
     {AF_X, "around", 0, "x = 0: the y-axis", "the axis: x = c, or y = c"},
+#ifdef FLOWCE_VECTORS
+    {AF_F, "split", "u", 0, "the vector: (a,b,c), or its name"},
+    {AF_G, "along", "v", 0, "the direction: (a,b,c), or its name"},
+    {AF_F, 0, "l_1(t)", 0, "the first line: (2t,t,t+1)"},
+    {AF_G, 0, "l_2(t)", 0, "the second line, in t too"},
+    {AF_F, 0, "r(t)", 0, "the curve: (x(t),y(t),z(t))"},
+    {AF_A, "at", 0, 0, "the point (x,y,z), or the time t"},
+    {AF_A, "from", 0, 0, "a point (x,y,z), or a time t"},
+    {AF_B, "to", 0, 0, "a point (x,y,z), or a time t"},
+    {AF_F, 0, "r'(t)", 0, "the velocity: (x'(t),y'(t),z'(t))"},
+    {AF_G, 0, "r(t_0)", 0, "the position then: (a,b,c)"},
+    {AF_A, "at", "t_0", "0", "the time of that position"},
+    {AF_G, "surface", 0, 0, "its equation: x^2+y^2=9 or 3x+3y+4z=7"},
+    {AF_F, 0, "P", 0, "a point: (x,y,z)"},
+    {AF_G, 0, "Q", 0, "another point: (x,y,z)"},
+    {AF_F, "curve", 0, 0, "its equation: 2x+3y=5 or x^2+y^2=9"},
+#endif
   };
   return F[strchr(codes, c) - codes];
 }
-static const char * const AF_SPEC[6] = {"12ab", "12aby", "12abx", "cAB", "cABy", "fAB"}; // m_apps' order
+// m_apps' order, then (vectors pack) m_vapps' from AF_VEC on
+#ifdef FLOWCE_VECTORS
+enum { AF_VEC = 6 };
+static const char * const AF_SPEC[] = {"12ab", "12aby", "12abx", "cAB", "cABy", "fAB",
+  "uv", "LM", "rp", "rsq", "r", "diw", "rS", "rp", "PQ", "E", "r"};
+static const char * const AF_NAME[] = {"area(", "volume(", "volume(", "arclength(", "surfacearea(", "average(",
+  "pn(", "lines(", "tanline(", "arclen(", "arcparam(", "posvel(", "meets(", "oncurve(", "line2p(", "param(", "domr("};
+#define AF_LABEL(k) ((k) >= AF_VEC ? m_vapps[(k) - AF_VEC].label : m_apps[k].label)
+#else
+enum { AF_VEC = 99 };
+static const char * const AF_SPEC[6] = {"12ab", "12aby", "12abx", "cAB", "cABy", "fAB"};
 static const char * const AF_NAME[6] = {"area(", "volume(", "volume(", "arclength(", "surfacearea(", "average("};
+#define AF_LABEL(k) (m_apps[k].label)
+#endif
 
 // application k's call from its fields; 0 (*bad: the field to fill first, af_err why) if one is missing
 static const char * af_call(int k, int * bad) {
@@ -1447,13 +1528,25 @@ static const char * af_call(int k, int * bad) {
   const bool a = af_val[AF_A][0], b = af_val[AF_B][0];
   for (int i = 0; sp[i]; ++i) { // needed, or a bound without the other
     const af_field & f = af_field_of(sp[i]);
-    if (!af_val[f.role][0] && (!f.empty || (f.role == AF_A && b) || (f.role == AF_B && a))) {
+    if (!af_val[f.role][0] && (!f.empty || (k < AF_VEC && ((f.role == AF_A && b) || (f.role == AF_B && a))))) { // (a vectors' form: an optional box is optional alone)
       *bad = i;
       af_err = f.empty ? "this one too, or neither" : "fill this in first";
       return 0;
     }
   }
   strcpy(c, AF_NAME[k]);
+#ifdef FLOWCE_VECTORS
+  if (k >= AF_VEC) for (int i = 0;; ++i) {
+    if (!sp[i]) { strcat(c, ")"); return c; } // (a point typed (4,0,-3): [4,0,-3]; an empty optional box: 0)
+    const char * v = af_val[af_field_of(sp[i]).role];
+    const int n = strlen(v);
+    if (i) strcat(c, ",");
+    if (!n) { strcat(c, "0"); continue; }
+    char * e = c + strlen(c);
+    strcat(c, v);
+    if (v[0] == '(' && v[n - 1] == ')' && strchr(v, ',')) { e[0] = '['; e[n - 1] = ']'; }
+  }
+#endif
   strcat(c, af_val[AF_F]);
   if (strchr(sp, '2') && (af_val[AF_G][0] || !a)) { // one curve and no bounds: with the x-axis
     strcat(c, ",");
@@ -1520,7 +1613,7 @@ static void af_band(int b, int e, int all) {
   if (e <= py) return;
   if (all) { // the card, the application's name
     card_bg();
-    ui_draw_text(&ui_tb12, m_apps[k].label, -1, px + 12, py + 20, ui_ramp(1, UC_INK, UC_CARD), 0);
+    ui_draw_text(&ui_tb12, AF_LABEL(k), -1, px + 12, py + 20, ui_ramp(1, UC_INK, UC_CARD), 0);
   }
   for (int i = 0; i < n; ++i) { // a field: its label, right-aligned (the word, the variable in math), its box
     const int y = py + AF_TOP + i * AF_RH, by = y + AF_RH / 2 + 4, on = i == sel, bg = on ? UC_ACCSOFT : UC_TILE;
@@ -1584,6 +1677,7 @@ static void af_paint(int y0, int y1, int all) {
 // application k's form over the dimmed scene, in the place of the applications' card (its top
 // oy): the call to run, 0 when closed. F3, F4 and math open their cards over it: what they insert
 // goes in the field (sec, abs, a template)
+static signed char af_tab = 1; // (the tab whose card opened the form)
 static const char * app_form(int k, int oy) {
   if (k != af_last) af_val[AF_X][0] = 0;
   af_last = (signed char)k;
@@ -1600,7 +1694,7 @@ static const char * app_form(int k, int oy) {
   for (int i = 0; i < n; ++i) af_layout(sp, i, i ? -1 : caret[0]);
   af_err = 0;
   af_paint(py, SBOT, 1);
-  card_tab(1, 0);
+  card_tab(af_tab, 0);
   for (;;) {
     int key, sel = af_sel;
     GetKey(&key);
@@ -1641,7 +1735,7 @@ static const char * app_form(int k, int oy) {
       af_layout(sp, sel, caret[sel]);
       focus_repaint_over(top - 2, SBOT, af_over); // the stage under the card, the form over it
       focus_bar_redraw();
-      card_tab(1, 0);
+      card_tab(af_tab, 0);
       continue;
     }
     else if (!af_edit(s, &caret[sel], key, m)) continue;
@@ -1748,29 +1842,37 @@ static void theme_card(int id, int oy) {
   }
 }
 
-static signed char pop_last[6], sub_last; // (DeltaCE) each menu opens on the item picked last (sub_last: the applications' card)
+static signed char pop_last[6], sub_last[3]; // (DeltaCE) each menu opens on the item picked last (sub_last: the applications' card, the vectors' card, its forms)
+static int sub_slot(const fm_menu * sub) {
+#ifdef FLOWCE_VECTORS
+  if (sub == &M_VEC) return 1;
+  if (sub == &M_VAPPS) return 2;
+#endif
+  return 0;
+}
 int focus_popover(int key, const char ** text, int * back) {
   int id = key == KEY_CTRL_SYMB ? 5 : key - KEY_CTRL_F1;
   if (id < 0 || id > 5) return FA_NONE;
   const fm_menu * sub = 0; // the card opened from a card (the calculus card's applications)
   for (;;) {
     const fm_menu & m = sub ? *sub : MENUS[id];
-    const int sel = sub ? sub_last : pop_last[id] < m.n ? pop_last[id] : 0;
+    const int ss = sub_slot(sub), sel = sub ? (sub_last[ss] < m.n ? sub_last[ss] : 0) : pop_last[id] < m.n ? pop_last[id] : 0;
     geometry(id, m);
-    prepare_kept(m, sub ? 6 : id);
+    prepare_kept(m, sub ? 6 + ss : id);
     open_card(m, id, 0, sel);
     cur = id;
     int r = run_keys(m, sel, fk_pop), res = FA_NONE;
     if (r >= 0) {
-      if (sub) sub_last = (signed char)r; else pop_last[id] = (signed char)r;
+      if (sub) sub_last[ss] = (signed char)r; else pop_last[id] = (signed char)r;
       const fm_item & it = m.items[r];
       if (it.act) res = it.act;
       else { *text = it.text; *back = it.back; res = FA_INSERT; }
     }
 #ifdef FLOWCE_STEPS
-    if (sub == &M_APPS && r >= 0) { // an application: its form in the card's place; closed, the
+    if ((sub == &M_APPS || ss == 2) && r >= 0) { // an application: its form in the card's place; closed, the
       drop_pl();                  // applications' card again
-      if ((*text = app_form(r, py))) {
+      af_tab = (signed char)id;
+      if ((*text = app_form(ss == 2 ? AF_VEC + r : r, py))) {
         close_card(0, 1);
         return FA_RUN;
       }
@@ -1779,10 +1881,14 @@ int focus_popover(int key, const char ** text, int * back) {
       if (py > fy) focus_repaint(fy - 2, py);
       continue;
     }
-    if (res == FA_APPS && !af_nest) { // the applications' card in its place, the scene still dimmed: only the
+    if ((res == FA_APPS || res == FA_VEC || res == FA_VAPPS) && !af_nest) { // the applications' card in its place, the scene still dimmed: only the
       const int oy = py;  // strip the calculus card showed above it is repainted (the stage under
       drop_pl();        // it all was, 0.2 s: keys typed meanwhile were lost)
+#ifdef FLOWCE_VECTORS
+      sub = res == FA_VEC ? &M_VEC : res == FA_VAPPS ? &M_VAPPS : &M_APPS;
+#else
       sub = &M_APPS;
+#endif
       geometry(id, *sub);
       if (py > oy) focus_repaint(oy - 2, py);
       continue;

@@ -48,6 +48,32 @@ else ifeq ($(KHICAS),1)
 else
     FEATURE_DEFS += -DWITH_EDITOR -DWITH_PLOT # (DeltaCE, the steps build: no script editor, 17 KB, 2026-10-17)
 endif
+# The step-by-step build's packs (3.0, 2026-11-27; the web page's customizer installs the bundle built
+# for the packs picked): each 1 (in, the default) or 0 (out). A pack's code is reached only through
+# its menus and calls, so a pack left out is dropped by the link.
+#   SERIES=1   series and sequences: convergence tests, Taylor series in sigma notation, intervals,
+#              f^(n)(a), sequences by a recurrence (FLOWCE_SERIES)
+#   VECTORS=1  vectors and space curves: dot, cross, projections, lines, curves, arc length (FLOWCE_VECTORS)
+#   STATS=1    statistics and probability (WITH_STATS)
+#   DIFFEQ=1   differential equations: desolve, Laplace (WITH_DESOLVE, WITH_LAPLACE)
+SERIES ?= 1
+VECTORS ?= 1
+STATS ?= 1
+DIFFEQ ?= 1
+ifeq ($(STEPS),1)
+    ifeq ($(SERIES),1)
+        FEATURE_DEFS += -DFLOWCE_SERIES
+    endif
+    ifeq ($(VECTORS),1)
+        FEATURE_DEFS += -DFLOWCE_VECTORS
+    endif
+    ifneq ($(STATS),1)
+        FEATURE_DEFS := $(filter-out -DWITH_STATS,$(FEATURE_DEFS))
+    endif
+    ifneq ($(DIFFEQ),1)
+        FEATURE_DEFS := $(filter-out -DWITH_DESOLVE -DWITH_LAPLACE,$(FEATURE_DEFS))
+    endif
+endif
 
 # The TI-84 look (2026-10-22): the interface looks like the calculator's own (home screen, status
 # bar, MathPrint), its text drawn with the OS's fonts read at runtime (src/ui_font_ti.c) instead
@@ -110,7 +136,15 @@ CEDEV_MAJOR := 99
 endif
 ifeq ($(shell [ "0$(CEDEV_MAJOR)" -ge 15 ] && echo y),y)
 CXXFLAGS += -include src/toolchain_compat.h
-LTOFLAGS = $(CFLAGS) -Xclang -fmerge-functions -mllvm -z80-frame-bias-policy=auto -mllvm -inline-threshold=0
+# (3.0: -10 at the link, as DeltaCE 2.2: about 29 KB less, no slower; the
+# nightly toolchain, whose clang 22 has not shown v15's miscompile, tools/dev/v15_biascheck.py)
+LTOFLAGS = $(CFLAGS) -Xclang -fmerge-functions -mllvm -z80-frame-bias-policy=auto -mllvm -inline-threshold=$(LTOINL)
+endif
+LTOINL ?= -10 # (tools/dev/packs_build.sh: -20 or -30 for a pack combination that does not fit at -10; the series pack alone: -20)
+# BARRETT=1: tommath's modular powers by Barrett's reduction only (src/tommath/bn_mp_exptmod.c: 7.6 KB less,
+# prime tests of very large numbers slower), for a pack combination that fits no other way (packs_build.sh)
+ifeq ($(BARRETT),1)
+CFLAGS += -DFLOWCE_BARRETT
 endif
 
 # giac's files inline as little as the LTO step (a small helper stays a call on the eZ80): 24 KB

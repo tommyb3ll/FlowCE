@@ -58,7 +58,8 @@
 //  other      (|a+b)   -> |a+b      [|1,2]   -> |1,2
 //  A call's or a numerator's brackets stay when removing them would change the meaning of
 //  the text around them (unwrap): 2sqrt(|x+1) -> 2(|x+1), -(a+b)/(|) -> -(a+b)|.
-//  Right after a comma of a group: the caret moves before it (f(a,|b) -> f(a|,b)).
+//  Right after a comma of a group: the caret moves before it (f(a,|b) -> f(a|,b)); a list's
+//  comma before an empty item goes ([1,|] -> [1|], [1,|,2] -> [1|,2]: the comma just typed; DeltaCE).
 //  Anywhere else (top level, unclosed group, string literal): 0.
 
 #include "mathedit.h"
@@ -256,7 +257,8 @@ int me_key(char * s, int cap, int * caret, int key) {
 int me_backspace(char * s, int * caret) {
   int n = strlen(s), p = *caret, a, o, e, f, b, u = -1, w = 0; // finally unwrap the group at u
   if ((unsigned)p - 1 >= (unsigned)n || instr(s, p) || (o = grp(s, p, &a)) < 0) return 0; // p in [1,n]
-  if (s[p - 1] == ',') { // a group's comma: f(a,|b) -> f(a|,b)
+  if (s[p - 1] == ',') { // a group's comma: f(a,|b) -> f(a|,b); a list's before an empty item
+    if (s[o] != '(' && (C(p) == ',' || cls(C(p)))) del(s, p - 1, 1); // goes: [1,|] -> [1|]
     *caret = p - 1;
     return 1;
   }

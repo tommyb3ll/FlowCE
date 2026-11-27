@@ -298,6 +298,14 @@ void ui_math_draw(const mi_layout & L, const char * s, int lv, int x, int y, int
       bezier(xo, y0, xi, y0 + (mid - y0) / 2, xi, mid - (mid - y0) / 3, xi, mid, th - 4, r);
       bezier(xi, mid, xi, mid + (y1 - mid) / 3, xi, y1 - (y1 - mid) / 2, xo, y1, th - 4, r);
     } break;
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+    case MI_LANGLE: case MI_RANGLE: { // (M3: a vector's < >, two strokes meeting mid-height)
+      int l = o.code == MI_LANGLE, xo = (l ? ox + w - 1 : ox + 1) * 16, xi = (l ? ox + 1 : ox + w - 1) * 16;
+      int y0 = oy * 16 + 8, y1 = (oy + h) * 16 - 8, mid = (y0 + y1) / 2;
+      ui_seg16(xo, y0, xi, mid, th - 4, r);
+      ui_seg16(xi, mid, xo, y1, th - 4, r);
+    } break;
+#endif
     case MI_LBRACKET: case MI_RBRACKET: {
       int l = o.code == MI_LBRACKET, xs = l ? ox + 1 : ox + w - 2;
       ui_fill(xs, oy, 1, h, r[3]);

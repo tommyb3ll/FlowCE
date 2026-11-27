@@ -2,7 +2,7 @@
 (2/3)*2^(3/2) -> 4*sqrt(2)/3  ~ 1.88562
 (2/3)2^(3/2) -> 4*sqrt(2)/3  ~ 1.88562
 (4*sqrt(2)*pi+pi)/2-pi*(-4*sqrt(2)+1)/2 -> 4*pi*sqrt(2)  ~ 17.7715
-(a+b)/ -> undef
+(a+b)/ -> undefined
 (x+1)(x-1) -> (x-1)*(x+1)
 (x+1)(y-1) -> (x+1)*(y-1)
 (x+1)*(y-1) -> (x+1)*(y-1)
@@ -38,7 +38,7 @@
 4*pi*sqrt(2) -> 4*pi*sqrt(2)  ~ 17.7715
 4integrate(sqrt(1+9x^2/(1-x^2)),x,0,1) -> 13.3649
 4integrate(sqrt(1+9x^2/(1-x^2)),x,0,1.0) -> 13.3649
-a+2b/ -> undef
+a+2b/ -> undefined
 atan(x/3) -> atan(x/3)
 cos(pi/12) -> (sqrt(2)+sqrt(6))/4  ~ 0.965926
 cos(x)*sin(x) -> sin(x)*cos(x)
@@ -85,7 +85,7 @@ factor(x^4-1) -> (x-1)*(x+1)*(x^2+1)
 factorial(30) -> 265252859812191058636308480000000
 iegcd(2^25,3) -> [-1, 11184811, 1]
 integrate((4-e^(y/5)/2)^2,y,0,5ln(8)) -> 80*ln(8)-805/8  ~ 65.7303
-integrate((sqrt(y/2)-y^3/8)^2,y,0,2) -> 25/63  ~ 0.396825
+integrate((sqrt(y/2)-y^3/8)^2,y,0,2) -> 25/63  ~ 0.3968253968
 integrate(1/(x+1),x) -> ln(abs(x+1))
 integrate(1/(x^2 sqrt(x^2-1)),x) -> sqrt(x^2-1)/x
 integrate(1/(x^2+1),x) -> atan(x)
@@ -107,7 +107,7 @@ integrate(2/(x^(4)+5),x,0,1) -> (2*20^(1/4)*atan(2/20^(1/4)+1)+2*20^(1/4)*atan(2
 integrate(2/(x^4+5),x) -> 20^(1/4)*ln(x^2+x*20^(1/4)+sqrt(5))/20-20^(1/4)*ln(x^2-x*20^(1/4)+sqrt(5))/20+20^(1/4)*atan(2*x/20^(1/4)+1)/10+20^(1/4)*atan(2*x/20^(1/4)-1)/10
 integrate(2/(x^4+5),x,0,1) -> (2*20^(1/4)*atan(2/20^(1/4)+1)+2*20^(1/4)*atan(2/20^(1/4)-1)+20^(1/4)*ln(1+20^(1/4)+sqrt(5))-20^(1/4)*ln(1-20^(1/4)+sqrt(5)))/20
 integrate(2/(x^4+5),x,0,1.0) -> 0.385564
-integrate(2x/(x^2-4),x,0,4) -> diverges (the integrand is unbounded on the interval)
+integrate(2x/(x^2-4),x,0,4) -> undefined
 integrate(2x^3*sqrt(x^2+4),x) -> 2*(3*x^2-8)*(x^2+4)^(3/2)/15
 integrate(2π(4-x)(5ln(2x)-(1-2x)),x,1/2,4) -> (1920*pi*ln(8)-1729*pi)/24  ~ 296.295
 integrate(2π(4-x)(5ln(4x)-(1-4x)),x,1/4,4) -> 5*(512*pi*ln(16)-255*pi)/32  ~ 571.655
@@ -134,7 +134,7 @@ integrate(sec^3(x)tan^5(x),x) -> sec(x)^7/7-2*sec(x)^5/5+sec(x)^3/3
 integrate(sin(x)*cos(x),x) -> sin(x)^2/2
 integrate(sin(x)^2,x) -> (2*x-sin(2*x))/4
 integrate(sin(x)^2,x,0,pi) -> pi/2  ~ 1.5708
-integrate(sin^3(x)cos^2(x),x,0,π/2) -> 2/15  ~ 0.133333
+integrate(sin^3(x)cos^2(x),x,0,π/2) -> 2/15  ~ 0.1333333333
 integrate(sin^7(x)cos^4(x),x) -> -cos(x)^5/5+3*cos(x)^7/7-cos(x)^9/3+cos(x)^11/11
 integrate(sqrt(1+16x^2),x,0,1) -> (4*sqrt(17)+ln(sqrt(17)+4))/8  ~ 2.32339
 integrate(sqrt(1+16x^2),x,0,1.0) -> 2.32339
@@ -166,11 +166,11 @@ integrate(π/8*2^2,y,0,1) -> pi/2  ~ 1.5708
 integrate(π/8,x,0,2) -> pi/4  ~ 0.785398
 inv([[1,2],[3,4]]) -> [[-2, 1],  
 [3/2, -1/2]]
-limit((1+1/n)^n,n,inf) -> e  ~ 2.71828
+limit((1+1/n)^n,n,inf) -> e
 limit((1-cos(5x))/(2x^2),x,0) -> 25/4  ~ 6.25
 limit((x^2-1)/(x-1),x,1) -> 2
 limit(integrate(4/(4-x^2),x,0,t),t,2,-1) -> +infinity
-limit(sin(2x)/(3x),x,0) -> 2/3  ~ 0.666667
+limit(sin(2x)/(3x),x,0) -> 2/3  ~ 0.6666666667
 limit(sin(x)/x,x,0) -> 1
 lnx -> ln(x)
 normal((x^2-1)/(x-1)) -> x+1
@@ -185,8 +185,8 @@ pi(x+1) -> pi*x+pi
 resultant(12345678*x^2+3*x+1,9876543*x-5,x) -> 97546558420944
 romberg(2/(x^4+5),x,0,1) -> romberg(2/(x^4+5), x, 0, 1)
 sec^2x -> sec(x)^2
-series(cos(x),x,0,6) -> 1-x^2/2+x^4/24-x^6/720+O(x^7)
-series(sin(x),x,0,5) -> x-x^3/6+x^5/120+O(x^6)
+series(cos(x),x,0,6) -> 1-x^2/2+x^4/24-x^6/720
+series(sin(x),x,0,5) -> x-x^3/6+x^5/120
 simplify((x^2-1)/(x-1)) -> x+1
 simplify(diff(2ln((3+x)/sqrt(9-x^2)),x)) -> -6/(x^2-9)
 simplify(sin(x)^4-cos(x)^4) -> -cos(2*x)
@@ -211,7 +211,7 @@ sqrt(12) -> 2*sqrt(3)  ~ 3.4641
 sqrt(8) -> 2*sqrt(2)  ~ 2.82843
 sqrt(x^2+9) -> sqrt(x^2+9)
 sqrt(y/4) -> sqrt(y)/2
-sum(1/k^2,k,1,inf) -> pi^2/6  ~ 1.64493
+sum(1/k^2,k,1,inf) -> converges (p-series)
 sum(k^2,k,1,n) -> n*(n+1)*(2*n+1)/6
 texpand(sin(2x)) -> 2*sin(x)*cos(x)
 tlin(sin(x)^2) -> (1-cos(2*x))/2
@@ -221,7 +221,7 @@ x/8 -> x/8
 x/sqrt(x^2+1) -> x/sqrt(x^2+1)
 x^(-2) -> 1/x^2
 x^-1 -> 1/x
-x^2+1=0 -> no solution
+x^2+1=0 -> x=i, x=-i
 x^2+7x+5=0 -> x=(-sqrt(29)-7)/2, x=(sqrt(29)-7)/2
 x^2-4=0 -> x=-2, x=2
 x^2-4=2-x -> x=-3, x=2

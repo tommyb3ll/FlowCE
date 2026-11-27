@@ -491,6 +491,11 @@ static __attribute__((noinline)) int im_defeq(const char * s,int n,ti_classify_f
     ++j;
   if (j+1>=n || s[j]!='=' || s[j+1]=='=')
     return -1;
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  for (int k=j+1;k+name-i<n;++k) // (its name on the right, a(n)=a(n-1)+2: a recurrence, steps.cc)
+    if (!strncmp(s+k,s+i,name-i) && s[k+name-i]=='(' && (k==0 || !im_namestart(s[k-1])))
+      return -1;
+#endif
   return j;
 }
 

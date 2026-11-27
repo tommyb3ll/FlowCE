@@ -2952,30 +2952,30 @@
     Inflection points:  (-6.14104,0.0132571)|(-5.87979,-0.0144611)|(-5.60641,0.0159055)|(-5.31902,-0.0176701)|(-5.01524,0.0198747)|(-4.69189,-0.0227071)|(-4.34466,0.0264793)|(-3.96733,-0.0317508)|(-3.55049,0.0396324)|(-3.07855,-0.0526834)|(-2.52223,0.0783547)|(-1.81447,-0.150147)|(-0.808252,0.607787)|(0.808252,0.607787)|(1.81447,-0.150147)|(2.52223,0.0783547)|(3.07855,-0.0526834)|(3.55049,0.0396324)|(3.96733,-0.0317508)|(4.34466,0.0264793)|(4.69189,-0.0227071)|(5.01524,0.0198747)|(5.31902,-0.0176701)
 == cos(3x)+1   [ok]
     f(x)=cos(3*x)+1
-    Periodic, period:  2*pi
-    Shown for:  0<=x<=2*pi
+    Periodic, period:  2*pi/3
+    Shown for:  0<=x<=2*pi/3
   DOMAIN
     ~all real numbers
   INTERCEPTS
     y-intercept:  (0,2)
-    x-intercepts:  (pi/3,0)|(pi,0)|(5*pi/3,0)
+    x-intercepts:  (pi/3,0)
   SYMMETRY
     Even: symmetric about the y-axis
   ASYMPTOTES
     None
   INCREASING / DECREASING
     f'(x)=-3*sin(3*x)
-    Critical numbers:  x=0|x=pi/3|x=2*pi/3|x=pi|x=4*pi/3|x=5*pi/3|x=2*pi
-    Increasing:  pi/3<x<2*pi/3|pi<x<4*pi/3|5*pi/3<x<2*pi
-    Decreasing:  0<x<pi/3|2*pi/3<x<pi|4*pi/3<x<5*pi/3
+    Critical numbers:  x=0|x=pi/3|x=2*pi/3
+    Increasing:  pi/3<x<2*pi/3
+    Decreasing:  0<x<pi/3
   EXTREMA
-    Local max:  (0,2)|(2*pi/3,2)|(4*pi/3,2)
-    Local min:  (pi/3,0)|(pi,0)|(5*pi/3,0)
+    Local max:  (0,2)
+    Local min:  (pi/3,0)
   CONCAVITY
     f''(x)=-9*cos(3*x)
-    Concave up:  pi/6<x<pi/2|5*pi/6<x<7*pi/6|3*pi/2<x<11*pi/6
-    Concave down:  0<x<pi/6|pi/2<x<5*pi/6|7*pi/6<x<3*pi/2|11*pi/6<x<2*pi
-    Inflection points:  (pi/6,1)|(pi/2,1)|(5*pi/6,1)|(7*pi/6,1)|(3*pi/2,1)|(11*pi/6,1)
+    Concave up:  pi/6<x<pi/2
+    Concave down:  0<x<pi/6|pi/2<x<2*pi/3
+    Inflection points:  (pi/6,1)|(pi/2,1)
 == sin(pi*x)   [ok]
     f(x)=sin(pi*x)
     Shown for:  -2*pi<=x<=2*pi

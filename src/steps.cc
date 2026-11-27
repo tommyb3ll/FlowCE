@@ -40,11 +40,47 @@ enum {
   R_IDIFF, R_ICHAIN, R_ISIDE, R_IFACT,
   R_NFLIP, R_NFAC, R_NCRIT, R_NTEST, R_NLINE, R_NKEEP1, R_NKEEP2, R_NKEEP3, R_NKEEP4, R_NNONE, R_NALL,
   R_BNEG, R_BZERO, R_BTWO, R_BCASE1, R_BCASE2, R_BBETW, R_B3, R_B3DIV, R_B3FLIP, R_BOUT, R_BALL, R_BNOT0, R_BSOL,
+  R_PSLT, R_PSOPEN, R_PSALL, R_PSONE,
+  R_KKNOWN, R_KDIFF, R_KDIFF2, R_KINTG, R_KINTG2, R_KSUBS, R_KMULT, R_KINT, R_KALL, R_KRAD, R_KTERM, R_KNONE, R_KCOEF, R_KDER, R_KPOLY, R_KADD,
+  R_LGDOM, R_LGROW, R_LGEO, R_LRAT, R_PSUMW, R_RATIOD,
+  R_TWA, R_TWS, R_TSN, R_TDEF,
+  R_RAK, R_RLIM, R_RGRP, R_RCAN, R_RVAL, R_RCONV, R_RDIVG, R_PSRAD, R_PSRADA, R_PSRAD0, R_RLIM1,
+  R_GFORM, R_GAR, R_GSUM, R_GDIV,
+  R_KREPL, R_KSIMP, R_KINT2, R_KWOUT, R_KWADD, R_KWP, R_KFOR, R_LRATU, R_SDIV2, R_SCTR, R_SCTR2,
+  R_ABSU, R_ICON, R_IPOW, R_SUBV, R_KPMUL, R_LSER, R_LSERL, R_LPOWB, R_LLAWS, R_KWD1, R_KWD2, R_KWLN, R_KWAT, R_KDTERM, R_LGEOI, R_TLET, R_LCMP0, R_LCMPI, R_RDEF, R_QISO, R_QROOT, R_QSQN, R_PCOMB, R_LE1, R_RPAIR, R_TCOEF, R_TADD, R_SWX, R_KSHIFT, R_KCZERO, R_KVALX, R_KVALS, R_GSPLIT, R_GADD, R_SIMPT, R_LALT, R_LALT0, R_LALTN, R_PSUMF, R_ZETA, R_KVALD, R_KCZERO2, R_LNSPLIT, R_SEQT, R_SEQL, R_QCPX,
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  R_VGIVEN, R_VL, R_VDOT, R_VCROSS, R_VMAG, R_VTRIG, R_VADD, R_VSMUL, R_VPROJ, R_VSCAL, R_VANG, R_VORTH, R_VPAR, R_VALL, R_VPN, R_VCHK,
+  R_VANGD, R_VUNDEF, R_VANS,
+  R_CTIME, R_CNOT, R_CTCHK, R_CTBAD, R_CDIR, R_CPAR, R_CNPAR, R_CINT, R_CEQ, R_CSOLVE, R_CCHK, R_CCHKN, R_CSKEW, R_CMEET,
+  R_CSAME, R_CPARD, R_CNEED, R_CDER, R_CEVAL, R_CLINE, R_CARC, R_CLIM, R_CSO, R_CAP1, R_CAP2, R_CAP3, R_CAPY, R_CAPN,
+  R_CINTG, R_CIC, R_CSUBS, R_CPTS, R_CCOMP, R_CALL, R_CNONE, R_CRNG, R_CNOCUT, R_CPART, R_PLET, R_PPUT, R_PSOLV, R_PELL, R_PCS, R_PEVERY, R_PNOT, R_PSIGN, R_DCOND, R_DSOLV, R_DOUT, R_FEQ, R_FSOLV, R_FEX, R_VLN,
+#endif
   R_NRULES
 };
 struct rule_t { const char * title; const char * formula; unsigned char tpl; }; // (a rule: its title, its formula or 0, its template)
+// The titles and formulas packed as the catalog's descriptions (DeltaCE; tools/catpack.py src/steps.cc
+// src/steps_text.h ST st SP, which tools/dev/wsl_build_v15.sh runs): ST of a literal is its packed bytes,
+// found at compile time; st_unpack expands them (11.0 KB of text before, 2026-11-27). SP: a text left
+// as it is (the vectors' rules, built with that pack only), its bytes never a pair's code.
+#include "steps_text.h"
+static constexpr unsigned long st_fnv(const char * s, unsigned long h) { return *s ? st_fnv(s + 1, ((h ^ (unsigned char)*s) * 16777619ul) & 0xFFFFFFFFul) : h; }
+static constexpr int st_at(unsigned long h) { for (int i = 0; i < ST_N; ++i) if (st_keys[i] == h) return i; return -1; }
+template <int I> struct st_index { static_assert(I >= 0, "a rule text is not in src/steps_text.h: run tools/catpack.py src/steps.cc src/steps_text.h ST st SP"); enum { v = I }; };
+#define ST(s) (st_text + st_offs[st_index<st_at(st_fnv(s, 2166136261ul))>::v])
+#define SP(s) s
+static void st_put(unsigned char c, char *& o) {
+  if (const unsigned char k = st_code[c]) { st_put(st_pair[k - 1][0], o); st_put(st_pair[k - 1][1], o); }
+  else *o++ = c;
+}
+static __attribute__((noinline)) const char * st_unpack(const char * p, char * buf) { // (buf: ST_MAX + 1 bytes)
+  if (!p) return p;
+  char * o = buf;
+  while (*p) st_put((unsigned char)*p++, o);
+  *o = 0;
+  return buf;
+}
 // the templates of the table below (a rule's third column): one byte each in the table, the strings once here
-enum { T_A, T_A_is_B, T_integrate_A_and_V_is_B, T_diff_A_and_V_is_B, T_integrate_A_and_V_is_integrate_B_and_C, T_diff_A_and_V_is_B_diff_C_and_V, T_A_and_B, T_A_C_is_B_C, T_A_is_0, T_V_is_A_and_V_is_B, T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V, T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V_C_2, T_integrate_A_and_V_is_B_integrate_C_and_V, T_A_is_B_and_dA_is_C_dV, T_U_is_A_and_dW_is_B_dV, T_dU_is_A_dV_and_W_is_B, T_V_is_B_and_dV_is_C_dA, T_sin_V_is_A_and_cos_V_is_B, T_R_V_is_A, T_R_V_is_A_and_r_V_is_B, T_r_V_is_A_and_h_V_is_B, T_diff_f_V_and_V_is_A, T_diff_x_and_V_is_A_and_diff_y_and_V_is_B, T_r_V_is_A_and_diff_f_V_and_V_is_B, T_sqrt_A_is_B, T_abs_A_is_1, T_C_A_is_C_B, T_a_is_A_and_b_is_B_and_c_is_C, T_V_is_A, T_A_0, T_diff_A_and_V_is_diff_B_and_V };
+enum { T_A, T_A_is_B, T_integrate_A_and_V_is_B, T_diff_A_and_V_is_B, T_integrate_A_and_V_is_integrate_B_and_C, T_diff_A_and_V_is_B_diff_C_and_V, T_A_and_B, T_A_C_is_B_C, T_A_is_0, T_V_is_A_and_V_is_B, T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V, T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V_C_2, T_integrate_A_and_V_is_B_integrate_C_and_V, T_A_is_B_and_dA_is_C_dV, T_U_is_A_and_dW_is_B_dV, T_dU_is_A_dV_and_W_is_B, T_V_is_B_and_dV_is_C_dA, T_sin_V_is_A_and_cos_V_is_B, T_R_V_is_A, T_R_V_is_A_and_r_V_is_B, T_r_V_is_A_and_h_V_is_B, T_diff_f_V_and_V_is_A, T_diff_x_and_V_is_A_and_diff_y_and_V_is_B, T_r_V_is_A_and_diff_f_V_and_V_is_B, T_sqrt_A_is_B, T_abs_A_is_1, T_C_A_is_C_B, T_a_is_A_and_b_is_B_and_c_is_C, T_V_is_A, T_A_0, T_diff_A_and_V_is_diff_B_and_V, T_A_1, T_u_A };
 static const char * const TPLS[]={
   "A", // T_A
   "A=B", // T_A_is_B
@@ -77,262 +113,440 @@ static const char * const TPLS[]={
   "V=A", // T_V_is_A
   "A<0", // T_A_0
   "diff(A,V)=diff(B,V)", // T_diff_A_and_V_is_diff_B_and_V
+  "A<1", // T_A_1
+  "u=A", // T_u_A
 };
 static const rule_t RULES[]={
-  {"",0,T_diff_A_and_V_is_B},
-  {"Sum rule","diff(u+v,x)=diff(u,x)+diff(v,x)",T_diff_A_and_V_is_B},
-  {"Constant multiple","diff(c*u,x)=c*diff(u,x)",T_diff_A_and_V_is_B_diff_C_and_V},
-  {"Product rule","diff(u*v,x)=diff(u,x)*v+u*diff(v,x)",T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V},
-  {"Quotient rule","diff(u/v,x)=(diff(u,x)*v-u*diff(v,x))/v^2",T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V_C_2},
-  {"Power rule","diff(x^n,x)=n*x^(n-1)",T_diff_A_and_V_is_B},
-  {"Chain rule","diff(f(u),x)=diff(f,u)*diff(u,x)",T_diff_A_and_V_is_B_diff_C_and_V},
-  {"Known derivative",0,T_diff_A_and_V_is_B},
-  {"Exponential rule","diff(a^x,x)=a^x*ln(a)",T_diff_A_and_V_is_B},
-  {"Write the power with e",0,T_A_is_B},
-  {"",0,T_integrate_A_and_V_is_B},
-  {"Sum rule","integrate(u+v,x)=integrate(u,x)+integrate(v,x)",T_integrate_A_and_V_is_B},
-  {"Constant multiple","integrate(c*u,x)=c*integrate(u,x)",T_integrate_A_and_V_is_B_integrate_C_and_V},
-  {"Power rule","integrate(x^n,x)=x^(n+1)/(n+1)",T_integrate_A_and_V_is_B},
-  {"Integral of a constant","integrate(c,x)=c*x",T_integrate_A_and_V_is_B},
-  {"Integral of 1/x","integrate(1/x,x)=ln(abs(x))",T_integrate_A_and_V_is_B},
-  {"Known integral",0,T_integrate_A_and_V_is_B},
-  {"Arctangent formula","integrate(1/(a^2+x^2),x)=atan(x/a)/a",T_integrate_A_and_V_is_B},
-  {"Arcsine formula","integrate(1/sqrt(a^2-x^2),x)=asin(x/a)",T_integrate_A_and_V_is_B},
-  {"Logarithm formula","integrate(1/sqrt(x^2+c),x)=ln(abs(x+sqrt(x^2+c)))",T_integrate_A_and_V_is_B},
-  {"Substitution",0,T_A_is_B_and_dA_is_C_dV},
-  {"",0,T_integrate_A_and_V_is_integrate_B_and_C},
-  {"Substitute back",0,T_integrate_A_and_V_is_B},
-  {"Integration by parts","integrate(u,v)=u*v-integrate(v,u)",T_U_is_A_and_dW_is_B_dV},
-  {"",0,T_dU_is_A_dV_and_W_is_B},
-  {"",0,T_integrate_A_and_V_is_B},
-  {"The integral comes back: solve for it",0,T_integrate_A_and_V_is_B},
-  {"Partial fractions",0,T_A_is_B},
-  {"Trig identity",0,T_A_is_B},
-  {"Pythagorean identity","tan(x)^2=sec(x)^2-1",T_A_is_B},
-  {"Expand",0,T_A_is_B},
-  {"Complete the square",0,T_A_is_B},
-  {"Simplify",0,T_A_is_B},
-  {"Trig substitution",0,T_V_is_B_and_dV_is_C_dA},
-  {"",0,T_A_is_B},
-  {"",0,T_integrate_A_and_V_is_integrate_B_and_C},
-  {"Back to x with a right triangle",0,T_sin_V_is_A_and_cos_V_is_B},
-  {"Split the numerator",0,T_A_is_B},
-  {"Multiply by the conjugate",0,T_A_is_B},
-  {"Substitution t = tan(x/2)","[sin(x)=2*t/(1+t^2),cos(x)=(1-t^2)/(1+t^2),dx=2/(1+t^2)*dt]",T_integrate_A_and_V_is_integrate_B_and_C},
-  {"Split where the inside changes sign",0,T_A_is_B},
-  {"Improper integral: a limit",0,T_A_is_B},
-  {"No elementary antiderivative: the decimal value",0,T_A_is_B},
-  {"Evaluate from a to b","integrate(f,x,a,b)=F(b)-F(a)",T_A_is_B},
-  {"",0,T_A_is_B},
-  {"Compute",0,T_A},
-  {"Sign on the interval",0,T_A_is_B},
-  {"Fundamental theorem of calculus","diff(integrate(f(t),t,a,u),x)=f(u)*diff(u,x)",T_diff_A_and_V_is_B},
-  {"Direct substitution",0,T_A_is_B},
-  {"Limit laws",0,T_A_is_B},
-  {"Factor and cancel",0,T_A_is_B},
-  {"Multiply by the conjugate",0,T_A_is_B},
-  {"L'Hopital's rule","limit(f/g,x,a)=limit(diff(f,x)/diff(g,x),x,a)",T_A_is_B},
-  {"Divide by the highest power",0,T_A_is_B},
-  {"Write the product as a quotient",0,T_A_is_B},
-  {"Write the power with e","u^v=e^(v*ln(u))",T_A_is_B},
-  {"The denominator goes to 0, the numerator does not",0,T_A_is_B},
-  {"The one-sided limits differ: no limit",0,T_A_and_B},
-  {"Squeeze theorem: bounded times going to 0",0,T_A_is_B},
-  {"Limit of a continuous function","limit(f(u),x,a)=f(limit(u,x,a))",T_A_is_B},
-  {"One fraction",0,T_A_is_B},
-  {"Factor out the fastest term",0,T_A_is_B},
-  {"Derivatives",0,T_A_is_B},
-  {"Their values at the center",0,T_A_is_B},
-  {"Taylor polynomial",0,T_A_is_B},
-  {"Divergence test: the terms do not go to 0",0,T_A_is_B},
-  {"Ratio of consecutive terms",0,T_A_is_B},
-  {"Geometric series with |r| < 1","sum(a*r^k,k,0,inf)=a/(1-r)",T_A_is_B},
-  {"Partial sum",0,T_A_is_B},
-  {"Partial sum: the middle terms cancel",0,T_A_is_B},
-  {"Its limit",0,T_A_is_B},
-  {"p-series: converges for p > 1, diverges for p <= 1","sum(1/n^p,n,1,inf)",T_A_is_B},
-  {"Limit comparison with the p-series","limit(a(n)/b(n),n,inf)=L",T_A_is_B},
-  {"Indeterminate form",0,T_A_and_B},
-  {"Alternating series test: the size decreases to 0",0,T_A_is_B},
-  {"Ratio test: below 1, the series converges",0,T_A_is_B},
-  {"Root test: below 1, the series converges",0,T_A_is_B},
-  {"Log of a quotient","ln(a/b)=ln(a)-ln(b)",T_A_is_B},
-  {"Integral test: same behavior as the integral",0,T_A},
-  {"cos(n pi) is (-1)^n",0,T_A_is_B},
-  {"Oscillates between -1 and 1: no limit",0,T_A_is_B},
-  {"Long division",0,T_A_is_B},
-  {"Area between curves","A=integrate(abs(f(x)-g(x)),x,a,b)",T_A_is_B},
-  {"Disk method","V=pi*integrate(R(x)^2,x,a,b)",T_R_V_is_A},
-  {"Washer method","V=pi*integrate(R(x)^2-r(x)^2,x,a,b)",T_R_V_is_A_and_r_V_is_B},
-  {"Shell method","V=2*pi*integrate(r(x)*h(x),x,a,b)",T_r_V_is_A_and_h_V_is_B},
-  {"Arc length","L=integrate(sqrt(1+diff(f(x),x)^2),x,a,b)",T_diff_f_V_and_V_is_A},
-  {"Arc length of a parametric curve","L=integrate(sqrt(diff(x,t)^2+diff(y,t)^2),t,a,b)",T_diff_x_and_V_is_A_and_diff_y_and_V_is_B},
-  {"Surface area","S=2*pi*integrate(r(x)*sqrt(1+diff(f(x),x)^2),x,a,b)",T_r_V_is_A_and_diff_f_V_and_V_is_B},
-  {"Average value","integrate(f(x),x,a,b)/(b-a)",T_A_is_B},
-  {"Where the curves meet",0,T_A_is_B},
-  {"A perfect square",0,T_sqrt_A_is_B},
-  {"",0,T_A},
-  {"Geometric series with |r| >= 1: diverges",0,T_abs_A_is_1},
-  {"Converges when |r| < 1",0,T_A},
-  {"Sign on that side",0,T_A_is_B},
+  {ST(""),0,T_diff_A_and_V_is_B},
+  {ST("Sum rule"),ST("diff(u+v,x)=diff(u,x)+diff(v,x)"),T_diff_A_and_V_is_B},
+  {ST("Constant multiple"),ST("diff(c*u,x)=c*diff(u,x)"),T_diff_A_and_V_is_B_diff_C_and_V},
+  {ST("Product rule"),ST("diff(u*v,x)=diff(u,x)*v+u*diff(v,x)"),T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V},
+  {ST("Quotient rule"),ST("diff(u/v,x)=(diff(u,x)*v-u*diff(v,x))/v^2"),T_diff_A_and_V_is_diff_B_and_V_C_B_diff_C_and_V_C_2},
+  {ST("Power rule"),ST("diff(x^n,x)=n*x^(n-1)"),T_diff_A_and_V_is_B},
+  {ST("Chain rule"),ST("diff(f(u),x)=diff(f,u)*diff(u,x)"),T_diff_A_and_V_is_B_diff_C_and_V},
+  {ST("Known derivative"),0,T_diff_A_and_V_is_B},
+  {ST("Exponential rule"),ST("diff(a^x,x)=a^x*ln(a)"),T_diff_A_and_V_is_B},
+  {ST("Write the power with e"),0,T_A_is_B},
+  {ST(""),0,T_integrate_A_and_V_is_B},
+  {ST("Sum rule"),ST("integrate(u+v,x)=integrate(u,x)+integrate(v,x)"),T_integrate_A_and_V_is_B},
+  {ST("Constant multiple"),ST("integrate(c*u,x)=c*integrate(u,x)"),T_integrate_A_and_V_is_B_integrate_C_and_V},
+  {ST("Power rule"),ST("integrate(x^n,x)=x^(n+1)/(n+1)"),T_integrate_A_and_V_is_B},
+  {ST("Integral of a constant"),ST("integrate(c,x)=c*x"),T_integrate_A_and_V_is_B},
+  {ST("Integral of 1/x"),ST("integrate(1/x,x)=ln(abs(x))"),T_integrate_A_and_V_is_B},
+  {ST("Known integral"),0,T_integrate_A_and_V_is_B},
+  {ST("Arctangent formula"),ST("integrate(1/(a^2+x^2),x)=atan(x/a)/a"),T_integrate_A_and_V_is_B},
+  {ST("Arcsine formula"),ST("integrate(1/sqrt(a^2-x^2),x)=asin(x/a)"),T_integrate_A_and_V_is_B},
+  {ST("Logarithm formula"),ST("integrate(1/sqrt(x^2+c),x)=ln(abs(x+sqrt(x^2+c)))"),T_integrate_A_and_V_is_B},
+  {ST("Substitution"),0,T_A_is_B_and_dA_is_C_dV},
+  {ST(""),0,T_integrate_A_and_V_is_integrate_B_and_C},
+  {ST("Substitute back"),0,T_integrate_A_and_V_is_B},
+  {ST("Integration by parts"),ST("integrate(u,v)=u*v-integrate(v,u)"),T_U_is_A_and_dW_is_B_dV},
+  {ST(""),0,T_dU_is_A_dV_and_W_is_B},
+  {ST(""),0,T_integrate_A_and_V_is_B},
+  {ST("The integral comes back: solve for it"),0,T_integrate_A_and_V_is_B},
+  {ST("Partial fractions"),0,T_A_is_B},
+  {ST("Trig identity"),0,T_A_is_B},
+  {ST("Pythagorean identity"),ST("tan(x)^2=sec(x)^2-1"),T_A_is_B},
+  {ST("Expand"),0,T_A_is_B},
+  {ST("Complete the square"),0,T_A_is_B},
+  {ST("Simplify"),0,T_A_is_B},
+  {ST("Trig substitution"),0,T_V_is_B_and_dV_is_C_dA},
+  {ST(""),0,T_A_is_B},
+  {ST(""),0,T_integrate_A_and_V_is_integrate_B_and_C},
+  {ST("Back to x with a right triangle"),0,T_sin_V_is_A_and_cos_V_is_B},
+  {ST("Split the numerator"),0,T_A_is_B},
+  {ST("Multiply by the conjugate"),0,T_A_is_B},
+  {ST("Substitution t = tan(x/2)"),ST("[sin(x)=2*t/(1+t^2),cos(x)=(1-t^2)/(1+t^2),dx=2/(1+t^2)*dt]"),T_integrate_A_and_V_is_integrate_B_and_C},
+  {ST("Split where the inside changes sign"),0,T_A_is_B},
+  {ST("Improper integral: a limit"),0,T_A_is_B},
+  {ST("No elementary antiderivative: the decimal value"),0,T_A_is_B},
+  {ST("Evaluate from a to b"),ST("integrate(f,x,a,b)=F(b)-F(a)"),T_A_is_B},
+  {ST(""),0,T_A_is_B},
+  {ST("Compute"),0,T_A},
+  {ST("Sign on the interval"),0,T_A_is_B},
+  {ST("Fundamental theorem of calculus"),ST("diff(integrate(f(t),t,a,u),x)=f(u)*diff(u,x)"),T_diff_A_and_V_is_B},
+  {ST("Direct substitution"),0,T_A_is_B},
+  {ST("Limit laws"),0,T_A_is_B},
+  {ST("Factor and cancel"),0,T_A_is_B},
+  {ST("Multiply by the conjugate"),0,T_A_is_B},
+  {ST("L'Hopital's rule"),ST("limit(f/g,x,a)=limit(diff(f,x)/diff(g,x),x,a)"),T_A_is_B},
+  {ST("Divide by the highest power"),0,T_A_is_B},
+  {ST("Write the product as a quotient"),0,T_A_is_B},
+  {ST("Write the power with e"),ST("u^v=e^(v*ln(u))"),T_A_is_B},
+  {ST("The denominator goes to 0, the numerator does not"),0,T_A_is_B},
+  {ST("The one-sided limits differ: no limit"),0,T_A_and_B},
+  {ST("Squeeze theorem: bounded times going to 0"),0,T_A_is_B},
+  {ST("Limit of a continuous function"),ST("limit(f(u),x,a)=f(limit(u,x,a))"),T_A_is_B},
+  {ST("One fraction"),0,T_A_is_B},
+  {ST("Factor out the fastest term"),0,T_A_is_B},
+  {ST("Derivatives"),0,T_A_is_B},
+  {ST("Their values at the center"),0,T_A_is_B},
+  {ST("Taylor polynomial"),0,T_A_is_B},
+  {ST("Divergence test: the terms do not go to 0"),0,T_A_is_B},
+  {ST("Ratio of consecutive terms"),0,T_A_is_B},
+  {ST("Geometric series with |r| < 1"),ST("sum(a*r^k,k,0,inf)=a/(1-r)"),T_A_is_B},
+  {ST("Partial sum"),0,T_A_is_B},
+  {ST("Partial sum: the middle terms cancel"),0,T_A_is_B},
+  {ST("Its limit"),0,T_A_is_B},
+  {ST("p-series: converges for p > 1, diverges for p <= 1"),ST("sum(1/n^p,n,1,inf)"),T_A_is_B},
+  {ST("Limit comparison with the p-series"),ST("limit(a(n)/b(n),n,inf)=L"),T_A_is_B},
+  {ST("Indeterminate form"),0,T_A_and_B},
+  {ST("Alternating series test: the size decreases to 0"),0,T_A_is_B},
+  {ST("Ratio test: below 1, the series converges"),0,T_A_is_B},
+  {ST("Root test: below 1, the series converges"),0,T_A_is_B},
+  {ST("Log of a quotient"),ST("ln(a/b)=ln(a)-ln(b)"),T_A_is_B},
+  {ST("Integral test: same behavior as the integral"),0,T_A},
+  {ST("cos(n pi) is (-1)^n"),0,T_A_is_B},
+  {ST("Oscillates between -1 and 1: no limit"),0,T_A_is_B},
+  {ST("Long division"),0,T_A_is_B},
+  {ST("Area between curves"),ST("A=integrate(abs(f(x)-g(x)),x,a,b)"),T_A_is_B},
+  {ST("Disk method"),ST("V=pi*integrate(R(x)^2,x,a,b)"),T_R_V_is_A},
+  {ST("Washer method"),ST("V=pi*integrate(R(x)^2-r(x)^2,x,a,b)"),T_R_V_is_A_and_r_V_is_B},
+  {ST("Shell method"),ST("V=2*pi*integrate(r(x)*h(x),x,a,b)"),T_r_V_is_A_and_h_V_is_B},
+  {ST("Arc length"),ST("L=integrate(sqrt(1+diff(f(x),x)^2),x,a,b)"),T_diff_f_V_and_V_is_A},
+  {ST("Arc length of a parametric curve"),ST("L=integrate(sqrt(diff(x,t)^2+diff(y,t)^2),t,a,b)"),T_diff_x_and_V_is_A_and_diff_y_and_V_is_B},
+  {ST("Surface area"),ST("S=2*pi*integrate(r(x)*sqrt(1+diff(f(x),x)^2),x,a,b)"),T_r_V_is_A_and_diff_f_V_and_V_is_B},
+  {ST("Average value"),ST("integrate(f(x),x,a,b)/(b-a)"),T_A_is_B},
+  {ST("Where the curves meet"),0,T_A_is_B},
+  {ST("A perfect square"),0,T_sqrt_A_is_B},
+  {ST(""),0,T_A},
+  {ST("Geometric series with |r| >= 1: diverges"),0,T_abs_A_is_1},
+  {ST("Converges when |r| < 1"),0,T_A},
+  {ST("Sign on that side"),0,T_A_is_B},
   // equations (DeltaCE): A, B the sides, C the common denominator
-  {"Distribute and combine like terms",0,T_A_is_B},
-  {"Multiply both sides by the common denominator",0,T_C_A_is_C_B},
-  {"Swap the sides",0,T_A_is_B},
-  {"Subtract from both sides",0,T_A_is_B},
-  {"Add to both sides",0,T_A_is_B},
-  {"Divide both sides",0,T_A_C_is_B_C},
-  {"",0,T_A_is_B},
-  {"Always true: every number is a solution",0,T_A_is_B},
-  {"Never true: no solution",0,T_A_is_B},
-  {"Move every term to one side",0,T_A_is_0},
-  {"Identify a, b and c",0,T_a_is_A_and_b_is_B_and_c_is_C},
-  {"Quadratic formula","x=(-b\xc2\xb1sqrt(b^2-4ac))/(2a)",T_A},
-  {"The discriminant","b^2-4ac",T_A},
-  {"Simplify",0,T_A},
-  {"",0,T_A},
-  {"Two solutions",0,T_V_is_A_and_V_is_B},
-  {"",0,T_V_is_A_and_V_is_B},
-  {"The discriminant is 0: one solution",0,T_V_is_A},
-  {"The discriminant is negative: no real solution",0,T_A_0},
+  {ST("Distribute and combine like terms"),0,T_A_is_B},
+  {ST("Multiply both sides by the common denominator"),0,T_C_A_is_C_B},
+  {ST("Swap the sides"),0,T_A_is_B},
+  {ST("Subtract from both sides"),0,T_A_is_B},
+  {ST("Add to both sides"),0,T_A_is_B},
+  {ST("Divide both sides"),0,T_A_C_is_B_C},
+  {ST(""),0,T_A_is_B},
+  {ST("Always true: every number is a solution"),0,T_A_is_B},
+  {ST("Never true: no solution"),0,T_A_is_B},
+  {ST("Move every term to one side"),0,T_A_is_0},
+  {ST("Identify a, b and c"),0,T_a_is_A_and_b_is_B_and_c_is_C},
+  {ST("Quadratic formula"),ST("x=(-b\xc2\xb1sqrt(b^2-4ac))/(2a)"),T_A},
+  {ST("The discriminant"),ST("b^2-4ac"),T_A},
+  {ST("Simplify"),0,T_A},
+  {ST(""),0,T_A},
+  {ST("Two solutions"),0,T_V_is_A_and_V_is_B},
+  {ST(""),0,T_V_is_A_and_V_is_B},
+  {ST("The discriminant is 0: one solution"),0,T_V_is_A},
+  {ST("The discriminant is negative: no real solution"),0,T_A_0},
   // factoring (DeltaCE): A a line written as text, or an equation
-  {"Factor out the greatest common factor",0,T_A},
-  {"Difference of squares","a^2-b^2=(a-b)(a+b)",T_A},
-  {"Sum of cubes","a^3+b^3=(a+b)(a^2-ab+b^2)",T_A},
-  {"Difference of cubes","a^3-b^3=(a-b)(a^2+ab+b^2)",T_A},
-  {"Perfect square trinomial","a^2+2ab+b^2=(a+b)^2",T_A},
-  {"Two numbers: product c, sum b",0,T_A},
-  {"Split the middle term (ac method)",0,T_A},
-  {"Factor by grouping",0,T_A},
-  {"No whole numbers: roots by the formula","x=(-b\xc2\xb1sqrt(b^2-4ac))/(2a)",T_A},
-  {"A rational root: divide by its factor",0,T_A},
-  {"Zero product property: each factor is 0",0,T_A},
-  {"Solve each",0,T_A},
-  {"No real solution from this factor",0,T_A_is_0},
-  {"No real roots: does not factor",0,T_A},
-  {"Does not factor further",0,T_A},
-  {"Rearrange the terms",0,T_A},
-  {"Quadratic form: substitute u",0,T_A},
-  {"SOAP: Same, Opposite, Always Positive",0,T_A},
-  {"Check: multiply the factors",0,T_A},
+  {ST("Factor out the greatest common factor"),0,T_A},
+  {ST("Difference of squares"),ST("a^2-b^2=(a-b)(a+b)"),T_A},
+  {ST("Sum of cubes"),ST("a^3+b^3=(a+b)(a^2-ab+b^2)"),T_A},
+  {ST("Difference of cubes"),ST("a^3-b^3=(a-b)(a^2+ab+b^2)"),T_A},
+  {ST("Perfect square trinomial"),ST("a^2+2ab+b^2=(a+b)^2"),T_A},
+  {ST("Two numbers: product c, sum b"),0,T_A},
+  {ST("Split the middle term (ac method)"),0,T_A},
+  {ST("Factor by grouping"),0,T_A},
+  {ST("No whole numbers: roots by the formula"),ST("x=(-b\xc2\xb1sqrt(b^2-4ac))/(2a)"),T_A},
+  {ST("A rational root: divide by its factor"),0,T_A},
+  {ST("Zero product property: each factor is 0"),0,T_A},
+  {ST("Solve each"),0,T_A},
+  {ST("No real solution from this factor"),0,T_A_is_0},
+  {ST("No real roots: does not factor"),0,T_A},
+  {ST("Does not factor further"),0,T_A},
+  {ST("Rearrange the terms"),0,T_A},
+  {ST("Quadratic form: substitute u"),0,T_A},
+  {ST("SOAP: Same, Opposite, Always Positive"),0,T_A},
+  {ST("Check: multiply the factors"),0,T_A},
   // rational and radical equations (DeltaCE)
-  {"Excluded values: no denominator can be 0",0,T_A},
-  {"Multiply both sides by the LCD",0,T_A},
-  {"Check: not an excluded value",0,T_A},
-  {"An excluded value: not a solution",0,T_A},
-  {"Square both sides",0,T_A},
-  {"Check in the equation: both sides agree",0,T_A},
-  {"Check: the sides differ, extraneous",0,T_A},
-  {"Every candidate is extraneous: no solution",0,T_A},
+  {ST("Excluded values: no denominator can be 0"),0,T_A},
+  {ST("Multiply both sides by the LCD"),0,T_A},
+  {ST("Check: not an excluded value"),0,T_A},
+  {ST("An excluded value: not a solution"),0,T_A},
+  {ST("Square both sides"),0,T_A},
+  {ST("Check in the equation: both sides agree"),0,T_A},
+  {ST("Check: the sides differ, extraneous"),0,T_A},
+  {ST("Every candidate is extraneous: no solution"),0,T_A},
   // F4's forms (DeltaCE): completing the square, long division; A a line written as text
-  {"Group the x terms",0,T_A},
-  {"Factor a out of the x terms",0,T_A},
-  {"Half the x coefficient, squared","(b/2)^2",T_A},
-  {"Add it and subtract it",0,T_A},
-  {"Write the perfect square",0,T_A},
-  {"Distribute",0,T_A},
-  {"Combine the numbers",0,T_A},
-  {"The vertex","a*(x-h)^2+k: (h,k)",T_A},
-  {"Complete the square in",0,T_A},
-  {"Put it back",0,T_A},
-  {"Divide the leading terms",0,T_A},
-  {"Multiply back and subtract",0,T_A},
-  {"The remainder's degree is lower: done",0,T_A},
-  {"Check: divisor times quotient, plus remainder",0,T_A},
-  {"",0,T_A}, // (a division typed: quotient plus remainder over the divisor, the answer box)
+  {ST("Group the x terms"),0,T_A},
+  {ST("Factor a out of the x terms"),0,T_A},
+  {ST("Half the x coefficient, squared"),ST("(b/2)^2"),T_A},
+  {ST("Add it and subtract it"),0,T_A},
+  {ST("Write the perfect square"),0,T_A},
+  {ST("Distribute"),0,T_A},
+  {ST("Combine the numbers"),0,T_A},
+  {ST("The vertex"),ST("a*(x-h)^2+k: (h,k)"),T_A},
+  {ST("Complete the square in"),0,T_A},
+  {ST("Put it back"),0,T_A},
+  {ST("Divide the leading terms"),0,T_A},
+  {ST("Multiply back and subtract"),0,T_A},
+  {ST("The remainder's degree is lower: done"),0,T_A},
+  {ST("Check: divisor times quotient, plus remainder"),0,T_A},
+  {ST(""),0,T_A}, // (a division typed: quotient plus remainder over the divisor, the answer box)
   // synthetic division, factor and cancel (DeltaCE)
-  {"Write c, where the divisor is 0",0,T_A},
-  {"",0,T_A}, // (the table)
-  {"Bring down the first coefficient",0,T_A},
-  {"Multiply by c, add down the column",0,T_A},
-  {"Bottom row: the quotient, then the remainder",0,T_A},
-  {"Divide the quotient by the x coefficient",0,T_A},
-  {"Factor the top and the bottom",0,T_A},
-  {"Cancel the common factors",0,T_A},
+  {ST("Write c, where the divisor is 0"),0,T_A},
+  {ST(""),0,T_A}, // (the table)
+  {ST("Bring down the first coefficient"),0,T_A},
+  {ST("Multiply by c, add down the column"),0,T_A},
+  {ST("Bottom row: the quotient, then the remainder"),0,T_A},
+  {ST("Divide the quotient by the x coefficient"),0,T_A},
+  {ST("Factor the top and the bottom"),0,T_A},
+  {ST("Cancel the common factors"),0,T_A},
   // partial fractions (DeltaCE)
-  {"The top's degree is not lower: divide first",0,T_A},
-  {"Factor the denominator",0,T_A},
-  {"A fraction for each factor",0,T_A},
-  {"Multiply both sides by the denominator",0,T_A},
-  {"Put in a root of the denominator",0,T_A},
-  {"Match the coefficients of each power of x",0,T_A},
-  {"Solve for the unknowns",0,T_A},
-  {"Put the values in",0,T_A},
+  {ST("The top's degree is not lower: divide first"),0,T_A},
+  {ST("Factor the denominator"),0,T_A},
+  {ST("A fraction for each factor"),0,T_A},
+  {ST("Multiply both sides by the denominator"),0,T_A},
+  {ST("Put in a root of the denominator"),0,T_A},
+  {ST("Match the coefficients of each power of x"),0,T_A},
+  {ST("Solve for the unknowns"),0,T_A},
+  {ST("Put the values in"),0,T_A},
   // systems of linear equations (DeltaCE): elimination
-  {"Write each equation in standard form",0,T_A},
-  {"Clear the fractions: multiply by the LCD",0,T_A},
-  {"Multiply so that a variable drops out",0,T_A},
-  {"Add the equations",0,T_A},
-  {"Subtract the equations",0,T_A},
-  {"Put it into an equation",0,T_A},
-  {"The solution",0,T_A},
-  {"Never true: no solution (the lines are parallel)",0,T_A},
-  {"Always true: infinitely many (the same line)",0,T_A},
-  {"Take a pair of equations",0,T_A},
-  {"Two equations in two unknowns",0,T_A},
-  {"Never true: no solution",0,T_A},
-  {"Always true: infinitely many solutions",0,T_A},
-  {"Write both sides as powers of the same base",0,T_A},
-  {"Same base: the exponents are equal",0,T_A},
-  {"Take ln of both sides",0,T_A},
-  {"Power rule of logs","ln(a^u)=u*ln(a)",T_A},
-  {"Exponential form: log_b(u) = c means u = b^c",0,T_A},
-  {"Product rule of logs","log(a)+log(b)=log(a*b)",T_A_is_B},
-  {"Quotient rule of logs","log(a)-log(b)=log(a/b)",T_A_is_B},
-  {"Power rule of logs","k*log(a)=log(a^k)",T_A_is_B},
-  {"Same base: the arguments are equal",0,T_A},
-  {"Check: every log's argument is positive",0,T_A},
-  {"A log of a number <= 0: not a solution",0,T_A},
-  {"A power of a positive base is never <= 0: no solution",0,T_A},
-  {"A quadratic in the power: substitute",0,T_A},
-  {"Back to x",0,T_A},
-  {"Unknowns to one side, the rest to the other",0,T_A_is_B},
-  {"Factor out x",0,T_A_is_B},
-  {"Move the logs to one side",0,T_A_is_B},
-  {"The reference angle",0,T_A_is_B},
-  {"sin > 0: quadrants I and II",0,T_A},
-  {"sin < 0: quadrants III and IV",0,T_A},
-  {"cos > 0: quadrants I and IV",0,T_A},
-  {"cos < 0: quadrants II and III",0,T_A},
-  {"tan > 0: quadrants I and III",0,T_A},
-  {"tan < 0: quadrants II and IV",0,T_A},
-  {"On an axis of the unit circle",0,T_A},
-  {"All solutions: add n periods (n an integer)",0,T_A},
-  {"Solve for x",0,T_A},
-  {"The solutions in [0, 2pi)",0,T_A},
-  {"sin and cos are between -1 and 1: no solution",0,T_A_is_B},
-  {"Divide both sides by cos: sin/cos is tan",0,T_A_is_B},
-  {"Pythagorean identity","sin(x)^2+cos(x)^2=1",T_A_is_B},
-  {"The angles where",0,T_A_is_B},
-  {"Differentiate both sides: y is a function of x",0,T_diff_A_and_V_is_diff_B_and_V},
-  {"Chain rule: each y term's derivative times dy/dx",0,T_A_is_B},
-  {"The dy/dx terms to one side, the rest to the other",0,T_A_is_B},
-  {"Factor out dy/dx",0,T_A_is_B},
+  {ST("Write each equation in standard form"),0,T_A},
+  {ST("Clear the fractions: multiply by the LCD"),0,T_A},
+  {ST("Multiply so that a variable drops out"),0,T_A},
+  {ST("Add the equations"),0,T_A},
+  {ST("Subtract the equations"),0,T_A},
+  {ST("Put it into an equation"),0,T_A},
+  {ST("The solution"),0,T_A},
+  {ST("Never true: no solution (the lines are parallel)"),0,T_A},
+  {ST("Always true: infinitely many (the same line)"),0,T_A},
+  {ST("Take a pair of equations"),0,T_A},
+  {ST("Two equations in two unknowns"),0,T_A},
+  {ST("Never true: no solution"),0,T_A},
+  {ST("Always true: infinitely many solutions"),0,T_A},
+  {ST("Write both sides as powers of the same base"),0,T_A},
+  {ST("Same base: the exponents are equal"),0,T_A},
+  {ST("Take ln of both sides"),0,T_A},
+  {ST("Power rule of logs"),ST("ln(a^u)=u*ln(a)"),T_A},
+  {ST("Exponential form: log_b(u) = c means u = b^c"),0,T_A},
+  {ST("Product rule of logs"),ST("log(a)+log(b)=log(a*b)"),T_A_is_B},
+  {ST("Quotient rule of logs"),ST("log(a)-log(b)=log(a/b)"),T_A_is_B},
+  {ST("Power rule of logs"),ST("k*log(a)=log(a^k)"),T_A_is_B},
+  {ST("Same base: the arguments are equal"),0,T_A},
+  {ST("Check: every log's argument is positive"),0,T_A},
+  {ST("A log of a number <= 0: not a solution"),0,T_A},
+  {ST("A power of a positive base is never <= 0: no solution"),0,T_A},
+  {ST("A quadratic in the power: substitute"),0,T_A},
+  {ST("Back to x"),0,T_A},
+  {ST("Unknowns to one side, the rest to the other"),0,T_A_is_B},
+  {ST("Factor out x"),0,T_A_is_B},
+  {ST("Move the logs to one side"),0,T_A_is_B},
+  {ST("The reference angle"),0,T_A_is_B},
+  {ST("sin > 0: quadrants I and II"),0,T_A},
+  {ST("sin < 0: quadrants III and IV"),0,T_A},
+  {ST("cos > 0: quadrants I and IV"),0,T_A},
+  {ST("cos < 0: quadrants II and III"),0,T_A},
+  {ST("tan > 0: quadrants I and III"),0,T_A},
+  {ST("tan < 0: quadrants II and IV"),0,T_A},
+  {ST("On an axis of the unit circle"),0,T_A},
+  {ST("All solutions: add n periods (n an integer)"),0,T_A},
+  {ST("Solve for x"),0,T_A},
+  {ST("The solutions in [0, 2pi)"),0,T_A},
+  {ST("sin and cos are between -1 and 1: no solution"),0,T_A_is_B},
+  {ST("Divide both sides by cos: sin/cos is tan"),0,T_A_is_B},
+  {ST("Pythagorean identity"),ST("sin(x)^2+cos(x)^2=1"),T_A_is_B},
+  {ST("The angles where"),0,T_A_is_B},
+  {ST("Differentiate both sides: y is a function of x"),0,T_diff_A_and_V_is_diff_B_and_V},
+  {ST("Chain rule: each y term's derivative times dy/dx"),0,T_A_is_B},
+  {ST("The dy/dx terms to one side, the rest to the other"),0,T_A_is_B},
+  {ST("Factor out dy/dx"),0,T_A_is_B},
   // inequalities, absolute values (DeltaCE): a step's = is its relation (step_t rel)
-  {"Divide by a negative: the sign flips",0,T_A_C_is_B_C},
-  {"Factor",0,T_A},
-  {"Where it is 0 or undefined",0,T_A},
-  {"Test a number in each interval",0,T_A},
-  {"",0,T_A},
-  {"Keep where it is negative",0,T_A},
-  {"Keep where it is negative or 0",0,T_A},
-  {"Keep where it is positive",0,T_A},
-  {"Keep where it is positive or 0",0,T_A},
-  {"No interval works: no solution",0,T_A},
-  {"Every number works",0,T_A},
-  {"An absolute value is never negative",0,T_A},
-  {"Only 0 has absolute value 0",0,T_A},
-  {"Two cases: the inside is k or -k",0,T_A},
-  {"First case",0,T_A_is_B},
-  {"Second case",0,T_A_is_B},
-  {"Less than k: between -k and k",0,T_A},
-  {"The same to all three parts",0,T_A},
-  {"Divide all three parts",0,T_A},
-  {"Divide by a negative: the signs flip",0,T_A},
-  {"More than k: below -k or above k",0,T_A},
-  {"Every number works",0,T_A},
-  {"Every number but where the inside is 0",0,T_A},
-  {"The solutions",0,T_A},
+  {ST("Divide by a negative: the sign flips"),0,T_A_C_is_B_C},
+  {ST("Factor"),0,T_A},
+  {ST("Where it is 0 or undefined"),0,T_A},
+  {ST("Test a number in each interval"),0,T_A},
+  {ST(""),0,T_A},
+  {ST("Keep where it is negative"),0,T_A},
+  {ST("Keep where it is negative or 0"),0,T_A},
+  {ST("Keep where it is positive"),0,T_A},
+  {ST("Keep where it is positive or 0"),0,T_A},
+  {ST("No interval works: no solution"),0,T_A},
+  {ST("Every number works"),0,T_A},
+  {ST("An absolute value is never negative"),0,T_A},
+  {ST("Only 0 has absolute value 0"),0,T_A},
+  {ST("Two cases: the inside is k or -k"),0,T_A},
+  {ST("First case"),0,T_A_is_B},
+  {ST("Second case"),0,T_A_is_B},
+  {ST("Less than k: between -k and k"),0,T_A},
+  {ST("The same to all three parts"),0,T_A},
+  {ST("Divide all three parts"),0,T_A},
+  {ST("Divide by a negative: the signs flip"),0,T_A},
+  {ST("More than k: below -k or above k"),0,T_A},
+  {ST("Every number works"),0,T_A},
+  {ST("Every number but where the inside is 0"),0,T_A},
+  {ST("The solutions"),0,T_A},
+  {ST("Ratio test: converges where the limit is below 1"),0,T_A_1},
+  {ST("The open interval of convergence"),0,T_A},
+  {ST("Limit 0 for every x: converges for all x"),0,T_A},
+  {ST("Infinite unless x is the center"),0,T_A},
+  {ST("Known series"),0,T_A_is_B},
+  {ST("The geometric series, differentiated"),0,T_A_is_B},
+  {ST("The geometric series, differentiated twice, halved"),0,T_A_is_B},
+  {ST("The series of 1/(1+x), integrated"),0,T_A_is_B},
+  {ST("The arctangent: a series integrated"),ST("atan(x)=integrate(1/(1+t^2),t,0,x)"),T_A_is_B},
+  {ST("Substitute"),0,T_u_A},
+  {ST("Multiply each term"),0,T_A},
+  {ST("Integrate term by term"),0,T_A},
+  {ST("Converges for every x"),0,T_A},
+  {ST("Where it converges: |inside| < 1"),0,T_A},
+  {ST("The term with that power"),0,T_A_is_B},
+  {ST("No term with that power: coefficient 0"),0,T_A},
+  {ST("Its coefficient"),0,T_A_is_B},
+  {ST("The derivative: n! times the coefficient"),ST("f^((n))(0)=n!*a_n"),T_A_is_B},
+  {ST("The terms up to that degree"),0,T_A},
+  {ST("Add the polynomials"),0,T_A_is_B},
+  {ST("The dominant terms (growth rates)"),0,T_A_is_B},
+  {ST("Growth rates, the slowest first"),ST("ln(n)^p, n^q, b^n, n!, n^n"),T_A_is_B},
+  {ST("A geometric sequence with |r| < 1"),ST("limit(r^n,n,inf)=0"),T_A_is_B},
+  {ST("Ratio below 1: the terms go to 0"),0,T_A_is_B},
+  {ST("Write out the terms"),0,T_A_is_B},
+  {ST("Ratio test: above 1, the series diverges"),0,T_A_is_B},
+  {ST("Write out some terms"),0,T_A},
+  {ST("Write out some partial sums: cancel what cancels"),0,T_A},
+  {ST("The pattern: a formula for the partial sums"),0,T_A},
+  {ST("Definition of convergence"),0,T_A},
+  {ST("Ratio test: the next term, the index + 1 put in"),0,T_A},
+  {ST("Dividing by a term: times its reciprocal"),0,T_A},
+  {ST("Group the like factors"),0,T_A},
+  {ST("The constants out of the limit"),0,T_A},
+  {ST("The limit L"),0,T_A},
+  {ST("Ratio test: L < 1, the series converges"),0,T_A},
+  {ST("Ratio test: L > 1, the series diverges"),0,T_A},
+  {ST("The center and the radius of convergence"),0,T_A},
+  {ST("Radius of convergence: infinite"),0,T_A},
+  {ST("Radius of convergence: 0"),0,T_A},
+  {ST("The ratio of the next term to the term"),0,T_A},
+  {ST("Rules of exponents: the form"),ST("a*r^k"),T_A},
+  {ST("A geometric series"),0,T_A},
+  {ST("|r| < 1: it converges to"),ST("a*r^(k_0)/(1-r)"),T_A},
+  {ST("|r| >= 1: the geometric series diverges"),0,T_A},
+  {ST("Replace x by the inside"),0,T_A},
+  {ST("Simplify each term: the rules of exponents"),0,T_A},
+  {ST("The constants out of each integral"),0,T_A},
+  {ST("Known series, written out"),0,T_A},
+  {ST("Put the series together"),0,T_A},
+  {ST("The Taylor polynomial: the terms up to that degree"),0,T_A},
+  {ST("For this term"),0,T_A},
+  {ST("Ratio above 1: the terms grow without bound"),0,T_A_is_B},
+  {ST("Divergence test: the terms do not go to 0"),0,T_A},
+  {ST("Put the center in"),ST("0^0=1"),T_A},
+  {ST("Only the first term is not 0"),0,T_A},
+  {ST("The absolute value alone, then |u| < R: -R < u < R"),0,T_A},
+  {ST("The constant out of the integral"),0,T_A},
+  {ST("Power rule"),ST("integrate(t^n,t)=t^(n+1)/(n+1)"),T_A},
+  {ST("Put the number in for x"),0,T_A},
+  {ST("Multiply the series, up to that degree"),0,T_A},
+  {ST("Use the Taylor series of the top and the bottom"),0,T_A},
+  {ST("The lowest powers decide the limit"),0,T_A_is_B},
+  {ST("The base's limit, the power to infinity"),0,T_A_is_B},
+  {ST("Each term's limit"),0,T_A},
+  {ST("The geometric series, differentiated, written out"),0,T_A},
+  {ST("The geometric series, differentiated twice, halved"),0,T_A},
+  {ST("The series of 1/(1+x), integrated, written out"),0,T_A},
+  {ST("The arctangent: a series integrated, written out"),ST("atan(x)=integrate(1/(1+t^2),t,0,x)"),T_A},
+  {ST("Differentiate term by term"),0,T_A},
+  {ST("A geometric sequence with r > 1"),ST("limit(r^n,n,inf)=inf"),T_A_is_B},
+  {ST("Let g be the other factor: its polynomial first"),0,T_A},
+  {ST("Limit comparison: 0, and the p-series converges"),ST("limit(a(n)/b(n),n,inf)=0"),T_A_is_B},
+  {ST("Limit comparison: infinity, the p-series diverges"),ST("limit(a(n)/b(n),n,inf)=inf"),T_A_is_B},
+  {ST("The ratio test uses the absolute value of the ratio"),0,T_A},
+  {ST("Isolate the square"),0,T_A},
+  {ST("Square root of both sides"),0,T_A},
+  {ST("A square is never negative: no real solution"),0,T_A},
+  {ST("The powers with n in the exponent, together"),0,T_A_is_B},
+  {ST("1 to the infinity"),ST("limit(u^v,n,inf)=e^(limit(v*(u-1),n,inf))"),T_A_is_B},
+  {ST("Cancel each pair"),0,T_A},
+  {ST("The coefficients"),ST("a_k=f^((k))(c)/k!"),T_A},
+  {ST("Add the fractions: a common denominator"),0,T_A},
+  {ST("Write out some terms"),0,T_A},
+  {ST("The k = 0 term is 0: the sum from k = 1"),0,T_A},
+  {ST("The constant: both sides at x = 0"),0,T_A},
+  {ST("A known series at a number"),0,T_A},
+  {ST("Less the terms before the series starts"),0,T_A},
+  {ST("A sum of geometric series: each one apart"),ST("sum(a_k+b_k)=sum(a_k)+sum(b_k)"),T_A},
+  {ST("Add their values"),0,T_A},
+  {ST("Simplify the term first"),0,T_A},
+  {ST("Without the sign: the size of the terms"),0,T_A_is_B},
+  {ST("The size goes to 0, so the terms do too"),0,T_A_is_B},
+  {ST("The sign changes each term, the size does not go to 0: no limit"),0,T_A_is_B},
+  {ST("The function it adds up to (a known series)"),0,T_A},
+  {ST("Euler's value of the p-series"),0,T_A},
+  {ST("The geometric series, differentiated, times x"),0,T_A_is_B},
+  {ST("The first terms cancel: the sum starts later"),0,T_A},
+  {ST("A log of a product: ln(a*b) = ln(a)+ln(b)"),0,T_A},
+  {ST("Each term from the one before"),0,T_A},
+  {ST("The terms approach L: L = the recurrence at L"),0,T_A},
+  {ST("Complex solutions"),ST("sqrt(-1)=i"),T_A},
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  {SP("The vectors"),0,T_A},
+  {SP(""),0,T_A},
+  {SP("Dot product: multiply matching parts, add"),SP("u·v=u_1 v_1+u_2 v_2+u_3 v_3"),T_A},
+  {SP("Cross product: the determinant along i, j, k"),0,T_A},
+  {SP("Magnitude: square root of the sum of squares"),SP("abs(u)=sqrt(u_1^2+u_2^2+u_3^2)"),T_A},
+  {SP("Pythagorean identity"),SP("sin(t)^2+cos(t)^2=1"),T_A},
+  {SP("Component by component"),0,T_A},
+  {SP("Multiply each component by the number"),0,T_A},
+  {SP("Vector projection"),SP("proj_v u=((u·v)/(v·v)) v"),T_A},
+  {SP("Scalar projection"),SP("scal_v u=(u·v)/abs(v)"),T_A},
+  {SP("Angle between the vectors"),SP("cos(θ)=(u·v)/(abs(u) abs(v))"),T_A},
+  {SP("The dot product is 0: the vectors are orthogonal"),0,T_A},
+  {SP("The cross product is 0: the vectors are parallel"),0,T_A},
+  {SP("Put the values in"),0,T_A},
+  {SP("N = u - P: the part of u orthogonal to v"),0,T_A},
+  {SP("Check that N is orthogonal to v: N·v = 0"),0,T_A},
+  {SP("The angle: in radians, then in degrees"),0,T_A},
+  {SP("Not defined"),0,T_A},
+  {SP("So"),0,T_A},
+  {SP("The time t when r(t) is the point"),0,T_A},
+  {SP("No time t: the point is not on the curve"),0,T_A},
+  {SP("Check the other coordinates"),0,T_A},
+  {SP("Check the other coordinates: not the point"),0,T_A},
+  {SP("Direction vectors: the numbers times t"),0,T_A},
+  {SP("Scalar multiples: the lines are parallel"),0,T_A},
+  {SP("Not scalar multiples: not parallel"),0,T_A},
+  {SP("Intersection (not at the same time: t and T)"),0,T_A},
+  {SP("Set the components equal"),0,T_A},
+  {SP("Find t and T from two, check the third"),0,T_A},
+  {SP("The third checks out"),0,T_A},
+  {SP("The third does not check out"),0,T_A},
+  {SP("Not parallel, they do not meet: skew"),0,T_A},
+  {SP("The lines intersect"),0,T_A},
+  {SP("A point of one is on the other: same line"),0,T_A},
+  {SP("Not on the other: parallel, different lines"),0,T_A},
+  {SP("We need a point P0 and a direction vector v"),0,T_A},
+  {SP("The direction: r'(t)"),0,T_A},
+  {SP("Evaluate r'(t) at that time"),0,T_A},
+  {SP("The line: l(t) = v t + P0"),0,T_A},
+  {SP("Arc length"),SP("s=integrate(abs(r'(t)),t,a,b)"),T_A},
+  {SP("Limits: the times at the endpoints"),0,T_A},
+  {SP("So"),0,T_A},
+  {SP("(1) s in terms of t"),SP("s(t)=integrate(abs(r'(T)),T,0,t)"),T_A},
+  {SP("(2) t in terms of s"),0,T_A},
+  {SP("(3) Replace t with t(s)"),0,T_A},
+  {SP("|r'(t)| = 1: an arclength parameterization"),0,T_A},
+  {SP("|r'(t)| is not 1: not arclength; find one"),0,T_A},
+  {SP("Integrate each component, a constant each"),0,T_A},
+  {SP("Use the initial condition"),0,T_A},
+  {SP("Put the curve into the equation"),0,T_A},
+  {SP("The points"),0,T_A},
+  {SP("Component by component"),0,T_A},
+  {SP("True for every t: the curve lies on it"),0,T_A},
+  {SP("No solution: they do not meet"),0,T_A},
+  {SP("Which part: the values each coordinate takes"),0,T_A},
+  {SP("Not a limit: the surface has no points past it"),0,T_A},
+  {SP("Only this part of it is traced"),0,T_A},
+  {SP("Set one variable equal to t"),0,T_A},
+  {SP("Put it in the equation"),0,T_A},
+  {SP("Solve for the other"),0,T_A},
+  {SP("Divide to get 1 on the right"),0,T_A},
+  {SP("x = a cos t, y = b sin t: the whole ellipse"),0,T_A},
+  {SP("For every t: the constant from one t, then checked"),0,T_A},
+  {SP("Not true for every t: no such constant"),0,T_A},
+  {SP("Where the constant drops out"),0,T_A},
+  {SP("Where each part is defined"),0,T_A},
+  {SP("Solve those together"),0,T_A},
+  {SP("Take out where a denominator is 0"),0,T_A},
+  {SP("The two sides, component by component"),0,T_A},
+  {SP("Solve"),0,T_A},
+  {SP("Pick values: an example"),0,T_A},
+  {SP(""),0,T_A},
+#endif
 };
 static_assert(sizeof(RULES)/sizeof(RULES[0])==R_NRULES,"RULES[] and the R_* enum must stay aligned");
 // (DeltaCE) an inequality's relation: 0 an equation, 1 <, 2 <=, 3 >, 4 >=
@@ -341,7 +555,7 @@ static int rel_of(const gen & e){ for (int r=1;r<=4;++r) if (e.is_symb_of_sommet
 static int flip(int r){ return r?(r+1)%4+1:0; } // (< and >, <= and >=)
 static const char * const RELT[5]={"=","<","<=",">",">="};
 
-const char * steps_title(const step_t & s){ return RULES[s.rule].title; }
+const char * steps_title(const step_t & s){ static char t[ST_MAX+1]; return st_unpack(RULES[s.rule].title,t); } // (till the next call: the steps page copies it)
 int steps_method,steps_methods; // (DeltaCE, steps.h)
 const char * steps_method_name="";
 bool steps_answer(const std::vector<step_t> & v,gen & r){ // (DeltaCE)
@@ -349,7 +563,7 @@ bool steps_answer(const std::vector<step_t> & v,gen & r){ // (DeltaCE)
   r=v.back().a;
   return true;
 }
-const char * steps_formula(const step_t & s){ return RULES[s.rule].formula; }
+const char * steps_formula(const step_t & s){ static char f[ST_MAX+1]; return st_unpack(RULES[s.rule].formula,f); } // (0: none)
 // (DeltaCE) a synthetic division's table: rows of cells, a tab between cells, a newline between
 // rows, \1 before a cell new in this step; "" for another step
 std::string steps_table(const step_t & s,GIAC_CONTEXT){
@@ -486,7 +700,34 @@ static NOINL bool bigp(const gen & g,bool any=false){
   if (a.type==_VECT){ for (const_iterateur it=a._VECTptr->begin();it!=a._VECTptr->end();++it) if (bigp(*it,any)) return true; return false; }
   return bigp(a,any);
 }
-static NOINL gen rn(const gen & g){ return bigp(g)?g:ratn(g); }
+// e's powers as powers of one name for ratnormal: e*e^2*e^3 is e^6, (2e^2-2)/(e^3-e^2) is (2e+2)/e^2
+// (giac's ratnormal keeps each exp(k) a name of its own: s_2 of sum(2/e^k-2/e^(k+2)) was
+// (-2e e^2 e^3-...)/(e e^2 e^3 e^4)); only with two or more, each of a number
+static int ne_,no_; // (ne_ -1: an exp of no number; 1 one power seen, 2 two different ones; no_ how many)
+static gen * e1_;
+static NOINL gen map_of(const gen & g,gen (*f)(const gen &)); // (below)
+static NOINL gen epw(const gen & g){
+  if (g.type!=_SYMB || ne_<0) return g;
+  if (g.is_symb_of_sommet(at_exp)){
+    const gen & a=g._SYMBptr->feuille;
+    if (a.type!=_INT_ && a.type!=_FRAC){ ne_=-1; return g; }
+    ++no_;
+    if (!ne_){ *e1_=a; ne_=1; } else if (a!=*e1_) ne_=2;
+    return symb_pow(gen(identificateur("e_")),a);
+  }
+  return map_of(g,epw);
+}
+gen steps_epow(const gen & g,GIAC_CONTEXT){
+  if (g.type!=_SYMB || !has_op(g,*at_exp)) return g;
+  gen e1; e1_=&e1; ne_=0; no_=0;
+  gen h=epw(g);
+  if (ne_<1 || no_<2) return g;
+  h=ratnormal(h,contextptr);
+  if (!has_op(_denom(h,contextptr),*at_plus)) h=expand(h,contextptr); // (over a power of e: its terms, 2/e-2/e^3 as the course's a_1, not 2(e^2-1)/e^3)
+  const gen r=eval(subst(h,gen(identificateur("e_")),symb_exp(1),false,contextptr),1,contextptr);
+  return ne_==2 || r.print(contextptr).size()<=g.print(contextptr).size()?r:g; // (one power twice: when not longer, e/e is 1, e cos(e)+sin(e) kept as it was)
+}
+static NOINL gen rn(const gen & g){ return bigp(g)?g:steps_epow(ratnormal(g,CTX),CTX); }
 // the radicands of g's fractional powers (normal over two of them, giac's algebraic extensions, took
 // 4.7 MB and 20 s on the PC for sqrt(sin x)/(sqrt(sin x)+sqrt(cos x)); ratnormal over one leaves
 // sqrt(3)^2 or x+2x: normal for it)
@@ -688,6 +929,12 @@ static NOINL gen norm(const gen & g){
   return SYM(&u,a);
 }
 
+// a sum's terms as typed, a binary minus's second negated (not norm's x*1/2 for x/2)
+static NOINL void sterms(const gen & g,vecteur & v){
+  if (g.is_plus() && arg(g).type==_VECT){ EACH(it,*arg(g)._VECTptr) sterms(*it,v); return; }
+  if (is(g,at_binary_minus) && arg(g).type==_VECT && arg(g)._VECTptr->size()==2){ sterms(arg(g,0),v); v.push_back(symb_neg(arg(g,1))); return; }
+  v.push_back(g);
+}
 // a = f numerically (giac's simplify is slow on the calculator), the other variables given values.
 // Points on both sides of 0 and far out, first inside [lo,hi] when given (only there: only): every point where f is
 // real must agree, 5 of them at most, at least 3 (else complex values agreeing make up the 3; a
@@ -1766,12 +2013,21 @@ static gen absarg(const gen & f){
 // rewriting (x ln x written ln x/(1/x) came back as x ln x).
 static int ldir_;
 static gen * la_;
+static bool lgratio_; // (lgrow decided by the ratio of consecutive terms, not the growth rates)
+static bool nogiac_; // (growlim: the classes alone, no giac limit: ln(k+1)-ln(k+3) took 18 s on the calculator)
+static bool trust_; // (a sequence's limit decided by lgrow at the top: by the growth classes, exactly; no giac limit to check it against)
 static NOINL gen Lx(const gen & f){ return SYM(at_limit,ldir_?makesequence(f,X,*la_,ldir_):makesequence(f,X,*la_)); }
 static NOINL gen glim(const gen & g){ return bigp(g,true)?gen(undef):ev(Lx(g)); }
 static NOINL bool finv(const gen & v){ return v.type!=_STRNG && !has_inf_or_undef(v) && !has_op(v,*at_bounded_function); }
 static NOINL gen Ls(int r,const gen & f,const gen & v0){ gen v=v0.type==_FRAC?v0._FRACptr->num/v0._FRACptr->den:v0; S(r,Lx(f),v); return v; } // lim f = v by rule r (giac's limit gave the fraction 1/-7)
 static gen lsteps(const gen & f,int lev);
 static gen lq(const gen & f,const gen & n,const gen & d,int lev);
+static NOINL std::string tplus(const vecteur & w); // (below)
+static NOINL std::string wsum(const vecteur & w,bool dots); // (below)
+static NOINL gen growlim(const gen & g); // (below)
+static NOINL gen line(const char * f,const gen & a,const gen & b,const gen & c,const gen & d,const gen & e,const gen & g); // (below)
+static NOINL gen line3(const char * f,const gen & a,const gen & b=zero,const gen & c=zero){ return line(f,a,b,c,zero,zero,zero); }
+static NOINL gen lser(const gen & f,const gen & n,const gen & d,int lev); // (below)
 static NOINL gen quo(const gen & n,const gen & d){ return is_one(d)?n:symb_prod(n,symb_inv(d)); }
 // lim f = lim n/d by rule r, then that limit (d = 1: n's)
 static NOINL gen lvia(int r,const gen & f,const gen & n,const gen & d,int lev){
@@ -1791,8 +2047,18 @@ static NOINL gen linner(int r,const gen & f,const gen & shown,const gen & u,int 
   return L;
 }
 // the term of the sum g growing fastest: every other over it has a finite limit (0: none)
+static NOINL bool gcls(const gen & t,double * c); // (below)
 static NOINL gen fastest(const gen & g){
   vecteur w; flat(at_plus,g,w);
+  if (*la_==plus_inf && w.size()<=6){ // (the growth classes first: n^50 << 2^n; giac's limit of n^50/2^n took 2 minutes on the calculator)
+    double cs[30]; bool all=true;
+    for (size_t i=0;i<w.size() && all;++i) all=gcls(w[i],cs+5*i);
+    if (all) for (size_t i=0;i<w.size();++i){
+      bool ok=dep(w[i]);
+      for (size_t j=0;j<w.size() && ok;++j) if (j!=i){ int q=0; while (q<5 && cs[5*i+q]==cs[5*j+q]) ++q; if (q<5 && cs[5*i+q]<cs[5*j+q]) ok=false; }
+      if (ok) return w[i];
+    }
+  }
   EACH(it,w){
     bool ok=dep(*it);
     EACH(jt,w) if (ok && jt!=it && !finv(glim(ev(*jt / *it)))) ok=false; // (rn expanded (x+1)^1000)
@@ -1829,6 +2095,258 @@ static NOINL gen rootin(const gen & g){
   }
   return t.size()==1?t[0]:symb_plus(t);
 }
+static NOINL gen fastest(const gen & g);
+static NOINL gen ratio_of(const gen & f,const gen & t,const gen & x); // (below)
+static NOINL bool close(const gen & a,const gen & b);
+static NOINL std::string pr(const gen & g); // (below)
+static NOINL gen txt(const std::string & s); // (below)
+static NOINL std::string par(const gen & g); // (below)
+// a term's growth class at +infinity: (n^n, n!, ln b of b^n, q of n^q, p of ln(n)^p), compared in
+// that order (the course's ln(n)^p << n^q << b^n << n! << n^n); false for any other factor
+static NOINL gen dom(const gen & g);
+static NOINL bool lpoly(const gen & u){ // a polynomial in the index of degree 1 or more
+  const vecteur lv=lvar(u);
+  if (lv.size()!=1 || lv[0]!=X) return false;
+  const gen d=_degree(makesequence(u,X),CTX);
+  return d.type==_INT_ && d.val>=1 && !dep(_denom(u,CTX));
+}
+static NOINL bool gcls(const gen & t,double * c){
+  for (int i=0;i<5;++i) c[i]=0;
+  gen al0,be0;
+  vecteur w; flat(at_prod,t,w);
+  EACH(it,w){
+    if (!dep(*it)) continue;
+    gen b=*it,e=bexp(b);
+    if (dep(e)){ // b^n, n^n
+      gen al,be;
+      if (!is_linear_wrt(e,X,al,be,CTX) || !is_strictly_positive(al,CTX)) return false;
+      const gen eb=evalf(b,1,CTX),ea=evalf(al,1,CTX);
+      if (b==X){ c[0]+=ea._DOUBLE_val; continue; }
+      if (dep(b) || eb.type!=_DOUBLE_ || eb._DOUBLE_val<=0) return false;
+      c[2]+=ea._DOUBLE_val*std::log(eb._DOUBLE_val); continue;
+    }
+    const gen ee=evalf(e,1,CTX);
+    if (ee.type!=_DOUBLE_) return false;
+    if (b==X) c[3]+=ee._DOUBLE_val;
+    else if (is(b,at_factorial) && arg(b)==X) c[1]+=ee._DOUBLE_val;
+    else if (is(b,at_ln) && (arg(b)==X || is_linear_wrt(arg(b),X,al0,be0,CTX) || lpoly(arg(b)))) c[4]+=ee._DOUBLE_val; // (ln(k+3) as ln(k); ln(k^2+3) as 2 ln(k), the same class)
+    else if (is(b,at_exp)){ gen al,be; if (!is_linear_wrt(arg(b),X,al,be,CTX)) return false; c[2]+=evalf(al,1,CTX)._DOUBLE_val*ee._DOUBLE_val; }
+    else if (b.is_plus() || b.is_prod()){ // (a root of a sum: sqrt(4n^2+n) grows as n)
+      const gen d=b.is_plus()?dom(b):b;
+      double c2[5];
+      if (d==b && b.is_plus()) return false;
+      if (!gcls(d,c2)) return false;
+      for (int i=0;i<5;++i) c[i]+=c2[i]*ee._DOUBLE_val;
+    }
+    else return false;
+  }
+  return true;
+}
+// the term of the sum g that grows fastest: by the classes when every term has one (ln(n)^74: giac's
+// limits refuse its power), else by giac's limits (fastest)
+static NOINL gen gfast(const gen & g){
+  vecteur w; flat(at_plus,g,w);
+  double best[5],c[5];
+  int k=-1;
+  bool tie=false;
+  for (unsigned i=0;i<w.size();++i){
+    if (!gcls(w[i],c)){ // (giac's limits: the others over it all go to 0)
+      if (nogiac_) return 0;
+      const gen t=fastest(g);
+      if (is_zero(t)) return t;
+      EACH(it,w) if (*it!=t && !is_zero(glim(ev(*it/t)))) return 0;
+      return t;
+    }
+    int j=0;
+    while (k>=0 && j<5 && c[j]==best[j]) ++j;
+    if (k>=0 && j==5) tie=true; // (n^2 and -n^2: they may cancel)
+    if (k<0 || (j<5 && c[j]>best[j])){ k=i; tie=false; for (j=0;j<5;++j) best[j]=c[j]; }
+  }
+  return k<0 || tie?gen(0):w[k];
+}
+// the dominant part of g at +infinity: a sum's fastest term, a product's or a power's of its parts',
+// ln of one: q ln(n) for n^q inside (ln(n^2+1): 2 ln(n))
+static bool dkeep_; // (dom for the screen: a root over its radicand's dominant term, sqrt(5n^2), the course's line before sqrt(5) n)
+static NOINL gen dom(const gen & g){
+  if (g.is_plus()){
+    const gen t=gfast(g);
+    if (!is_zero(t)) return dom(t);
+    vecteur w,c; flat(at_plus,g,w); // (a tie: the terms of the top class, their dominant parts added)
+    double b[5],q[5];
+    int k=-1;
+    EACH(it,w){ if (!gcls(*it,q)) return g; int j=0; while (k>=0 && j<5 && q[j]==b[j]) ++j; if (k<0 || (j<5 && q[j]>b[j])){ k=1; c.clear(); for (j=0;j<5;++j) b[j]=q[j]; } if (j==5 || c.empty()) c.push_back(*it); }
+    if (c.size()<2) return g;
+    vecteur d; EACH(it,c) d.push_back(dom(*it));
+    const gen r=ev(symb_plus(d));
+    return is_zero(r)?g:r;
+  }
+  if (is(g,at_ln)){
+    const gen d=ev(dom(arg(g)));
+    vecteur w; flat(at_prod,d,w);
+    gen q=0;
+    EACH(it,w){ gen b=*it,e=bexp(b); if (b==X && !dep(e)) q=q+e; else if (dep(*it)) return g; }
+    return is_strictly_positive(q,CTX)?(is_one(q)?symb_ln(X):symb_prod(ev(q),symb_ln(X))):g;
+  }
+  if (g.is_prod() && arg(g).type==_VECT){ vecteur w=*arg(g)._VECTptr; EACHW(it,w) *it=dom(*it); return symbolic(at_prod,gen(w,_SEQ__VECT)); }
+  if (g.is_inv()) return symb_inv(dom(arg(g)));
+  if (g.is_pow() && !dep(arg(g,1))){ // (the power of each factor: sqrt(4n^2) is 2n, n > 0 at infinity)
+    const gen e=arg(g,1),d=dom(arg(g,0));
+    if ((d==arg(g,0) && !d.is_prod()) || (dkeep_ && (e.type==_FRAC || e.type==_INT_))) return symb_pow(d,e); // (dkeep_: (2n)^2 and sqrt(5n^2) as the course writes them first)
+    vecteur w; flat(at_prod,ev(d),w);
+    EACHW(it,w){ gen b=*it; const gen q=bexp(b); *it=dep(b)?(is_one(ev(q*e))?b:symb_pow(b,ev(q*e))):ev(pow(*it,e,CTX)); }
+    return prodof(w);
+  }
+  return g;
+}
+// b^(m n) for a constant b (e^(m n), 1/b^n too): its b^m, else 0
+static NOINL gen gbase(const gen & g){
+  gen al,be;
+  if (g.is_inv()){ const gen b=gbase(arg(g)); return is_zero(b)?b:ev(inv(b,CTX)); }
+  if (is(g,at_exp)) return is_linear_wrt(arg(g),X,al,be,CTX) && is_zero(be)?exp(al,CTX):gen(0);
+  if (g.is_pow() && !dep(arg(g,0)) && is_linear_wrt(arg(g,1),X,al,be,CTX) && is_zero(be) && !is_zero(al)) return ev(pow(arg(g,0),al,CTX));
+  return 0;
+}
+// a quotient n/d of a sequence at +infinity the course's way (an index n or k, or n! in it): c r^n
+// (3*5^n/6^n: |5/6| < 1), the dominant terms and their growth rates ((2^n+n!)/(2n^9+3n^n): n!/(3n^n),
+// n! << n^n), n!'s by the ratio of consecutive terms (4(n!)^2/(2n)!: 1/4); undef if none of these
+// a product as one fraction for the screen: (2n+1)/(3n), not norm's (2n+1)*1/3/n
+static NOINL gen qshow(const gen & f){
+  if (is(f,at_abs)) return SYM(at_abs,qshow(arg(f))); // (|(n+1)^2/(3n^2)|, not |(n+1)^2*1/3/n^2|)
+  vecteur w,nu,de; flat(at_prod,f,w);
+  bool q=false;
+  EACH(it,w){
+    if (it->type==_FRAC){ q=true; if (!is_one(it->_FRACptr->num)) nu.push_back(it->_FRACptr->num); de.push_back(it->_FRACptr->den); } // (1/3: 3 below)
+    else (it->is_inv()?de:nu).push_back(it->is_inv()?arg(*it):*it);
+  }
+  return de.size()<2 && !q?f:symb_prod(nu.empty()?gen(1):prodof(nu),symb_inv(prodof(de)));
+}
+static NOINL gen pmerge(const gen & f,const gen & y); // (below)
+// a product of powers b^(a n+c) with one |a| (n^n/(n+1)^(n+1) times n+1): the rest times U^(a n), U = n/(n+1);
+// f itself if not that shape
+static NOINL gen pcomb(const gen & f){
+  vecteur w,cs,us; flat(at_prod,f,w);
+  gen a0=0;
+  EACH(it,w){
+    gen b=*it,al,be; const gen e=bexp(b);
+    if (!dep(e) || !is_linear_wrt(e,X,al,be,CTX) || is_zero(al)){ cs.push_back(*it); continue; }
+    const gen aa=ev(abs(al,CTX));
+    if (is_zero(a0)) a0=aa;
+    if (aa!=a0) return f;
+    us.push_back(is_strictly_positive(al,CTX)?b:symb_inv(b));
+    if (!is_zero(be)) cs.push_back(symb_pow(b,be));
+  }
+  if (us.size()<2) return f;
+  const gen C=normal(ev(prodof(cs)),CTX),U=qshow(prodof(us)),P=symb_pow(U,is_one(a0)?X:ev(a0*X)); // ((n+1)(n+1)^-1: 1)
+  return is_one(C)?P:symb_prod(C,P);
+}
+static NOINL bool kroot(const gen & g){ // a root or a power of a product in g (sqrt(5n^2), (2n)^2)
+  if (g.type!=_SYMB) return false;
+  if ((g.is_pow() && (arg(g,0).is_prod() || arg(g,1).type==_FRAC)) || is(g,at_sqrt)) return true;
+  const gen & a=arg(g);
+  if (a.type==_VECT){ EACH(it,*a._VECTptr) if (kroot(*it)) return true; return false; }
+  return kroot(a);
+}
+static NOINL void ldom(const gen & f,const gen & n,const gen & d,const gen & q){
+  vecteur w,nu,de; flat(at_prod,norm(f),w); // (each typed factor's dominant term: (2n)(3n)/(2n)^2, the course's, before giac's 6n^2/(4n^2))
+  EACH(it,w) (it->is_inv()?de:nu).push_back(it->is_inv()?arg(*it):*it);
+  dkeep_=true;
+  gen qk;
+  if (w.size()>1 || !de.empty()){ // (the numbers as one coefficient, the rest one fraction: n^2/(2 n 2n), not n^2*1/2/(n*2*n))
+    vecteur a,b; gen c=1;
+    EACH(it,nu){ if (dep(*it)) a.push_back(dom(*it)); else c=c*(*it); }
+    EACH(it,de){ if (dep(*it)) b.push_back(dom(*it)); else c=c/(*it); }
+    c=ev(c);
+    const gen cn=c.type==_FRAC?c._FRACptr->num:c,cd=c.type==_FRAC?c._FRACptr->den:gen(1);
+    gen top=prodof(a),bot=prodof(b);
+    if (is_minus_one(cn)) top=symb_neg(top); else if (!is_one(cn)) top=symb_prod(cn,top);
+    if (!is_one(cd)) bot=b.empty()?cd:symb_prod(cd,bot);
+    qk=b.empty() && is_one(cd)?top:SYM2(at_division,top,bot);
+  }
+  else qk=quo(dom(n),dom(d));
+  dkeep_=false;
+  // (shown only when it says more: a power or root of a product, (2n)^2, sqrt(5n^2), or two factors with n, (2n)(3n);
+  // not (k!)/4^k for k!/4^k, the same on the screen)
+  bool more=kroot(qk);
+  { vecteur t; flat(at_prod,norm(qk),t); int nd=0;
+    EACH(it,t){ vecteur t2; flat(at_prod,it->is_inv()?arg(*it):*it,t2); EACH(jt,t2) if (dep(*jt)) ++nd; }
+    if (nd>2) more=true; }
+  if (!more || pr(qk)==pr(q)){ S(R_LGDOM,Lx(qshow(f)),Lx(q)); return; }
+  S(R_LGDOM,Lx(qshow(f)),Lx(qk));
+  S(R_EQV,Lx(qk),Lx(q)); // (sqrt(5n^2) = sqrt(5) n: one operation a line)
+}
+// b^e with b = r^m an integer power (4 = 2^2, 27 = 3^3) as r^(m e): pmerge then sees one base (4^n/(2^n)^2 is 1;
+// lgrow left it and the limit went the long way: 2 minutes on the calculator for 5*4^n/(2^n+n^50)^2)
+static NOINL gen rootbase(const gen & f){
+  vecteur w,o; flat(at_prod,f,w); bool ch=false;
+  EACH(it,w){
+    gen b=*it; const gen e=bexp(b);
+    bool done=false;
+    if (b.type==_INT_ && b.val>3 && b.val<100000 && dep(e))
+      for (int r=2;r*r<=b.val && !done;++r){ long p=r; int m=1; while (p<b.val){ p*=r; ++m; } if (p==b.val){ o.push_back(symb_pow(gen(r),ev(m*e))); ch=done=true; } }
+    if (!done) o.push_back(*it);
+  }
+  return ch?prodof(o):f;
+}
+static NOINL int vs1(const gen & L); // (below, with lim_)
+static NOINL gen lgrow(const gen & f,const gen & n,const gen & d){
+  const char * vn=X.type==_IDNT?X._IDNTptr->id_name:"";
+  const bool fac=has_op(f,*at_factorial);
+  if (!fac && strcmp(vn,"n") && strcmp(vn,"k")) return undef;
+  { const vecteur ids=lidnt(f); EACH(it,ids) if (*it!=X && evalf(*it,1,CTX).type!=_DOUBLE_) return undef; } // (a ratio with x in it: lq's)
+  vecteur w,c; flat(at_prod,ev(f),w);
+  gen r=1,k=1;
+  bool geo=true;
+  EACH(it,w){ const gen g=gbase(*it); if (!dep(*it)) k=k*(*it); else if (!is_zero(g)) r=r*g; else geo=false; }
+  if (geo && !is_one(r=ev(r))){ // c r^n
+    const gen ar=evalf(abs(r,CTX),1,CTX);
+    if (ar.type!=_DOUBLE_ || !vs1(ar)) return undef;
+    const gen v=ar._DOUBLE_val<1?gen(0):is_one(r)?ev(k):is_strictly_positive(k,CTX)?plus_inf:minus_inf;
+    if (ar._DOUBLE_val>=1 && is_strictly_positive(-r,CTX)) return undef; // ((-2)^n: no limit, giac's)
+    const gen kr=is_one(k)?symb_pow(r,X):symb_prod(k,symb_pow(r,X)); // (no 1*(3/2)^k)
+    if (pr(ev(f))==pr(ev(kr))) S(ar._DOUBLE_val>1?R_LGEOI:R_LGEO,Lx(kr),v); // ((3/2)^n as typed: one line)
+    else { S(ar._DOUBLE_val>1?R_LGEOI:R_LGEO,Lx(f),Lx(kr)); S(R_EQV,Lx(kr),v); }
+    return v;
+  }
+  const gen N=dom(n),Dd=dom(d),q=quo(N,Dd);
+  const bool dropped=N!=n || Dd!=d;
+  double c1[5],c2[5];
+  int j=0;
+  const bool cl=gcls(N,c1) && gcls(Dd,c2); // (single terms of the classes: the growth rates say it, no giac limit: 15 s on the calculator)
+  while (cl && j<5 && c1[j]==c2[j]) ++j;
+  if (dropped || cl){ // the dominant terms' quotient: a number, or 0 or infinity by the growth rates
+    gen r1=rn(ev(pmerge(norm(q),X))); // (4^n/4^(n+1): 1/4; giac left 4^(n-n-1), n in it)
+    if (dep(r1)){ const gen r2=rn(ev(pmerge(rootbase(norm(q)),X))); if (!dep(r2)) r1=r2; } // (4^n/(2^n)^2: 1, one base; only then: the rewrite sent hw's ratio limit the long way, 0.6 s on the PC)
+    if (!dep(r1) && (dropped || cl)){ if (dropped) ldom(f,n,d,q); S(R_EQV,Lx(q),r1); return r1; }
+    if (cl && j<5){
+      if (dropped){ // (3^k/2^k left: (3/2)^k with 3/2 > 1, the course's way, not the growth classes)
+        const gen qe=ev(q); vecteur w2; flat(at_prod,qe,w2);
+        bool g2=true;
+        EACH(it,w2) if (dep(*it) && is_zero(gbase(*it))) g2=false;
+        if (g2){ const size_t m=mark(); ldom(f,n,d,q); const gen v=lgrow(q,_numer(qe,CTX),_denom(qe,CTX)); if (!is_undef(v)) return v; cut(m); }
+      }
+      const gen ys=evalf(sub(r1,X,50),1,CTX); // (the sign of an infinite one)
+      const gen L=c1[j]<c2[j]?gen(0):ys.type==_DOUBLE_ && ys._DOUBLE_val<0?minus_inf:plus_inf;
+      if (dropped) ldom(f,n,d,q);
+      const bool cs=dep(r1) && pr(r1).size()<pr(q).size(); // (k*4^k/(4*4^k) cancelled: k/4)
+      if (cs) S(R_EQV,Lx(q),Lx(r1));
+      S(R_LGROW,Lx(cs?r1:q),L);
+      return L;
+    }
+    if (!fac) return undef;
+  }
+  if (!fac) return undef;
+  // n!: the ratio of consecutive terms (no limit giac finds quickly: Stirling)
+  lgratio_=true; // (not the growth rates: growlim says none, the series' own ratio test is the course's)
+  if (nogiac_) return undef;
+  const gen fe=ev(f),qr=_simplify(ev(sub(fe,X,X+1)/fe),CTX),Lq=glim(qr);
+  const int cq=Lq==plus_inf?1:finv(Lq) && !is_strictly_positive(-Lq,CTX)?vs1(Lq):0;
+  if (!cq) return undef;
+  const bool up=cq>0;
+  if (up && is_strictly_positive(-evalf(sub(fe,X,5),1,CTX),CTX)) return undef; // (positive terms only)
+  S(R_SRAT,ratio_of(f,fe,X),qr);
+  S(up?R_LRATU:R_LRAT,Lx(qr),Lq);
+  return up?plus_inf:gen(0);
+}
 static gen lq(const gen & f,const gen & n,const gen & d,int lev){
   if (lev>12 || --budget_<0 || interrupted) return undef;
   gen ln=glim(n),ld=glim(d),a=*la_,v;
@@ -1841,6 +2359,8 @@ static gen lq(const gen & f,const gen & n,const gen & d,int lev){
   }
   if (id && has_op(ln,*at_bounded_function)) return Ls(R_LSQZ,f,zero); // sin(x)/x at infinity
   if (!(zn && zd) && !(in && id)) return undef;
+  if (in && id && a==plus_inf && !is_undef(v=lgrow(f,n,d))) return v; // (a sequence: n or k, or n! in it)
+  if (zn && zd && is_zero(a) && !is_undef(v=lser(f,n,d,lev))) return v; // (the course's Taylor series way, before L'Hopital)
   // 0/0, inf/inf: the fraction simplified (factor and cancel), defined at a (at infinity: shorter)
   gen fe=ev(f),h=rn(fe);
   gen dh=dnm(h);
@@ -1877,7 +2397,37 @@ static gen lq(const gen & f,const gen & n,const gen & d,int lev){
 static gen lsteps(const gen & f0,int lev){
   if (lev>12 || --budget_<0 || ctrl_c || interrupted) return undef;
   gen f=norm(f0),a=*la_,v,L;
-  if (!dep(f)) return Ls(R_LSUB,f,f);
+  if (!dep(f)){ if (!lev) trust_=true; return Ls(R_LSUB,f,f); } // (a constant: its own limit, no giac limit to check: 3^(n+1)/3^n took 19 s on the calculator)
+  if (f.is_plus() && a==plus_inf && !lev){ // (lim (13/14-3/(n+3)-3/(n+4)): 13/14-0-0, each term's own)
+    vecteur t,r; flat(at_plus,f,t);
+    bool ok=t.size()>1,pi=false,mi=false;
+    EACH(it,t){ if (!ok) break; const bool ng=it->is_neg(); const gen l=dep(*it)?growlim(ng?arg(*it):*it):(ng?arg(*it):*it); if (is_undef(l) || !(finv(l) || is_inf(l))){ ok=false; break; } const gen sl=ng?ev(-l):l; if (sl==plus_inf) pi=true; if (sl==minus_inf) mi=true; r.push_back(ng && is_zero(l)?symb_neg(l):sl); }
+    const vecteur lv=lvar(f);
+    if (ok && !(pi && mi) && (!(pi || mi) || lv.size()!=1 || lv[0]!=X)){ // (ln(2)+ln(3)-inf-inf, as s_n's limit is written; a polynomial's by its dominant term: lim (k+1) is not "inf+1")
+      const gen L=ev(symb_plus(r));
+      S(R_LLAWS,line3("%0=%1",Lx(f),txt(tplus(r))),0);
+      trust_=true; // (each by the growth classes: no giac limit to check)
+      return Ls(R_EQV,f,L);
+    }
+  }
+  if (a==plus_inf && !ldir_){ // a sequence's n^2/3^n, 3*5^n/6^n: growth rates (a product: no quotient for lq)
+    const gen fe=ev(f),nn=_numer(fe,CTX),dd=_denom(fe,CTX);
+    if (!is_undef(v=lgrow(f,nn,dd))){ if (!lev) trust_=true; return v; }
+    const gen fc=pcomb(f); // ((n+1) n^n/(n+1)^(n+1): (n/(n+1))^n, then 1 to the infinity)
+    if (fc!=f){ const size_t m=mark(); S(R_PCOMB,Lx(f),Lx(fc)); if (!is_undef(v=lsteps(fc,lev+1))){ if (!lev && finv(v)) trust_=true; return Ls(R_EQV,f,v); } cut(m); }
+    { vecteur w0; flat(at_prod,fe,w0); gen b=1; bool m1=false; // ((-1)^n b_n, (-3)^n/2^n: the size of the terms first)
+      EACH(it,w0){ gen u=*it; const gen q=bexp(u);
+        if (dep(q) && !dep(u) && evalf(u,1,CTX).type==_DOUBLE_ && is_strictly_positive(-evalf(u,1,CTX),CTX)){ m1=true; const gen au=ev(-u); if (!is_one(au)) b=b*symb_pow(au,q); }
+        else b=b*(*it); }
+      if (m1 && dep(b)){
+        const size_t m=mark();
+        S(R_LALT,Lx(SYM(at_abs,f)),Lx(b));
+        const gen Lb=lsteps(b,lev+1);
+        if (is_zero(Lb)){ S(R_LALT0,Lx(f),gen(0)); if (!lev) trust_=true; return 0; }
+        if (!is_undef(Lb) && (finv(Lb) || is_inf(Lb))){ const gen dne=identificateur("DNE"); S(R_LALTN,Lx(f),dne); if (!lev) trust_=true; return dne; }
+        cut(m);
+      } }
+  }
   if (!is_inf(a) && !has_op(f,*at_floor) && !has_op(f,*at_sign) && finv(v=ev(sub(f,X,a)))) return Ls(R_LSUB,f,v); // continuous there
   if (ldir_ && !is_inf(a)){ // one side: |g| with g -> 0 there is g or -g (on the right of 0, |x| = x)
     const gen g=absarg(f);
@@ -1894,6 +2444,23 @@ static gen lsteps(const gen & f0,int lev){
   gen k=ev(prodof(c));
   if (w.size()==1 && w[0].type==_SYMB){
     const gen & g=w[0],& u=g.is_pow()?arg(g,0):arg(g);
+    if (g.is_pow() && dep(arg(g,1)) && a==plus_inf){ // (a base going to L < 1 or > 1, the power to infinity: no 1^inf)
+      const gen Lu=growlim(u),Lv=growlim(arg(g,1));
+      if (Lv==plus_inf && finv(Lu) && !is_strictly_positive(-Lu,CTX) && vs1(Lu)){
+        const gen r=vs1(Lu)<0?gen(0):plus_inf;
+        S(R_LPOWB,Lx(u),Lu);
+        if (!lev) trust_=true; // (the growth classes' limits: ((5n^2+3n+4)/n^3)^n took 11 s more on the calculator with giac's)
+        return Ls(R_EQV,f,ev(k*r));
+      }
+      if (Lv==plus_inf && is_one(Lu)){ // 1^inf, (n/(n+1))^n: e^(lim v(u-1)) (the course's e = lim (1+1/n)^n; giac's limit took 9 s on the calculator)
+        const gen e=normal(ev(arg(g,1)*normal(ev(u-1),CTX)),CTX);
+        const size_t m=mark();
+        S(R_LE1,Lx(f),is_one(k)?SYM(at_exp,Lx(e)):symb_prod(k,SYM(at_exp,Lx(e))));
+        const gen A=lsteps(e,lev+1);
+        if (finv(A)){ if (!lev) trust_=true; return Ls(R_EQV,f,ev(k*exp(A,CTX))); }
+        cut(m);
+      }
+    }
     if (g.is_pow() && dep(arg(g,1))){ // u^v: e^(v ln u)
       gen e=symb_prod(arg(g,1),symb_ln(u));
       L=linner(R_LEXP,f,symb_prod(k,SYM(at_exp,Lx(e))),e,lev);
@@ -1925,6 +2492,10 @@ static gen lsteps(const gen & f0,int lev){
     vecteur t; flat(at_plus,f,t);
     bool pi=false,mi=false;
     EACH(it,t){ gen l=glim(*it); if (l==plus_inf) pi=true; else if (l==minus_inf) mi=true; else if (!finv(l)) pi=mi=true; }
+    if (pi && mi && has_op(f,*at_ln)){ // ln(k+1)-ln(k): one log, its inside's limit (continuity)
+      const gen c=_lncollect(f,CTX);
+      if (is(c,at_ln) && !is_undef(v=lvia(R_LNQ,f,c,1,lev))) return v;
+    }
     if (pi && mi){ // infinity - infinity (or a term without a limit, csc(x)-1/x at 0): the
       gen c=conjof(f),h=rn(f),d=dnm(h); // conjugate, one fraction, the fastest term out
       if (!is_zero(c) && !is_undef(v=lvia(R_LCONJ,f,rn(expand(evm(f,c),CTX)),c,lev))) return v;
@@ -1982,9 +2553,11 @@ static NOINL bool same(const gen & a,const gen & b){ return is_zero(rn1(evs(a,b)
 static NOINL bool undone(const gen & G){ return is_inf(G) || is_undef(G) || G.type==_STRNG || has_op(G,*at_bounded_function) || is(G,at_sum); }
 // the p-series conclusion, p = e: converges for p > 1 (giac's value; sum(1/n^2) left as is by giac,
 // pi^2/6 is FlowCE's, in the answer), diverges for p <= 1
-// a series that converges: its value when giac has one (a last line "= value"), else the word
+static NOINL gen kval(const gen & op); // (below)
+// a series that converges: its value when giac has one (a last line "= value"), or a known series'
+// at a number (2^k/k!: e^2), else the word
 static NOINL gen cvg(const gen & op,const gen & G){
-  if (is(G,at_sum) || is_undef(G)) return word("converges");
+  if (is(G,at_sum) || is_undef(G)){ const gen kv=kval(op); return is_undef(kv)?word("converges"):kv; }
   S(R_EQV,op,G);
   return G;
 }
@@ -1996,18 +2569,45 @@ static NOINL gen pser(const gen & op,const gen & G,const gen & e){
 }
 // a(n+1)/a(n) as a(n+1) times a(n) upside down: one fraction, 2^(n+1) n!/((n+1)! 2^n), not a
 // fraction over a fraction
-static NOINL gen ratio_of(const gen & f,const gen & t,const gen & x){
-  gen n=nmr(t),d=dnm(t);
-  return symb_prod(subst(f,x,x+1,true,CTX),is_one(n)?d:symb_prod(d,symb_inv(n)));
+// the sums linear in N (*nn_) written out: 2(N+1)-1 as 2N+1, N+1+1 as N+2
+static const gen * nn_;
+static NOINL gen linn(const gen & g){
+  gen a,b;
+  if (g.is_plus() && is_linear_wrt(g,*nn_,a,b,CTX)) return a*(*nn_)+b;
+  return g.type==_SYMB?map_of(g,linn):g;
+}
+// the typed term f upside down: the factors under its bar on top, the others below
+static NOINL gen flipf(const gen & f){
+  vecteur w,n,d; flat(at_prod,f,w);
+  EACH(it,w) (it->is_inv()?n:d).push_back(it->is_inv()?arg(*it):*it);
+  return d.empty()?prodof(n):n.empty()?symb_inv(prodof(d)):symb_prod(prodof(n),symb_inv(prodof(d)));
+}
+static NOINL gen ratio_of(const gen & f,const gen &,const gen & x){
+  nn_=&x;
+  return symb_prod(linn(subst(f,x,x+1,true,CTX)),flipf(f)); // (the typed term: giac's wrote (x-1)^(2k) as ((x-1)^k)^2)
 }
 // g at n as a decimal (0 if not real): compared as decimals (giac's is_strictly_positive is
 // false for 4.5e-7, the term n e^(-n^2) at 4)
-static NOINL double at_(const gen & g,const gen & n){ gen y=evf(sub(g,X,n)); return y.type==_DOUBLE_?y._DOUBLE_val:0; }
+static NOINL double at_(const gen & g,const gen & n){ gen y=evalf_double(sub(g,X,n),1,CTX); return y.type==_DOUBLE_?y._DOUBLE_val:0; } // (evalf_double: the calculator's evalf of 1/(2n)! at 20 was no double, the terms' limit went to giac)
+// L against 1 for a test's verdict: -1 below, 1 above, 0 equal or too close to tell (the calculator's
+// floats: e^2/e^2 was 0.9999999, a wrong "ratio below 1: the terms go to 0" for lim |(n+1)!/(n+1)^(n+1)| n^n/n!)
+static NOINL int vs1(const gen & L){
+  if (L==plus_inf) return 1;
+  const gen d=ev(L-1);
+  if (d.type==_INT_ || d.type==_ZINT || d.type==_FRAC) return is_zero(d)?0:is_strictly_positive(d,CTX)?1:-1;
+  const gen e=evalf_double(d,1,CTX);
+  return e.type!=_DOUBLE_ || fabs(e._DOUBLE_val)<TOL?0:e._DOUBLE_val>0?1:-1;
+}
 // 0 when g falls fast toward 0 at a+5, a+10, a+20 (giac's limit of n!/n^n took seconds on the
 // calculator; of 1/n! it stays 1/((+infinity)!)), else g's limit
+static NOINL gen growlim(const gen & g);
 static NOINL gen lim_(const gen & g,const gen & a){
-  const double y1=fabs(at_(g,a+5)),y2=fabs(at_(g,a+10)),y3=fabs(at_(g,a+20));
-  return y1>0 && y2<y1 && y3<y2 && y3<1e-3*y1?zero:ev(Linf(g,X));
+  const double y1=fabs(at_(g,a+4)),y2=fabs(at_(g,a+8)),y3=fabs(at_(g,a+14)); // (not past 30!: the calculator's floats end at 3e38, its 1/40! was 5e-10)
+  if (y1>0 && y2<y1 && y3<=y2 && y3<1e-3*y1) return 0; // (<=: both past the floats, 0)
+  const gen L=growlim(g); // (the growth rates first: giac's limit took seconds)
+  if (!is_undef(L)) return L;
+  const gen G=ev(Linf(g,X));
+  return has_op(G,*at_factorial)?ev(subst(G,SYM(at_factorial,plus_inf),plus_inf,false,CTX)):G; // (giac's 1/((+infinity)!) is 0)
 }
 // every factor of g a constant to a power of n (or e^(...)), or a constant power of one (giac
 // writes x^(2n) as (x^n)^2): maybe geometric (no simplify of the ratio of (n/(2n+1))^n: seconds on
@@ -2023,115 +2623,799 @@ static NOINL bool geo(const vecteur & w){
 // 1 if the index is in a power's base and exponent ((n/(2n+1))^n, n^n), else 0
 static NOINL gen npow(const gen & g){ return g.is_pow() && dep(arg(g,0)) && dep(arg(g,1))?plus_one:first_of(g,npow); }
 // 1 if the index is in an exponent of g (2^n, n^n), else 0
-static NOINL gen nexp(const gen & g){ return g.is_pow() && dep(arg(g,1))?plus_one:first_of(g,nexp); }
-// the sums linear in N (*nn_) written out: 2(N+1)-1 as 2N+1, N+1+1 as N+2
-static const gen * nn_;
-static NOINL gen linn(const gen & g){
-  gen a,b;
-  if (g.is_plus() && is_linear_wrt(g,*nn_,a,b,CTX)) return a*(*nn_)+b;
-  return g.type==_SYMB?map_of(g,linn):g;
+static NOINL gen nexp(const gen & g){ return g.is_pow() && dep(arg(g,1))?gen(1):first_of(g,nexp); }
+// 1 if g has a sine, cosine or tangent of the index going to infinity (sin(n pi/2)), else 0
+static NOINL gen otrig(const gen & g){ return (is(g,at_sin) || is(g,at_cos) || is(g,at_tan)) && dep(arg(g)) && fabs(at_(arg(g),1000))>10?gen(1):first_of(g,otrig); }
+// val and giac's sum G the same; G not evaluated when left as a sum (comparing evaluated it: 78 s on
+// the calculator for sum((-9x^2)^k,k,0,inf), whose sum was not computed on purpose)
+static NOINL bool sameG(const gen & val,const gen & G){ return !is(G,at_sum) && same(val,G); }
+static bool quickG_; // (the console's series: no giac sum, 13-30 s on the calculator for the course's divergent ones)
+const char * steps_divmsg; // (steps_series_answer: why a series diverges, shown as the console's answer)
+static gen lsteps(const gen & f,int lev);
+// g's limit at +infinity (the index X): by lgrow's growth rates when it decides at the top (no steps
+// kept), else giac's
+static NOINL gen fastlim(const gen & g){
+  gen inf=plus_inf,* ola=la_;
+  const int od=ldir_,ob=budget_;
+  la_=&inf; ldir_=0; budget_=80;
+  const size_t m=mark();
+  trust_=false;
+  gen L=lsteps(g,0);
+  cut(m);
+  if (!trust_) L=ev(Linf(g,X));
+  la_=ola; ldir_=od; budget_=ob;
+  return L;
+}
+// g's limit at +infinity (the index X) with its steps (the ratio test's rest): lsteps', giac's if none
+static NOINL gen lkeep(const gen & g){
+  gen inf=plus_inf,* ola=la_;
+  const int od=ldir_,ob=budget_;
+  la_=&inf; ldir_=0; budget_=80;
+  const size_t m=mark();
+  gen L=lsteps(g,0);
+  if (is_undef(L)){ cut(m); L=ev(Linf(g,X)); if (finv(L) || is_inf(L)) S(R_EQV,Linf(g,X),L); }
+  la_=ola; ldir_=od; budget_=ob;
+  return L;
+}
+static NOINL gen growlim(const gen & g){
+  gen inf=plus_inf,* ola=la_;
+  const int od=ldir_,ob=budget_;
+  la_=&inf; ldir_=0; budget_=40; lgratio_=false; nogiac_=true;
+  const size_t m=mark();
+  const gen fe=ev(g),L=lgrow(g,_numer(fe,CTX),_denom(fe,CTX));
+  cut(m);
+  la_=ola; ldir_=od; budget_=ob; nogiac_=false;
+  return lgratio_?gen(undef):L;
+}
+// the free variable of a power series' terms besides the index x (0: none, or more than one)
+static NOINL gen pvar(const gen & t,const gen & x){
+  const vecteur ids=lidnt(t);
+  gen y=0;
+  EACH(it,ids) if (*it!=x && evalf(*it,1,CTX).type!=_DOUBLE_){ if (!is_zero(y)) return 0; y=*it; } // (pi: a number)
+  return y;
+}
+// T as rest * u^e, u^e its only factor depending on y (nested powers, the console's ((x-1)^k)^2,
+// put together); false if there is none or more than one
+static NOINL bool ypart(const gen & T,const gen & y,gen & u,gen & e,gen & rest){
+  vecteur w,o; flat(at_prod,T,w);
+  u=0;
+  EACH(it,w){
+    if (!dep(*it,y)){ o.push_back(*it); continue; }
+    if (!is_zero(u)) return false;
+    u=*it; e=1;
+    while (u.is_pow()){ e=arg(u,1)*e; u=arg(u,0); }
+  }
+  rest=prodof(o);
+  return !is_zero(u);
+}
+// q^(1/p) simplified: 2 for 8^(1/3), 1/3 for (1/9)^(1/2), sqrt(2)/2 for (1/2)^(1/2)
+static NOINL gen rootp(const gen & q,const gen & p){ return normal(is_one(p)?q:p==2?ev(SYM(at_sqrt,q)):ev(SYM2(at_surd,q,p)),CTX); }
+// L|u|^p < 1 solved for y (u = al y + be, the course's way): |u|^p < 1/L, |u| < R, -R < u < R, then
+// lo < y < hi; false if u is not linear in y
+static NOINL bool pint(const gen & y,const gen & L,const gen & u,const gen & p,gen & lo,gen & hi){
+  gen al,be;
+  if (!is_linear_wrt(u,y,al,be,CTX) || is_zero(al)) return false;
+  const gen au=SYM(at_abs,u),R=rootp(ev(inv(L,CTX)),p);
+  if (!is_one(L) && !is_one(p)) S(R_NLINE,SYM2(at_inferieur_strict,symb_pow(au,p),ev(inv(L,CTX))),0);
+  if (!is_one(L) || !is_one(p)) S(R_NLINE,SYM2(at_inferieur_strict,au,R),0);
+  const bool fa=!is_one(abs(al,CTX)) && !is_zero(be);
+  if (fa){ // (the inside factored: the center and radius read off)
+    const gen aa=ev(abs(al,CTX)),xc=SYM(at_abs,ev(y+be/al));
+    S(R_NLINE,SYM2(at_inferieur_strict,symb_prod(aa,xc),R),0);
+    S(R_NLINE,SYM2(at_inferieur_strict,xc,ev(R/aa)),0);
+  }
+  lo=ev((-R-be)/al); hi=ev((R-be)/al);
+  if (is_strictly_positive(-al,CTX)) std::swap(lo,hi);
+  S(R_PSRAD,line3("c=%0,R=%1",ev(-be/al),normal(ev(R/abs(al,CTX)),CTX)),0); // (the course asks them too)
+  if (fa){ S(R_PSOPEN,line3("-%1<%0<%1",symb_plus(y,ev(be/al)),normal(ev(R/abs(al,CTX)),CTX)),0); S(R_NLINE,line3("%1<%0<%2",y,lo,hi),0); } // (|x-1/2| < 1/2 unpacked, then 1/2 added: one operation a line)
+  else if (u!=y){ S(R_PSOPEN,line3("-%1<%0<%1",u,R),0); S(R_NLINE,line3("%1<%0<%2",y,lo,hi),0); }
+  else S(R_PSOPEN,line3("%1<%0<%2",y,lo,hi),0);
+  return true;
+}
+static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x);
+// a pair of the ratio as text: (top)/(bottom) (the parentheses hidden by the drawing)
+static NOINL std::string frs(const gen & t,const gen & b){ return "("+pr(t)+")/("+pr(b)+")"; }
+static NOINL gen lkeep(const gen & g);
+static NOINL gen growlim(const gen & g);
+// The course's ratio test written out: a_k and a_(k+1) (k+1 put in for k), L = lim |a_(k+1)/a_k| as
+// a_(k+1) times a_k upside down (two fractions), the like factors paired, each pair cancelled with
+// the constants and the x part out of the limit, the rest's limit by its own steps (dominant terms,
+// growth rates), L. v0: the term as typed; y: a power series' variable (0: none), its part |u|^d in
+// xp. Returns the constant L (times xp for a power series); undef (no steps) if a factor does not pair
+static NOINL std::string pq(const gen & g); // (below)
+static NOINL gen rtest(const gen & v0,const gen & x,const gen & y,gen & xp,bool quiet=false){
+  vecteur w,nu,de; flat(at_prod,v0,w);
+  EACH(it,w){ if (it->is_inv()){ vecteur d; flat(at_prod,arg(*it),d); de.insert(de.end(),d.begin(),d.end()); }
+    else if (it->type==_FRAC){ if (!is_one(it->_FRACptr->num)) nu.push_back(it->_FRACptr->num); de.push_back(it->_FRACptr->den); } // ((k^2+k)/2: the 2 below, ../2 * 2/..)
+    else nu.push_back(*it); }
+  nn_=&x;
+  std::string ps; // (the pairs, (top)/(bottom)*...)
+  int np=0;
+  gen c=1,rest=1;
+  vecteur xs; // (the x part's factors, unevaluated: giac writes |x-1|^2 as (x-1)^2)
+  std::string cp; // (the pairs that cancel: 2^(k+1)/2^k=2, (k+1)!/k!=k+1)
+  for (int s=0;s<2;++s){
+    const vecteur & f=s?de:nu;
+    EACH(it,f){
+      if (!dep(*it,x)) continue; // (a constant: it cancels)
+      const gen f1=linn(subst(*it,x,x+1,true,CTX)),top=s?*it:f1,bot=s?f1:*it;
+      if (np++) ps+="*";
+      ps+=frs(top,bot);
+      gen b=*it;
+      const gen e=bexp(b);
+      if (!is_zero(y) && dep(b,y)){ // the x part: |u|^d
+        const gen d=ratnormal(ev(sub(e,x,x+1)-e),CTX);
+        if (dep(b,x) || dep(d,x) || !is_strictly_positive(d,CTX)) return undef;
+        xs.push_back(is_one(d)?SYM(at_abs,b):symb_pow(SYM(at_abs,b),d));
+        if (!quiet){ if (!cp.empty()) cp+=","; cp+=frs(top,bot)+"="+pr(is_one(d)?b:symb_pow(b,d)); }
+        continue;
+      }
+      if (!is_zero(y) && dep(*it,y)) return undef;
+      if (is(b,at_exp) && !dep(e,x)){ // e^(f(k)): e^(f(k+1)-f(k))
+        const gen d=ratnormal(ev(e*(arg(subst(b,x,x+1,false,CTX))-arg(b))),CTX),q=symb_exp(s?gen(ev(-d)):d);
+        if (dep(d,x)) rest=rest*q; else { c=c*ev(q); if (!quiet){ if (!cp.empty()) cp+=","; cp+=frs(top,bot)+"="+pr(ev(q)); } }
+      }
+      else if (!dep(b,x)){ // b^e(k): b^(e(k+1)-e(k)), a constant or not
+        const gen d=ratnormal(ev(sub(e,x,x+1)-e),CTX),q=symb_pow(b,s?gen(ev(-d)):d);
+        if (dep(d,x)) rest=rest*q; else { c=c*ev(q); if (!quiet){ if (!cp.empty()) cp+=","; const gen dd=s?gen(ev(-d)):d,bd=is_one(abs(dd,CTX))?b:symb_pow(b,ev(abs(dd,CTX))),e0=s?top:bot; // (3^k/3^(k+1) = 3^k/(3*3^k) = 1/3: the power split, then cancelled)
+          cp+=frs(top,bot)+"="+(is_minus_one(b)?std::string():(is_strictly_positive(dd,CTX)?frs(symb_prod(bd,e0),e0):frs(e0,symb_prod(bd,e0)))+"=")+pr(ev(q)); } } // ((-1)^(k+1)/(-1)^k = -1 at once)
+      }
+      else if (is(b,at_factorial)){ const gen q=_factor(_simplify(ev(top/bot),CTX),CTX); rest=rest*q; if (!quiet){ if (!cp.empty()) cp+=","; cp+=frs(top,bot)+"="+pq(q); } } // ((k+1)!/k!: k+1; (k+1)^2 and 1/(2(k+1)(2k+1)) factored, as the course leaves them)
+      else rest=rest*SYM2(at_division,top,bot); // (a polynomial's pair as it is: (k+4)^3/(k+3)^3)
+    }
+  }
+  if (!np) return undef;
+  xp=xs.empty()?gen(1):prodof(xs);
+  { vecteur cw,cn,cx; flat(at_prod,ev(c),cw); EACH(it,cw) (isnum(*it) || (it->is_inv() && isnum(arg(*it)))?cn:cx).push_back(*it); // (|x-3|/4, not |(x-3)*1/4|; (x-1)^4/20, not /5/4)
+    const gen k=ev(abs(prodof(cn),CTX)),A=cx.empty()?gen(1):ev(abs(ev(prodof(cx)),CTX));
+    if (cx.empty()) c=k;
+    else if (k.type==_FRAC) c=SYM2(at_division,is_one(k._FRACptr->num)?A:symb_prod(k._FRACptr->num,A),k._FRACptr->den); // (as built: printed |x+1|/5)
+    else c=is_one(k)?A:symb_prod(k,A); }
+  if (quiet){ // (the console: L only; giac's simplify of the whole ratio took 4 s on the calculator)
+    gen Lr=dep(rest,x)?growlim(rest):ev(abs(ev(rest),CTX));
+    if (is_undef(Lr)){ const size_t m=mark(); Lr=lkeep(rest); cut(m); } // (the limit's rules, 1^inf too, before giac's: (n/(n+1))^n took 9 s on the calculator)
+    return is_inf(Lr)?Lr:is_one(abs(Lr,CTX))?(lidnt(c).empty()?rn(c):c):steps_epow(ev(c*abs(Lr,CTX)),CTX); // (c as built when the rest's limit is 1, a number simplified: 1, not e/e)
+  }
+  const gen k1=linn(subst(v0,x,x+1,true,CTX));
+  S(R_RAK,line3("a_%0=%1",x,qshow(v0)),0); // (one fraction: (k^2+k)/2, not (k^2+k)*1/2)
+  S(R_LINE,line3("a_(%0+1)=%1",x,qshow(k1)),0);
+  S(R_RDEF,line3("L=limit(abs(a_(%0+1)/a_%0),%0,+infinity)",x),0); // (where |...| comes from: the test's definition)
+  bool dc=true; EACH(it,de) if (dep(*it,x)) dc=false;
+  if (dc) S(R_RLIM1,line3("L=limit(abs((%1)/(%2)),%0,+infinity)",x,qshow(k1),qshow(v0)),0); // (k! x^k, a number below ((k^2+k)/2): one fraction over the other, narrow)
+  else { // a_(k+1) as one fraction times a_k upside down
+    vecteur n1,d1;
+    EACH(it,nu) n1.push_back(linn(subst(*it,x,x+1,true,CTX)));
+    EACH(it,de) d1.push_back(linn(subst(*it,x,x+1,true,CTX)));
+    S(R_RLIM,line("L=limit(abs((%1)/(%2)*(%3)/(%4)),%0,+infinity)",x,prodof(n1),prodof(d1),prodof(de),prodof(nu),zero),0);
+  }
+  if (np>1) S(R_RGRP,line3("L=limit(abs(%1),%0,+infinity)",x,txt(ps)),0);
+  if (!cp.empty()) S(R_RPAIR,txt(cp),0); // (each pair worked out before the constants come out)
+  vecteur ov;
+  if (!is_one(c)) ov.push_back(c);
+  if (!is_one(xp)) ov.push_back(xp);
+  gen Lr=1;
+  if (dep(rest,x)){
+    ov.push_back(Linf(rest,x));
+    S(R_RCAN,line3("L=%0",prodof(ov)),0);
+    ++depth_; Lr=lkeep(rest); --depth_;
+    if (is_undef(Lr)) return undef;
+  }
+  else if (!is_one(rest)) c=ev(c*abs(ev(rest),CTX));
+  gen L=is_inf(Lr)?Lr:ev(c*Lr);
+  if (!is_inf(L) && lidnt(L).empty()) L=rn(L); // (a number: e/e is 1)
+  S(R_RVAL,line3("L=%0",is_inf(L) || is_zero(L) || is_one(xp)?L:is_one(L)?xp:symb_prod(L,xp)),0);
+  return L;
+}
+// a fraction or product as it is, a sum in parentheses (1-1/3, 1-(x-1)/2)
+static NOINL std::string pq(const gen & g){ return g.is_plus()?par(g):pr(g); }
+// the rules of exponents on a geometric term, between it and a r^k: 2^(2k)/3^(k+7) is
+// (2^2)^k/(3^k*3^7), 3^(2k-1) is (3^2)^k/3 ((b^m)^k b^c); 0 if nothing changes
+static NOINL gen gmid(const gen & v0,const gen & x){
+  vecteur w,nu,de; flat(at_prod,v0,w);
+  bool ch=false;
+  EACH(it,w){
+    gen b=*it,al,be;
+    const bool in=b.is_inv();
+    if (in) b=arg(b);
+    if (b.is_pow() && !dep(arg(b,0),x) && is_linear_wrt(arg(b,1),x,al,be,CTX) && !is_zero(al) && (!is_one(al) || !is_zero(be))){
+      const gen B=arg(b,0);
+      (in?de:nu).push_back(symb_pow(is_one(al)?B:symb_pow(B,al),x));
+      if (!is_zero(be)){ const bool ng=is_strictly_positive(-be,CTX),o=ng?!in:in; const gen c=ng?ev(-be):be; (o?de:nu).push_back(is_one(c)?B:symb_pow(B,c)); }
+      ch=true;
+    }
+    else (in?de:nu).push_back(b);
+  }
+  if (!ch) return 0;
+  const gen n=prodof(nu);
+  return de.empty()?n:SYM2(at_division,n,prodof(de));
+}
+// a geometric series' term as the course writes it, a r^k (rules of exponents: 3^(2k-1)/4^k is
+// (1/3)(9/4)^k), then a and r and (numbers) |r| < 1; its a
+static NOINL gen gform(const gen & v0,const gen & t,const gen & x,const gen & r,bool in_x){
+  gen a=_simplify(ev(t/pow(r,x,CTX)),CTX);
+  if (!isnum(a)) a=normal(a,CTX);
+  bool ar=true; // (typed a r^k already: no step, its a as typed, 2-2/e^2)
+  { vecteur w,c; flat(at_prod,v0,w); int np=0; EACH(it,w) if (dep(*it,x)){ if (it->is_pow() && arg(*it,1)==x && !dep(arg(*it,0),x)) ++np; else ar=false; } else c.push_back(*it);
+    ar=ar && np==1; if (ar) a=c.empty()?gen(1):prodof(c); }
+  const gen f=is_one(a)?symb_pow(r,x):symb_prod(a,symb_pow(r,x));
+  if (!ar && pr(v0)!=pr(f)){ const gen mid=gmid(v0,x); // (the exponents' rules shown: where 4/3 and 1/3^7 come from)
+    if (!is_zero(mid) && pr(mid)!=pr(v0) && pr(mid)!=pr(f)) S(R_GFORM,line3("%0=%1=%2",v0,mid,f),0); else S(R_GFORM,line3("%0=%1",v0,f),0); }
+  S(R_GAR,line3("a=%0,r=%1",a,r),0);
+  if (!in_x){ const gen ar=ev(abs(r,CTX)); if (is_strictly_greater(1,ar,CTX)) S(R_LINE,line3("abs(r)=%0<1",ar),0); }
+  return a;
+}
+// the ratio test of a series of numbers written out (rtest) with its conclusion, L < 1 or L > 1;
+// false (nothing kept) if it does not pair or its L is not Lq
+static NOINL bool rshow(const gen & v0,const gen & x,const gen & Lq){
+  const size_t m=mark();
+  gen xp;
+  const gen L=rtest(v0,x,0,xp);
+  if (is_undef(L) || (is_inf(L)?Lq!=plus_inf:!close(L,Lq))){ cut(m); return false; }
+  const int c=vs1(L);
+  if (!c){ cut(m); return false; }
+  const bool lo=c<0;
+  S(lo?R_RCONV:R_RDIVG,line3(lo?"L=%0<1":"L=%0>1",L),0);
+  return true;
+}
+// a power series in y, sum(c(n)*u^e(n),n,a,inf) as typed, u linear in y, e(n+1)-e(n) = p > 0
+// (geometric ones are ssteps'): the ratio test with y (the course's interval problems),
+// |a(n+1)/a(n)| (written as a(n+1) times a(n) upside down, as the course does) = |c(n+1)/c(n)| |u|^p,
+// its limit L|u|^p below 1: the open interval (the course's question: the ends are not tested);
+// the interval (its line) is the answer, giac's value when it has one
+gen steps_power_closed(const gen & f,const gen & n,int a); // (answer.cc: the known patterns' closed form)
+static NOINL gen psteps(const gen & op,const vecteur & v,const gen & x,const gen & y,const gen & G){
+  gen u,e,c0;
+  if (!ypart(v[0],y,u,e,c0)) return undef;
+  const gen p=ratnormal(sub(e,x,x+1)-e,CTX);
+  if (dep(u,x) || p.type!=_INT_ || p.val<1) return undef;
+  gen c=1,Lc=undef;
+  if (quickG_){ gen xp; Lc=rtest(v[0],x,y,xp,true); } // (the console: its pairs, no simplify)
+  if (is_undef(Lc)){
+    c=_simplify(ev(sub(c0,x,x+1)/c0),CTX);
+    { const gen f=_factor(c,CTX); if (!nrad(f)) c=f; } // ((k+4)^3/(9(k+3)^3), not over sqrt(10))
+    if (is_strictly_positive(-evalf(sub(c,x,ev(v[2])+3),1,CTX),CTX)) c=ev(-c);
+    Lc=growlim(c); // (the growth rates first: giac's limit of (k+4)^3/(9(k+3)^3) took seconds on the calculator)
+    if (is_undef(Lc)) Lc=ev(Linf(c,x));
+  }
+  const gen up=is_one(p)?SYM(at_abs,u):symb_pow(SYM(at_abs,u),p),B=symb_prod(c,up),L=ev(abs(Lc,CTX)); // (3|x| < 1, not 3|x|^1)
+  if (!finv(L) && L!=plus_inf) return undef;
+  nn_=&x;
+  if (!quickG_){ const size_t m=mark(); gen xp; const gen R=rtest(v[0],x,y,xp);
+    if (is_undef(R) || (!is_inf(R) && !close(R,L))){ cut(m); nn_=&x;
+      S(R_SRAT,SYM(at_abs,symb_prod(linn(subst(v[0],x,x+1,true,CTX)),flipf(v[0]))),B);
+      S(R_SLIM,Linf(B,x),is_zero(L) || L==plus_inf?L:symb_prod(L,up)); } }
+  gen I,lo,hi,al,be;
+  if (is_zero(L)){ S(R_PSALL,I=line3("-oo<%0<oo",y),0); S(R_PSRADA,txt("R=+infinity"),0); }
+  else if (L==plus_inf){ if (!is_linear_wrt(u,y,al,be,CTX)) return undef; S(R_PSONE,I=symb_equal(y,ev(-be/al)),0); S(R_PSRAD0,txt("R=0"),0); }
+  else { S(R_PSLT,is_one(L)?up:symb_prod(L,up),0); if (!pint(y,L,u,p,lo,hi)) return undef; I=out_->back().a; } // (|2x-1| < 1, not 1*|2x-1|)
+  if (!quickG_ && ev(v[2]).type==_INT_){ const gen cf=steps_power_closed(ev(v[0]),x,ev(v[2]).val); if (!is_zero(cf)) S(R_PSUMF,line3("%0=%1",op,cf),0); } // (the function it adds up to, the console's closed form: -ln((5-x)/2))
+  return I;
+}
+// a term at a number as the course writes it out: its sums and products of integers worked out, its
+// fractions as they come (3/(4+2) is 3/6, ln(1+1) ln(2), 1/1 is 1)
+static NOINL gen ifold(const gen & g){
+  if (g.type!=_SYMB) return g;
+  if (lidnt(g).empty() && (g.is_plus() || g.is_prod()) && !has_op(g,*at_inv) && !has_op(g,*at_pow) && !has_op(g,*at_exp)) return ev(g);
+  const gen h=map_of(g,ifold);
+  if (h.is_pow() && arg(h,1).type==_INT_ && arg(h,1).val==0) return 1; // (0^0 = 1 too: a series' first term)
+  if (h.is_pow() && arg(h,1).type==_INT_ && (is_minus_one(arg(h,0)) || arg(h,1).val==1)) return ev(h); // ((-1)^2, x^1)
+  if (is(h,at_factorial) && arg(h).type==_INT_ && arg(h).val<2) return 1; // (0!, 1!; 2! kept, as written)
+  if (h.is_inv() && is_one(arg(h))) return 1;
+  if (is(h,at_division) && arg(h).type==_VECT && arg(h)._VECTptr->size()==2 && is_one(arg(h,1))) return arg(h,0); // (2*3^3/9^0: 2*3^3, not 2*3^3/1)
+  if (h.is_prod() && arg(h).type==_VECT){ // (no 1s; -1 as a minus sign: -x^2/2!)
+    vecteur w; bool ng=false;
+    EACH(it,*arg(h)._VECTptr) if (is_minus_one(*it)) ng=!ng; else if (!is_one(*it)) w.push_back(*it);
+    const gen r=w.empty()?gen(1):prodof(w);
+    return ng?symb_neg(r):r;
+  }
+  return h;
+}
+static NOINL gen tq(const gen & g,const gen & x,const gen & j){ return ifold(subst(g,x,j,true,CTX)); }
+// the terms of a sum as one line: the ones without a minus sign first (ln(5)-ln(3), as the course)
+static NOINL std::string tplus(const vecteur & w){
+  std::string s,m;
+  EACH(it,w){
+    const std::string p=pr(*it);
+    const char * c=p.c_str();
+    if (!*c) continue;
+    if (*c=='-'){ m+=c; continue; }
+    if (!s.empty()) s+="+";
+    s+=*c=='+'?c+1:c;
+  }
+  return s.empty()?(m.empty()?std::string("0"):m):s+m;
+}
+// the course's telescoping work, t = u(k) - u(k+m) typed as p + q, w(k) = -u(k+m): some terms a_k,
+// some partial sums s_n (what cancels cancelled, nothing else simplified), the pattern's s_n; the
+// constant terms back (the limit's line)
+static NOINL vecteur tlines(const gen & p,const gen & q,const gen & u,const gen & w,int m,const gen & x,const gen & a,const gen & n){
+  if (a.type!=_INT_) return vecteur();
+  const std::string sn=pr(n);
+  for (int j=a.val;j<a.val+4;++j){ vecteur r; r.push_back(tq(p,x,j)); r.push_back(tq(q,x,j)); S(j==a.val?R_TWA:R_LINE,line3("a_%0=%1",j,txt(tplus(r))),0); }
+  for (int j=a.val;j<a.val+4;++j){
+    vecteur r;
+    for (int i=a.val;i<=j && i<a.val+m;++i) r.push_back(tq(u,x,i));
+    for (int i=j+1-m>a.val?j+1-m:a.val;i<=j;++i) r.push_back(tq(w,x,i));
+    S(j==a.val?R_TWS:R_LINE,line3("s_%0=%1",j,txt(tplus(r))),0);
+  }
+  vecteur c,r;
+  for (int i=a.val;i<a.val+m;++i) c.push_back(tq(u,x,i));
+  r=c;
+  nn_=&n;
+  for (int i=1-m;i<=0;++i) r.push_back(linn(subst(w,x,n+i,true,CTX)));
+  S(R_TSN,line3("s_%0=%1",n,txt(tplus(r))),0);
+  return c;
+}
+// the definition of convergence: lim s_n with its terms' limits written in (3/6+3/7-0-0), the value
+static NOINL gen tlim(const vecteur & c,const gen & SN,const gen & n,const gen & val){
+  vecteur w,r(c); flat(at_plus,SN,w);
+  EACH(it,w) if (dep(*it,n)){ const bool ng=it->is_neg(); const gen L=ev(Linf(ng?arg(*it):*it,n)); r.push_back(ng?is_zero(L)?symb_neg(L):ev(-L):L); } // (3/6+3/7-0-0)
+  const gen tp=txt(tplus(r));
+  vecteur pt(c); EACH(it,w) if (dep(*it,n)) pt.push_back(*it); // (s_n as the pattern wrote it, 3/6+3/7-3/(n+3)-3/(n+4), inside the limit first)
+  S(R_TDEF,line(pr(val)==pr(tp)?"limit(s_%0,%0,+infinity)=%3=%1":"limit(s_%0,%0,+infinity)=%3=%1=%2",n,tp,val,Linf(txt(tplus(pt)),n),zero,zero),val); // (b: the value, the console says where it diverges)
+  { vecteur q; bool ok=c.size()>1; gen D=1; // (3/6+3/7 = 1/2+3/7 = 7/14+6/14 = 13/14: where 13/14 comes from)
+    EACH(it,c){ const gen v=ev(*it); if (v.type!=_INT_ && v.type!=_FRAC) ok=false; else if (v.type==_FRAC) D=ev(lcm(D,v._FRACptr->den)); q.push_back(v); }
+    if (ok && !is_one(D) && D.type==_INT_){
+      vecteur b; EACH(it,q){ const gen u=ev(*it*D); b.push_back(is_strictly_positive(-u,CTX)?symb_neg(SYM2(at_division,ev(-u),D)):SYM2(at_division,u,D)); }
+      const std::string s0=tplus(c),s1=tplus(q),s2=tplus(b);
+      std::string L=s0; if (s1!=s0) L+="="+s1; if (s2!=s1) L+="="+s2; L+="="+pr(val);
+      S(R_TADD,txt(L),0);
+    } }
+  return val;
+}
+static NOINL bool pf_steps(const gen & input); // (below)
+// the partial fractions of a term worked out (A and B found, as the course does), a part of its own;
+// false (nothing kept) if they have no steps
+static NOINL bool pfshow(const gen & t,const gen & x){
+  const size_t m=mark();
+  ++depth_; const bool ok=pf_steps(SYM(at_partfrac,makesequence(t,x))) && mark()>m; --depth_;
+  if (!ok) cut(m);
+  return ok;
+}
+// ---------------------------------------------------------------- a known series at a number
+enum { KS_GEO, KS_EXP, KS_SIN, KS_COS, KS_GEO2, KS_GEO3, KS_LN, KS_ATAN };
+static NOINL std::string wsum(const vecteur & w,bool dots); // (below)
+// sum(t,k,a,inf) of numbers that is a known series at x = u (the course's sum of 2^k/k!: the series of
+// e^x with x = 2; cos, sin, ln(1+x) (from k = 1 or 0), arctan), or P(k) u^k (the geometric series
+// differentiated: k/2^k): the known series, u put in, the terms before a taken off, the value; undef if none
+static const char * const KVS[]={"u^k/k!","(-1)^k*u^(2*k+1)/(2*k+1)!","(-1)^k*u^(2*k)/(2*k)!","(-1)^(k+1)*u^k/k","(-1)^k*u^(2*k+1)/(2*k+1)","(-1)^k*u^(k+1)/(k+1)"};
+static const char * const KVF[]={"exp(x)","sin(x)","cos(x)","ln(1+x)","atan(x)","ln(1+x)"};
+// q(k+1)/q(k) for q a product of constant bases to powers linear in k ((-1)^k (pi/2)^(2k)/4^k: -pi^2/16),
+// from the exponents (giac's simplify of the quotient took 20 s on the calculator); else the simplified quotient
+static NOINL gen gratio(const gen & q,const gen & k){
+  vecteur w,o; flat(at_prod,q,w);
+  EACH(it,w){ gen b=*it; const gen e=bexp(b); if (!dep(*it,k)) continue; gen al,be;
+    if (is(b,at_exp) && is_one(e) && is_linear_wrt(arg(b),k,al,be,CTX)){ o.push_back(SYM(at_exp,al)); continue; } // (e^(-k): e^(-1))
+    if (dep(b,k) || !is_linear_wrt(e,k,al,be,CTX)) return _simplify(ev(sub(q,k,k+1)/q),CTX);
+    o.push_back(symb_pow(b,al)); }
+  return ev(prodof(o));
+}
+static NOINL gen kvt(int j,const gen & u,const gen & k){ return subst(subst(gen(KVS[j],CTX),gen("u",CTX),u,true,CTX),gen("k",CTX),k,true,CTX); } // (as written, not worked out)
+static NOINL gen kval(const gen & op){
+  if (!is(op,at_sum) || arg(op).type!=_VECT || arg(op)._VECTptr->size()!=4 || arg(op,1).type!=_IDNT) return undef;
+  const vecteur & v=*arg(op)._VECTptr;
+  const gen k=v[1],a=ev(v[2]);
+  if (a.type!=_INT_ || a.val<0 || a.val>6 || !is_inf(ev(v[3])) || k!=X) return undef;
+  const gen t=ev(v[0]);
+  { const vecteur ids=lidnt(t); EACH(it,ids) if (*it!=k && evalf(*it,1,CTX).type!=_DOUBLE_) return undef; } // (numbers: pi allowed, x not)
+  vecteur w; flat(at_prod,t,w);
+  int j=-1; gen Dn=1; // the known series' denominator in t: k!, (2k+1)!, (2k)!, k, 2k+1, k+1
+  EACH(it,w){ gen b=*it; const gen e=bexp(b);
+    if (!is_minus_one(e) || !dep(b,k)) continue;
+    const bool fa=is(b,at_factorial);
+    const gen A=fa?ev(arg(b)):b;
+    j=A==k?(fa?0:3):same(A,2*k+1)?(fa?1:4):same(A,2*k)&&fa?2:same(A,k+1)&&!fa?5:-1;
+    if (j>=0){ Dn=b; break; }
+  }
+  gen val,u;
+  const gen xx=identificateur("x");
+  if (j>=0){
+    const int k0=j==3?1:0;
+    const gen q=rn(ev(t*Dn)),rho=is_zero(q)?gen(0):gratio(q,k); // (c s^k)
+    if (is_zero(rho) || dep(rho,k) || a.val<k0) return undef;
+    if (!j) u=rho;
+    else if (j==3 || j==5) u=ev(-rho);
+    else { if (!is_strictly_positive(-evalf(rho,1,CTX),CTX)) return undef; u=_simplify(ev(sqrt(ev(-rho),CTX)),CTX); } // (rho = -u^2: sin, cos, atan)
+    const gen ue=evalf(u,1,CTX);
+    if (ue.type!=_DOUBLE_ || (j>=3 && (ue._DOUBLE_val>1 || ue._DOUBLE_val<(j==4?-1:-0.999999)))) return undef; // (where they converge)
+    const gen c=_simplify(ev(sub(t,k,a)/ev(kvt(j,u,a))),CTX);
+    { const gen e1=evalf(sub(t,k,a+1)-c*ev(kvt(j,u,a+1)),1,CTX),e0=evalf(sub(t,k,a+1),1,CTX); // (the shape checked one term on)
+      if (dep(c,k) || is_zero(c) || e1.type!=_DOUBLE_ || e0.type!=_DOUBLE_ || fabs(e1._DOUBLE_val)>1e-9*(1+fabs(e0._DOUBLE_val))) return undef; }
+    const gen Fu=subst(gen(KVF[j],CTX),xx,u,true,CTX),cF=is_one(c)?Fu:symb_prod(c,Fu),su=SYM(at_sum,makesequence(kvt(j,u,k),k,k0,plus_inf));
+    S(R_KKNOWN,gen(KVF[j],CTX),SYM(at_sum,makesequence(kvt(j,xx,k),k,k0,plus_inf)));
+    S(R_SUBV,line3("x=%0",u),0);
+    val=ev(cF);
+    S(R_KVALX,line3(pr(val)==pr(cF)?"%0=%1":"%0=%1=%2",is_one(c)?su:symb_prod(c,su),cF,val),0);
+    if (a.val>k0){ // (from a: the known series less its terms before a)
+      vecteur tb; gen less=0;
+      for (int i=k0;i<a.val;++i){ tb.push_back(ifold(subst(v[0],k,i,true,CTX))); less=less+ev(sub(t,k,i)); }
+      val=rn(ev(val-less));
+      S(R_KVALS,line3(tb.size()==1?"%0=%1-%2":"%0=%1-(%2)",op,cF,tb.size()==1?tb[0]:txt(wsum(tb,false))),0);
+      S(R_EQV,op,val);
+    }
+    return val;
+  }
+  // P(k) u^k, P a polynomial of degree 1 to 3 (k/2^k): the geometric series differentiated, times x
+  vecteur gw,pw; EACH(it,w) if (dep(*it,k) && geof(*it)) gw.push_back(*it); else pw.push_back(*it);
+  const gen P=ev(prodof(pw)),dg=_degree(makesequence(P,k),CTX);
+  if (gw.empty() || !dep(P,k) || dg.type!=_INT_ || dg.val<1 || dg.val>3 || dep(_denom(P,CTX),k)) return undef;
+  const gen Gm=ev(prodof(gw));
+  u=_simplify(ev(sub(Gm,k,k+1)/Gm),CTX);
+  const gen ue=evalf(abs(u,CTX),1,CTX);
+  if (dep(u,k) || ue.type!=_DOUBLE_ || ue._DOUBLE_val>=1) return undef;
+  static const char * const KM[]={"1/(1-x)","x/(1-x)^2","x*(1+x)/(1-x)^3","x*(1+4*x+x^2)/(1-x)^4"}; // (sum k^m x^k from k = 0: (x d/dx)^m 1/(1-x))
+  vecteur at; for (int m=0;m<=dg.val;++m){ const gen pm=_coeff(makesequence(P,k,m),CTX); if (!is_zero(pm)) at.push_back(is_one(pm)?gen(KM[m],CTX):symb_prod(pm,gen(KM[m],CTX))); }
+  const gen acc=at.size()==1?at[0]:symb_plus(at),c0=_simplify(ev(sub(Gm,k,0)),CTX);
+  if (is_zero(ev(P-k))){ // (k u^k: the course's derivation)
+    S(R_KKNOWN,gen(KM[0],CTX),SYM(at_sum,makesequence(symb_pow(xx,k),k,0,plus_inf)));
+    S(R_KDIFF,gen("1/(1-x)^2",CTX),SYM(at_sum,makesequence(symb_prod(k,symb_pow(xx,symb_plus(k,-1))),k,1,plus_inf)));
+  }
+  S(R_KVALD,SYM(at_sum,makesequence(symb_prod(P,symb_pow(xx,k)),k,0,plus_inf)),acc);
+  S(R_SUBV,line3("x=%0",u),0);
+  val=rn(ev(c0*subst(acc,xx,u,false,CTX)));
+  { gen less=0; for (int i=0;i<a.val;++i) less=less+ev(sub(t,k,i)); val=rn(ev(val-less)); }
+  { const gen f=_factor(val,CTX); if (pr(f).size()<pr(val).size()) val=f; }
+  const gen au=subst(acc,xx,u,true,CTX);
+  S(R_KVALX,line3("%0=%1=%2",op,is_one(c0)?au:symb_prod(c0,au),val),0);
+  return val;
+}
+// t = a sum of geometric terms ((2^k+3^k)/6^k, 3/4^k-2/5^k): each its own geometric series (|r| < 1),
+// their values added; undef if not that
+static NOINL gen gsplit(const gen & op,const vecteur & v,const gen & x){
+  const gen t=ev(v[0]);
+  { const vecteur ids=lidnt(t); EACH(it,ids) if (*it!=x && evalf(*it,1,CTX).type!=_DOUBLE_) return undef; } // (numbers: a power series has x)
+  const gen e=t.is_plus()?t:ev(expand(t,CTX));
+  if (!e.is_plus() || arg(e).type!=_VECT) return undef;
+  const vecteur & ts=*arg(e)._VECTptr;
+  if (ts.size()<2 || ts.size()>4) return undef;
+  EACH(it,ts){
+    vecteur c,w; factors(*it,c,w);
+    if (!geo(w)) return undef;
+    const gen r=gratio(*it,x);
+    if (dep(r) || !is_strictly_greater(1,evalf(abs(r,CTX),1,CTX),CTX)) return undef;
+  }
+  vecteur ss,ds; EACH(it,ts) ss.push_back(SYM(at_sum,makesequence(*it,x,v[2],v[3])));
+  { gen A=v[0],B=1; // (as typed: a sum over one denominator, each part over it)
+    if (is(A,at_division) && arg(A).type==_VECT && arg(A)._VECTptr->size()==2){ B=arg(A,1); A=arg(A,0); }
+    vecteur an; flat(at_plus,A,an);
+    if (an.size()==ts.size()) EACH(it,an) ds.push_back(SYM(at_sum,makesequence(is_one(B)?*it:SYM2(at_division,*it,B),x,v[2],v[3]))); }
+  if (ds.size()!=ss.size()) ds=ss;
+  S(R_GSPLIT,line3("%0=%1",op,symb_plus(ds)),0);
+  vecteur vals;
+  ++depth_;
+  EACH(it,ds){ const gen r=ssteps(*it,*arg(*it)._VECTptr,x); if (is_undef(r) || r.type==_IDNT || has_op(r,*at_sum)){ --depth_; return undef; } vals.push_back(r); }
+  --depth_;
+  const gen val=rn(ev(symb_plus(vals)));
+  S(R_GADD,line3("%0=%1=%2",op,txt(tplus(vals)),val),0);
+  return val;
+}
+// (-1)^a (-1)^b and like bases c^k/c^k put together, a negative base as (-1)^k |c|^k (an endpoint's term
+// (-1)^k (-2)^k/(k 2^k) is 1/k, (-1)^k (-1)^(k+1) is -1); t if nothing goes together
+static NOINL gen m1merge(const gen & t,const gen & x){
+  vecteur parts[2]; flat(at_prod,_numer(t,CTX),parts[0]); flat(at_prod,_denom(t,CTX),parts[1]);
+  vecteur bs,es,o; gen s=0; bool ch=false,ng=false; int nb=0;
+  for (int i=0;i<2;++i) EACH(it,parts[i]){
+    gen u=*it; gen q=bexp(u); if (i) q=ev(-q);
+    if (!dep(q,x) || dep(u,x) || !(u.type==_INT_ || u.type==_FRAC)){ o.push_back(i?symb_inv(*it):*it); continue; }
+    if (is_strictly_positive(-u,CTX)){ s=s+q; ++nb; u=ev(-u); if (is_one(u)) continue; }
+    size_t j=0; while (j<bs.size() && bs[j]!=u) ++j;
+    if (j<bs.size()){ es[j]=es[j]+q; ch=true; } else { bs.push_back(u); es.push_back(q); }
+  }
+  s=ev(s);
+  { gen al,be; const bool even=nb==1 && is_linear_wrt(s,x,al,be,CTX) && al.type==_INT_ && !(al.val&1); // ((-1)^(2n) = 1: not alternating)
+    if (nb<2 && !ch && !even) return t; } // (nothing to put together: (-1)^k/k as typed)
+  if (!is_zero(s)){ gen al,be; if (!is_linear_wrt(s,x,al,be,CTX) || al.type!=_INT_ || be.type!=_INT_) return t;
+    const int A=al.val&1,B=be.val&1; // ((-1)^(2k+1) = -1)
+    if (A) o.insert(o.begin(),B?symb_pow(gen(-1),symb_plus(x,1)):symb_pow(gen(-1),x)); else if (B) ng=true; }
+  for (size_t j=0;j<bs.size();++j){ const gen q=ev(es[j]); if (!is_zero(q)) o.push_back(is_one(q)?bs[j]:symb_pow(bs[j],q)); }
+  EACHW(it,o){ gen g=*it; const bool in=g.is_inv(); if (in) g=arg(g); // (n^(2/3): giac keeps it as (n^(1/3))^2)
+    if (g.is_pow() && arg(g,0).is_pow() && arg(arg(g,0),1).type==_FRAC){ g=symb_pow(arg(arg(g,0),0),ev(arg(g,1)*arg(arg(g,0),1))); *it=in?symb_inv(g):g; } }
+  const gen r=o.empty()?gen(1):prodof(o);
+  return ng?symb_neg(r):r; // (-1/(n+1)*(1/2)^(n+1), the sign in front)
+}
+// t typed as f(n)-f(n+k), k up to 3 (no partial fractions): telescoping before the ratio test
+// (2^(1/n)-2^(1/(n+1)): the ratio test's limit took 18 s on the PC, minutes on the calculator)
+static NOINL bool tpair(const gen & t,const gen & x){
+  if (!t.is_plus() || arg(t).type!=_VECT || arg(t)._VECTptr->size()!=2) return false;
+  const gen & u=arg(t,0),& w=arg(t,1);
+  for (int j=1;j<=3;++j) if (is_zero(ev(u+sub(w,x,x-j))) || is_zero(ev(w+sub(u,x,x-j)))) return true;
+  return false;
+}
+// f(n)-f(n+k), k up to 3, as typed or in partial fractions (a log of a quotient apart): telescoping;
+// s the form whose middle terms cancel, SN its partial sum to N (the first terms less the last); u0,
+// w0, m0: s as u(k) + w(k), w(k) = -u(k+m)
+static NOINL bool telesc(const gen & t,const gen & x,const gen & a,const gen & N,gen & s,gen & SN,gen * u0=0,gen * w0=0,int * m0=0){
+  const gen pf=shape(t,SH_FRAC)?pfrac(t):t;
+  s=t.is_plus()?t:pf;
+  if (is(t,at_ln)) s=symb_plus(symb_ln(_numer(arg(t),CTX)),symb_neg(symb_ln(_denom(arg(t),CTX)))); // ln(n/(n+1))
+  if (!s.is_plus() || arg(s).type!=_VECT || arg(s)._VECTptr->size()!=2) return false;
+  gen u=arg(s,0),w=arg(s,1);
+  nn_=&x;
+  for (int i=0;i<6;++i,std::swap(u,w)) if (same(linn(sub(u,x,x+1+i/2)),linn(-w))){ // (ln(k+1+1+1) is ln(k+3): giac leaves function arguments)
+    if (u0){ *u0=u; *w0=w; *m0=1+i/2; }
+    vecteur q;
+    for (int j=0;j<=i/2;++j){ gen y=sub(u,x,a+j); if (!is_zero(y)) q.push_back(y); } // (ln(1))
+    nn_=&N;
+    for (int j=1;j<=1+i/2;++j){ gen y=linn(subst(u,x,N+j,true,CTX)); q.push_back(y.is_neg()?arg(y):symb_neg(y)); } // (atan: no --)
+    gen k=0;
+    vecteur q2;
+    EACH(it,q) if (it->type<_IDNT || it->type==_FRAC) k=k+*it; else q2.push_back(*it); // (2+1: 3)
+    if (!is_zero(k)) q2.insert(q2.begin(),k);
+    SN=q2.size()==1?q2[0]:symb_plus(q2);
+    return true;
+  }
+  return false;
+}
+// a and b equal as decimals (exp(3) and exp(1)^3: different to ratnormal)
+static NOINL bool close(const gen & a,const gen & b){
+  const gen d=evalf(a-b,1,CTX),m=evalf(abs(a,CTX),1,CTX);
+  return d.type==_DOUBLE_ && m.type==_DOUBLE_ && fabs(d._DOUBLE_val)<=1e-7*(1+m._DOUBLE_val);
+}
+// sum(t,k,a,n), n a name (the course's s_n by the definition of convergence): telescoping, its
+// explicit formula, checked against the sum's terms added at n = a+5
+static NOINL gen sfin(const gen & op,const vecteur & v,const gen & x){
+  const gen a=ev(v[2]),n=ev(v[3]),t=ev(v[0]);
+  if (a.type==_INT_ && n.type==_INT_ && n.val>=a.val && n.val-a.val<12){ // a few terms: written out (the course's sum(3,k,3,6))
+    vecteur w;
+    for (int j=a.val;j<=n.val;++j){ gen y=ev(sub(t,x,j)); if (!has_op(y,*at_plus)) y=rn(y); if (y.type==_DOUBLE_?y._DOUBLE_val!=0:!is_zero(y)) w.push_back(y); } // ((x-1)^3 kept: the course's Taylor polynomials; (3x^3)^2 is 9x^6; 2e-7 is no 0)
+    const gen S0=w.empty()?gen(0):w.size()==1?w[0]:symb_plus(w),val=lidnt(S0).empty()?rn(ev(S0)):S0;
+    const int ni=lidnt(t).size();
+    if (ni<=2 && n.val-a.val<(ni==1?6:3)){ const gen t1=qshow(v[0]),o1=SYM(at_sum,makesequence(t1,x,v[2],v[3])); vecteur q; for (int j=a.val;j<=n.val;++j) q.push_back(subst(t1,x,j<0?txt("("+pr(gen(j))+")"):gen(j),true,CTX)); S(R_PSUMW,o1,txt(wsum(q,false))); S(R_EQV,o1,S0); } // (each term one fraction: no (a/b)/c) // (36/1^2+36/2^2+36/3^2, then 36+9+4; (-1)^(1+1), not (-1)^((1)+1); with x: 3 terms)
+    else S(R_PSUMW,op,S0);
+    if (val!=S0) S(R_EQV,op,val);
+    return val;
+  }
+  if (n.type!=_IDNT || n==x || !dep(n,n)) return undef;
+  gen s,SN,tu,tw;
+  int tm=0;
+  if (!telesc(t,x,a,n,s,SN,&tu,&tw,&tm)) return undef;
+  gen d=0;
+  for (int j=0;j<=5;++j) d=d+sub(t,x,a+j);
+  if (!close(sub(SN,n,a+5),d)) return undef;
+  if (s!=t){ if (is(t,at_ln) || !pfshow(v[0],x)) S(is(t,at_ln)?R_LNQ:R_PFRAC,v[0],s); }
+  const gen & src=s!=t?s:v[0];
+  const bool two=src.is_plus() && arg(src).type==_VECT && arg(src)._VECTptr->size()==2;
+  if (tlines(two?arg(src,0):tu,two?arg(src,1):tw,tu,tw,tm,x,a,n).empty()) S(R_PSUMT,SYM(at_sum,makesequence(src,x,a,n)),SN);
+  return SN;
 }
 // sum(t,n,a,inf): the divergence test, telescoping, a p-series, a geometric series, the partial
 // sums' limit, else a limit comparison with a p-series (convergence only)
+static NOINL gen scenter(const gen & s);
+static NOINL std::string wsum(const vecteur & w,bool dots);
+// the divergence test's line: lim a_k = lim (its dominant terms) = L != 0, as the course writes it;
+// k!/(k^2+4^k): the growth rates' steps first (lim k!/4^k = inf, 4^k << k!), then the test
+static NOINL void divt(const gen & v0,const gen & x,const gen & L){
+  const gen fe=ev(v0),nu=_numer(fe,CTX),de=_denom(fe,CTX);
+  gen q=0;
+  gen a=plus_inf; gen * la=la_; const int ld=ldir_; la_=&a; ldir_=0; // (dom's limits at +infinity: la_ pointed at a point gone with its limit, a crash for n^2(1-cos(1/n)))
+  if (de.is_plus() || nu.is_plus()){
+    q=quo(dom(nu),dom(de));
+    if (pr(q)==pr(fe)) q=0;
+    else if (dep(rn(ev(q)),x)){
+      budget_=80;
+      const size_t m=mark(); const gen r=lsteps(v0,0);
+      if (r!=L) cut(m);
+      q=0;
+    }
+  }
+  la_=la; ldir_=ld;
+  S(R_SDIV2,line3(is_zero(q)?"%0=%2!=0":"%0=%1=%2!=0",Linf(v0,x),Linf(q,x),L),L);
+}
+// a series with its center put in: some terms written out (0^0 = 1, 0^2 = 0), the first left
+static NOINL gen sctr(const gen & op,const vecteur & v,const gen & x){
+  const gen r=scenter(op),k0=ev(v[2]);
+  if (is_undef(r) || k0.type!=_INT_) return undef;
+  vecteur w,z;
+  for (int j=k0.val;j<k0.val+3;++j){ w.push_back(ifold(subst(v[0],x,j,true,CTX))); z.push_back(j==k0.val?r:gen(0)); }
+  S(R_SCTR,line3("%0=%1",op,txt(wsum(w,true))),0);
+  S(R_SCTR2,line3("%0=%1",txt(wsum(z,true)),r),0);
+  return r;
+}
+#ifdef HOSTGIAC_TT
+double host_ms(); // (tools/hostgiac/khicas_post.cc: time.h clashes with giac's clock macro here)
+static void tt(const char * w){ static double t0; const double m=host_ms(); if (getenv("STEPS_TT")) fprintf(stderr,"   {%s %.2f}\n",w,m-t0); t0=m; }
+#else
+#define tt(w)
+#endif
+// a factorial over another one of the index a whole number 1 to 6 apart cancelled: n!/(n+2)! is
+// 1/((n+1)(n+2)) (72 s on the calculator as typed, its limit comparison through giac's series of n!)
+static NOINL gen factc(const gen & t,const gen & x){
+  vecteur w,o; flat(at_prod,t,w);
+  std::vector<int> u(w.size(),0);
+  bool ch=false;
+  for (unsigned i=0;i<w.size();++i) if (!u[i] && is(w[i],at_factorial) && dep(w[i],x))
+    for (unsigned j=0;j<w.size();++j) if (!u[j] && w[j].is_inv() && is(arg(w[j]),at_factorial)){
+      const gen A=arg(w[i]),B=arg(arg(w[j])),k=rn(ev(A-B));
+      if (k.type!=_INT_ || !k.val || k.val>6 || k.val<-6) continue;
+      vecteur p; const int n=k.val>0?k.val:-k.val; const gen lo=k.val>0?B:A;
+      for (int q=1;q<=n;++q) p.push_back(ev(lo+q));
+      o.push_back(k.val>0?prodof(p):symb_inv(prodof(p))); u[i]=u[j]=1; ch=true; break;
+    }
+  if (!ch) return t;
+  for (unsigned i=0;i<w.size();++i) if (!u[i]) o.push_back(w[i]);
+  return prodof(o);
+}
 static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x){
+  tt("ssteps");
   if (v.size()!=4 || ev(v[3])!=plus_inf) return undef;
-  const gen a=ev(v[2]),N=word(x==word("N")?"M":"N"),m1=pow(gen(-1),x,CTX);
+  { const gen r=sctr(op,v,x); if (!is_undef(r)) return r; }
+  const gen a=ev(v[2]),N=word(x==word("n")?"N":"n"),m1=pow(gen(-1),x,CTX); // (the course's s_n)
   gen cp=ev(SYM(at_cos,x*cst_pi));
   gen t=ev(v[0]);
   // giac's sum as the reference, but not of n in a power's base and exponent, n!, ln, trig: it
   // simplifies them at length for nothing (43 s of (n/(2n+1))^n on the calculator; the console's
   // answer skips it too, answer.cc power_sum)
-  const gen G=!is_zero(npow(t)) || has_op(t,*at_factorial) || has_op(t,*at_ln) || has_op(t,*at_sin) || has_op(t,*at_cos) || has_op(t,*at_tan)?op:ev(op);
-  for (int i=0;i<2;++i,cp=SYM(at_cos,symb_prod(cst_pi,x))) if (contains(t,cp)){ S(R_COSPI,cp,m1); t=ev(sub(t,cp,m1)); } // (giac leaves cos(n pi), cos(pi n))
+  vecteur gw0,gw; flat(at_prod,t,gw0); EACH(it,gw0) if (dep(*it,x)) gw.push_back(*it);
+  const bool rt=!is_zero(nexp(t)) && !geo(gw); // (the ratio test's: its value not asked, 15 s of giac's sum on the calculator)
+  const gen G=!is_zero(npow(t)) || has_op(t,*at_factorial) || has_op(t,*at_ln) || has_op(t,*at_sin) || has_op(t,*at_cos) || has_op(t,*at_tan) || !is_zero(pvar(t,x)) || quickG_ || rt?op:ev(op); // (a power series: giac's sum took minutes on the calculator for (k^2+1)/8^k (x-1)^(3k), to no value)
+  for (int i=0;i<2;++i,cp=SYM(at_cos,symb_prod(cst_pi,x))) if (contains(t,cp)){ S(R_COSPI,cp,m1); t=ev(subst(t,cp,m1,false,CTX)); } // (giac leaves cos(n pi), cos(pi n))
+  if (lidnt(t).size()==1){ const gen tm=m1merge(t,x); // (an endpoint's term: (-1)^k (-2)^k/(k 2^k) is 1/k, then its own tests)
+    if (tm!=t && pr(tm).size()<pr(v[0]).size()){ S(R_SIMPT,line3("%0=%1",v[0],tm),0); vecteur v2(v); v2[0]=tm; return ssteps(SYM(at_sum,gen(v2,_SEQ__VECT)),v2,x); } }
+  if (has_op(t,*at_factorial)){ const gen tf=factc(t,x); // (n!/(n+2)! = 1/((n+1)(n+2)): then its own tests)
+    if (tf!=t){ S(R_SIMPT,line3("%0=%1",v[0],tf),0); vecteur v2(v); v2[0]=tf; return ssteps(SYM(at_sum,gen(v2,_SEQ__VECT)),v2,x); } }
   gen L,val,SN;
+  tt("G");
   vecteur c,w; factors(t,c,w);
   // the shape first: giac's limit of (n/(2n+1))^n or (-1)^n/sqrt(n) took 10 to 20 s on the calculator
   gen r=0;
   if (geo(w)){ // geometric
-    r=_simplify(ev(sub(t,x,x+1)/t),CTX); // (2^n/2^(n+1): ratnormal left it)
-    const gen ar=evf(ab(r));
+    r=gratio(t,x); // (2^n/2^(n+1): ratnormal left it; the exponents, not simplify: 9 s on the calculator for 2^k/6^k+3^k/6^k)
+    const gen ar=evalf(abs(r,CTX),1,CTX);
     const bool in_x=ar.type!=_DOUBLE_; // r = x/3 (a power series): it converges for |x/3| < 1
     if (!dep(r) && (in_x || is_strictly_greater(1,ar,CTX))){
       gen t0=ev(sub(t,x,a));
       val=ev(t0/(1-r));
-      S(R_SRAT,ratio_of(v[0],t,x),r);
-      if (in_x) S(R_SCONV,SYM2(at_inferieur_strict,SYM(at_abs,r),plus_one));
-      S(R_SGEOM,op,symb_prod(t0,symb_inv(symb_plus(1,symb_neg(r)))));
+      if (!in_x && !isnum(val)){ // ((2-2/e^2)/e/(1-1/e): 2(e+1)/e^2, the shortest form)
+        gen b=normal(val,CTX);
+        const gen c[2]={_simplify(b,CTX),_factor(b,CTX)};
+        for (int i=0;i<2;++i) if (pr(c[i]).size()<pr(b).size()) b=c[i];
+        val=b;
+      }
+      const gen ga=quickG_?gen(0):gform(v[0],t,x,r,in_x);
+      gen I0=undef;
+      if (in_x){ // |r| < 1, r = c u^p: the interval (the course's 1/(1+9x^2): -1/3 < x < 1/3)
+        S(R_SCONV,SYM2(at_inferieur_strict,SYM(at_abs,r),1),0);
+        const gen y=pvar(r,x),q=_factor(r,CTX);
+        vecteur rw; flat(at_prod,q,rw);
+        gen rc=1,ru=1,rp=1,lo,hi;
+        EACH(it,rw) if (dep(*it,y)) ru=ru*(*it); else rc=rc*(*it);
+        if (ru.is_pow()){ rp=arg(ru,1); ru=arg(ru,0); }
+        if (!is_zero(y) && rp.type==_INT_ && rp.val>0 && pint(y,ev(abs(rc,CTX)),ru,rp,lo,hi)) I0=out_->back().a;
+      }
+      if (quickG_ && in_x && !is_undef(I0)) return I0; // (the console: its interval, as the course asks; the function it adds up to: the steps' last lines)
+      if (!quickG_){ const gen d=is_strictly_positive(-evalf(r,1,CTX),CTX)?symb_plus(1,ev(-r)):symb_plus(1,symb_neg(r)); // (1+3/4, not 1-(-3/4))
+        S(R_GSUM,line(is_one(ga)?(is_zero(a)?"%0=1/(%3)":"%0=#2^%4/(%3)"):is_zero(a)?"%0=#1/(%3)":"%0=#1*#2^%4/(%3)",op,ga,r,d,a,zero),0); } // ((1/4)^1/(1-1/4), not 1*(1/4)^1)
       S(R_EQV,op,in_x?rn1(val):val); // (-3/(x-3), as the console writes it)
-      return same(val,G) || (in_x && undone(G))?val:gen(undef); // (giac sums x^n/3^n only with |x| < 3 assumed: the console's is answer.cc's)
+      return sameG(val,G) || (!is(G,at_sum) && !in_x && close(val,G)) || ((in_x || quickG_ || is(G,at_sum)) && undone(G))?(in_x?rn1(val):val):gen(undef); // (1/(x-1), not 1/(x*(1-1/x))) // (exp(1) and exp(2): ratnormal sees two names) // (giac sums x^n/3^n only with |x| < 3 assumed: the console's is answer.cc's)
     }
     if (!dep(r) && ar.type==_DOUBLE_){ // (-pi/3)^n: |r| >= 1, the terms do not go to 0
-      S(R_SRAT,ratio_of(v[0],t,x),r);
-      S(R_SGEOMD,r);
+      if (!quickG_) gform(v[0],t,x,r,false);
+      S(R_SGEOMD,r,0);
       return undone(G)?word("diverges"):gen(undef);
     }
   }
+  tt("geo");
+  { const gen sp=gsplit(op,v,x); if (!is_undef(sp)) return sp; } // ((2^k+3^k)/6^k: two geometric series, their values added)
+  { const gen y=pvar(t,x); if (!is_zero(y)) return psteps(op,v,x,y,G); } // a power series: its interval
+  tt("pvar");
+  { const gen L0=growlim(t); // (the divergence test first when the growth rates give a limit not 0)
+    if (!is_undef(L0) && !is_zero(L0) && (finv(L0) || is_inf(L0))){ if (quickG_) S(R_SDIV2,0,L0); else divt(v[0],x,L0); return undone(G)?word("diverges"):gen(undef); } }
+  tt("growlim");
   // b^n, b depending on n: the root test, lim (a_n)^(1/n) = lim b below 1 ((n/(2n+1))^n, 1/ln(n)^n)
   gen u=t.is_inv()?arg(t):t;
   if (!is_inf(G) && u.is_pow() && dep(arg(u,0)) && (arg(u,1)==x || is_zero(eva(arg(u,1),x)))){
     gen b=(arg(u,1)==x)!=t.is_inv()?arg(u,0):symb_inv(arg(u,0));
     L=ev(Linf(b,x));
-    if (finv(L) && is_strictly_greater(1,ab(L),CTX)){ S(R_ROOT,Linf(b,x),L); return cvg(op,G); }
+    if (finv(L) && vs1(abs(L,CTX))<0){ S(R_ROOT,Linf(b,x),L); return cvg(op,G); }
   }
   // (-1)^(n+k) b, b > 0 decreasing to 0 (from a+3 on: ln(n)/n): the alternating series test
-  if (!is_inf(G)) EACH(it,w) if (it->is_pow() && is_minus_one(arg(*it,0))){
+  gen al0,be0;
+  if (!is_inf(G)) EACH(it,w) if (it->is_pow() && is_minus_one(arg(*it,0)) && is_linear_wrt(arg(*it,1),x,al0,be0,CTX) && al0.type==_INT_ && (al0.val&1)){ // ((-1)^(2n) is 1: no alternating series)
     vecteur o(c);
     EACH(jt,w) if (jt!=it) o.push_back(*jt);
     gen b=ev(prodof(o));
     if (at_(b,a+3)<0) b=evn(b);
     int k=3;
     while (k<12 && at_(b,a+k)>at_(b,a+k+1)) ++k;
-    if (k<12 || !is_zero(lim_(b,a))) break; // (b not decreasing to 0: the terms' limit below)
-    S(R_AST,Linf(b,x));
+    const gen Lb=lim_(b,a);
+    if (!is_undef(Lb) && !is_zero(Lb) && (finv(Lb) || is_inf(Lb))){ S(R_SDIV,Linf(b,x),Lb); return undone(G)?word("diverges"):gen(undef); } // (their size: (-1)^n (n^2+1))
+    if (k<12 || !is_zero(Lb)) break; // (b not decreasing to 0: the terms' limit below)
+    S(R_AST,Linf(b,x),0);
     return cvg(op,G);
   }
+  // n! or the index in an exponent: the ratio test first (the course's), its limit by the growth rates
+  // (4^(k^2)/(2k)!: giac's limit of the terms took 25 s on the calculator): below 1 it converges, above it diverges
+  gen Lq0=undef;
+  const bool tp=tpair(t,x) || (t.is_pow() && dep(arg(t,1)) && is_one(growlim(arg(t,0)))) || is(t,at_cos) || is(t,at_sin); // (and 1 to the infinity, (1+1/k)^k: its ratio is 1, 53 ms on the PC, the divergence test says e; cos((2^k+k^10)/3^k): 0.7 s on the PC)
+  if (quickG_ && !tp && !is_inf(G) && (has_op(t,*at_factorial) || !is_zero(nexp(t)))){ gen xp; Lq0=rtest(v[0],x,0,xp,true); } // (the console: its pairs, no simplify)
+  if (!is_undef(Lq0) && (finv(Lq0) || Lq0==plus_inf) && vs1(Lq0)){
+    const bool lo=vs1(Lq0)<0;
+    S(lo?R_RATIO:R_RATIOD,0,Lq0);
+    if (lo) return cvg(op,G);
+    return undone(G)?word("diverges"):gen(undef);
+  }
+  if (!tp && !is_inf(G) && (has_op(t,*at_factorial) || !is_zero(nexp(t))) && dep(is_zero(r)?r=_simplify(ev(sub(t,x,x+1)/t),CTX):r)){
+    const gen q=_factor(r,CTX),qa=is_strictly_positive(evalf(sub(q,x,a+3),1,CTX),CTX)?q:SYM(at_abs,q),Lq=fastlim(qa);
+    if ((finv(Lq) || Lq==plus_inf) && vs1(Lq)){
+      const bool lo=vs1(Lq)<0;
+      if (quickG_) S(lo?R_RATIO:R_RATIOD,0,Lq); else if (!rshow(v[0],x,Lq)){
+        S(R_SRAT,ratio_of(v[0],t,x),q);
+        S(lo?R_RATIO:R_RATIOD,Linf(qa,x),Lq);
+      }
+      if (lo) return cvg(op,G);
+      return undone(G)?word("diverges"):gen(undef);
+    }
+  }
+  tt("ratio");
   L=lim_(t,a); // (0 at once when the terms fall fast: n!/n^n, 2^n/n!)
+  tt("lim_");
   if (!is_zero(L) && (finv(L) || L==plus_inf || L==minus_inf || has_op(L,*at_bounded_function))){ // the terms do not go to 0
     // (+-infinity itself: giac's limit of 1/n! is 1/((+infinity)!), and is_inf looks inside)
-    S(R_SDIV,Linf(v[0],x),has_op(L,*at_bounded_function)?word("DNE"):L); // (no raw bounded_function)
+    if (has_op(L,*at_bounded_function)) S(R_SDIV,Linf(v[0],x),word("DNE")); // (no raw bounded_function)
+    else if (quickG_) S(R_SDIV2,0,L);
+    else divt(v[0],x,L);
     return undone(G)?word("diverges"):gen(undef);
   }
   // f(n)-f(n+k), k up to 3, as typed or in partial fractions: telescoping, S_N the first terms
   // less the last (1/(n(n+2)): 1+1/2-1/(N+1)-1/(N+2))
-  gen pf=shape(t,SH_FRAC)?pfrac(t):t,s=t.is_plus()?t:pf; // (X: the index here)
-  if (is(t,at_ln)) s=symb_plus(symb_ln(nmr(arg(t))),symb_neg(symb_ln(dnm(arg(t))))); // ln(n/(n+1))
-  if (s.is_plus() && arg(s).type==_VECT && arg(s)._VECTptr->size()==2){
-    gen u=arg(s,0),w=arg(s,1);
-    for (int i=0;i<6;++i,std::swap(u,w)) if (same(sub(u,x,x+1+i/2),-w)){
-      vecteur q;
-      for (int j=0;j<=i/2;++j){ gen y=sub(u,x,a+j); if (!is_zero(y)) q.push_back(y); } // (ln(1))
-      nn_=&N;
-      for (int j=1;j<=1+i/2;++j){ gen y=linn(subst(u,x,N+j,true,CTX)); q.push_back(y.is_neg()?arg(y):symb_neg(y)); } // (atan: no --)
-      SN=symb_plus(q);
-      val=ev(Linf(SN,N));
-      if (!same(val,G) && !is(G,at_sum) && !(is_inf(val) && is_inf(G))) return undef; // (S_N is exact)
-      if (s!=t) S(is(t,at_ln)?R_LNQ:R_PFRAC,v[0],s);
-      S(R_PSUMT,SYM(at_sum,makesequence(s!=t?s:v[0],x,a,N)),SN);
-      S(R_SLIM,Linf(SN,N),val);
-      return is_inf(val)?word("diverges"):val;
+  gen ts,tu,tw;
+  int tm=0;
+  tt("div");
+  bool hi=false; // (a rational term with a denominator of degree 4 or more, 2/(k^9+2k^7+8): no telescoping, no giac sum to N: 20 s on the calculator)
+  { const vecteur lv=lvar(t);
+    if (lv.size()==1 && lv[0]==x){
+      const gen dg=_degree(makesequence(_denom(t,CTX),x),CTX);
+      if (dg.type==_INT_ && dg.val>=4){ // (typed as linear factors, 1/(k(k+1)(k+2)(k+3)): it may telescope)
+        vecteur w0; flat(at_prod,norm(v[0]),w0);
+        hi=false;
+        EACH(it,w0){ gen b=*it,al,be; const gen q=bexp(b); if (is_strictly_positive(-q,CTX) && dep(b,x) && !is_linear_wrt(b,x,al,be,CTX)) hi=true; }
+      }
     }
   }
+  if (!hi && telesc(t,x,a,N,ts,SN,&tu,&tw,&tm)){
+    val=ev(Linf(SN,N));
+    { vecteur w,q; flat(at_plus,SN,w); EACH(it,w) if (!dep(*it,N)) q.push_back(*it); // (the first terms: 2/e+2/e^2, not giac's one fraction)
+      const gen s1=q.empty()?gen(0):ev(symb_plus(q)); if (finv(val) && close(s1,val)) val=s1; }
+    if (!is(G,at_sum) && !sameG(val,G) && !close(val,G) && !(is_inf(val) && is_inf(G))) return undef; // (S_N is exact; giac's sum of logs not evaluated)
+    if (ts!=t){ if (is(t,at_ln) || quickG_ || !pfshow(v[0],x)) S(is(t,at_ln)?R_LNQ:R_PFRAC,v[0],ts); }
+    const gen & src=ts!=t?ts:v[0];
+    const bool two=src.is_plus() && arg(src).type==_VECT && arg(src)._VECTptr->size()==2;
+    const vecteur c=quickG_?vecteur(1,gen(0)):tlines(two?arg(src,0):tu,two?arg(src,1):tw,tu,tw,tm,x,a,N);
+    if (c.empty()){ S(R_PSUMT,SYM(at_sum,makesequence(src,x,a,N)),SN); S(R_SLIM,Linf(SN,N),val); }
+    else if (quickG_) S(R_TDEF,0,val); else tlim(c,SN,N,val);
+    return is_inf(val)?word("diverges"):val;
+  }
+  tt("telesc");
   gen e=0;
   bool ps=!w.empty();
   EACH(it,w){ gen b=*it,ei=bexp(b); ps=ps && b==x; e=e+ei; } // c/n^p (1/n^(3/2) is 1/(n*sqrt(n)))
   e=evn(e);
   if (ps && spos(e)) return pser(op,G,e);
   // n! or the index in an exponent: the ratio test, lim |a(n+1)/a(n)| below 1 (2^n/n!, n!/n^n)
-  if (!is_inf(G) && (has_op(t,*at_factorial) || !is_zero(nexp(t))) && dep(is_zero(r)?r=_simplify(ev(sub(t,x,x+1)/t),CTX):r)){
-    gen q=_factor(r,CTX),qa=spos(evf(sub(q,x,a+3)))?q:SYM(at_abs,q);
+  if (!tp && !is_inf(G) && (has_op(t,*at_factorial) || !is_zero(nexp(t))) && dep(is_zero(r)?r=_simplify(ev(sub(t,x,x+1)/t),CTX):r)){
+    gen q=_factor(r,CTX),qa=is_strictly_positive(evalf(sub(q,x,a+3),1,CTX),CTX)?q:SYM(at_abs,q);
     L=ev(Linf(qa,x));
-    if (finv(L) && is_strictly_greater(1,L,CTX)){
-      S(R_SRAT,ratio_of(v[0],t,x),q);
-      S(R_RATIO,Linf(qa,x),L);
+    if (finv(L) && vs1(L)<0){
+      if (quickG_) S(R_RATIO,0,L); else if (!rshow(v[0],x,L)){
+        S(R_SRAT,ratio_of(v[0],t,x),q);
+        S(R_RATIO,Linf(qa,x),L);
+      }
       return cvg(op,G);
     }
   }
   // the partial sums' closed form (giac's symbolic sum to N, slow: after the tests above)
-  SN=ev(SYM(at_sum,makesequence(t,x,a,N)));
-  if (elementary(SN) && SN.type!=_STRNG){
+  const gen pf=hi?t:shape(t,SH_FRAC)?pfrac(t):t;
+  const bool trg=!is_zero(otrig(t)); // (sin(n pi/2)/n: giac's sum to N and limits of it ran out the 90 s on the calculator)
+  if (has_op(t,*at_ln) || trg) hi=true; // (ln(k^2+3)/k^3: giac's sum to N is no closed form, and slow)
+  SN=hi?gen(0):ev(SYM(at_sum,makesequence(t,x,a,N)));
+  if (!hi && elementary(SN) && SN.type!=_STRNG){
     SN=rn(SN);
+    { gen s5=0; for (int j=0;j<5;++j) s5=s5+sub(t,x,a+j); // (giac's S_N against the first terms added: its sum(sqrt(n^2+1)-n) to N was -N(N+1)/2, the sqrt's part dropped, a wrong -infinity)
+      const gen d=evalf_double(sub(SN,N,a+4)-s5,1,CTX),m=evalf_double(s5,1,CTX);
+      if (d.type!=_DOUBLE_ || m.type!=_DOUBLE_ || fabs(d._DOUBLE_val)>TOL*(1+fabs(m._DOUBLE_val))) SN=undef; }
+  }
+  if (!hi && !is_undef(SN) && elementary(SN) && SN.type!=_STRNG){
     val=ev(Linf(SN,N));
-    if (same(val,G) || (is_inf(val) && is_inf(G))){
+    if (is(G,at_sum) || sameG(val,G) || (is_inf(val) && is_inf(G))){ // (S_N is giac's exact sum to N: G left as a sum on purpose)
       const bool sp=pf!=t && pf.is_plus();
       if (sp) S(R_PFRAC,v[0],pf);
       S(sp?R_PSUMT:R_PSUM,SYM(at_sum,makesequence(sp?pf:v[0],x,a,N)),SN);
@@ -2140,9 +3424,29 @@ static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x){
       return val;
     }
   }
+  tt("SN");
   // like 1/n^p: lim t n^p finite and not 0 (a limit comparison: converges or not)
-  e=ev(-Linf(rn(evq(symb_ln(ab(t)),symb_ln(x))),x));
-  L=finv(e) && spos(e)?ev(Linf(t*pow(x,e,CTX),x)):zero;
+  double gc[5];
+  const bool gk=gcls(t,gc) && !gc[0] && !gc[1] && !gc[2]; // (a power of n and of ln(n): e from the classes, no giac limit of ln|t|/ln(n), 6 ms here)
+  if (!gk && trg) return undef;
+  // else t's first term at infinity, c/n^p, from its series in h = 1/n (1/n-sin(1/n): h^3/6;
+  // (sqrt(n+1)-sqrt(n))/n: h^(3/2)/2): giac's limit of ln|t|/ln(n) took 5 s and gave undef, or ran out
+  gen es=undef,lc=undef;
+  if (!gk){
+    const gen h(identificateur("h__")),sr=_series(makesequence(subst(t,x,symb_inv(h),false,CTX),h,0,6),CTX);
+    vecteur w; flat(at_plus,sr,w);
+    EACH(it,w){ // (each term c h^q: c and q at h = 1, no ratnormal over sqrt(h); checked at h = 1/4: ln(h) in it is no power)
+      if (has_op(*it,*at_order_size) || is_zero(*it)) continue;
+      const gen d=D(*it,h),c=ev(subst(*it,h,1,false,CTX)),q=ev(subst(d,h,1,false,CTX)/c),q4=evalf_double(subst(h*d/(*it),h,gen(0.25),false,CTX),1,CTX);
+      if (!isnum(q) || q4.type!=_DOUBLE_ || fabs(q4._DOUBLE_val-evalf_double(q,1,CTX)._DOUBLE_val)>TOL){ es=undef; break; }
+      if (is_undef(es) || is_strictly_greater(es,q,CTX)){ es=q; lc=c; }
+    }
+    if (!is_undef(lc) && !is_strictly_positive(lc,CTX)) es=undef;
+  }
+  e=gk?exact(gen(-gc[3]),CTX):!is_undef(es)?es:ev(-Linf(rn(ev(symb_ln(abs(t,CTX))/symb_ln(x))),x));
+  tt("e");
+  L=!finv(e) || !is_strictly_positive(e,CTX)?gen(0):gk && gc[4]>0?plus_inf:gk && gc[4]<0?gen(0):!is_undef(es)?lc:ev(Linf(t*pow(x,e,CTX),x));
+  tt("L");
   size_t m=mark();
   if (finv(L) && spos(L)){
     S(R_LCMP,Linf(SYM2(at_division,v[0],symb_inv(pow(x,e,CTX))),x),L); // a_n over b_n = 1/n^p, as written (a quotient mergek leaves)
@@ -2150,6 +3454,20 @@ static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x){
     if (!is_undef(val)) return val;
     cut(m);
   }
+  else if (finv(e) && is_strictly_positive(e,CTX) && (is_zero(L) || L==plus_inf)){ // (ln(k^2+3)/k^3: a power of ln between)
+    // 1 < p < e with the limit 0: converges (1/k^2 for ln(k^2+3)/k^3); p = e <= 1 with the limit infinity: diverges
+    const bool cv=is_strictly_greater(e,1,CTX);
+    if (cv || L==plus_inf){
+      const gen p=!cv?e:is_strictly_greater(e,2,CTX)?ev(e-1):ev((e+1)/2),L2=cv?ev(Linf(t*pow(x,p,CTX),x)):L;
+      if (cv?is_zero(L2):L2==plus_inf){
+        S(cv?R_LCMP0:R_LCMPI,Linf(SYM2(at_division,v[0],symb_inv(is_one(p)?x:symb_pow(x,p))),x),L2); // (1/k^(3/2) as written)
+        val=pser(op,G,p);
+        if (!is_undef(val)) return val;
+        cut(m);
+      }
+    }
+  }
+  if (quickG_) return undef; // (the console: an integral's steps for "converges" alone took 45 s on the calculator)
   // positive and decreasing (from a+3 on): the integral test, the integral's steps below it
   // (1/(n ln(n)): u = ln(x), +infinity, diverges)
   for (int k=3;k<9;++k){ double y=at_(t,a+k); if (!(y>0 && y>at_(t,a+k+1))) return undef; }
@@ -2159,23 +3477,92 @@ static NOINL gen ssteps(const gen & op,const vecteur & v,const gen & x){
   if (is_undef(val) || (is_inf(val)?finv(G) && !is(G,at_sum):is_inf(G))){ cut(m); return undef; } // (as giac's sum)
   return is_inf(val)?word("diverges"):cvg(op,G);
 }
+static NOINL gen ufun(const gen & g); // (below)
+static NOINL gen useries(const gen & g); // (below)
+static NOINL gen psum(const gen & g); // (below)
 // series(f,x,a,n): f's derivatives, their values at a, the Taylor polynomial (giac's without O)
+static NOINL gen kpoly(const gen & f0,const gen & x,const gen & a,int n,const gen & G);
+static NOINL std::string wsum(const vecteur & w,bool dots);
+// a power series sum(c(k)(x-a)^e(k),k,k0,inf) to (x-a)^n: its terms written out (the course's p_n of a
+// series f), undef if its terms are not that shape
+static NOINL gen spoly(const gen & s,const gen & x,const gen & a,int n){
+  if (!is(s,at_sum) || arg(s).type!=_VECT || arg(s)._VECTptr->size()!=4 || arg(s,1).type!=_IDNT) return undef;
+  const gen K=arg(s,1),k0=ev(arg(s,2)),T=norm(arg(s,0)),hx=is_zero(a)?x:symb_plus(x,symb_neg(a));
+  if (k0.type!=_INT_) return undef;
+  vecteur w,p;
+  for (int k=k0.val;k<k0.val+60;++k){
+    const gen y=ev(sub(T,K,k)),d=ev(_degree(makesequence(sub(y,x,hx+a),x),CTX));
+    if (d.type!=_INT_) return undef;
+    w.push_back(y);
+    if (d.val>n) break;
+    if (!is_zero(y)) p.push_back(y);
+  }
+  S(R_KWOUT,line3("%0=%1",s,txt(wsum(w,true))),0);
+  S(R_KWP,line3("p_%0(%1)=%2",gen(n),x,txt(wsum(p,false))),0);
+  return p.empty()?gen(0):symb_plus(p);
+}
+static NOINL vecteur wpoly(const gen & P,const gen & h,const gen & hx,int n); // (below)
+// series(integrate(g,t,0,c x),x,0,n): g's series integrated term by term, its terms up to x^n (giac
+// integrated sin(t^2) to a Fresnel function first, then took its series: 9 s on the calculator); else
+// giac's series
+static NOINL gen qser(const gen & op){
+  if (is(op,at_series) && arg(op).type==_VECT && arg(op)._VECTptr->size()==4){
+    const vecteur & v=*arg(op)._VECTptr;
+    const gen f=v[0],x=v[1],n=ev(v[3]);
+    gen al,be;
+    if (x.type==_IDNT && n.type==_INT_ && n.val>=0 && is_zero(ev(v[2])) && is(f,at_integrate) && arg(f).type==_VECT && arg(f)._VECTptr->size()==4 && arg(f,1).type==_IDNT && arg(f,1)!=x
+        && is_zero(ev(arg(f,2))) && is_linear_wrt(arg(f,3),x,al,be,CTX) && is_zero(be) && !is_zero(al)){
+      const gen t=arg(f,1),G=ev(SYM(at_series,makesequence(arg(f,0),t,0,n)));
+      vecteur w,q; flat(at_plus,G,w);
+      EACH(it,w) if (!has_op(*it,*at_order_size)) q.push_back(*it);
+      if (q.empty()) return 0;
+      const gen I=ev(SYM(at_integrate,makesequence(symb_plus(q),t,0,arg(f,3)))),P=ev(expand(I,CTX));
+      const vecteur pn=wpoly(P,x,x,n.val);
+      return pn.empty()?gen(0):pn.size()==1?pn[0]:symb_plus(pn);
+    }
+  }
+  return ev(op);
+}
+static NOINL gen tsteps(const gen & op,const vecteur & v,const gen & x);
+// sin(u)^2 and cos(u)^2 by their half angle (sin(x)^2 = 1/2-cos(2x)/2), b^u as e^(u ln b) (2^x): the
+// known series' shapes (the book's "use the identity")
+static NOINL gen kpre(const gen & g){
+  if (g.is_pow() && arg(g,1)==2 && (is(arg(g,0),at_sin) || is(arg(g,0),at_cos))){ const gen c=SYM(at_cos,ev(2*arg(arg(g,0)))); return is(arg(g,0),at_sin)?symb_plus(fraction(1,2),symb_neg(symb_prod(fraction(1,2),c))):symb_plus(fraction(1,2),symb_prod(fraction(1,2),c)); }
+  if (g.is_pow() && !dep(arg(g,0)) && dep(arg(g,1)) && arg(g,0)!=symb_exp(1) && is_strictly_positive(arg(g,0),CTX)) return symb_exp(symb_prod(arg(g,1),SYM(at_ln,arg(g,0))));
+  return g.type==_SYMB?map_of(g,kpre):g;
+}
 static NOINL gen tsteps(const gen & op,const vecteur & v,const gen & x){
-  if (v.size()<4 || v[3].type!=_INT_ || v[3].val<1 || v[3].val>8) return undef;
+  if (v.size()<4 || v[3].type!=_INT_ || v[3].val<1) return undef;
   const gen a=ev(v[2]),h=a==0?x:symb_plus(x,symb_neg(a)); // x - a
   const int n=v[3].val;
-  vecteur ds(1,ev(v[0])),qs,gt,kp,ts;
+  { const gen u=psum(v[0]); // (f defined as a sum, or the sum typed in: its terms up to (x-a)^n, written out, not the sum's interval differentiated)
+    if (!is_zero(u)){ const gen r=spoly(u,x,a,n); if (!is_undef(r)) return r; } }
+  const gen F0=ufun(v[0]);
+  const gen G=qser(op); // (giac's terms, an integral's from its integrand's)
+  if (n<=40){ const gen P=kpoly(F0,x,a,n,G); if (!is_undef(P)) return P; } // (the course's way: substituted in a known series)
+  if (n>8) return undef;
+  gen g=ev(v[0]),mono=1;
+  int m=0;
+  if (is_zero(a)){ // c x^m g(x): g's polynomial up to x^(n-m), then times c x^m (x^2 sqrt(1+2x): not the product's derivatives)
+    vecteur w,o; flat(at_prod,norm(v[0]),w);
+    EACH(it,w){ gen b=*it; const gen e=bexp(b); if (b==x && e.type==_INT_ && e.val>0) m+=e.val; else if (!dep(*it,x)) mono=mono*(*it); else o.push_back(*it); }
+    if (m>0 && m<=n && !o.empty()){ g=ev(prodof(o)); mono=ev(mono*pow(x,m,CTX)); S(R_TLET,line3("g(%0)=%1",x,prodof(o)),0); }
+    else { m=0; mono=1; }
+  }
+  const int n2=n-m;
+  vecteur ds(1,g),qs,gt,kp,ts,cv;
   gen P=0;
-  for (int k=1;k<=n && !interrupted;++k){ // (normal form only when shorter: -1/(x+1)^2)
+  for (int k=1;k<=n2 && !interrupted;++k){ // (normal form only when shorter: -1/(x+1)^2)
     gen d=D(ds.back(),x),d2=rn1(d);
     if (taille(d2,200)<taille(d,200)) d=d2;
     S(k>1?R_EQV:R_TDER,Dx(ds.back()),d); ds.push_back(d);
   }
-  for (int k=0;k<=n && !interrupted;++k){ // f(a) + f'(a) (x-a) + f''(a)/2! (x-a)^2 ...
+  for (int k=0;k<=n2 && !interrupted;++k){ // f(a) + f'(a) (x-a) + f''(a)/2! (x-a)^2 ...
     gen c=ev(sub(ds[k],x,a)),q=subst(ds[k],x,a,true,CTX);
-    if (!k || q!=c) S(k?R_EQV:R_TVAL,q,c); // (e^x at 1: no line "e = e")
+    if (!k || pr(q)!=pr(c)) S(k?R_EQV:R_TVAL,q,c); // (e^x at 1: no line "e = e", nor "0 = 0")
+    cv.push_back(c);
     if (is_zero(c)) continue;
-    qs.push_back(k?symb_prod(k>1?symb_prod(c,symb_inv(SYM(at_factorial,k))):c,k>1?symb_pow(h,k):h):c);
+    qs.push_back(k==1 && is_one(c)?h:k?symb_prod(k>1?symb_prod(c,symb_inv(SYM(at_factorial,k))):c,k>1?symb_pow(h,k):h):c); // (x, not 1*x)
     P=P+c/factorial(k)*pow(h,k,CTX);
     // the polynomial as textbooks write it: each coefficient a number, (x-a)^k kept whole (giac's
     // sum distributed it: 1-x+1+(x-1)^2 for 1-(x-1)+(x-1)^2)
@@ -2183,13 +3570,534 @@ static NOINL gen tsteps(const gen & op,const vecteur & v,const gen & x){
     ts.push_back(!k?e:is_one(e)?hk:spos(-e)?symb_neg(is_minus_one(e)?hk:symb_prod(-e,hk)):symb_prod(e,hk));
   }
   P=ev(P);
-  flat(at_plus,ev(op),gt);
+  if (cv.size()>1){ std::string cs; // (a_k = f^(k)(c)/k!, each: the course's coefficients, then p_n)
+    for (int k=0;k<(int)cv.size();++k){ const std::string K=pr(gen(k)); if (!cs.empty()) cs+=","; cs+="a_"+K+"="; if (k>1 && !is_zero(cv[k])) cs+=(cv[k].type==_FRAC || is_strictly_positive(-cv[k],CTX)?"("+pr(cv[k])+")":pq(cv[k]))+"/("+K+"!)="; cs+=pr(rn(ev(cv[k]/factorial(k)))); } // ((2!), not 2!=: the parser read "2 !=")
+    S(R_TCOEF,txt(cs),0); }
+  const gen Pn=m?ev(expand(mono*P,CTX)):P;
+  flat(at_plus,G,gt);
   EACH(it,gt) if (!has_op(*it,*at_order_size)) kp.push_back(*it);
-  if (interrupted || !same(symb_plus(kp),P)) return undef;
-  S(R_TAYLOR,qs.empty()?zero:symb_plus(qs),ts.empty()?zero:symb_plus(ts));
+  if (interrupted || !same(kp.empty()?gen(0):symb_plus(kp),Pn)) return undef;
+  const gen QS=qs.size()==1?qs[0]:symb_plus(qs),TS=ts.size()==1?ts[0]:symb_plus(ts); // (one term: no "+14x^4/4!")
+  if (m && !qs.empty()){ // g's, written out (g(x) = 1+x+...), then the factor multiplied in: x^2 (1+x+...)
+    const gen gw=txt(wsum(ts,true));
+    if (pr(QS)!=pr(TS)){ S(R_TAYLOR,QS,TS); S(R_LINE,line3("g(%0)=%1",x,gw),0); }
+    else S(R_TAYLOR,line3("g(%0)",x),gw); // (not "1+x = 1+x")
+    S(R_KMULT,line3("%0=%1*(%2)",v[0],mono,gw),0);
+    S(R_KWP,line3("p_%0(%1)=%2",gen(n),x,txt(wsum(wpoly(Pn,x,x,n),false))),0);
+  }
+  else if (qs.empty()) S(R_KWP,line3("p_%0(%1)=%2",gen(n),x,0),0); // (every term 0 up to that degree: p_4(x) = 0, not "0 = 0")
+  else S(R_TAYLOR,QS,TS);
+  return Pn;
+}
+// ---------------------------------------------------------------- Taylor series from known ones
+// The course's way (a calculus course's: the series of 1/(1-u), e^u, sin u and cos u are known, the others
+// come from them): 1/(1-u)^2 and 1/(1-u)^3 by differentiating, ln(1+u) and atan(u) by integrating,
+// then u = b h^p put in (h = x-a) and c h^m multiplied in; f's general term, where it converges,
+// its h^n coefficient (f^(n)(a) = n! c_n: the 95th derivative of 3x^5 cos(x^3) at 0 is -3*95!/30!)
+static const char * const KSF[]={"1/(1-u)","exp(u)","sin(u)","cos(u)","1/(1-u)^2","1/(1-u)^3","ln(1+u)","atan(u)"};
+static const char * const KST[]={"u^k","u^k/k!","(-1)^k*u^(2*k+1)/(2*k+1)!","(-1)^k*u^(2*k)/(2*k)!",
+  "k*u^(k-1)","k*(k+1)/2*u^(k-1)","(-1)^k*u^(k+1)/(k+1)","(-1)^k*u^(2*k+1)/(2*k+1)"}; // (ln(1+u) from k = 0, as the course's practice answers write it)
+// f = c h^m F(b h^p) (F = KSF[s.F]); s.k0 the index's first value
+struct kser_t { int F; gen c,m,b,p,k0,K,U,g0,ca; }; // (g0: the factor that is F, ca its constant: 1/(3+x) = 1/3 F(-x/3))
+// u = b h^p, p > 0 a number
+static NOINL bool kmono(const gen & u,const gen & h,gen & b,gen & p){
+  if (!dep(u,h)) return false;
+  p=rn(ev(h*D(u,h)/u)); // (b h^p: h u'/u is p)
+  if (dep(p,h) || !is_strictly_positive(p,CTX)) return false;
+  b=rn(ev(u/pow(h,p,CTX)));
+  return !dep(b,h) && !is_zero(b);
+}
+static NOINL bool kmatch(const gen & f,const gen & h,kser_t & s){
+  vecteur w; flat(at_prod,f,w);
+  s.F=-1; s.c=1; s.m=0; s.ca=1; s.g0=0;
+  gen u;
+  EACH(it,w){
+    gen g=*it,b=g,e=bexp(b);
+    if (!dep(g,h)){ s.c=s.c*g; continue; }
+    if (b==h && !dep(e,h)){ s.m=s.m+e; continue; } // (h^m, 1/h too: sin(x)/x)
+    if (s.F>=0) return false; // (two functions: not one of these shapes)
+    s.g0=g;
+    if (is(g,at_exp)){ s.F=KS_EXP; u=arg(g); gen c0=ev(sub(u,h,0)); if (!is_zero(c0)){ s.c=s.c*exp(c0,CTX); s.ca=exp(c0,CTX); u=ev(u-c0); } } // (e^(a+u) = e^a e^u)
+    else if (is(g,at_sin)){ s.F=KS_SIN; u=arg(g); }
+    else if (is(g,at_cos)){ s.F=KS_COS; u=arg(g); }
+    else if (is(g,at_atan)){ s.F=KS_ATAN; u=arg(g); }
+    else if (is(g,at_ln)){ s.F=KS_LN; u=ev(arg(g)-1); }
+    else if (e.type==_INT_ && e.val<0 && e.val>=-3){ // 1/(al+be h^p)^j = al^-j/(1-u)^j, u = -be/al h^p
+      const gen al=ev(sub(b,h,0));
+      if (is_zero(al)) return false;
+      s.F=e.val==-1?KS_GEO:e.val==-2?KS_GEO2:KS_GEO3;
+      s.c=s.c*pow(al,e,CTX); s.ca=ev(pow(al,e,CTX));
+      u=rn(ev(1-b/al));
+    }
+    else return false;
+  }
+  if (s.F<0 || !kmono(u,h,s.b,s.p)) return false;
+  s.c=ev(s.c); s.m=ev(s.m); s.k0=s.F==KS_GEO2 || s.F==KS_GEO3?1:0;
+  return true;
+}
+// the known series' term K(k,u) as parsed: its u exponent e (linear in k), the rest q
+static NOINL void kparts(const kser_t & s,gen & e,gen & q,const context * ctx){
+  const gen T=norm(gen(KST[s.F],ctx)); // (a/b parsed as a division: a*inv(b))
+  vecteur w,r; flat(at_prod,T,w);
+  e=0;
+  EACH(it,w) if (it->is_pow() && arg(*it,0)==s.U) e=arg(*it,1); else if (*it==s.U) e=1; else r.push_back(*it);
+  q=prodof(r);
+}
+// (-1)^a with a reduced mod 2 (3k+1: k+1; 2k: 1): 0 if a is even, 1 for -1
+static NOINL gen msign(const gen & a,const gen & k){
+  gen al,be;
+  if (!is_linear_wrt(a,k,al,be,CTX) || al.type!=_INT_ || be.type!=_INT_) return pow(gen(-1),a,CTX);
+  const int A=al.val&1,B=be.val&1;
+  if (!A) return gen(B?-1:1);
+  const gen b=be.val>=-1 && be.val<=1?be:gen(B); // (k-1 as the power's k-1: the course's (-1)^(k-1))
+  return symb_pow(gen(-1),is_zero(b)?k:symb_plus(k,b));
+}
+// the general term as the course writes it: c (-1)^... |b|^e q h^(p e + m), the signs of q and b^e put
+// together; ex: its exponent of h
+static NOINL gen kterm(const kser_t & s,const gen & h,gen & ex,const context * ctx){
+  gen e,q; kparts(s,e,q,ctx);
+  ex=rn(ev(s.p*e+s.m));
+  vecteur w,o; flat(at_prod,q,w);
+  gen sg=0; // the exponent of -1
+  EACH(it,w) if (it->is_pow() && is_minus_one(arg(*it,0))) sg=sg+arg(*it,1); else o.push_back(*it);
+  gen ab=s.b,cc=s.c;
+  { vecteur o2; EACH(it,o) if (isnum(*it)) cc=ev(cc*(*it)); else o2.push_back(*it); o=o2; } // (k(k+1)/2's 1/2)
+  if (is_strictly_positive(-s.b,CTX)){ sg=sg+e; ab=ev(-s.b); }
+  gen m=msign(rn(ev(sg)),s.K);
+  if (is_minus_one(m)) cc=ev(-cc); // (c (-1)^1)
+  if (m.is_pow() && is_strictly_positive(-cc,CTX)){ m=msign(rn(ev(sg+1)),s.K); cc=ev(-cc); } // (-1*(-1)^k: (-1)^(k+1))
+  vecteur t; // (the course's order: 5k(-1)^(k-1)4^(k-1)x^(2k-1), (-1)^k/(2k+1)! t^(4k+2))
+  if (!is_one(cc)) t.push_back(cc);
+  EACH(it,o) if (!is_one(*it) && !it->is_inv()) t.push_back(*it);
+  if (m.is_pow()) t.push_back(m);
+  if (!is_one(ab)) t.push_back(symb_pow(ab,e));
+  EACH(it,o) if (it->is_inv()) t.push_back(*it);
+  t.push_back(is_one(ex)?h:symb_pow(h,ex));
+  return prodof(t);
+}
+// g with the numbers worked out but n! and b^e kept when big (95!, 4^1012): the coefficients the
+// course writes, -3*95!/30! (giac's integer has 140 digits); a product: its number, the kept
+// factors, the kept ones below the bar last
+static NOINL gen held(const gen & g){
+  if (g.type!=_SYMB) return g;
+  if (is(g,at_factorial)){ const gen n=ev(held(arg(g))); return n.type==_INT_ && n.val>12?SYM(at_factorial,n):ev(SYM(at_factorial,n)); }
+  if (g.is_pow()){
+    const gen b=ev(held(arg(g,0))),e=ev(held(arg(g,1)));
+    if (e.type==_INT_ && (b.type==_INT_ || b.type==_FRAC) && !is_one(abs(b,CTX)) && (e.val>12 || e.val<-12)) return symb_pow(b,e);
+    return ev(symb_pow(b,e));
+  }
+  if (g.is_inv() || g.is_prod() || g.is_neg()){
+    vecteur w,num,den; flat(at_prod,g,w);
+    gen k=1;
+    EACH(it,w){
+      const bool iv=it->is_inv(),ng=it->is_neg();
+      const gen h=held(iv || ng?arg(*it):*it);
+      if (ng) k=-k;
+      if (isnum(h)) k=iv?ev(k/h):ev(k*h);
+      else (iv?den:num).push_back(h);
+    }
+    EACHW(it,num){ bool c=false; EACHW(jt,den) if (pr(*jt)==pr(*it)){ den.erase(jt); c=true; break; } if (c){ num.erase(it); --it; } } // (2025!/(1012! 2025!): 1/1012!)
+    if (num.empty() && den.empty()) return k;
+    if (!is_one(k)) num.insert(num.begin(),k);
+    const gen n=prodof(num);
+    return den.empty()?n:num.empty()?symb_inv(prodof(den)):symb_prod(n,symb_inv(prodof(den)));
+  }
+  const gen a=map_of(g,held);
+  if (has_op(a,*at_factorial) || lop(a,at_pow).size()) return a; // (kept: a sum of them)
+  return ev(a);
+}
+static NOINL gen hprod(const gen & a,const gen & b){ return held(symb_prod(a,b)); }
+static NOINL gen ksum(const gen & t,const kser_t & s){ return SYM(at_sum,makesequence(t,s.K,s.k0,plus_inf)); }
+// the steps from the known series to f = c h^m F(b h^p) (Fh: f in h, hx: h written in x): the known
+// series (or how it comes from 1/(1-u)), u put in, c h^m multiplied in, where it converges; T the
+// general term, T0 before c h^m
+static NOINL void kshow(const kser_t & s,const gen & h,const gen & Fh,const gen & T,const gen & hx,bool conv,const context * ctx){
+  static const unsigned short R0[]={R_KKNOWN,R_KKNOWN,R_KKNOWN,R_KKNOWN,R_KDIFF,R_KDIFF2,R_KINTG,R_KINTG2};
+  const gen vk=h==hx?h:X; // (the known series in x, as the course writes them; t in an integral)
+  const gen F=norm(gen(KSF[s.F],ctx)),K0=norm(gen(KST[s.F],ctx)); // (1-3x, not 1-(3*x) substituted)
+  const gen Fk=subst(F,s.U,vk,true,ctx),Kk=subst(K0,s.U,vk,true,ctx);
+  if (s.F==KS_GEO2){ // d/dx of 1/(1-x) = sum x^k
+    S(R_KDIFF,line3("1/(1-%0)",vk),line3("sum(%0^%1,%1,0,+infinity)",vk,s.K));
+    S(R_LINE,line3("diff(1/(1-%0),%0)=diff(sum(%0^%1,%1,0,+infinity),%0)",vk,s.K),0);
+    S(R_LINE,line3("diff(1/(1-%0),%0)=1/(1-%0)^2",vk),0); // (one side a line: the left, then the sum term by term, then its index)
+    S(R_KDTERM,line3("diff(sum(%0^%1,%1,0,+infinity),%0)=sum(%1*%0^(%1-1),%1,0,+infinity)",vk,s.K),0);
+    S(R_KSHIFT,line3("sum(%1*%0^(%1-1),%1,0,+infinity)=sum(%1*%0^(%1-1),%1,1,+infinity)",vk,s.K),0);
+    S(R_EQV,Fk,ksum(Kk,s));
+  }
+  else if (s.F==KS_LN || s.F==KS_ATAN){ // the integral of 1/(1+x) or 1/(1+x^2)
+    const bool l=s.F==KS_LN;
+    S(R0[s.F],line3(l?"1/(1+%0)":"1/(1+%0^2)",vk),line3(l?"sum((-1)^%1*%0^%1,%1,0,+infinity)":"sum((-1)^%1*%0^(2*%1),%1,0,+infinity)",vk,s.K));
+    // (term by term with its constant, C = 0 from x = 0: the constant shown)
+    S(R_LINE,line3(l?"%2=sum((-1)^%1*%0^(%1+1)/(%1+1),%1,0,+infinity)+C":"%2=sum((-1)^%1*%0^(2*%1+1)/(2*%1+1),%1,0,+infinity)+C",vk,s.K,Fk),0);
+    S(R_KCZERO,line3(l?"ln(1)=0+C,C=0":"atan(0)=0+C,C=0",vk),0);
+    S(R_EQV,Fk,ksum(Kk,s));
+  }
+  else S(R0[s.F],Fk,ksum(Kk,s));
+  const gen hp=is_one(s.p)?hx:symb_pow(hx,s.p),ub=is_one(s.b)?hp:is_minus_one(s.b)?symb_neg(hp):symb_prod(s.b,hp); // (h shown as x-a)
+  kser_t s0(s); s0.c=s.ca; s0.m=0;
+  gen ex; const gen T0=kterm(s0,h,ex,ctx);
+  const bool sh=h!=hx;
+  const gen g0=T==T0?Fh:sh?subst(s.g0,h,hx,false,ctx):s.g0,T0x=sh?subst(T0,h,hx,true,ctx):T0; // (atan(2x-4) as typed)
+  if (ub!=vk){ // x replaced: the factor in the known form (1/(1+4x^2)^2 = 1/(1-(-4x^2))^2), its series
+    const gen Fu=subst(F,s.U,ub,true,ctx);
+    S(R_KREPL,line3("%0->%1",vk,s.b.type==_FRAC?ev(ub):ub),0);
+    if (!is_one(s.ca) || pr(g0)!=pr(Fu)) S(R_LINE,line3(is_one(s.ca)?"%0=%2":"%0=#1*%2",g0,s.ca,Fu),0); // ((1/3)*1/(1-(-x/3)))
+    S(R_LINE,line3("%0=%1",g0,ksum(is_one(s.ca)?subst(K0,s.U,ub,true,ctx):symb_prod(s.ca,subst(K0,s.U,ub,true,ctx)),s)),0);
+    S(R_KSIMP,line3("%0=%1",g0,ksum(T0x,s)),0);
+  }
+  if (T!=T0){ // c h^m multiplied in
+    const gen Fx=sh?subst(Fh,h,hx,true,ctx):Fh,mu=sh?subst(ev(s.c/s.ca*pow(h,s.m,ctx)),h,hx,true,ctx):ev(s.c/s.ca*pow(h,s.m,ctx));
+    S(R_KMULT,line3("%0=%1*%2",Fx,mu,ksum(T0x,s)),0);
+    S(R_LINE,line3("%0=%1",Fx,ksum(sh?subst(T,h,hx,true,ctx):T,s)),0);
+  }
+  if (!conv) return;
+  if (s.F==KS_EXP || s.F==KS_SIN || s.F==KS_COS){ S(R_KALL,line3("-oo<%0<oo",X),0); S(R_PSRADA,txt("R=+infinity"),0); }
+  else {
+    gen lo,hi;
+    S(R_KRAD,SYM2(at_inferieur_strict,SYM(at_abs,ub),1),0);
+    pint(X,ev(abs(s.b,CTX)),hx,s.p,lo,hi);
+  }
+}
+// f in h = x-a: a sum of terms c h^m F(b h^p), integrate(g,t,0,x) of one: the known-series data of
+// each (false if a term is none of these)
+static NOINL bool ksplit(const gen & f,const gen & h,std::vector<kser_t> & v,vecteur & ints){
+  vecteur w; flat(at_plus,f,w);
+  EACH(it,w){
+    kser_t s; s.K=gen("k",CTX); s.U=gen("u",CTX); // (the parser's k and u: the known series' are parsed)
+    gen g=*it,in=0;
+    gen up=0;
+    if (is(g,at_integrate) && arg(g).type==_VECT && arg(g)._VECTptr->size()==4 && is_zero(arg(g,2)) && arg(g,1).type==_IDNT){
+      gen c,p; // (term by term from 0 to c h: t^e becomes (c h)^(e+1)/(e+1))
+      if (!kmono(arg(g,3),h,c,p) || !is_one(p)) return false;
+      in=arg(g,1); up=arg(g,3); g=arg(g,0);
+    }
+    if (!kmatch(g,is_zero(in)?h:in,s)) return false;
+    v.push_back(s); ints.push_back(is_zero(in)?gen(0):gen(makevecteur(in,up),_SEQ__VECT));
+  }
+  return !v.empty();
+}
+// a term c t^ex (c without t) integrated from 0 to U: c/(ex+1) U^(ex+1)
+static NOINL gen kint(const gen & T,const gen & t,const gen & U,const gen & ex,gen & ex1){
+  ex1=rn(ev(ex+1));
+  vecteur w,o,d(1,ex1); flat(at_prod,T,w);
+  EACH(it,w) if (!dep(*it,t)){ if (it->is_inv()) d.push_back(arg(*it)); else o.push_back(*it); }
+  o.push_back(symb_inv(prodof(d)));
+  o.push_back(symb_pow(U,ex1));
+  return prodof(o);
+}
+// f0 (in x) about a: h for x-a (x itself at 0; a name no one can type: theirs may be h), hx it as
+// shown, f f0 in h, its terms' known-series data
+static NOINL bool kprep(const gen & f0,const gen & x,const gen & a,gen & h,gen & hx,gen & f,std::vector<kser_t> & ks,vecteur & in){
+  h=is_zero(a)?x:gen(identificateur(" h")); hx=is_zero(a)?x:symb_plus(x,symb_neg(a));
+  f=is_zero(a)?f0:sub(f0,x,h+a);
+  return ksplit(f,h,ks,in);
+}
+// one term's series T (ex its power of h), its steps shown (sh: the term as typed): the known
+// series, u put in, c h^m in; an integral's term by term
+static NOINL gen kone(const kser_t & s,const gen & in,const gen & h,const gen & hx,const gen & sh,bool conv,gen & ex){
+  const bool i0=is_zero(in);
+  const gen t=i0?h:in[0];
+  gen T=kterm(s,t,ex,CTX),ex1;
+  kshow(s,t,i0?sh:arg(sh,0),T,i0?hx:t,conv && i0,CTX);
+  if (i0) return T;
+  { vecteur w,o; flat(at_prod,T,w); gen tp=1; EACH(it,w) if (dep(*it,t)) tp=*it; else o.push_back(*it); // (sum c integrate(t^e))
+    S(R_KINT,line3("%0=%1",sh,line("sum(%0*integrate(%1,%2,0,%3),%4,%5,+infinity)",prodof(o),tp,t,in[1],s.K,s.k0)),0); }
+  T=kint(T,t,in[1],ex,ex1); ex=ex1;
+  S(R_LINE,line3("%0=%1",sh,ksum(T,s)),0);
+  return T;
+}
+// series(f,x,a,inf): f's Taylor series in summation notation (the course's "find the Taylor series"),
+// by the known ones; where it converges; undef if f is not one of those shapes
+static NOINL gen ufun(const gen & g){ return is(g,at_of) && arg(g).type==_VECT && arg(g)._VECTptr->size()==2 && arg(g,0).type==_IDNT && is_zero(useries(g))?ev(g):g; } // (f(x) of f defined: its expression)
+static NOINL gen ksigma(const vecteur & v,const gen & x){
+  gen h,hx,f,ex; std::vector<kser_t> ks; vecteur in;
+  if (is(v[0],at_derive) && arg(v[0]).type==_VECT && arg(v[0])._VECTptr->size()==2 && arg(v[0],1)==x && is_zero(ev(v[2]))){ // (diff(g,x): g's series, each term differentiated)
+    const gen g=ufun(arg(v[0],0));
+    if (!kprep(g,x,0,h,hx,f,ks,in) || ks.size()!=1 || !is_zero(in[0])) return undef;
+    const gen T=kone(ks[0],0,h,hx,g,false,ex);
+    gen c,e; vecteur w,o; flat(at_prod,T,w);
+    e=0; EACH(it,w){ gen b=*it; const gen q=bexp(b); if (b==x) e=q; else o.push_back(*it); }
+    c=prodof(o);
+    const gen e1=rn(ev(e-1)),ee=rn(ev(e)); // (c x^e: c e x^(e-1))
+    vecteur tf; if (!is_one(c)) tf.push_back(c); if (!is_one(ee)) tf.push_back(ee); if (!is_zero(e1)) tf.push_back(is_one(e1)?x:symb_pow(x,e1));
+    const gen T1=tf.empty()?gen(1):prodof(tf);
+    kser_t s1=ks[0];
+    if (is_zero(ev(sub(e,s1.K,s1.k0)))) s1.k0=ev(s1.k0+1); // (the constant term's derivative is 0: from the next k)
+    S(R_KDTERM,line3("diff(%0,%1)=%2",g,x,ksum(T1,s1)),0);
+    return ksum(T1,s1);
+  }
+  const gen F=kpre(ufun(v[0]));
+  if (!has_op(F,*at_integrate) && !has_op(F,*at_sum) && !has_op(F,*at_derive) && lvar(F)==vecteur(1,x)){ // (a polynomial: its own Taylor polynomial, in powers of x-a: 2-x at 1 is 1-(x-1); no expand of an integral: 8 s more on the calculator)
+    const gen Fe=ev(F),d=_denom(Fe,CTX);
+    if (!dep(d,x)){
+      int k=0; for (gen q=Fe;k<30 && !is_zero(q=ev(D(q,x)));) ++k;
+      vecteur v2(v); v2[3]=k; tsteps(symbolic(at_series,gen(v2,_SEQ__VECT)),v2,x);
+      const gen a=ev(v[2]),hx=is_zero(a)?x:symb_plus(x,symb_neg(a));
+      vecteur t; gen q=Fe,fc=1;
+      for (int j=0;j<=k;++j){ const gen cj=rn(ev(sub(q,x,a)/fc)); if (!is_zero(cj)){ const gen pw=!j?gen(1):j==1?hx:symb_pow(hx,j); t.push_back(!j?cj:is_one(cj)?pw:is_minus_one(cj)?symb_neg(pw):symb_prod(cj,pw)); } q=ev(D(q,x)); fc=fc*(j+1); }
+      return t.empty()?gen(0):t.size()==1?t[0]:symb_plus(t); // (2-x at 1: 1-(x-1), not giac's 1-x+1)
+    } }
+  if (is(F,at_ln) && dep(arg(F),x)){ // (ln(3+4x), ln(x) at 2: ln(a0) + ln(1 + ...), the known series of the second)
+    const gen a=ev(v[2]),a0=ev(sub(arg(F),x,a));
+    if (!is_one(a0) && is_strictly_positive(a0,CTX) && lidnt(a0).empty()){
+      const gen L1=SYM(at_ln,symb_plus(1,symb_prod(symb_inv(a0),symb_plus(arg(F),symb_neg(a0)))));
+      const gen L1n=SYM(at_ln,ev(1+ev(rn((arg(F)-a0)/a0)))); // (1+4x/3)
+      vecteur v2(v); v2[0]=L1n;
+      const size_t m=mark();
+      S(R_LNSPLIT,line3("%0=ln(%1)+%2",F,a0,L1n),0);
+      const gen r=ksigma(v2,x);
+      if (!is_undef(r)) return symb_plus(SYM(at_ln,a0),r);
+      cut(m);
+      (void)L1;
+    }
+  }
+  if (!kprep(F,x,ev(v[2]),h,hx,f,ks,in) || ks.size()!=1){
+    if (!is_zero(ev(v[2]))) return undef;
+    vecteur w,mo; flat(at_plus,ev(expand(F,CTX)),w); // ((1-cos(x))/x^2: 1/x^2-cos(x)/x^2, the monomials apart)
+    gen kn=0; int nk=0;
+    EACH(it,w){ if (!dep(*it,x) || !dep(rn(ev(x*D(*it,x)/(*it))),x)) mo.push_back(*it); else { kn=*it; ++nk; } } // (c x^p: x f'/f is p)
+    if (nk!=1 || mo.empty() || mo.size()>3) return undef;
+    ks.clear(); in.clear();
+    if (!kprep(kn,x,0,h,hx,f,ks,in) || ks.size()!=1 || !is_zero(in[0])) return undef;
+    const size_t m=mark();
+    const gen T=kone(ks[0],0,h,hx,kn,false,ex);
+    kser_t s1=ks[0];
+    vecteur ms(mo);
+    for (int i=0;i<3 && !ms.empty();++i){ // (the first terms of the series and the monomials: they cancel)
+      const gen t0=rn(ev(sub(T,s1.K,s1.k0)));
+      bool hit=false;
+      EACHW(it,ms) if (is_zero(rn(ev(t0+*it)))){ ms.erase(it); hit=true; break; }
+      if (!hit){ cut(m); return undef; }
+      s1.k0=ev(s1.k0+1);
+    }
+    if (!ms.empty()){ cut(m); return undef; }
+    const gen r=ksum(T,s1);
+    S(R_KCZERO2,line3("%0=%1",v[0],r),0);
+    return r;
+  }
+  const gen T=kone(ks[0],in[0],h,hx,F,true,ex);
+  return ksum(h==x?T:subst(T,h,hx,true,CTX),ks[0]);
+}
+// f^(n)(a) = n! c_n, c_n the (x-a)^n coefficient of f's series (by the known ones, or f given as
+// a series sum(c(k)*(x-a)^e(k),k,k0,inf)): which term has that power, its coefficient, n! times it
+static NOINL gen kder(const gen & F,const gen & x,const gen & n,const gen & a,const gen & name){
+  gen h,hx,f,T,ex,K,k0,C,u;
+  std::vector<kser_t> ks; vecteur in;
+  if (is(F,at_sum) && arg(F).type==_VECT && arg(F)._VECTptr->size()==4 && arg(F,1).type==_IDNT && is_inf(arg(F,3))){
+    K=arg(F,1); k0=ev(arg(F,2)); hx=is_zero(a)?x:symb_plus(x,symb_neg(a)); T=norm(arg(F,0)); h=x; // (given)
+  }
+  else {
+    if (!kprep(F,x,a,h,hx,f,ks,in) || ks.size()!=1 || !is_zero(in[0])) return undef;
+    T=kone(ks[0],0,h,hx,F,false,ex);
+    K=ks[0].K; k0=ks[0].k0;
+  }
+  if (!ypart(T,h,u,ex,C) || (h==x && !is_zero(rn(ev(u-hx))))) return undef; // (T = C (x-a)^ex)
+  ex=rn(ev(ex));
+  gen al,be;
+  if (!is_linear_wrt(ex,K,al,be,CTX) || is_zero(al)) return undef;
+  const gen ks0=rn(ev((n-be)/al));
+  S(R_KTERM,symb_pow(hx,ex),symb_pow(hx,n)); // (the power n: e(k) = n)
+  S(R_NLINE,symb_equal(ex,n),0);
+  if (ks0.type!=_INT_ || is_strictly_greater(k0,ks0,CTX)){ S(R_KNONE,line3("%0^%1",hx,n),0); return 0; }
+  S(R_NLINE,symb_equal(K,ks0),0);
+  const gen Ck=subst(C,K,ks0,true,CTX),c=held(Ck),d=hprod(c,held(SYM(at_factorial,n)));
+  S(R_KCOEF,Ck,c);
+  S(R_KDER,line3("%2^((%0))(%1)",n,a,name),d); // (f^(2025)(0): the order in parentheses on the screen, not a power)
+  return d;
+}
+// the known term K0 written out at k with u put in; T worked out at k (h shown as hx unless keep);
+// a line g = the terms written out, + ... (the helpers keep kpoly small: 12 KB inline)
+static NOINL gen kat(const gen & K0,const kser_t & s,int k,const gen & u){
+  if (s.F==KS_GEO3) return ifold(subst(symb_prod(gen(k*(k+1)/2),symb_pow(s.U,gen(k-1))),s.U,u,true,CTX)); // (1+3x+6x^2+..., not 2*1/2+2*3*1/2*x)
+  return ifold(subst(subst(K0,s.K,k,true,CTX),s.U,u,true,CTX));
+}
+static NOINL gen kev(const gen & T,const kser_t & s,int k,const gen & h,const gen & hx,bool keep){ const gen y=rn(ev(sub(T,s.K,k))); return keep?y:subst(y,h,hx,true,CTX); }
+static NOINL void kln(int r,const char * f,const gen & g,const gen & c,const vecteur & w){ S(r,line3(f,g,c,txt(wsum(w,true))),0); }
+static NOINL vecteur wpoly(const gen & P,const gen & h,const gen & hx,int n); // (below)
+// a known series' terms up to x^n (and one more), worked out: its written-out line and polynomial
+static NOINL gen kterms(const kser_t & s,const gen & h,int n,vecteur & w){
+  gen ex; const gen T=kterm(s,h,ex,CTX);
+  gen P=0;
+  for (int k=s.k0.val;k<s.k0.val+60;++k){
+    const bool more=is_strictly_greater(ev(sub(ex,s.K,k)),n,CTX);
+    const gen y=rn(ev(sub(T,s.K,k)));
+    w.push_back(y); if (!more) P=P+y;
+    if (more) break;
+  }
   return P;
 }
+// taylor(f,x=0,n) of a product of two known series (cos(x)/(1-x), the course's "write both out and
+// multiply them"): each written out, the product up to x^n; undef if not that shape
+static NOINL gen kpoly2(const gen & f0,const gen & x,int n,const gen & G){
+  vecteur w,fs,rs; flat(at_prod,f0,w);
+  EACH(it,w){ gen b=*it; const gen e=bexp(b); if (dep(*it,x) && !(b==x && !dep(e,x))) fs.push_back(*it); else rs.push_back(*it); }
+  if (fs.size()!=2) return undef;
+  kser_t s1,s2; s1.K=s2.K=gen("k",CTX); s1.U=s2.U=gen("u",CTX);
+  if (!kmatch(symb_prod(prodof(rs),fs[0]),x,s1) || !kmatch(fs[1],x,s2)) return undef;
+  const size_t m=mark();
+  vecteur w1,w2;
+  const gen P1=kterms(s1,x,n,w1),P2=kterms(s2,x,n,w2);
+  S(R_KWOUT,line3("%0=%1",ev(symb_prod(prodof(rs),fs[0])),txt(wsum(w1,true))),0);
+  S(R_LINE,line3("%0=%1",fs[1],txt(wsum(w2,true))),0);
+  const vecteur pn=wpoly(ev(P1*P2),x,x,n);
+  S(R_KPMUL,line3("%0=(%1)*(%2)",f0,txt(wsum(w1,true)),txt(wsum(w2,true))),0);
+  S(R_LINE,line3("%0=%1",f0,txt(wsum(pn,true))),0);
+  const gen P=pn.empty()?gen(0):symb_plus(pn);
+  vecteur gt,kp; flat(at_plus,G,gt);
+  EACH(it,gt) if (!has_op(*it,*at_order_size)) kp.push_back(*it);
+  const gen Q=kp.empty()?gen(0):kp.size()==1?kp[0]:symb_plus(kp);
+  if (interrupted || !same(Q,ev(P))){ cut(m); return undef; }
+  S(R_KWP,line3("p_%0(%1)=%2",gen(n),x,txt(wsum(pn,false))),0);
+  return Q;
+}
+// f's Taylor polynomial about 0 up to x^D when its terms are the known series' shapes or powers of x
+// (e^(x^2)+2cos(x)-3, 4x^2/(1-3x)-4x^2); undef if not
+static NOINL gen kpolyq(const gen & f,const gen & x,int D){
+  vecteur w; flat(at_plus,ev(f),w);
+  gen P=0;
+  EACH(it,w){
+    if (shape(*it,0)){ P=P+*it; continue; } // (a polynomial term: as it is)
+    kser_t s; s.K=gen("k",CTX); s.U=gen("u",CTX);
+    if (!kmatch(*it,x,s)) return undef;
+    gen ex; const gen T=kterm(s,x,ex,CTX);
+    for (int k=s.k0.val;k<s.k0.val+60;++k){ if (is_strictly_greater(ev(sub(ex,s.K,k)),D,CTX)) break; P=P+ev(sub(T,s.K,k)); }
+  }
+  return ev(expand(P,CTX));
+}
+// lim n/d at 0, both 0 there: their series' first terms (the course's way for e^(x^2)+2cos(x)-3), the
+// limit of the lowest powers' quotient; undef if either is not made of the known series
+static NOINL gen lser(const gen & f,const gen & n,const gen & d,int lev){
+  const gen Pn=kpolyq(n,X,8),Pd=kpolyq(d,X,8);
+  if (is_undef(Pn) || is_undef(Pd) || is_zero(Pn) || is_zero(Pd)) return undef;
+  const vecteur wn=wpoly(Pn,X,X,8),wd=wpoly(Pd,X,X,8);
+  if (wn.empty() || wd.empty()) return undef;
+  const size_t m=mark();
+  vecteur ls; // (each known series written out to the lowest power, e^(x^2) = 1+x^2+x^4/2+..., then the sum's: 7/12 x^4+...)
+  for (int s=0;s<2;++s){
+    const gen & g=s?d:n,& w0=s?wd[0]:wn[0],dg=_degree(makesequence(w0,X),CTX);
+    const int D=dg.type==_INT_?dg.val:8;
+    vecteur t; flat(at_plus,g,t);
+    if (shape(ev(g),0)) continue; // (x^2 below: no series to write)
+    if (t.size()>1) EACH(it,t){ const gen u=it->is_neg()?arg(*it):*it; if (shape(ev(u),0)) continue; const gen P=kpolyq(u,X,D); if (!is_undef(P)) ls.push_back(line3("%0=%1",u,txt(wsum(wpoly(P,X,X,D),true)))); } // (cos(x) = 1-x^2/2+..., not -cos(x))
+    ls.push_back(line3("%0=%1",g,txt(wsum(vecteur(1,w0),true))));
+  }
+  for (unsigned i=0;i<ls.size();++i) S(i?R_LINE:R_LSER,ls[i],0);
+  const gen q=quo(wn[0],wd[0]);
+  S(R_LSERL,Lx(f),Lx(q));
+  const gen L=lsteps(rn(ev(q)),lev+1);
+  if (is_undef(L)) cut(m);
+  return L;
+}
+// taylor(f,x=a,n) the course's way when each term of f is one of those shapes (4x cos(2x), 6x e^x -
+// 4cos(x), integrate(sin(t^2),t,0,2x)): each one's series to (x-a)^n, then added; checked against
+// giac's series (G: its terms); undef if not
+// terms as one line in their order, "+..." after them (the course's series written out)
+static NOINL std::string wsum(const vecteur & w,bool dots){
+  std::string s;
+  EACH(it,w){ const std::string p=it->is_plus()?"("+pr(*it)+")":pr(*it); const char * c=p.c_str(); if (!*c) continue; if (!s.empty() && *c!='-') s+="+"; s+=c; } // ((0^2+1)+..., a term that is a sum kept whole)
+  if (s.empty()) s="0";
+  if (dots) s+="+..."; // (the ellipsis: three dots, the math fonts have no glyph for it)
+  return s;
+}
+// c h^j as the course writes it: the number, then (x-a)^j kept whole
+static NOINL gen wmono(const gen & c,const gen & hx,int j){
+  const gen hk=j==0?gen(1):j==1?hx:symb_pow(hx,j);
+  if (!j) return c;
+  return is_one(c)?hk:is_minus_one(c)?symb_neg(hk):symb_prod(c,hk);
+}
+// a polynomial in h as the course writes it, the lowest power first (h shown as hx), up to h^n
+static NOINL vecteur wpoly(const gen & P,const gen & h,const gen & hx,int n){
+  vecteur w,cs(n+1,gen(0)),t; // (each term c h^j: its c added at j; giac's coeff pulled in 50 KB)
+  flat(at_plus,ev(expand(P,CTX)),t);
+  EACH(it,t){
+    vecteur f,c; flat(at_prod,*it,f);
+    int j=0;
+    EACH(jt,f){ gen b=*jt; const gen e=bexp(b); if (b==h && e.type==_INT_) j+=e.val; else c.push_back(*jt); }
+    if (j>=0 && j<=n) cs[j]=cs[j]+prodof(c);
+  }
+  for (int j=0;j<=n;++j){ const gen c=rn(ev(cs[j])); if (!is_zero(c)) w.push_back(wmono(c,hx,j)); }
+  return w;
+}
+// taylor(f,x=a,n) the course's way when each term of f is one of those shapes (4x cos(2x), 6x e^x -
+// 4cos(x)): each known series written out (cos(x) = 1-x^2/2!+x^4/4!-...), the inside put in for x,
+// the terms worked out, the multiplier in, the parts added, the terms up to (x-a)^n; checked
+// against giac's series (G: its terms); undef if not (an integral's term: the summation notation)
+static NOINL gen kpoly(const gen & f0,const gen & x,const gen & a,int n,const gen & G){
+  gen h,hx,f; std::vector<kser_t> ks; vecteur in,ft,fx;
+  if (!is_zero(a) && (has_op(f0,*at_sin) || has_op(f0,*at_cos))) return undef; // (sin about pi/2 is cos about 0 to giac: the derivatives, as the course)
+  gen poly=0,f1=f0; // (e^(x^2)+2cos(x)-3, 4x^2/(1-3x)-4x^2: the polynomial terms added as they are)
+  if (is_zero(a)){ vecteur t,o; flat(at_plus,f0,t); EACH(it,t) if (shape(ev(*it),0)) poly=poly+*it; else o.push_back(*it);
+    if (!is_zero(poly) && !o.empty()) f1=o.size()==1?o[0]:symb_plus(o); else poly=0; }
+  if (!kprep(f1,x,a,h,hx,f,ks,in)) return is_zero(a)?kpoly2(norm(f0),x,n,G):gen(undef); // (a product of two: both written out, multiplied)
+  flat(at_plus,f,ft); flat(at_plus,f1,fx);
+  if (fx.size()!=ft.size()) fx=ft; // (the terms shown as typed)
+  const size_t m=mark();
+  gen P=0,PA=0; // (P: up to h^n; PA: every term shown)
+  int top=n;
+  const bool many=ks.size()>1 || !is_zero(poly);
+  for (unsigned i=0;i<ks.size();++i){
+    const kser_t & s=ks[i];
+    const bool ig=!is_zero(in[i]); // (integrate(g,t,0,c x): g's series, then term by term)
+    const gen t=ig?in[i][0]:h,U=ig?in[i][1]:gen(0),hx_=ig?t:hx,vk=ig?t:h==hx?h:X;
+    if (many){ S(R_KFOR,fx[i],0); ++depth_; }
+    gen ex; const gen T=kterm(s,t,ex,CTX);
+    kser_t s0(s); s0.c=s.ca; s0.m=0;
+    gen ex0; const gen T0=kterm(s0,t,ex0,CTX);
+    const gen F=norm(gen(KSF[s.F],CTX)),K0=norm(gen(KST[s.F],CTX));
+    const gen hp=is_one(s.p)?hx_:symb_pow(hx_,s.p),ub=is_one(s.b)?hp:is_minus_one(s.b)?symb_neg(hp):symb_prod(s.b,hp);
+    const gen ei=ig?gen(1):gen(0); // (integrated: one power more)
+    int j1=s.k0.val; // (the terms with a power up to n, and one more: the pattern)
+    while (j1<s.k0.val+60 && !is_strictly_greater(ev(sub(ex,s.K,j1)+ei),n,CTX)) ++j1;
+    vecteur wa,wb,wc,wd,wi,wj;
+    gen Pi=0;
+    const bool kp=h==x || ig;
+    for (int k=s.k0.val;k<=j1;++k){
+      wa.push_back(kat(K0,s,k,vk)); wb.push_back(kat(K0,s,k,ub));
+      wc.push_back(kev(T0,s,k,h,hx,kp)); wd.push_back(kev(T,s,k,h,hx,kp));
+      const gen y=kev(T,s,k,h,hx,true),e=ev(sub(ex,s.K,k));
+      if (ig){ // c t^e from 0 to U: c/(e+1) U^(e+1)
+        const gen c=rn(ev(y/pow(t,e,CTX))),e1=ev(e+1);
+        wi.push_back(symb_prod(ev(c/e1),symb_pow(U,e1)));
+        const gen yi=rn(ev(c/e1*pow(U,e1,CTX)));
+        wj.push_back(yi); Pi=Pi+(h==x?yi:sub(yi,x,h+a));
+      }
+      else Pi=Pi+y;
+      const gen ee=ev(e+ei);
+      if (ee.type==_INT_ && ee.val>top) top=ee.val;
+    }
+    { static const unsigned short RW[]={R_KWOUT,R_KWOUT,R_KWOUT,R_KWOUT,R_KWD1,R_KWD2,R_KWLN,R_KWAT}; // (ln and atan: from 1/(1+x), not known)
+      kln(RW[s.F],"%0=%2",subst(F,s.U,vk,true,CTX),0,wa); }
+    const gen gi=ig?arg(fx[i],0):fx[i]; // (the integrand, or the term)
+    const gen g0=T==T0?gi:h!=hx && !ig?subst(s.g0,h,hx,false,CTX):s.g0;
+    if (ub!=vk){
+      S(R_KREPL,line3("%0->%1",vk,s.b.type==_FRAC?ev(ub):ub),0);
+      kln(R_LINE,is_one(s.ca)?"%0=%2":"%0=#1*(%2)",g0,s.ca,wb);
+    }
+    if (ub!=vk || !is_one(s.ca)) kln(R_KSIMP,"%0=%2",g0,0,wc);
+    if (T!=T0){
+      const gen mu=h!=hx && !ig?subst(ev(s.c/s.ca*pow(h,s.m,CTX)),h,hx,true,CTX):ev(s.c/s.ca*pow(t,s.m,CTX));
+      kln(R_KMULT,"%0=%1*(%2)",gi,mu,wc);
+      kln(R_LINE,"%0=%2",gi,0,wd);
+    }
+    if (ig){ kln(R_KINT,"%0=%2",fx[i],0,wi); kln(R_LINE,"%0=%2",fx[i],0,wj); }
+    if (many) --depth_;
+    PA=PA+Pi;
+  }
+  PA=PA+poly;
+  const vecteur pn=wpoly(PA,h,hx,n);
+  if (many) kln(R_KWADD,"%0=%2",f0,0,wpoly(PA,h,hx,top));
+  P=pn.empty()?gen(0):symb_plus(pn);
+  vecteur gt,kp; flat(at_plus,G,gt);
+  EACH(it,gt) if (!has_op(*it,*at_order_size)) kp.push_back(*it);
+  const gen Q=kp.empty()?gen(0):kp.size()==1?kp[0]:symb_plus(kp); // (giac's: from the lowest power up)
+  if (interrupted || !same(Q,ev(P))){ cut(m); return undef; }
+  S(R_KWP,line3("p_%0(%1)=%2",gen(n),x,txt(wsum(pn,false))),0);
+  return Q;
+}
 // One calculus operation, with none inside: its value (undef: no steps)
+#ifndef FLOWCE_SERIES // (no series pack: 2.4's steps for sums and Taylor polynomials)
+#include "steps_series24.inc"
+#endif
 static NOINL gen one_(const gen & op){
   const vecteur & v=*arg(op)._VECTptr;
   gen x=v[1]; var_=&x;
@@ -2198,6 +4106,17 @@ static NOINL gen one_(const gen & op){
     gen a=ev(v[2]),L,G;
     la_=&a; ldir_=v.size()>3?(npos(v[3])?1:-1):0;
     budget_=80;
+    if (a==plus_inf && !ldir_){ // (a sequence: decided by lgrow, no giac limit: (2^n+n!)/(2n^9+3n^n) took 15 s on the calculator)
+      const size_t m=mark();
+      trust_=false; L=lsteps(v[0],0);
+      if (trust_ && !is_undef(L) && !interrupted) return L;
+      if (!is_undef(L) && !interrupted){ // (no giac limit either: the term at 10^6 and 10^7 agrees; ln(k+1)-ln(k) took 3 minutes)
+        const gen y1=evalf(sub(v[0],x,1000000),1,CTX),y2=evalf(sub(v[0],x,10000000),1,CTX),Le=evalf(L,1,CTX);
+        if (y1.type==_DOUBLE_ && y2.type==_DOUBLE_ && (Le.type==_DOUBLE_?fabs(y2._DOUBLE_val-Le._DOUBLE_val)<1e-3*(1+fabs(Le._DOUBLE_val)) && fabs(y2._DOUBLE_val-Le._DOUBLE_val)<=fabs(y1._DOUBLE_val-Le._DOUBLE_val)+1e-9:
+            (L==plus_inf?y2._DOUBLE_val>1e3 && y2._DOUBLE_val>y1._DOUBLE_val:L==minus_inf && y2._DOUBLE_val<-1e3 && y2._DOUBLE_val<y1._DOUBLE_val))) return L;
+      }
+      cut(m); budget_=80;
+    }
     // giac's limit of the problem as typed (of sin(x)/sqrt(1-cos(x)) at 0: "limits are distinct";
     // of sin(x)*(1-cos(x))^(-1/2), the steps' form, sqrt(2)); no limit: the two sides first (|x|/x
     // at 0: L'Hopital was tried for 5 s on the calculator before), then the other ways
@@ -2207,10 +4126,16 @@ static NOINL gen one_(const gen & op){
     if (is_undef(L)) L=lsteps(v[0],0);
     if (interrupted || is_undef(L)) return undef;
     if (L.type==_IDNT) return G.type==_STRNG || G==unsigned_inf || is_undef(G)?L:gen(undef);
-    return L==G || (finv(L) && finv(G) && (is_zero(evf(L-G)) || same_num(L,G,X)))?L:gen(undef); // (x^2/3, abs(x^2)/3)
+    return L==G || (finv(L) && finv(G) && (is_zero(evalf(L-G,1,CTX)) || close(L,G) || same_num(L,G,X)))?L:gen(undef); // (x^2/3, abs(x^2)/3)
   }
-  if (is(op,at_sum)) return ssteps(op,v,x);
-  if (is(op,at_series)) return tsteps(op,v,x);
+#ifndef FLOWCE_SERIES // (no series pack: 2.4's steps for sums and Taylor polynomials, steps_series24.inc)
+  if (is(op,at_sum)) return s24::ssteps(op,v,x);
+  if (is(op,at_series)) return s24::tsteps(op,v,x);
+#else
+  if (is(op,at_sum)) return v.size()==4 && !is_inf(ev(v[3]))?sfin(op,v,x):ssteps(op,v,x);
+  if (is(op,at_series) && v.size()==4 && is_inf(ev(v[3]))){ const gen u=psum(v[0]); if (!is_zero(u)){ if (u!=v[0] && !is(v[0],at_derive) && !is(v[0],at_integrate)) S(R_KMULT,line3("%0=%1",v[0],u),0); return u; } } // (a given series: itself, a multiplier in each term)
+  if (is(op,at_series)) return v.size()==4 && is_inf(ev(v[3]))?ksigma(v,x):tsteps(op,v,x);
+#endif
   if (is(op,at_derive)){
     if (v.size()>2) return undef; // (of order 5 or more: nest)
     gen r;
@@ -2231,6 +4156,18 @@ static NOINL gen one_(const gen & op){
   gen a,b,F,f=v[0],lo,hi;
   bool fin=v.size()==4;
   size_t m0=mark();
+  if (fin){ // c t^E from a to b, E with k in it: c (b^(E+1) - a^(E+1))/(E+1)
+    vecteur w,c; flat(at_prod,norm(f),w);
+    gen E=undef;
+    EACH(it,w){ if (it->is_pow() && arg(*it,0)==x && !dep(arg(*it,1),x) && !lidnt(arg(*it,1)).empty() && is_undef(E)) E=arg(*it,1); else if (!dep(*it,x)) c.push_back(*it); else { E=undef; break; } }
+    if (!is_undef(E) && is_zero(ev(v[2]))){
+      const gen C=prodof(c),E1=ev(E+1),r=ev(C*pow(v[3],E1,CTX)/E1);
+      if (!is_one(C)) S(R_ICON,line("%0=%1*integrate(%2,%3,0,%4)",op,C,symb_pow(x,E),x,v[3],zero),0);
+      S(R_IPOW,line("%0*($1^(%2))/(%2)",C,v[3],E1,zero,zero,zero),0);
+      S(R_EQV,op,r);
+      return r;
+    }
+  }
   if (fin){
     a=ev(v[2]); b=ev(v[3]);
     fin=!is_inf(a) && !is_inf(b);
@@ -2343,7 +4280,7 @@ static gen unexp(const gen & g){
 gen steps_derivative(const gen & f,const gen & x,GIAC_CONTEXT){
   std::vector<step_t> v;
   gen xx=x;
-  ctx_=contextptr; out_=&v; depth_=0; nsub_=0; var_=&xx;
+  ctx_=contextptr; out_=&v; depth_=0; nsub_=0; var_=&xx; gen la_home=plus_inf; la_=&la_home; ldir_=0; // (no limit point left from a call before: la_ pointed at a gone local)
   gen r=dsteps(norm(f));
   return !is_undef(r) && !interrupted && same_num(ev(r),D(f,x),x)?mergek(unexp(r)):gen(undef);
 }
@@ -2521,7 +4458,17 @@ gen steps_app(const gen & g,const char ** msg,GIAC_CONTEXT){
 static NOINL gen el_norm(const gen & g);
 static NOINL bool poly_quo(const gen & e,gen & n,gen & d); // (DeltaCE, below: a division typed)
 // the problem as typed (mergek without its rewrites: one denominator, 1/(n(n+2)), not 1/n/(n+2))
-gen steps_problem(const gen & input,GIAC_CONTEXT){
+static NOINL bool dsubst(const gen & g,gen & F,gen & x,gen & n,gen & a); // (below)
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+static NOINL gen m3_problem(const gen & input); // (steps_m3.inc)
+#endif
+gen steps_problem(const gen & input0,GIAC_CONTEXT){
+  const gen input=steps_fixvar(input0,contextptr);
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  { ctx_=contextptr; gen x(identificateur("x")); gen * ov=var_; var_=&x; const gen h=m3_problem(input); var_=ov; if (!is_zero(h)) return h; } // (u x v, proj_v u as the course writes them)
+#endif
+  { gen F,x,n,a; ctx_=contextptr; // f^(n)(a) as typed (deriv_notation made it subst(diff(f(x),x,n),x=a))
+    if (dsubst(input,F,x,n,a)) return line3("%2^((%0))(%1)",n,a,is(F,at_of) && arg(F).type==_VECT && arg(F,0).type==_IDNT?arg(F,0):gen(identificateur("f"))); }
   if (input.is_symb_of_sommet(at_implicitdiff) && arg(input).type==_VECT){ // (DeltaCE) the equation
     ctx_=contextptr;
     const gen e=arg(input,0);
@@ -2653,10 +4600,33 @@ static NOINL void PL(int r,const char * f,const gen & a,const gen & b=zero,const
 }
 static NOINL bool negp(const gen & g){ return pr(g)[0]=='-'; } // (printed with a minus sign: -2, -x+1)
 static NOINL void qline(const gen & q,const gen & a,const gen & b){ PL(R_ALINE,"%0=(%1)*(%2)",q,a,b); } // (x^2-1=(x-1)*(x+1))
+// x = (n +- sqrt(d))/e with d < 0: no real solution, the complex ones (the console's answer): sqrt(d) as
+// i sqrt(-d), the real and the imaginary parts apart, the two solutions (x^2 = -9: x = +-sqrt(-9) = +-3i;
+// x^2+2x+5 = 0: x = (-2 +- sqrt(-16))/2 = (-2 +- 4i)/2 = -1 +- 2i)
+static NOINL void q_complex(const gen & n,const gen & e,const gen & d){
+  const bool z=is_zero(n);
+  PL(R_QCPX,z && is_one(e)?"%0=~sqrt(%1)":z?"%0=(~sqrt(%1))/#2":"%0=(%3~sqrt(%1))/#2",X,d,e,n);
+  const gen r=nrm(ev(cst_i*SYM(at_sqrt,ev(-d)))); // (4i, 2i sqrt(2): as the answer writes it)
+  if (!is_one(e)) PL(R_ALINE,z?"%0=(~%1)/#2":"%0=(%3~%1)/#2",X,r,e,n);
+  const gen P=ratq(n,e),Q=ev(cst_i*nrm(ev(SYM(at_sqrt,ev(-d))/ab(e))));
+  PL(R_ALINE,is_zero(P)?"%0=~%2":"%0=%1~%2",X,P,Q);
+  S(R_QTWO,eva(P,Q),evs(P,Q)); // (as the console lists them: + first)
+}
 static NOINL bool eq_quadratic(const gen & L,const gen & R){
-  gen p=evx(evs(L,R));
-  if (spos(-co(p,2))) p=evx(evs(R,L)); // (to the side where x^2 is positive: x^2-3x-2 = 0)
-  if (!is_zero(R) || !written(p,L)) S(R_QSTD,p);
+  gen p=ev(expand(ev(L-R),CTX));
+  if (is_strictly_positive(-co(p,2),CTX)) p=ev(expand(ev(R-L),CTX)); // (to the side where x^2 is positive: x^2-3x-2 = 0)
+  if (is_zero(co(p,1))){ // x^2 = q: the square root of both sides (1+x^2 = 1.25: x^2 = 0.25, x = +-0.5), not the formula
+    const gen q=ev(-co(p,0)/co(p,2));
+    if (!(R==q && L==SYM2(at_pow,X,2))) PL(R_QISO,"%0^2=%1",X,q); // (not as typed: sin(x)^2 = 1/4)
+    if (is_strictly_positive(-q,CTX)){ PL(R_QSQN,"%0^2=%1<0",X,q); q_complex(0,1,q); return true; }
+    if (is_zero(q)){ S(R_QONE,0,0); return true; }
+    const gen r=ev(symbolic(at_sqrt,q));
+    PL(R_QROOT,"%0=~sqrt(%1)",X,q);
+    if (pr(r)!=pr(symbolic(at_sqrt,q))) PL(R_ALINE,"%0=~%1",X,r);
+    S(R_QTWO,ev(-r),r);
+    return true;
+  }
+  if (!is_zero(R) || !written(p,L)) S(R_QSTD,p,0);
   gen k=lcd(co(p,2),co(p,1),co(p,0),0);
   if (!is_one(k)){
     S(R_ALCD,p,zero,k);
@@ -2668,7 +4638,7 @@ static NOINL bool eq_quadratic(const gen & L,const gen & R){
   // x = (-(b) +- sqrt(b^2-4ac))/(2a), the values as they are
   PL(R_QFORM,is_zero(b)?"%0=(~sqrt(0^2-4*#1*#2))/(2*#1)":"%0=(-#3~sqrt(#3^2-4*#1*#2))/(2*#1)",X,a,c,b);
   PL(R_QDISC,"#0^2-4*#1*#2=%3",b,a,c,d);
-  if (spos(-d)){ S(R_QNONE,d); return true; }
+  if (spos(-d)){ S(R_QNONE,d); q_complex(evn(b),evm(2,a),d); return true; }
   const gen n=evn(b),e=evm(2,a),r=ev(SYM(at_sqrt,d)); // r: sqrt(12) is 2 sqrt(3)
   const bool z=is_zero(n); // (b = 0: +-, not 0 +-)
   PL(R_QSIMP,z?"%0=(~sqrt(%1))/#2":"%0=(%3~sqrt(%1))/#2",X,d,e,n);
@@ -4519,13 +6489,578 @@ static NOINL bool impl_steps(const gen & input){
   return true;
 }
 
-bool steps_of(const gen & input,std::vector<step_t> & out,GIAC_CONTEXT){
+// answer.cc: a power series giac has no value for (undef, or the sum left as is): what the steps
+// end with, its interval of convergence ((x>-2) and (x<4)); 0 if none
+gen steps_series_value(const gen & s,GIAC_CONTEXT){
+  if (!s.is_symb_of_sommet(at_sum) || arg(s).type!=_VECT || arg(s)._VECTptr->size()!=4 || arg(s)[1].type!=_IDNT) return 0;
+  std::vector<step_t> out;
+  gen x(identificateur("x"));
+  ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=&s; rel_=0; gen la_home=plus_inf; la_=&la_home; ldir_=0; // (no limit point left from a call before: la_ pointed at a gone local)
+  quickG_=true; // (the console's: no lines built, no giac sum; the interval's steps took 4 s on the calculator)
+  const gen r=one(norm(s)); // (as steps_of reads it: a/b as a*inv(b))
+  quickG_=false;
+  out_=0;
+  return is_undef(r) || interrupted?gen(0):r;
+}
+static NOINL gen useries(const gen & g); // (below)
+// subst(diff(F,x,n),x=a) (or subst(...,x,a)), n >= 3 an integer: F, x, n, a
+static NOINL bool dsubst(const gen & g,gen & F,gen & x,gen & n,gen & a){
+  if (!is(g,at_subst) || arg(g).type!=_VECT) return false;
+  const vecteur & v=*arg(g)._VECTptr;
+  if (v.size()==2 && is(v[1],at_equal)){ x=arg(v[1],0); a=arg(v[1],1); }
+  else if (v.size()==3){ x=v[1]; a=v[2]; }
+  else return false;
+  if (!is(v[0],at_derive) || arg(v[0]).type!=_VECT || arg(v[0])._VECTptr->size()!=3 || arg(v[0],1)!=x || x.type!=_IDNT) return false;
+  F=arg(v[0],0); n=ev(arg(v[0],2));
+  return n.type==_INT_ && (n.val>=3 || (n.val>=1 && (!is_zero(useries(F)) || is(F,at_sum))));
+}
+// f^(n)(c) of a series f away from its center (does f'(2) converge?): each term differentiated n times,
+// c put in for x, then that series' own tests; undef if not that
+static NOINL gen doff(const gen & u,const gen & x,const gen & n,const gen & a,const gen & name){
+  if (!is(u,at_sum) || arg(u).type!=_VECT || arg(u)._VECTptr->size()!=4 || arg(u,1).type!=_IDNT || dep(a,x)) return undef;
+  const vecteur & v=*arg(u)._VECTptr;
+  gen td=v[0];
+  for (int j=0;j<n.val;++j) td=D(td,x);
+  td=rn(ev(td));
+  gen k=v[1];
+  const gen sd=SYM(at_sum,makesequence(td,k,v[2],v[3])),s2=SYM(at_sum,makesequence(subst(td,x,a,false,CTX),k,v[2],v[3]));
+  if (n.val==1) S(R_KDTERM,line("%0'(%1)=%2",name,x,sd,zero,zero,zero),0); else S(R_KDTERM,line("%0^((%1))(%2)=%3",name,n,x,sd,zero,zero),0);
+  if (n.val==1) S(R_SUBV,line("%0'(%1)=%2",name,a,s2,zero,zero,zero),0); else S(R_SUBV,line("%0^((%1))(%2)=%3",name,n,a,s2,zero,zero),0);
+  gen * ov=var_; var_=&k;
+  ++depth_; const gen r=ssteps(s2,*arg(s2)._VECTptr,k); --depth_;
+  var_=ov;
+  return r;
+}
+// f^(n)(a) by the series (F: f(x) of a function the user defined, or the expression itself)
+static NOINL gen dsteps_n(const gen & g,bool & big){
+#ifndef FLOWCE_SERIES
+  big=false; return undef; // (no series pack: no f^(n)(a) by the series)
+#endif
+  gen F,x,n,a;
+  big=false;
+  if (!dsubst(g,F,x,n,a)) return undef;
+  big=n.val>30; // (no series: no steps, differentiating 2025 times never ends)
+  var_=&x;
+  const gen name=is(F,at_of) && arg(F).type==_VECT && arg(F,0).type==_IDNT?arg(F,0):gen(identificateur("f"));
+  const size_t m=mark();
+  gen u=useries(F); // (f(x) of f defined as sum(...): the sum itself, not giac's value of it)
+  if (is_zero(u) && is(F,at_sum)) u=F; // (the sum typed in diff itself)
+  gen r=kder(is_zero(u)?ev(F):u,x,n,ev(a),name);
+  if (is_undef(r) && !is_zero(u) && n.val<=6){ cut(m); r=doff(u,x,n,ev(a),name); } // (away from the center: f'(2) by its own series)
+  if (is_undef(r)) cut(m);
+  return r;
+}
+// a series with its center put in, sum(c(k)*0^e(k),k,k0,inf) (f(1) of the course's f(x) = sum(...(x-1)^(2k))):
+// only the term with e(k) = 0 is left (0^0 = 1; giac's 0^(2k) made it 0 or undef); undef if not that
+static NOINL gen spoly(const gen & s,const gen & x,const gen & a,int n); // (above)
+static NOINL gen scenter(const gen & s){
+  if (!is(s,at_sum) || arg(s).type!=_VECT || arg(s)._VECTptr->size()!=4 || arg(s,1).type!=_IDNT) return undef;
+  const gen k=arg(s,1),k0=ev(arg(s,2));
+  vecteur w,o; flat(at_prod,norm(arg(s,0)),w);
+  gen ks=undef,al1=0;
+  EACH(it,w){
+    gen b=*it,e=1;
+    while (b.is_pow()){ e=arg(b,1)*e; b=arg(b,0); }
+    if (is_undef(ks) && dep(e,k) && is_zero(ev(b))){ gen al,be; if (!is_linear_wrt(ev(e),k,al,be,CTX) || is_zero(al)) return undef; ks=ev(-be/al); al1=al; continue; }
+    o.push_back(*it);
+  }
+  if (is_undef(ks)) return undef;
+  if (ks.type!=_INT_ || is_strictly_greater(k0,ks,CTX)) return is_strictly_positive(al1,CTX) && !is_strictly_greater(ks,k0,CTX)?gen(0):gen(undef); // (no term with 0^0: every term 0, f(0) of sum(k*x^(2k),k,1,inf))
+  return ev(sub(prodof(o),k,ks));
+}
+// lim |a(n+1)/a(n)| typed as the ratio test's limit, A over B with A = B at n+1 (the course's HW): B and its
+// index n; false if not that shape (its limit then by the ratio test's pairs, not simplify's expanded quotient:
+// 1.7 s on the PC, minutes on the calculator, for (2(n+1)^2/(4^(n+1)+...))/(2n^2/(4^n+...)))
+// n in an exponent of g (2^n, n^n), the index given
+static NOINL bool nexn(const gen & g,const gen & n){
+  if (g.is_pow() && dep(arg(g,1),n)) return true;
+  if (g.type!=_SYMB) return false;
+  const gen & a=arg(g);
+  if (a.type!=_VECT) return nexn(a,n);
+  EACH(it,*a._VECTptr) if (nexn(*it,n)) return true;
+  return false;
+}
+// the factors of a typed ratio without their absolute values (the ratio of positive terms): A/B, A
+// times B upside down, |A| times the rest, as typed
+static NOINL void rfac(const gen & u,vecteur & w,bool iv){
+  if (is(u,at_abs)) return rfac(arg(u),w,iv);
+  if (is(u,at_division) && arg(u).type==_VECT && arg(u)._VECTptr->size()==2){ rfac(arg(u,0),w,iv); return rfac(arg(u,1),w,!iv); }
+  if (u.is_prod() && arg(u).type==_VECT){ EACH(it,*arg(u)._VECTptr) rfac(*it,w,iv); return; }
+  if (u.is_inv()) return rfac(arg(u),w,!iv);
+  w.push_back(iv?symb_inv(u):u);
+}
+static NOINL bool rform(const gen & g,gen & B,gen & n){
+  if (!is(g,at_limit) || arg(g).type!=_VECT || arg(g)._VECTptr->size()<3 || arg(g,1).type!=_IDNT || ev(arg(g,2))!=plus_inf) return false;
+  n=arg(g,1);
+  gen f=arg(g,0),A;
+  const bool ab=has_op(f,*at_abs);
+  if (is(f,at_abs)) f=arg(f);
+  if (is(f,at_division) && arg(f).type==_VECT && arg(f)._VECTptr->size()==2){ A=arg(f,0); B=arg(f,1); }
+  else if (f.is_prod() && arg(f).type==_VECT){ // (a*inv(b) as parsed)
+    vecteur o; int ni=0;
+    EACH(it,*arg(f)._VECTptr){ if (it->is_inv() && dep(arg(*it),n)){ B=arg(*it); ++ni; } else o.push_back(*it); }
+    if (ni!=1) B=0;
+    A=prodof(o);
+  }
+  if (!dep(B,n) || !dep(A,n)) B=0;
+  gen A1=A,B1=B; // (x and the other names as numbers: 0.37)
+  const vecteur ids=lidnt(arg(g,0));
+  EACH(it,ids) if (*it!=n){ A1=subst(A1,*it,gen(0.37),false,CTX); B1=subst(B1,*it,gen(0.37),false,CTX); }
+  for (int j=3;j<9 && !is_zero(B);j+=2){ const gen a1=evalf(sub(A1,n,j),1,CTX),b1=evalf(sub(B1,n,j+1),1,CTX); if (a1.type!=_DOUBLE_ || b1.type!=_DOUBLE_ || !close(a1,b1)) B=0; }
+  if (is_zero(B)){
+    // a(n+1) times a(n) upside down in any order (|(n+1)!/(n+1)^(n+1)| n^n/n!, as the course writes it):
+    // the factors split so that a(n) = 1 over the ones of 1/a(n), checked at n = 2, 3, 4; a constant goes
+    // with a(n+1), or as k^n in a(n); only a(n) with n! or n in an exponent (n/(n+1) is a plain limit)
+    vecteur w,F;
+    rfac(arg(g,0),w,false);
+    gen k=1;
+    EACH(it,w) if (dep(*it,n)) F.push_back(*it); else k=k*(*it);
+    const int m=F.size();
+    if (m<2 || m>8) return false;
+    double v[8][4],ke=1;
+    for (int i=0;i<=m;++i){
+      gen u=i<m?F[i]:k;
+      EACH(it,ids) if (*it!=n) u=subst(u,*it,gen(0.37),false,CTX);
+      for (int t=0;t<4;++t){
+        const gen y=evalf(sub(u,n,2+t),1,CTX);
+        if (y.type!=_DOUBLE_ || !(fabs(y._DOUBLE_val)>0)) return false;
+        const double yv=ab?fabs(y._DOUBLE_val):y._DOUBLE_val; // (signs kept without |...|: (-1)^n n/(n+1))
+        if (i<m) v[i][t]=yv; else { ke=yv; break; }
+      }
+    }
+    for (int q=1;q<(1<<m)-1 && is_zero(B);++q) for (int wk=0;wk<2 && is_zero(B);++wk){
+      bool ok=true;
+      for (int t=0;t<3 && ok;++t){
+        double r=wk?1:ke;
+        for (int i=0;i<m;++i) r*=q>>i&1?v[i][t+1]:v[i][t];
+        ok=fabs(r-1)<1e-3;
+      }
+      if (!ok) continue;
+      vecteur b;
+      for (int i=0;i<m;++i) if (q>>i&1) b.push_back(F[i].is_inv()?arg(F[i]):symb_inv(F[i]));
+      if (wk && !is_one(k)) b.push_back(symb_pow(k,n));
+      B=prodof(b);
+      if (!has_op(B,*at_factorial) && !nexn(B,n)) return false;
+    }
+    if (is_zero(B)) return false;
+  }
+  { vecteur bw; flat(at_prod,norm(B),bw); bool q=false; // (a series' term: a denominator or n!; a polynomial's or 3^n's ratio is a plain limit, the course's 2A, 8B)
+    EACH(it,bw) if (it->is_inv() || has_op(*it,*at_factorial)) q=true;
+    if (!q) return false; }
+  return true;
+}
+// 3^(n+1)*3^(-n), n^(n+1)/n^n: one power of each base, the exponents added (the limit of 3^(n+1)/3^n as
+// typed took 19 s on the calculator before its simplified form)
+static NOINL gen pmerge(const gen & f,const gen & y){
+  vecteur w,o,b,e; flat(at_prod,f,w);
+  bool ch=false;
+  EACH(it,w){
+    gen u=*it; const gen q=bexp(u);
+    if (!(u==y || (u.type==_INT_ && u.val>1))){ o.push_back(*it); continue; }
+    size_t i=0; while (i<b.size() && b[i]!=u) ++i;
+    if (i<b.size()){ e[i]=e[i]+q; ch=true; } else { b.push_back(u); e.push_back(q); }
+  }
+  if (!ch) return f;
+  for (size_t i=0;i<b.size();++i){ const gen q=ev(e[i]); if (!is_zero(q)) o.push_back(is_one(q)?b[i]:symb_pow(b[i],q)); }
+  return prodof(o);
+}
+// g's names all numbers but the index k (pi, e): a series of numbers ((pi/2)^(2n): lidnt saw pi there)
+static NOINL bool numof(const gen & g,const gen & k){
+  const vecteur ids=lidnt(g);
+  bool hk=false;
+  EACH(it,ids){ if (*it==k){ hk=true; continue; } if (evalf(*it,1,CTX).type!=_DOUBLE_) return false; }
+  return hk;
+}
+// the console's words for the steps' verdict on a series (why it diverges, which test says it converges)
+static NOINL void vmsg(gen & r,const std::vector<step_t> & out){
+  if (r==word("diverges")){
+    const int k=out.empty()?0:out.back().rule;
+    steps_divmsg=out.empty()?"diverges":k==R_SGEOMD?"diverges (geometric, |r| >= 1)":k==R_SDIV || k==R_SDIV2?"diverges (the terms do not go to 0)":out.back().b==minus_inf?"diverges (to -infinity)":"diverges (to +infinity)";
+    r=undef;
+  }
+  else if (r==word("converges") && !out.empty()){ // (which test: its value not asked, giac's sum took 15 to 50 s on the calculator)
+    const int k=out.back().rule,k2=out.size()>1?out[out.size()-2].rule:0;
+    steps_divmsg=k==R_RATIO || k==R_RCONV?"converges (by the ratio test)":k==R_AST?"converges (alternating series test)":k==R_ROOT?"converges (by the root test)":k==R_PSER?(k2==R_LCMP?"converges (like a p-series)":k2==R_LCMP0?"converges (by limit comparison)":"converges (p-series)"):"converges";
+    r=undef;
+  }
+  else if (r.type==_IDNT) r=undef; // (converges: giac's value, or its decimal)
+}
+// answer.cc: series(f,x,a,inf) (taylor(f,x=a,inf)): f's Taylor series in summation notation by the
+// known ones; subst(diff(f,x,n),x=a), n >= 3: f^(n)(a) from the series' coefficient (95! kept as
+// 95!); undef if none
+gen steps_series_answer(const gen & g,GIAC_CONTEXT){
+  std::vector<step_t> out;
+  gen x(identificateur("x")),r=undef;
+  ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=&g; rel_=0; gen la_home=plus_inf; la_=&la_home; ldir_=0; // (no limit point left from a call before: la_ pointed at a gone local)
+  const gen s=norm(serfix(g));
+  if (is(s,at_series) && arg(s).type==_VECT && arg(s)._VECTptr->size()==4 && arg(s,1).type==_IDNT && is_inf(ev(arg(s,3)))){
+    gen y=arg(s,1); var_=&y;
+    const gen u=psum(arg(s,0)); // (a power series typed in: its own Taylor series)
+    r=is_zero(u)?ksigma(*arg(s)._VECTptr,y):u;
+  }
+  else if (is(g,at_of) && arg(g).type==_VECT && arg(g)._VECTptr->size()==2 && arg(g,0).type==_IDNT){ // f(c), f defined as a series
+    const gen fv=ev(arg(g,0));
+    if (fv.is_symb_of_sommet(at_program) && arg(fv).type==_VECT && arg(fv)._VECTptr->size()==3){
+      gen p=arg(fv,0);
+      if (p.type==_VECT && p._VECTptr->size()==1) p=p[0];
+      if (p.type==_IDNT){ const gen sc=subst(arg(fv,2),p,arg(g,1),true,contextptr); r=scenter(sc);
+        if (is_undef(r) && is(sc,at_sum) && arg(sc).type==_VECT && arg(sc)._VECTptr->size()==4 && arg(sc,1).type==_IDNT && is_inf(ev(arg(sc,3))) && numof(ev(arg(sc,0)),arg(sc,1))){ // (f(2) away from the center: its series' tests, f(2) diverges)
+          gen y=arg(sc,1); var_=&y; quickG_=true; r=ssteps(sc,*arg(sc)._VECTptr,y); quickG_=false; vmsg(r,out); } }
+    }
+  }
+  else if (!is_undef(r=scenter(s))){} // (the series with the center typed in)
+  else if (is(s,at_limit) && arg(s).type==_VECT && arg(s)._VECTptr->size()==3 && arg(s,1).type==_IDNT && is_inf(ev(arg(s,2))) && ev(arg(s,2))==plus_inf && (!strcmp(arg(s,1)._IDNTptr->id_name,"n") || !strcmp(arg(s,1)._IDNTptr->id_name,"k") || has_op(arg(s,0),*at_factorial))){
+    gen y=arg(s,1),a=plus_inf; var_=&y; la_=&a; ldir_=0; budget_=80; // (a sequence's limit: lgrow's, by the classes)
+    { gen B,n0,xp; if (rform(g,B,n0) && n0==y){ const gen L=rtest(norm(B),y,0,xp,true); if (finv(L) || is_inf(L)) return L; } } // (a typed ratio test's limit: its pairs)
+    trust_=false; r=lsteps(pmerge(norm(arg(s,0)),y),0); if (!trust_) r=undef; // (as typed first: limit_simp's simplify of 3*5^n/6^n took 3 s on the calculator)
+    if (is_undef(r)){
+    out.clear(); budget_=80;
+    const gen ls=limit_simp(s);
+    gen f=is(ls,at_limit) && arg(ls).type==_VECT?norm(arg(ls,0)):arg(s,0); // (the ratio test's |a(n+1)/a(n)| simplified first)
+    if (has_op(f,*at_factorial) && lop(f,at_factorial).size()>1) f=_simplify(ev(f),contextptr); // (a ratio of n!'s: limit_simp leaves them, giac's limit took 3 minutes)
+    if (has_op(f,*at_ln) && ev(f).is_plus()){ // (ln(k+1)-ln(k): one log, giac's limit of it is fast; 108 s for the difference on the calculator)
+      const gen c=_lncollect(ev(f),contextptr);
+      if (is(c,at_ln)) r=ev(SYM(at_ln,ev(Linf(arg(c),y))));
+    }
+    else { trust_=false; r=lsteps(f,0); if (!trust_) r=undef; }
+    }
+    if (r==word("DNE")){ steps_divmsg="no limit (it oscillates)"; r=undef; }
+  }
+  else if (is(s,at_sum) && arg(s).type==_VECT && arg(s)._VECTptr->size()==4 && arg(s,1).type==_IDNT && is_inf(ev(arg(s,3))) && numof(ev(arg(s,0)),arg(s,1))){
+    gen y=arg(s,1); var_=&y; // (a series of numbers: the steps' tests, giac's sum not computed: geometric and telescoping values, divergence)
+    quickG_=true; r=ssteps(s,*arg(s)._VECTptr,y); quickG_=false;
+    vmsg(r,out);
+  }
+  else if (is(s,at_sum) && arg(s).type==_VECT && arg(s)._VECTptr->size()==4 && arg(s,1).type==_IDNT && (arg(s,3).type==_IDNT || !lidnt(arg(s,0)).empty()) && !is_inf(ev(arg(s,3)))){
+    gen y=arg(s,1); var_=&y; // (sum(t,k,a,n): telescoping's explicit s_n)
+    r=sfin(s,*arg(s)._VECTptr,y);
+  }
+  else { bool big; quickG_=true; r=dsteps_n(g,big); quickG_=false; vmsg(r,out); }
+  la_=&la_home; ldir_=0; // (the branches' limit points are gone)
+  if (is_undef(r) && is(s,at_series) && arg(s).type==_VECT && arg(s)._VECTptr->size()==4 && is(arg(s,0),at_integrate) && ev(arg(s,3)).type==_INT_){ // (an integral's: its integrand's terms integrated)
+    const gen q=qser(s);
+    if (!is(q,at_series) && !has_op(q,*at_integrate)) r=SYM(at_series,makesequence(q,arg(s,1),arg(s,2),arg(s,3))); // (giac's series of that polynomial: its terms in order, not simplified as a sum)
+  }
+  if (is_undef(r) && is(s,at_series) && arg(s).type==_VECT && arg(s)._VECTptr->size()==4 && arg(s,1).type==_IDNT && ev(arg(s,3)).type==_INT_){ // (f defined as a sum: its terms, not giac's series of it)
+    const gen u=psum(arg(s,0));
+    if (!is_zero(u)){ gen y=arg(s,1); var_=&y; r=spoly(u,y,ev(arg(s,2)),ev(arg(s,3)).val); if (!is_undef(r)) r=SYM(at_series,makesequence(r,y,arg(s,2),arg(s,3))); } // (giac's series of p_n: its terms in order, not one fraction)
+  }
+  if (is_undef(r) && is(s,at_subst) && arg(s).type==_VECT && arg(s)._VECTptr->size()==2 && is(arg(s,1),at_equal) && (is(arg(s,0),at_series) || is(arg(s,0),at_taylor))){ // (p_n(0.4) of series(...): no O)
+    vecteur t,q; flat(at_plus,ev(arg(s,0)),t); EACH(it,t) if (!has_op(*it,*at_order_size)) q.push_back(*it);
+    r=ev(sub(q.empty()?gen(0):symb_plus(q),arg(arg(s,1),0),arg(arg(s,1),1)));
+  }
+  if (is_undef(r) && is(s,at_subst) && arg(s).type==_VECT && arg(s)._VECTptr->size()>=2){ // (a value put in a power series: the series with it in, as typed so: the center's 0^0 = 1, not giac's undef)
+    const vecteur & v=*arg(s)._VECTptr; gen y,a;
+    if (v.size()==2 && is(v[1],at_equal)){ y=arg(v[1],0); a=arg(v[1],1); } else if (v.size()==3){ y=v[1]; a=v[2]; }
+    if (y.type==_IDNT && is(v[0],at_sum) && arg(v[0]).type==_VECT && arg(v[0])._VECTptr->size()==4 && is_inf(ev(arg(v[0],3)))){
+      const vecteur & w=*arg(v[0])._VECTptr;
+      const gen R=steps_series_answer(SYM(at_sum,makesequence(subst(w[0],y,a,true,CTX),w[1],w[2],w[3])),contextptr);
+      out_=&out; if (!is_undef(R)) return R;
+    }
+  }
+  if (is_undef(r) && is(s,at_subst) && arg(s).type==_VECT && !has_op(s,*at_derive)){ // (a value with a huge power: kept, 3^2018)
+    const vecteur & v=*arg(s)._VECTptr;
+    gen y,a;
+    if (v.size()==2 && is(v[1],at_equal)){ y=arg(v[1],0); a=arg(v[1],1); } else if (v.size()==3){ y=v[1]; a=v[2]; }
+    if (y.type==_IDNT){ const gen e=ev(sub(v[0],y,a)); if (e.type==_STRNG) r=held(subst(v[0],y,a,true,CTX)); }
+  }
+  out_=0;
+  return interrupted?gen(undef):r; // (undef: none; 0 is an answer, f^(2021)(0) of an even f)
+}
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+// ---------------------------------------------------------------- sequences by a recurrence (M2)
+// a_1 = 3, a_(n+1) = a_n + 2n typed (answer_prepass: a(1)=3, a(n+1)=a(n)+2n): the definitions kept as
+// text (no gen kept across an ON or memory reset), the terms worked out one by one from the first as the
+// course does (a_2 = a_1+2(1) = 5, a_3 = a_2+2(2) = 9); their names in ti_seq_names (tiinput_glue.cc: the
+// implicit products leave a(...) a call)
+extern char ti_seq_names[4];
+static char sqd_[3][4][64]; // [sequence][0..2: an initial term "k,v", 3: the recurrence "a(n+1)=..."]
+static NOINL int sqi(const gen & x){
+  if (x.type!=_IDNT || strlen(x._IDNTptr->id_name)!=1) return -1;
+  const char * p=strchr(ti_seq_names,x._IDNTptr->id_name[0]);
+  return p?int(p-ti_seq_names):-1;
+}
+// the recurrence as X(n+c) = ..., its term of the highest index alone on the left (a(n+1)-a(n)=4:
+// a(n+1)=a(n)+4); undef if that term is not there to the first power
+static NOINL gen sqiso(const gen & g,const gen & Xs){
+  vecteur ts=lop(g,at_of);
+  gen top=undef,hi=minus_inf;
+  EACH(it,ts){ const gen & a=arg(*it); if (a.type!=_VECT || a._VECTptr->size()!=2 || a[0]!=Xs) continue; const vecteur ids=lidnt(a[1]); if (ids.size()!=1) continue; const gen c=rn(a[1]-ids[0]); if (c.type==_INT_ && (is_undef(top) || is_strictly_greater(c,hi,CTX))){ top=*it; hi=c; } } // (rn: n+1-n left as is by ev)
+  if (is_undef(top)) return undef;
+  const gen T(identificateur("t__"));
+  const gen E=ev(subst(arg(g,0)-arg(g,1),top,T,false,CTX)),k=ev(D(E,T));
+  if (dep(k,T) || is_zero(k)) return undef;
+  return symbolic(at_equal,makesequence(top,rn(ev(T-E/k))));
+}
+// a sequence's line typed, X(k) = v (a first term) or a recurrence in X(n+c), X(n)... (a(n+1)=a(n)+2n,
+// a(n+1)-a(n)=4): kept; false if g is no such line (f(x) = x^2 is giac's own)
+bool steps_seqdef(const gen & g,GIAC_CONTEXT){
+  ctx_=contextptr; // (the comparisons below: no context left from a steps page)
+  if (!is(g,at_equal) || !has_op(g,*at_of)) return false;
+  gen Xs=0;
+  { vecteur ts=lop(g,at_of); EACH(it,ts){ const gen & a=arg(*it); if (a.type==_VECT && a._VECTptr->size()==2 && a[0].type==_IDNT && strlen(a[0]._IDNTptr->id_name)==1 && strchr(ti_seq_names,a[0]._IDNTptr->id_name[0])) Xs=a[0]; } }
+  if (is_zero(Xs)) return false;
+  const gen A=is(arg(g,0),at_of) && arg(arg(g,0),0)==Xs?ev(arg(arg(g,0),1)):gen(undef),Rh=arg(g,1);
+  int i=sqi(Xs);
+  std::string t;
+  int j=3;
+  if (A.type==_INT_ && !has_op(Rh,*at_of)){ t=pr(A)+","+pr(ev(Rh)); for (j=0;j<2 && sqd_[i][j][0] && atoi(sqd_[i][j])!=A.val;++j) ; } // (a(1)=1, a(2)=1: two first terms)
+  else { const gen r=sqiso(g,Xs); if (is_undef(r)) return false; t=pr(r); }
+  if (t.size()>63) return false;
+  strcpy(sqd_[i][j],t.c_str());
+  return true;
+}
+// term N of sequence i (undef if it has no recurrence or first term before N, or too far: 5000);
+// stp: each term's line, a(m) = its recurrence with the last terms in = its value
+static NOINL gen sqterm(int i,const gen & N,bool stp){
+  if (N.type!=_INT_ || !sqd_[i][3][0]) return undef;
+  const gen Xs(identificateur(std::string(1,ti_seq_names[i]))),eq(sqd_[i][3],CTX);
+  if (!is(eq,at_equal) || !is(arg(eq,0),at_of)) return undef;
+  const gen A=arg(arg(eq,0),1);
+  const vecteur ids=lidnt(A);
+  if (ids.size()!=1) return undef;
+  const gen v=ids[0],c=ev(A-v),rhs=ev(subst(arg(eq,1),v,v-c,false,CTX)); // (a(n) = its recurrence at n-c)
+  vecteur t; // (the terms from k0)
+  int k0=1<<20;
+  for (int j=0;j<3;++j) if (sqd_[i][j][0] && atoi(sqd_[i][j])<k0) k0=atoi(sqd_[i][j]);
+  if (k0==1<<20 || N.val<k0 || N.val-k0>5000) return undef;
+  for (int m=k0;m<=N.val;++m){
+    if (interrupted) return undef;
+    gen y=undef;
+    for (int j=0;j<3;++j) if (sqd_[i][j][0] && atoi(sqd_[i][j])==m) y=gen(strchr(sqd_[i][j],',')+1,CTX);
+    const gen am(identificateur(std::string(1,ti_seq_names[i])+"_"+pr(gen(m)))); // (a_3 as the course writes it)
+    if (is_undef(y)){
+      gen r=subst(rhs,v,m,false,CTX),rs=r;
+      vecteur ps=lop(r,at_of); // (the terms before: a(m-1), a(m-2))
+      EACH(it,ps){ const gen & a=arg(*it); if (a.type!=_VECT || a._VECTptr->size()!=2 || a[0]!=Xs) continue; const gen k=ev(a[1]); if (k.type!=_INT_ || k.val<k0 || k.val>=m) return undef; r=subst(r,*it,t[k.val-k0],false,CTX); rs=subst(rs,*it,gen(identificateur(std::string(1,ti_seq_names[i])+"_"+pr(k))),false,CTX); }
+      y=rn(ev(r));
+      if (stp && N.val-k0<=8) S(R_LINE,line("%0=%1=%2=%3",am,rs,r,y,zero,zero),0); // (a_2 = a_1+2(1) = 3+2(1) = 5)
+    }
+    else if (stp && N.val-k0<=8) S(R_SEQT,line3("%0=%1",am,y),0); // (the first terms, given)
+    t.push_back(y);
+  }
+  return t.back();
+}
+// lim of sequence i's terms: worked out as decimals until they settle (60 at most), then L = its
+// recurrence at L, the root they approach (a(n) = sqrt(2a(n-1)) from 3: 2); undef if they do not
+// settle, or n is in the recurrence, or it has two terms before
+static NOINL gen sqlim(int i,bool stp){
+  if (!sqd_[i][3][0]) return undef;
+  const gen Xs(identificateur(std::string(1,ti_seq_names[i]))),eq(sqd_[i][3],CTX);
+  if (!is(eq,at_equal) || !is(arg(eq,0),at_of)) return undef;
+  const gen A=arg(arg(eq,0),1);
+  const vecteur ids=lidnt(A);
+  if (ids.size()!=1) return undef;
+  const gen v=ids[0],c=ev(A-v),rhs=ev(subst(arg(eq,1),v,v-c,false,CTX)),L(identificateur("L"));
+  vecteur ps=lop(rhs,at_of);
+  gen F=rhs;
+  EACH(it,ps) F=subst(F,*it,L,false,CTX);
+  if (dep(F,v) || ps.size()!=1) return undef;
+  int k0=1<<20,j0=-1;
+  for (int j=0;j<3;++j) if (sqd_[i][j][0] && atoi(sqd_[i][j])<k0){ k0=atoi(sqd_[i][j]); j0=j; }
+  if (j0<0) return undef;
+  gen e=evalf_double(gen(strchr(sqd_[i][j0],',')+1,CTX),1,CTX);
+  if (e.type!=_DOUBLE_) return undef;
+  double y=e._DOUBLE_val,y0;
+  int m=0;
+  for (;m<60;++m){ y0=y; e=evalf_double(subst(F,L,gen(y),false,CTX),1,CTX); if (e.type!=_DOUBLE_ || interrupted) return undef; y=e._DOUBLE_val; if (fabs(y-y0)<TOL*(1+fabs(y))) break; if (fabs(y)>1e15) return y>0?plus_inf:minus_inf; } // (2a(n): to infinity)
+  if (m==60) return undef;
+  const gen sol=_solve(makesequence(symbolic(at_equal,makesequence(L,F)),L),CTX);
+  if (sol.type!=_VECT) return undef;
+  gen best=undef; double bd=1e30;
+  EACH(it,*sol._VECTptr){ const gen f=evalf_double(*it,1,CTX); if (f.type==_DOUBLE_ && fabs(f._DOUBLE_val-y)<bd){ bd=fabs(f._DOUBLE_val-y); best=*it; } }
+  if (is_undef(best) || bd>1e-2*(1+fabs(y))) return undef;
+  best=rn(best); // (2, not sqrt(2)^2)
+  if (stp){ S(R_SEQL,symbolic(at_equal,makesequence(L,F)),0); S(R_LINE,line3("L=%0",best),0); }
+  return best;
+}
+// g with the sequences' terms in (a(3): 9) and their finite sums written out first (sum(a(k),k,1,3))
+gen steps_seqval(const gen & g,GIAC_CONTEXT){
+  if (g.type!=_SYMB || !ti_seq_names[0] || !has_op(g,*at_of)) return g;
+  ctx_=contextptr;
+  if (is(g,at_limit) && arg(g).type==_VECT && arg(g)._VECTptr->size()>=3 && is(arg(g,0),at_of) && arg(arg(g,0)).type==_VECT && arg(arg(g,0),1)==arg(g,1) && ev(arg(g,2))==plus_inf){ // (lim a(n) of a recurrence)
+    const int i=sqi(arg(arg(g,0),0));
+    if (i>=0){ const gen L=sqlim(i,false); if (!is_undef(L)) return L; }
+  }
+  if (is(g,at_sum) && arg(g).type==_VECT && arg(g)._VECTptr->size()==4){
+    const vecteur & v=*arg(g)._VECTptr; const gen lo=ev(v[2]),hi=ev(v[3]);
+    if (lo.type==_INT_ && hi.type==_INT_ && hi.val>=lo.val && hi.val-lo.val<500){ vecteur w; for (int j=lo.val;j<=hi.val;++j) w.push_back(steps_seqval(subst(v[0],v[1],j,false,CTX),contextptr)); return ev(symb_plus(w)); }
+  }
+  if (is(g,at_of) && arg(g).type==_VECT && arg(g)._VECTptr->size()==2){ const int i=sqi(arg(g,0)); if (i>=0){ const gen y=sqterm(i,ev(arg(g,1)),false); if (!is_undef(y)) return y; } }
+  const gen & a=g._SYMBptr->feuille;
+  if (a.type!=_VECT) return symbolic(g._SYMBptr->sommet,steps_seqval(a,contextptr));
+  vecteur w; EACH(it,*a._VECTptr) w.push_back(steps_seqval(*it,contextptr));
+  return symbolic(g._SYMBptr->sommet,gen(w,a.subtype));
+}
+#endif
+// limit(f,x,a) or sum(f,k,a,b) whose variable is not in f (the templates' x and k; the course's
+// sequences in n): f's own variable (n if it has one, else its only name); g itself if not that
+gen steps_fixvar(const gen & g,GIAC_CONTEXT){
+  if (g.type!=_SYMB) return g;
+  if (is(g,at_series) && arg(g).type==_VECT && arg(g)._VECTptr->size()>=1){ vecteur v=*arg(g)._VECTptr; v[0]=steps_fixvar(v[0],contextptr); return symbolic(at_series,gen(v,_SEQ__VECT)); } // (the integral inside: its t)
+  const bool in=is(g,at_integrate) && arg(g).type==_VECT && arg(g)._VECTptr->size()==4; // (integrate(t^4 sin(t^2),x,0,x): t, the bounds as typed)
+  if (!(is(g,at_limit) || is(g,at_sum) || in) || arg(g).type!=_VECT || arg(g)._VECTptr->size()<3) return g;
+  vecteur v=*arg(g)._VECTptr;
+  if (v[1].type!=_IDNT || has_op(v[0],*at_integrate) || has_op(v[0],*at_sum) || has_op(v[0],*at_limit) || has_op(v[0],*at_derive)) return g; // (an inner integral's r is not the outer t: int int r e^(-r^2) dr dt was 2 pi)
+  const vecteur ids=lidnt(v[0]);
+  gen w=0;
+  EACH(it,ids){ if (*it==v[1]) return g; if (it->type==_IDNT && evalf(*it,1,contextptr).type!=_DOUBLE_){ if (!strcmp(it->_IDNTptr->id_name,"n")) w=*it; else if (is_zero(w)) w=*it; else if (w.type==_IDNT && strcmp(w._IDNTptr->id_name,"n")) return g; } } // (two names: n, else none)
+  if (is_zero(w)) return g;
+  v[1]=w;
+  return symbolic(g._SYMBptr->sommet,gen(v,_SEQ__VECT));
+}
+// K|b u^p|^q < R typed (the ratio test's inequality on its own, |x-1|^2/9 < 1): u linear in x;
+// the steps as pint's (|u|^n < R/K, |u| < r, -r < u < r, the interval); false if not that
+static NOINL bool absineq(const gen & L,const gen & R,const gen & x){
+  if (dep(R,x) || !is_strictly_positive(R,CTX)) return false;
+  vecteur w; flat(at_prod,norm(L),w); // (|x-1|^2/9 typed: a division)
+  gen K=1,u=0,q=1;
+  EACH(it,w){
+    if (!dep(*it,x)){ K=K*(*it); continue; }
+    gen b=*it,e=1;
+    if (b.is_pow()){ e=arg(b,1); b=arg(b,0); }
+    if (!is(b,at_abs) && e.type==_INT_ && !(e.val&1) && e.val>0) b=SYM(at_abs,b); // (giac's (x-1)^2 for |x-1|^2)
+    if (!is_zero(u)){ if (!is(b,at_abs) || ev(arg(b))!=u) return false; q=ev(q+e); continue; } // (|x-1|^3 as |x-1|(x-1)^2)
+    if (!is(b,at_abs) || dep(e,x) || !is_strictly_positive(e,CTX)) return false;
+    gen g=arg(b),c=1,pp=1,al,be;
+    vecteur v; flat(at_prod,g,v);
+    g=1;
+    EACH(jt,v){ if (!dep(*jt,x)) c=c*(*jt); else { gen bb=*jt; if (bb.is_pow() && !dep(arg(bb,1),x)){ pp=arg(bb,1); bb=arg(bb,0); } g=bb; } }
+    g=ev(g); // (x-1 as typed: is_linear_wrt wants it evaluated)
+    if (!is_linear_wrt(g,x,al,be,CTX) || is_zero(al)) return false;
+    K=K*pow(abs(ev(c),CTX),e,CTX); u=g; q=ev(pp*e);
+  }
+  K=ev(K);
+  if (is_zero(u) || !is_strictly_positive(K,CTX) || q.type!=_INT_) return false;
+  gen lo,hi;
+  const gen au=is_one(q)?SYM(at_abs,u):symb_pow(SYM(at_abs,u),q);
+  S(R_ABSU,SYM2(at_inferieur_strict,is_one(K)?au:symb_prod(K,au),R),0);
+  if (is_one(K)) cut(mark()-1); // (|x-1|^2 < 9: pint's first line is it)
+  return pint(x,ev(K/R),u,q,lo,hi);
+}
+// f(c) of a function the user defined as a series (f(x) = sum(...,k,0,inf)): that series with c put
+// in for x, unevaluated; 0 if not that
+static NOINL gen useries(const gen & g){
+  if (!is(g,at_of) || arg(g).type!=_VECT || arg(g)._VECTptr->size()!=2 || arg(g,0).type!=_IDNT || arg(g,1).type==_VECT) return 0;
+  const gen p=ev(arg(g,0));
+  if (!p.is_symb_of_sommet(at_program) || arg(p).type!=_VECT || arg(p)._VECTptr->size()<3) return 0;
+  gen vs=arg(p,0),body=arg(p,2);
+  if (vs.type==_VECT){ if (vs._VECTptr->size()!=1) return 0; vs=vs[0]; }
+  if (is(body,at_return)) body=arg(body);
+  if (vs.type!=_IDNT || !is(body,at_sum) || arg(body).type!=_VECT || arg(body)._VECTptr->size()!=4 || !is_inf(ev(arg(body,3)))) return 0;
+  return subst(body,vs,arg(g,1),true,CTX);
+}
+static NOINL gen pmerge(const gen & f,const gen & y); // (below)
+// a power series typed as such (sum(c(k)x^k,k,0,inf)) or f defined as one: that sum, else 0
+static NOINL gen psum(const gen & g){
+  if (is(g,at_sum) && arg(g).type==_VECT && arg(g)._VECTptr->size()==4 && is_inf(ev(arg(g,3)))) return g;
+  if (g.is_prod() && arg(g).type==_VECT){ // (x^2 times a given series: the multiplier in each term, x^2 sum(t(k)) = sum(x^2 t(k)))
+    gen sm=0,mu=1; int ns=0;
+    EACH(it,*arg(g)._VECTptr){ if (is(*it,at_sum) && arg(*it).type==_VECT && arg(*it)._VECTptr->size()==4 && is_inf(ev(arg(*it,3)))){ sm=*it; ++ns; } else mu=mu*(*it); }
+    if (ns==1 && !has_op(mu,*at_sum)){ const vecteur & w=*arg(sm)._VECTptr;
+      if (!dep(mu,w[1])){ gen t=symb_prod(mu,w[0]); const vecteur ids=lidnt(mu); if (ids.size()==1) t=qshow(pmerge(norm(t),ids[0])); // (x^2 x^n as x^(n+2))
+        return SYM(at_sum,makesequence(t,w[1],w[2],w[3])); } }
+  }
+  if ((is(g,at_derive) || is(g,at_integrate)) && arg(g).type==_VECT && arg(g)._VECTptr->size()>=2 && arg(g,1).type==_IDNT){ // (a given series differentiated or integrated from 0: term by term)
+    const vecteur & a=*arg(g)._VECTptr;
+    const gen y=a[1],u=psum(a[0]);
+    if (is_zero(u)) return 0;
+    const vecteur & w=*arg(u)._VECTptr;
+    gen t=w[0],k0=ev(w[2]);
+    if (k0.type!=_INT_) return 0;
+    if (is(g,at_derive)){
+      const gen n=a.size()>2?ev(a[2]):gen(1);
+      if (n.type!=_INT_ || n.val<1 || n.val>4) return 0;
+      for (int j=0;j<n.val;++j){
+        gen b,e,c;
+        if (ypart(t,y,b,e,c) && b==y){ const gen e1=rn(ev(e-1)),er=rn(ev(e)),c1=rn(ev(c*e)),c2=symb_prod(er,c),ce=pr(c1).size()<=pr(c2).size()?c1:c2; t=is_zero(e1)?ce:symb_prod(ce,is_one(e1)?y:symb_pow(y,e1)); } // (the power rule on c(k) x^e(k): (2k+4)(-1)^k/(2k+1)! x^(2k+3), not expanded; (k+1)/2 when shorter)
+        else t=rn(ev(D(t,y)));
+        for (int i=0;i<3 && is_zero(ev(subst(t,w[1],k0,false,CTX)));++i) k0=k0+1; // (the constant term's derivative is 0: from the next k)
+      }
+      const gen r=SYM(at_sum,makesequence(t,w[1],k0,w[3]));
+      S(R_KDTERM,line(n.val==1?"diff(%0,%1)=%3":"diff(%0,%1,%2)=%3",is(a[0],at_derive)?u:a[0],y,n,r,zero,zero),0); // (a second derivative typed as diff(diff(...)): the first one's series, then this one)
+      return r;
+    }
+    gen b,e,c;
+    if (a.size()!=4 || !is_zero(ev(a[2])) || !ypart(t,y,b,e,c) || b!=y) return 0; // (c(k) t^e(k) from 0 to X: c X^(e+1)/(e+1))
+    const gen E1=rn(ev(e+1)),r=SYM(at_sum,makesequence(qshow(symb_prod(symb_prod(c,symb_inv(E1)),symb_pow(a[3],E1))),w[1],k0,w[3]));
+    S(R_KINT,line("integrate(%0,%1,0,%2)=%3",a[0],y,a[3],r,zero,zero),0);
+    return r;
+  }
+  return useries(g);
+}
+int steps_user_series(const char * s,GIAC_CONTEXT){
+  ctx_=contextptr;
+  const gen g(s,contextptr);
+  return !is_zero(useries(g));
+}
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+#include "steps_m3.inc"
+#include "steps_m3c.inc"
+#endif
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+const int steps_m3_rule0=R_VGIVEN,steps_m3_noalign=R_VLN;
+#endif
+bool steps_of(const gen & input_,std::vector<step_t> & out,GIAC_CONTEXT){
+  const gen input=steps_fixvar(input_,contextptr); // (lim of n^2/3^n typed in the x template)
   static gen * in0; // the input as the steps take it (in_ points to it; no static constructor in the app)
   if (!in0) in0=new gen;
   gen x(identificateur("x"));
-  ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=in0;
+  ctx_=contextptr; out_=&out; depth_=0; nsub_=0; var_=&x; in_=in0; gen la_home=plus_inf; la_=&la_home; ldir_=0; // (no limit point left from a call before: la_ pointed at a gone local)
   steps_methods=0; steps_method_name=""; rel_=0;
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  if (m3_steps(input)){ *in0=input; return !out.empty(); } // (vectors: u x v, proj_v u, |u|, u+3v)
+#endif
+#ifdef WITH_DESOLVE
   if (has_op(input,*at_desolve)) return false; // (diff(y,x) in it is the equation: "d/dx y = 0" was shown)
+#endif
+#ifdef FLOWCE_SERIES
+  { const gen u=useries(input); if (!is_zero(u)){ *in0=u; return !is_undef(one(norm(u))) && !out.empty(); } } // (f(1) of a series f: that series, its point in)
+#endif
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  if (is(input,at_of) && arg(input).type==_VECT && arg(input)._VECTptr->size()==2 && sqi(arg(input,0))>=0){ *in0=input; return !is_undef(sqterm(sqi(arg(input,0)),ev(arg(input,1)),true)) && !out.empty(); } // (a(3) of a recurrence: term by term)
+  if (is(input,at_limit) && arg(input).type==_VECT && arg(input)._VECTptr->size()>=3 && is(arg(input,0),at_of) && arg(arg(input,0)).type==_VECT && sqi(arg(arg(input,0),0))>=0){ *in0=input; return !is_undef(sqlim(sqi(arg(arg(input,0),0)),true)) && !out.empty(); } // (lim a(n) of a recurrence: L = its recurrence at L)
+#endif
+#ifdef FLOWCE_SERIES
+  if (is(input,at_sto) && arg(input).type==_VECT && arg(input)._VECTptr->size()==2 && arg(input,0).is_symb_of_sommet(at_program) && arg(arg(input,0)).type==_VECT && arg(arg(input,0))._VECTptr->size()>=3 && is(arg(arg(input,0),2),at_sum)){
+    const gen b=arg(arg(input,0),2); *in0=b; return !is_undef(one(norm(b))) && !out.empty(); } // (f(x) = sum(...) defined: the series' steps, its interval)
+#endif
+  { const bool so=input.is_symb_of_sommet(at_solve) && arg(input).type==_VECT && arg(input)._VECTptr->size()==2 && is(arg(input,0),at_inferieur_strict) && arg(input,1).type==_IDNT;
+    const gen r=so?arg(input,0):input;
+    if (is(r,at_inferieur_strict) && arg(r).type==_VECT && (so || lidnt(r).size()==1)){ // (|x-1|^2/9 < 1, with solve or alone)
+      gen y=so?arg(input,1):lidnt(r)[0]; var_=&y; *in0=input;
+      if (absineq(arg(r,0),ev(arg(r,1)),y)) return true;
+      cut(0); var_=&x;
+    } }
+  if (is(input,at_subst) && arg(input).type==_VECT && !has_op(input,*at_derive)){ // p(0.1): the number put in, the value
+    const vecteur & v=*arg(input)._VECTptr;
+    gen y,a;
+    if (v.size()==2 && is(v[1],at_equal)){ y=arg(v[1],0); a=arg(v[1],1); } else if (v.size()==3){ y=v[1]; a=v[2]; }
+    if (y.type==_IDNT && !dep(a,y) && dep(v[0],y) && lidnt(ev(a)).empty()){
+      gen f=v[0];
+#ifdef FLOWCE_SERIES
+      if (is(f,at_sum) && arg(f).type==_VECT && arg(f)._VECTptr->size()==4 && is_inf(ev(arg(f,3)))){ // (a value put in a power series: as typed with it in, sctr's 0^0 = 1, not giac's undef)
+        const vecteur & w=*arg(f)._VECTptr;
+        const gen s2=SYM(at_sum,makesequence(subst(w[0],y,a,true,CTX),w[1],w[2],w[3])),k0=ev(w[2]);
+        if (k0.type==_INT_ && !is_undef(scenter(norm(s2)))){ // (the center: f(x) written out with x first, as the course writes it, then x = c in)
+          vecteur tx; for (int j=k0.val;j<k0.val+3;++j) tx.push_back(ifold(subst(w[0],w[1],j,true,CTX)));
+          S(R_SWX,line3("%0=%1",f,txt(wsum(tx,true))),0);
+        }
+        *in0=s2; return !is_undef(one(norm(s2))) && !out.empty();
+      }
+#endif
+      if (is(f,at_series) || is(f,at_taylor)){ // (p_n(0.1) of series(...): its own steps first, p_n found, then the number in; no O(x^n))
+        { const size_t m=mark(); if (is_undef(one(norm(serfix(f))))) cut(m); }
+        vecteur t,q; flat(at_plus,ev(f),t); EACH(it,t) if (!has_op(*it,*at_order_size)) q.push_back(*it); f=q.empty()?gen(0):symb_plus(q); }
+      vecteur tv; sterms(f,tv);
+      const gen q=subst(tv.size()>1?symb_plus(tv):f,y,txt("("+pr(a)+")"),true,CTX); // (one sum, its terms as typed: 1-(0.4)/2-(0.4)^2/8, not (1-(0.4)/2)-(...))
+      gen val=ev(sub(f,y,a)); // ((0.4) put in, not worked out)
+      if (val.type==_STRNG || is_undef(val)) val=held(subst(f,y,a,true,CTX)); // (3^2018: kept as a power, giac's integer refused)
+      *in0=input;
+      S(R_SUBV,line3("%0=%1",q,val),0);
+      return true;
+    }
+  }
   if ((input.is_symb_of_sommet(at_equal) || rel_of(input)) && one_var(input)) // (DeltaCE) typed alone: solved, as the console does
     return eq_steps(SYM2(at_solve,input,X)) && !out.empty();
   if (input.is_symb_of_sommet(at_solve) && lop(input,at_derive).empty() && lop(input,at_integrate).empty() && lop(input,at_limit).empty() && lop(input,at_sum).empty())
@@ -4539,11 +7074,34 @@ bool steps_of(const gen & input,std::vector<step_t> & out,GIAC_CONTEXT){
   gen lhs=0,ap=app_(input,true,lhs); // an application: its setup, then its integral's steps
   var_=&x;
   if (appmsg_) return false;
+  { bool big; if (!is_undef(dsteps_n(input,big))) return !out.empty(); if (big) return false; } // (f^(n)(a): before nest, which takes diff(f,x,3) apart)
+  var_=&x;
   *in0=is_zero(ap)?serfix(input):ap;
+#ifdef FLOWCE_SERIES
+  { gen B,n,xp; if (rform(*in0,B,n)){ gen y=n; var_=&y; const size_t m=mark(); const gen L=rtest(norm(B),y,0,xp); var_=&x; if (finv(L) || is_inf(L)) return true; cut(m); } } // (the ratio test's limit typed: a_n, a_(n+1), the pairs)
+#endif
+  if (is(*in0,at_limit) && arg(*in0).type==_VECT && arg(*in0)._VECTptr->size()==3 && arg(*in0,1).type==_IDNT && ev(arg(*in0,2))==plus_inf){ // (a sequence's limit as typed first, as the console: the growth classes on it, not simplify's expanded quotient)
+    gen y=arg(*in0,1),a=plus_inf; var_=&y; la_=&a; ldir_=0; budget_=80; trust_=false;
+    const size_t m=mark(); const gen L=lsteps(pmerge(norm(arg(*in0,0)),y),0);
+    var_=&x; la_=&la_home;
+    if (trust_ && (finv(L) || is_inf(L)) && !out.empty()) return true;
+    cut(m);
+  }
   gen ls=limit_simp(*in0);
-  if (ls!=*in0){ S(R_SIMP,*in0,ls); *in0=ls; }
+  { // a quotient with a sum on top, (2n^2+2^n)/2^n: its dominant terms explain it, not the simplified form
+    gen f=is(*in0,at_limit) && arg(*in0).type==_VECT?norm(arg(*in0)[0]):gen(0);
+    vecteur w; flat(at_prod,f,w);
+    int ns=0,nt=0;
+    EACH(it,w) if (!it->is_inv() && dep(*it,arg(*in0)[1])){ ++nt; ns+=it->is_plus() || (it->is_pow() && arg(*it,0).is_plus()); } // ((2^(n+1)+1)^3 too)
+    if (ns==1 && nt==1) ls=*in0;
+  }
+  if (is(ls,at_limit) && arg(ls).type==_VECT && lop(arg(ls)[0],at_factorial).size()>1){ // (a ratio of n!'s: giac's limit took 3 minutes on the calculator)
+    vecteur w=*arg(ls)._VECTptr; w[0]=_simplify(ev(w[0]),contextptr); ls=symbolic(at_limit,gen(w,_SEQ__VECT));
+  }
+  if (ls!=*in0){ if (pr(mergek(ls))!=pr(mergek(*in0))) S(R_SIMP,*in0,ls); *in0=ls; } // (no step that changes nothing on the screen)
   const gen & input0=*in0;
   gen e=nest(norm(input0));
+  if (is(e,at_series)){ const size_t m0=mark(); if (!is_undef(one(e))) return !out.empty(); cut(m0); } // (as typed: an integral inside is integrated term by term)
   for (int guard=0;guard<8;++guard){
     gen t=inner(e);
     if (is_zero(t)) break;

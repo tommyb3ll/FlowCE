@@ -6,9 +6,10 @@ REPO := $(abspath $(HG)/../..)
 
 # the calculator's defines (makefile: CXXFLAGS, FEATURE_DEFS for APPLANG=en VARIANT=normal),
 # plus HOSTGIAC for the 64-bit host changes of host.patch; FLOWCE (giac's FlowCE code: implicitdiff,
-# DeltaCE's faster definite integrals) and WITH_STATS (the steps build's statistics) as on the calculator
-DEFS := -DHOSTGIAC -DTICE -DFLOWCE -DHAVE_CONFIG_H -DXLIGHT -DCOMPILE_FOR_STABILITY -DMP_16BIT \
-        -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT -DWITH_STATS
+# DeltaCE's faster definite integrals) and WITH_STATS (the steps build's statistics) as on the calculator;
+# the steps build's packs all in (makefile: SERIES, VECTORS)
+DEFS := -DHOSTGIAC -DHOSTGIAC_TT -DTICE -DFLOWCE -DHAVE_CONFIG_H -DXLIGHT -DCOMPILE_FOR_STABILITY -DMP_16BIT \
+        -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT -DWITH_STATS -DFLOWCE_SERIES -DFLOWCE_VECTORS
 SAN ?= -fsanitize=address -fno-omit-frame-pointer
 OPT ?= -O1
 # CEdev: -fno-exceptions -fno-threadsafe-statics, its own small C++ headers (here: include/).

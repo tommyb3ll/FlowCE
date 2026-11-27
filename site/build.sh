@@ -3,6 +3,9 @@
 # release bundles for the web installer: FlowCE.b84, and KhiCAS + Flow's if given.
 #   site/build.sh <FlowCE.b84> [version] [<KhiCAS-Flow.b84> <its version>]
 #   e.g. site/build.sh builds/FlowCE.b84 v2.2.4 builds/KhiCAS-Flow.b84 v1.0
+# The pack combinations beside FlowCE.b84 (FlowCE-vectors.b84, FlowCE-core.b84...: 3.0's, from
+# tools/dev/packs_build.sh) go with it, and site/packs.py lists them in files/packs.json for the
+# page's customizer; without them the page installs FlowCE.b84 alone, as before 3.0.
 # The GitHub Pages workflow (.github/workflows/pages.yml) runs it with the latest release and the
 # newest release that has a KhiCAS-Flow.b84. Without one, the page's KhiCAS + Flow choice is off.
 set -euo pipefail
@@ -25,6 +28,11 @@ cp docs/install/*.gif "$OUT/media/install/"
 # All AppIns files and the launch program retain their original bytes.
 python3 tools/dev/repack_installer.py "$B84" "$OUT/files/FlowCE.b84"
 printf '%s\n' "$VER" > "$OUT/files/version.txt"
+for f in "$(dirname "$B84")"/FlowCE-*.b84; do # (3.0's pack combinations)
+  [ -e "$f" ] || continue
+  python3 tools/dev/repack_installer.py "$f" "$OUT/files/$(basename "$f")"
+done
+if ls "$OUT"/files/FlowCE-*.b84 > /dev/null 2>&1; then python3 site/packs.py "$OUT/files"; fi
 if [ -n "$KH_B84" ]; then
   python3 tools/dev/repack_installer.py "$KH_B84" "$OUT/files/KhiCAS-Flow.b84"
   printf '%s\n' "${KH_VER:-v1.0}" > "$OUT/files/version-khicas.txt"

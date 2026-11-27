@@ -5,11 +5,19 @@ descriptions never use stands for a pair of bytes (each of which may stand for a
 menufr.cc's catalog_desc() expands one into a buffer. D() finds a description's packed text at
 compile time by a hash of its words (FNV-1a, 32 bits); a description missing from the header stops
 the build (run this again). 10.6 KB of text were 6.2 KB (2026-10-19).
-usage: tools/catpack.py [src/menufr.cc] [src/catalog_text.h]   (the header is rewritten only if it changed)"""
+The steps' rule texts the same way (DeltaCE): src/steps.cc's ST("..."), src/steps_text.h,
+names st_* (tools/catpack.py src/steps.cc src/steps_text.h ST st SP). A fifth argument names a macro
+whose texts stay as they are (FlowCE: the vectors pack's rules, SP("...")): their bytes are never a
+pair's code, so the same unpacking reads them unchanged, and the longest of them counts in _MAX.
+usage: tools/catpack.py [src/menufr.cc] [src/catalog_text.h] [macro D] [prefix cat] [plain macro]
+(the header is rewritten only if it changed)"""
 import collections, os, re, sys
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else 'src/menufr.cc'
 OUT = sys.argv[2] if len(sys.argv) > 2 else 'src/catalog_text.h'
+MACRO = sys.argv[3] if len(sys.argv) > 3 else 'D'
+PRE = sys.argv[4] if len(sys.argv) > 4 else 'cat'
+PLAIN = sys.argv[5] if len(sys.argv) > 5 else None
 
 
 def c_string(lit):
@@ -44,16 +52,17 @@ def fnv(b):
 
 src = open(SRC, 'rb').read()
 descs = []  # distinct descriptions, in order
-for m in re.finditer(rb'\bD\(\s*"((?:[^"\\]|\\.)*)"\s*\)', src):
+for m in re.finditer(rb'\b' + MACRO.encode() + rb'\(\s*"((?:[^"\\]|\\.)*)"\s*\)', src):
     d = c_string(m.group(1))
     if d not in descs:
         descs.append(d)
 keys = [fnv(d) for d in descs]
 if len(set(keys)) != len(keys):
-    sys.exit('catpack: two descriptions share a hash: change one of them')
+    sys.exit('catpack: two texts share a hash: change one of them')
 
 # byte-pair encoding over all of them (a code never crosses a description's end)
-used = set(b for d in descs for b in d)
+plain = [c_string(m.group(1)) for m in re.finditer(rb'\b' + PLAIN.encode() + rb'\(\s*"((?:[^"\\]|\\.)*)"\s*\)', src)] if PLAIN else []
+used = set(b for d in descs + plain for b in d)
 free = [b for b in range(1, 256) if b not in used]
 seqs = [list(d) for d in descs]
 pairs = []
@@ -101,18 +110,20 @@ for k, (code, a, b) in enumerate(pairs):
     code_of[code] = k + 1
 raw = sum(len(d) + 1 for d in descs)
 packed = len(blob) + 2 * len(pairs) + 256  # (cat_keys and cat_offs are for the compiler only)
-h = ['// catalog_text.h - written by tools/catpack.py from src/menufr.cc\'s D("...") descriptions: do not',
-     '// edit (edit menufr.cc and run tools/catpack.py; scripts/build_v15.sh does). %d descriptions,' % len(descs),
-     '// %d bytes of text in %d on the calculator (cat_keys and cat_offs serve the compiler only)' % (raw, packed),
-     '#define CAT_N %d' % len(descs),
-     '// a byte that stands for a pair: its number in cat_pair plus 1, else 0 (a byte as it is)',
-     'static const unsigned char cat_code[256] = {' + ','.join(str(c) for c in code_of) + '};',
-     'static const unsigned char cat_pair[%d][2] = {' % max(1, len(pairs)) + ','.join('{%d,%d}' % (a, b) for _, a, b in pairs) + '};',
-     'static const char cat_text[] =\n  ' + lit(bytes(blob)) + ';',
-     '// each description\'s FNV-1a hash (32 bits) and where its packed text starts',
-     'static constexpr unsigned long cat_keys[CAT_N] = {' + ','.join('%dul' % k for k in keys) + '};',
-     'static constexpr unsigned short cat_offs[CAT_N] = {' + ','.join(str(o) for o in offs) + '};', '']
+N = PRE.upper() + '_N'
+h = ['// %s - written by tools/catpack.py from %s\'s %s("...") texts: do not' % (os.path.basename(OUT), SRC, MACRO),
+     '// edit (edit %s and run tools/catpack.py; scripts/build_v15.sh does). %d texts,' % (os.path.basename(SRC), len(descs)),
+     '// %d bytes of text in %d on the calculator (%s_keys and %s_offs serve the compiler only)' % (raw, packed, PRE, PRE),
+     '#define %s %d' % (N, len(descs)),
+     '#define %s_MAX %d' % (PRE.upper(), max(len(d) for d in descs + plain)),
+     '// a byte that stands for a pair: its number in %s_pair plus 1, else 0 (a byte as it is)' % PRE,
+     'static const unsigned char %s_code[256] = {' % PRE + ','.join(str(c) for c in code_of) + '};',
+     'static const unsigned char %s_pair[%d][2] = {' % (PRE, max(1, len(pairs))) + ','.join('{%d,%d}' % (a, b) for _, a, b in pairs) + '};',
+     'static const char %s_text[] =\n  ' % PRE + lit(bytes(blob)) + ';',
+     '// each text\'s FNV-1a hash (32 bits) and where its packed text starts',
+     'static constexpr unsigned long %s_keys[%s] = {' % (PRE, N) + ','.join('%dul' % k for k in keys) + '};',
+     'static constexpr unsigned short %s_offs[%s] = {' % (PRE, N) + ','.join(str(o) for o in offs) + '};', '']
 text = '\n'.join(h)
 if not os.path.exists(OUT) or open(OUT).read() != text:
     open(OUT, 'w').write(text)
-    print(f'catpack: {len(descs)} descriptions, {raw} bytes in {packed} -> {OUT}')
+    print(f'catpack: {len(descs)} texts, {raw} bytes in {packed} -> {OUT}')

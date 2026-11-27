@@ -1604,6 +1604,7 @@ void do_run(const char * s){
 #endif
 }
 
+void flowce_angle_from_os(){ giac::angle_radian(os_get_angle_unit(),contextptr); }
 void run(const char * s,int do_logo_graph_eqw){
   if (strlen(s)>=2 && (s[0]=='#' ||
 		       (s[0]=='/' && (s[1]=='/' || s[1]=='*'))

@@ -64,18 +64,19 @@
 // Not reentrant: one static node pool (MAXN nodes of 16 bytes) and static state.
 
 #include "mathinput.h"
+#include <string.h>
 
 // node pool, parser nesting, display ops budget, layout recursion, construct chain
 enum { MAXN = 192, MAXD = 24, MAXOPS = 400, RMAX = 2 * MAXD + 4, MAXC = 64 };
 
 // token types: TK_* or the punctuation char itself
 enum { TK_END, TK_NUM, TK_NAME, TK_STR, OP_DEF, OP_IMP, OP_ARR, OP_EQ, OP_NE, OP_LE, OP_GE,
-       OP_POW, OP_PM, TK_OTHER = 31 };
+       OP_POW, OP_PM, OP_X, TK_OTHER = 31 }; // (OP_X: the cross product's x, M3)
 
 // node kinds; leaves first
 enum { K_TEXT, K_OP, K_OPU, K_SEP, K_DOT, K_BLANK, K_FLAT, K_PI, K_INF, K_THETA,
        K_EMPTY, K_ROW, K_GROUP, K_CALL, K_FRAC, K_POW,
-       K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP, K_SER, K_LOGB };
+       K_SQRT, K_SURD, K_ABS, K_INT, K_DEFINT, K_DIFF, K_SUM, K_LIM, K_EXP, K_SER, K_LOGB, K_SUBS };
 enum { F_IMPL = 1, F_HID = 2, F_CLOSED = 4, F_NOBOX = 8, F_ARGSEP = 16, F_NAME = 32, F_FN = 64, F_LABEL = 128 };
 
 struct mi_node {
@@ -136,12 +137,37 @@ static int lw(const char * lit, int ng, int sm) { // width of a literal of ng gl
 }
 
 // ---------------------------------------------------------------- lexer
+// a subscript's _ at i (results only): after a letter that starts a name, before a letter, a digit
+// or a parenthesis
+static int sub_at(int i) {
+#ifdef FLOWCE_SERIES // (the series pack: a sequence's subscript typed, a_n with the (-) key, drawn low as in results; 2a_n too)
+  if (i < 1 || i + 1 >= L || S[i] != '_') return 0;
+  const int b = ch(i - 1), a = i > 1 ? ch(i - 2) : 0, n = ch(i + 1);
+  return ((b | 32) >= 'a' && (b | 32) <= 'z') && !namec(a) && (((n | 32) >= 'a' && (n | 32) <= 'z') || digit(n) || n == '(');
+#else
+  if (!(M->flags & MI_F_IMPLDOT) || i < 1 || i + 1 >= L || S[i] != '_') return 0;
+  const int b = ch(i - 1), a = i > 1 ? ch(i - 2) : 0, n = ch(i + 1);
+  return ((b | 32) >= 'a' && (b | 32) <= 'z') && !namec(a) && !digit(a) && (((n | 32) >= 'a' && (n | 32) <= 'z') || digit(n) || n == '(');
+#endif
+}
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+// (M3) proj or scal right before i, a word of its own, its _ a subscript: proj_v u, scal_<1,2> u
+static int pword(int i) {
+  return i >= 4 && i + 1 < L && S[i] == '_' && (!strncmp(S + i - 4, "proj", 4) || !strncmp(S + i - 4, "scal", 4)) &&
+         (i == 4 || !namec(ch(i - 5))) && (((ch(i + 1) | 32) >= 'a' && (ch(i + 1) | 32) <= 'z') || digit(ch(i + 1)) || S[i + 1] == '(' || S[i + 1] == '[');
+}
+#endif
 static void lex(int i) {
   ta = i;
   while (i < L && blank(ch(i))) ++i;
   tc = i;
   if (i >= L) { tt = TK_END; tb = L; return; }
   int c = ch(i), d = i + 1 < L ? ch(i + 1) : 0;
+  if (c == '.' && d == '.' && i + 2 < L && S[i + 2] == '.' && (M->flags & MI_F_IMPLDOT)) { // (results: ... a term, the steps' series written out)
+    tb = i + 3;
+    tt = TK_NAME;
+    return;
+  }
   if (digit(c) || (c == '.' && digit(d))) {
     i = digits(i);
     if (i < L && S[i] == '.') i = digits(i + 1);
@@ -154,7 +180,29 @@ static void lex(int i) {
   } else if (c == 0xc2 && d == 0xb1) { // the plus-minus sign (the steps' quadratic formula)
     i += 2;
     tt = OP_PM;
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  } else if (c == 0xc3 && d == 0x97) { // (M3: the cross product's x, an operator as * is: u x v, <1,2,3> x <0,1,1>)
+    i += 2;
+    tt = OP_X;
+  } else if (c == 0xe2 && d == 0x89 && i + 2 < L && (ch(i + 2) == 0xa0 || ch(i + 2) == 0x88 || ch(i + 2) == 0xa4 || ch(i + 2) == 0xa5)) {
+    tt = ch(i + 2) == 0xa4 ? OP_LE : ch(i + 2) == 0xa5 ? OP_GE : OP_NE; // (M3: the steps' 10/3 != 16/3, theta ~ 0.6896: relations, not names)
+    i += 3;
+#endif
+  } else if (sub_at(i)
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+             || pword(i)
+#endif
+             ) { // (results: the subscript of a letter, a_k, s_n, a_(k+1), p_3, as the steps write them)
+    ++i;
+    tt = '_';
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  } else if ((c == 'p' || c == 's') && pword(i + 4)) { // (proj_v u: the word, then its subscript)
+    tb = i + 4;
+    tt = TK_NAME;
+    return;
+#endif
   } else if (namec(c)) {
+    if (c != '_' && c < 0x80 && sub_at(i + 1)) { tb = i + 1; tt = TK_NAME; return; } // (the letter alone)
     while (i < L && (namec(ch(i)) || digit(ch(i))) && !(ch(i) == 0xc2 && i + 1 < L && ch(i + 1) == 0xb1)) ++i; // (b+-c: not one name)
     // pi right before a letter (2pir typed with the pi key) is its own token, drawn as the pi
     // glyph, as the input pre-pass reads it (2*pi*r); not before ( : piecewise(...) is a name
@@ -183,7 +231,7 @@ static int binlev(int t) { // binary operator precedence level, 0: none
   case OP_DEF: case OP_IMP: case OP_ARR: return 2;
   case '=': case OP_EQ: case OP_NE: case '<': case '>': case OP_LE: case OP_GE: return 3;
   case '+': case '-': case OP_PM: return 4;
-  case '*': case '/': return 5;
+  case '*': case '/': case OP_X: return 5;
   }
   return 0;
 }
@@ -408,6 +456,15 @@ static int pfactor() {
   if (b) {
     bt = b;
     while ((tt == '!' || tt == '\'') && !over()) { n = leaf(K_OPU); T[bt].nx = n; bt = n; lex(tb); }
+    if (tt == '_' && !over()) { // a subscript (results): its name, number or group, small and low
+      int base = wrap(b, bt), p = newnode(K_SUBS, T[base].a, 0, 0), e;
+      lex(tb);
+      e = primary();
+      e = e ? wrap(e, e) : box(ta);
+      hide(e);
+      T[p].kid = base; T[base].nx = e; T[p].b = T[e].b;
+      b = bt = p;
+    }
     if (powop(tt) && !over()) {
       int base = wrap(b, bt), p = newnode(K_POW, T[base].a, 0, 0), e;
       lex(tb);
@@ -464,9 +521,11 @@ static int prow(int stopc) {
       continue;
     }
     n = leaf(lv == 1 ? K_SEP : k == '*' ? K_DOT : K_OP);
+    const int ff = k == '*' && (M->flags & MI_F_IMPLDOT) && t && T[t].k == K_FRAC; // (results: a/b*c/d as two fractions, the dot between)
+    if (ff) { int j = T[n].b; while (j < L && blank(ch(j))) ++j; if (j < L && ch(j) == '(') T[n].f |= F_NAME; } // (the dot shown before another (top)/(bottom))
     add(h, t, n, n); lex(tb);
     pk = k;
-    if (lv < 5) tp = n;
+    if (lv < 5 || ff) tp = n;
     need = 1; nb = k != ';';
   }
   if (need && nb) { n = box(ta); add(h, t, n, n); } // missing right operand
@@ -520,7 +579,7 @@ static int pgap(int n, int c, int adv) {
   return ch(c - 1) == 'f' ? adv * 3 / 8 + 1 : adv / 4; // (the f leans furthest: f' was still close)
 }
 static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implicit multiplication:
-  if (!(M->flags & MI_F_IMPLDOT)) return 0; // its gap, 1 px; a thin space before a differential
+  if (!(M->flags & MI_F_IMPLDOT) || (T[n].f & F_NAME)) return 0; // its gap, 1 px; a thin space before a differential
   int j = T[n].b;                           // (2x dx) or a name of letters (x sin(x))
   while (j < L && blank(ch(j))) ++j;
   if (j >= L || (!namec(ch(j)) && ch(j) != '(')) return 0;
@@ -531,7 +590,7 @@ static int hidedot(int n) { // MI_F_IMPLDOT: a * before a letter or ( is implici
 
 static int slot(int n, int i) { // i-th slot content of a 2D construct (hidden parens removed)
   int c = T[n].kid;
-  if (T[n].k == K_POW) c = T[c].nx;
+  if (T[n].k == K_POW || T[n].k == K_SUBS) c = T[c].nx;
   for (; c; c = T[c].nx)
     if (!(T[c].f & F_ARGSEP) && !i--) return (T[c].k == K_GROUP && (T[c].f & F_HID)) ? T[c].kid : c;
   return 0;
@@ -540,14 +599,22 @@ static int sfont(int k, int i, int sm) { // font of slot i (must match the sl() 
 #ifdef FLOWCE_TILOOK
   if (k == K_FRAC || (k == K_DIFF && i == 1)) return 1; // (MathPrint: fractions in the small font)
 #endif
-  if (k == K_POW || k == K_EXP || ((k == K_SURD || k == K_LOGB) && i == 1) || (k == K_DEFINT && i >= 2) ||
+  if (k == K_POW || k == K_EXP || k == K_SUBS || ((k == K_SURD || k == K_LOGB) && i == 1) || (k == K_DEFINT && i >= 2) ||
       ((k == K_SUM || k == K_LIM || k == K_SER) && i >= 1)) return 1;
   return sm;
 }
-static int needp(int n) { // diff(f,x): f needs parentheses (top level + - = , ...)
+static int infslot(int n) { // the slot n is infinity, +infinity or oo
+  if (!n) return 0;
+  if (T[n].k == K_INF) return 1;
+  if (T[n].k != K_ROW) return 0;
+  int c = T[n].kid;
+  if (c && T[c].k == K_OPU && ch(T[c].c) == '+') c = T[c].nx;
+  return c && T[c].k == K_INF && !T[c].nx;
+}
+static int needp(int n) { // diff(f,x): f needs parentheses (top level + - = , ...; a leading minus: d/dx (-1/(2 sqrt(1-x))))
   if (T[n].k == K_ROW)
     for (int c = T[n].kid; c; c = T[c].nx)
-      if (T[c].k == K_OP || T[c].k == K_SEP) return 1;
+      if (T[c].k == K_OP || T[c].k == K_SEP || (T[c].k == K_OPU && c == T[n].kid && ch(T[c].c) == '-')) return 1;
   return 0;
 }
 
@@ -622,6 +689,12 @@ static void cons(int n, int x, int y, int sm) {
     dec(MI_HLINE, sm, 0, -ax, cw, b);
     sl(0, (cw - A.w) / 2, -ax - g - A.ds, sm);
     sl(1, (cw - B.w) / 2, -ax + b + g + B.as, sm);
+  } break;
+  case K_SUBS: { // a subscript: its baseline under the base's, its top at about half the base's ascent
+    const int b = T[n].kid, bw = T[b].w;
+    if (gm == GM_MEASURE) { by0 = mn(by0, -T[b].as); by1 = mx(by1, T[b].ds); }
+    sl(0, bw + 1, A.as * 45 / 100, 1);
+    cw = bw + 1 + A.w;
   } break;
   case K_POW: case K_EXP: { // exponent bottom at 45% of the base ascent
     int b = k == K_POW ? T[n].kid : 0, bw = b ? T[b].w : lw("e", 1, sm), ba = b ? T[b].as : f.asc;
@@ -757,16 +830,22 @@ static void cons(int n, int x, int y, int sm) {
 #else
     static const char ser[] = "taylor";
 #endif
-    int bx, bb, tw = lw(ser, 6, sm), aw = lw("", 1, 1), dw = lw(" deg ", 5, 1);
-    u = B.w + aw + C.w + dw + D.w; v = mx(sf.asc, mx(B.as, mx(C.as, D.as)));
+    static const char sert[] = "Taylor"; // (results: of infinite degree, "Taylor" over x->a: the series; 6 glyphs at most)
+    const int ts = (M->flags & MI_F_IMPLDOT) && infslot(sn[3]), ng = 6;
+    const char * lab = ts ? sert : ser;
+    int bx, bb, tw = lw(lab, ng, sm), aw = lw("", 1, 1), dw = ts ? 0 : lw(" deg ", 5, 1);
+    u = B.w + aw + C.w + dw + (ts ? 0 : D.w); v = mx(sf.asc, mx(B.as, mx(C.as, ts ? 0 : D.as)));
     t = mx(tw, u);
-    dtext(ser, 6, sm, (t - tw) / 2, 0);
+    dtext(lab, ng, sm, (t - tw) / 2, 0);
     bx = (t - u) / 2; bb = f.desc + 1 + v;
     sl(1, bx, bb, 1);
     dtext("", 1, 1, bx + B.w, bb);
     sl(2, bx + B.w + aw, bb, 1);
+    if (ts) { if (gm != GM_MEASURE) sl(3, -30000, 0, 1); }
+    else {
     dtext(" deg ", 5, 1, bx + B.w + aw + C.w, bb);
     sl(3, bx + B.w + aw + C.w + dw, bb, 1);
+    }
     sl(0, t + h, 0, sm);
     cw = t + h + A.w + 2;
   } break;
@@ -814,7 +893,7 @@ static int rd;
 static int kindof(int n) { return rd > RMAX ? (int)K_FLAT : (int)T[n].k; }
 static int corec(int n, int k) { return k == K_FLAT ? T[n].a : T[n].c; }
 
-#ifdef FLOWCE_KHICAS
+#if defined FLOWCE_KHICAS || defined FLOWCE_VECTORS || defined HOSTGIAC
 static int grid_measure(int n, int sm);
 #endif
 static void measure(int n, int sm) {
@@ -843,7 +922,7 @@ static void measure(int n, int sm) {
     d.w = (d.f & F_NOBOX) ? (d.a > 0 && (ch(d.a - 1) == '[' || ch(d.a - 1) == '{') ? f.adv / 3 : 0) // ([]: a gap, not a box)
           : l ? (M->wf ? M->wf(s, l, 1, MI_IT) : l * M->small.adv) + 8 : f.adv;
   }
-#ifdef FLOWCE_KHICAS
+#if defined FLOWCE_KHICAS || defined FLOWCE_VECTORS || defined HOSTGIAC
   else if (k == K_GROUP && grid_measure(n, sm)) ; // (KhiCAS + Flow: a matrix as a grid)
 #endif
   else if (k <= K_CALL) { // row, group, call: items side by side, delimiters as tall as the content
@@ -860,7 +939,7 @@ static void measure(int n, int sm) {
     }
     d.w = w;
   } else { // 2D construct
-    if (k == K_POW) measure(d.kid, sm);
+    if (k == K_POW || k == K_SUBS) measure(d.kid, sm);
     for (int i = 0, s; (s = slot(n, i)); ++i) measure(s, sfont(k, i, sm));
     gm = GM_MEASURE; by0 = -f.asc; by1 = f.desc;
     cons(n, 0, 0, sm);
@@ -943,7 +1022,7 @@ static void P(int p, int x, int y, int sm, int d) {
 // ---------------------------------------------------------------- place
 // Draws node n at (x, baseline y); emits positions (a,b] (a itself belongs to the caller,
 // a construct may re-claim it from a deeper slot). dp: slot depth.
-#ifdef FLOWCE_KHICAS
+#if defined FLOWCE_KHICAS || defined FLOWCE_VECTORS || defined HOSTGIAC
 // KhiCAS + Flow: a matrix typed [[a,b],[c,d]] (2 to GMAX rows of the same 1 to GMAX cells, all its
 // brackets closed) drawn as KhiCAS's editor draws it, a grid in tall brackets, the cells centered in
 // their columns; a cell: the nodes between two separators of its row. Its brackets and commas are
@@ -1080,7 +1159,7 @@ static void place(int n, int x, int y, int dp, int sm) {
       op(MI_BOX, sm, x + 1, top, d.w - 2, bh, d.a, 0, 0);
       op(MI_HINT, 1, x + 4, top + (bh - g.asc - g.desc) / 2 + g.asc, d.w - 8, g.asc + g.desc, d.a, l, s, MI_IT);
     } else if (!(d.f & F_NOBOX)) op(MI_BOX, sm, x + 1, y - f.asc + 2, f.adv - 2, f.asc - 2, d.a, 0, 0);
-#ifdef FLOWCE_KHICAS
+#if defined FLOWCE_KHICAS || defined FLOWCE_VECTORS || defined HOSTGIAC
   } else if (k == K_GROUP && grid_place(n, x, y, dp, sm)) { // (KhiCAS + Flow: a matrix as a grid)
 #endif
   } else if (k <= K_CALL) { // row, visible group, call
@@ -1089,6 +1168,9 @@ static void place(int n, int x, int y, int dp, int sm) {
     if (k == K_CALL) { place(c, x, y, dp, sm); xx += T[c].w; p = T[c].b; c = T[c].nx; }
     if (vis) {
       code += 2 * otype(ch(T[c].a - 1));
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+      if (code == MI_LBRACKET) code = MI_LANGLE; // (M3: a vector as the course writes it, <1,-1,0>; a matrix stays a grid in [ ])
+#endif
       for (++p; p < T[c].a; ++p) { xx += h; P(p, xx, y, sm, dp); }
       op(code, sm, xx, y - d.as, h + 1, d.as + d.ds, T[c].a - 1, 1, 0);
       xx += h + 1;
@@ -1109,7 +1191,7 @@ static void place(int n, int x, int y, int dp, int sm) {
     gm = GM_DECO; cons(n, x, y, sm);
     push(n);
     p = d.a;
-    if (k == K_POW) { // the base line, edges included, is weakly inside the power
+    if (k == K_POW || k == K_SUBS) { // the base line, edges included, is weakly inside the power
       bl = ckn;
       P(p, x, y, sm, dp);
       place(d.kid, x, y, dp, sm);
@@ -1124,11 +1206,11 @@ static void place(int n, int x, int y, int dp, int sm) {
       place(s, sx, sy, dp + 1, ss);
       p = T[s].b;
     }
-    bl = k == K_POW ? ckn : obl;
+    bl = k == K_POW || k == K_SUBS ? ckn : obl;
     alias(p + 1, d.b);
-    if (k != K_POW) pop();
+    if (k != K_POW && k != K_SUBS) pop();
     P(d.b, x + d.w, y, sm, dp);
-    if (k == K_POW) pop();
+    if (k == K_POW || k == K_SUBS) pop();
     bl = obl;
   }
   --rd;
@@ -1311,7 +1393,7 @@ int mi_backspace(const char * s, int len, int caret, int & from, int & to, const
       for (q = T[n].kid; q; q = T[q].nx)
         if (T[q].a <= i && i < T[q].b) nx = q;
     } else {
-      if (k == K_POW && i < T[T[n].kid].b) nx = T[n].kid;
+      if ((k == K_POW || k == K_SUBS) && i < T[T[n].kid].b) nx = T[n].kid;
       for (j = 0; (q = slot(n, j)); ++j)
         if (T[q].a <= i && i < T[q].b) nx = q;
       if (!nx) { // hidden structure char of construct n
@@ -1319,7 +1401,7 @@ int mi_backspace(const char * s, int len, int caret, int & from, int & to, const
           if (T[q].k != K_EMPTY && !(j == 1 && k >= K_INT && k <= K_LIM && T[q].k == K_TEXT &&
                                        namei(q, k == K_SUM ? "k" : "x")))
             return mi_move(s, len, c, 0, m); // a slot is not empty: act like LEFT
-        j = k == K_POW ? T[T[n].kid].b : T[n].a; // empty template: delete it whole
+        j = k == K_POW || k == K_SUBS ? T[T[n].kid].b : T[n].a; // empty template: delete it whole
         while (j < L && blank(ch(j))) ++j;
         from = j; to = T[n].b;
         return j;
@@ -1347,4 +1429,4 @@ const mi_template & mi_get_template(int kind) {
   return tpl[kind >= 0 && kind < MI_T_COUNT ? kind : 0];
 }
 
-const mi_metrics mi_default_metrics = {{8, 14, 4}, {6, 9, 3}, 2, 0, 0, 0, 0, 0, 0};
+const mi_metrics mi_default_metrics = {{8, 14, 4, 0}, {6, 9, 3, 0}, 2, 0, 0, 0, 0, 0, 0}; // (ax 0: the bars at the baseline, as before the axis came)

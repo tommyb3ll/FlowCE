@@ -212,6 +212,43 @@ kbd {
   text-transform: uppercase;
   vertical-align: middle;
 }
+/* the customizer (installer.js, from files/packs.json): FlowCE's packs, each with its checkbox, the one
+   picked outlined; under them the app's size against the most an app can be */
+.packs {
+  margin: 0 0 1.2rem;
+  padding: 1rem 1.2rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.packs h3 { margin: 0 0 .25rem; font-size: 1.12rem; }
+.packs-always { margin: 0 0 .9rem; color: var(--sub); font-size: .95rem; line-height: 1.45; max-width: 760px; }
+.pack-list { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.pack {
+  position: relative;
+  display: block;
+  padding: .75rem .95rem .8rem 2.65rem;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.pack:hover { border-color: color-mix(in srgb, var(--acc) 50%, var(--line)); }
+.pack.on { border-color: var(--acc); background: color-mix(in srgb, var(--acc-soft) 40%, var(--card)); }
+.pack input { position: absolute; left: .95rem; top: .95rem; width: 18px; height: 18px; margin: 0; accent-color: var(--acc); }
+.pack-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .45rem; line-height: 1.3; }
+.pack-kb { color: var(--sub); font-size: .85rem; white-space: nowrap; }
+.pack-text { display: block; margin-top: .25rem; color: var(--sub); font-size: .9rem; line-height: 1.4; }
+.pack-why { display: block; margin-top: .3rem; color: var(--beta-ink); font-size: .85rem; line-height: 1.35; }
+.pack-why:empty { display: none; }
+.packs.locked .pack { cursor: not-allowed; opacity: .6; }
+.meter { margin-top: 1rem; }
+.meter-bar { display: flex; gap: 3px; height: 12px; border-radius: 99px; background: var(--acc-soft); overflow: hidden; }
+.meter-bar span { flex: none; height: 100%; background: var(--acc); transition: width .25s; }
+.meter-bar span:nth-child(2) { background: color-mix(in srgb, var(--acc) 70%, var(--card)); }
+.meter-text { margin: .45rem 0 0; color: var(--sub); font-size: .92rem; }
+.meter-text strong { color: var(--ink); }
+.pk-note { margin: .7rem 0 0; padding: .55rem .8rem; border-radius: 10px; background: var(--beta-bg); color: var(--beta-ink); font-size: .92rem; }
+@media (prefers-reduced-motion: reduce) { .meter-bar span { transition: none; } }
 .need { max-width: 760px; color: var(--sub); }
 .need strong { color: var(--ink); }
 .installer {
@@ -288,6 +325,8 @@ details.manual li { margin-bottom: .45rem; }
   .whatsnew > summary { flex-direction: column; align-items: flex-start; gap: .9rem; padding: 1.1rem 1.1rem; }
   .wn-body { padding: .4rem 1.1rem 1.3rem; }
   .pick { grid-template-columns: 1fr; }
+  .pack-list { grid-template-columns: 1fr; }
+  .packs { padding: .9rem 1rem 1rem; }
   .top nav a:not([href="#install"]) { display: none; }
   .installer { padding: .2rem 1rem; }
   .step-body { padding-left: 0; }

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FlowCE: calculus on your TI-84 Plus CE</title>
-<meta name="description" content="A free computer algebra system for the TI-84 Plus CE: exact answers in textbook form, step-by-step solutions for calculus and algebra, a graph screen, the applications of calculus, statistics and nine themes. Install it from this page.">
-<meta property="og:title" content="FlowCE 2.2.1: calculus on your TI-84 Plus CE">
-<meta property="og:description" content="Exact answers in textbook form and every step to get there, a new graph screen, the applications of calculus, statistics and nine themes. Free and open source.">
+<meta name="description" content="A free computer algebra system for the TI-84 Plus CE: exact answers in textbook form, step-by-step solutions for calculus and algebra, a graph screen and the applications of calculus, with the packs your classes need: series, vectors, statistics, differential equations. Install it from this page.">
+<meta property="og:title" content="FlowCE 3.0: calculus on your TI-84 Plus CE">
+<meta property="og:description" content="Exact answers in textbook form and every step to get there. Pick what's in it when you install: series, vectors, statistics, differential equations. Free and open source.">
 <meta property="og:image" content="media/screenshots/steps_parts.png">
 <link rel="icon" href="media/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,7 @@
 <main>
 <section class="hero wrap">
   <div class="hero-text">
-    <a class="pill" href="#new">New: FlowCE 2.4, KhiCAS + Flow 1.2</a>
+    <a class="pill" href="#new">New: FlowCE 3.0, choose what's in it</a>
     <div class="show-pick" role="group" aria-label="Show">
       <button type="button" class="on" data-show="flowce" aria-pressed="true">FlowCE</button>
       <button type="button" data-show="khicas" aria-pressed="false">KhiCAS + Flow</button>
@@ -69,7 +69,7 @@
   <summary>
     <span class="wn-text">
       <h2>What's new</h2>
-      <span class="wn-sub">FlowCE 2.4: logs with any base, as textbooks write them (the math key, then 0), with exact answers; algebra's steps for problems typed with ^ or x². KhiCAS + Flow 1.2: the slope and the radius of curvature on the graph, and faster menus. FlowCE 2.3: the normal line and the osculating circle on the graph screen, and the TI-83 Premium CE's own keys. KhiCAS + Flow takes FlowCE Python's place: Bernard Parisse's KhiCAS in FlowCE's look. In FlowCE: steps for algebra as well as calculus, a real graph screen, the applications of calculus as forms you fill in, statistics, probability, nine themes you can tell apart on the calculator, and faster menus and answers.</span>
+      <span class="wn-sub">FlowCE 3.0: choose what's in it when you install: series and sequences, vectors, lines and curves, statistics, differential equations. Factoring steps for more polynomials, complex solutions, and fixes from your reports. Before it: logs with any base (2.4), the normal line and the osculating circle (2.3), KhiCAS + Flow in FlowCE Python's place, steps for algebra, a real graph screen, the applications of calculus, nine themes.</span>
     </span>
     <span class="wn-more"><span class="wn-open">See what's new</span><span class="wn-close">Hide</span></span>
   </summary>
@@ -89,6 +89,9 @@
     </figure>
   </div>
   <ul class="news">
+    <li><strong>3.0, choose what's in it:</strong> pick the packs your classes need on this page, as much as the calculator holds: <em>Series and sequences</em> (power series and their interval of convergence, Taylor series in sigma notation, sequences typed as a<sub>n</sub> or by a recurrence, the convergence tests in more detail), <em>Vectors, lines and curves</em> (products, projections, lines in space, tangent lines, arc length, r(t), as forms with steps), <em>Statistics and probability</em>, <em>Differential equations</em>. Also: factoring steps with several variables, grouping and special patterns; an equation with no real solution shows its complex ones (x&sup2;+9=0: x = 3i, x = &minus;3i); arccos of a decimal fixed (arccos(0.4) gave 0); numbers in E notation past 10<sup>38</sup> worked out exactly; <kbd>mode</kbd> &rarr; Degrees; <em>more</em> &rarr; Quit; <kbd>enter</kbd> after an answer with no steps says so.</li>
+    <li><strong>KhiCAS + Flow 1.3:</strong> the periodic table's names spelled right (Iodine, Thallium...) and Moscovium's symbol Mc, arccos of a decimal fixed, backspace after <kbd>]</kbd> steps into the list.</li>
+    <li><strong>2.4:</strong> logs with any base (the math key, then 0), with exact answers and steps for log equations; algebra's steps for problems typed with ^ or x&sup2;.</li>
     <li><strong>2.3:</strong> the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).</li>
     <li><strong>KhiCAS + Flow 1.2:</strong> the graph shows the slope m and the radius R (<em>X,T,&theta;,n</em>: the full equation), the Config in khicasce's order, the TI-83 Premium CE's trig key offers sin, cos, tan and their inverses, faster menus.</li>
     <li><strong>KhiCAS + Flow 1.1:</strong> KhiCAS's 1D command line in color (<em>mode</em> &rarr; 2D history off), the normal line and the osculating circle, the TI-83 Premium CE's keys.</li>
@@ -112,7 +115,7 @@
     <label class="opt">
       <input type="radio" name="build" value="normal" checked>
       <span class="opt-head"><strong>FlowCE</strong> <span class="ver" data-ver="normal"></span></span>
-      <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs, statistics and the Applications menu.</span>
+      <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs and the Applications menu, with the packs you choose below.</span>
     </label>
     <label class="opt">
       <input type="radio" name="build" value="khicas">
@@ -121,7 +124,43 @@
     </label>
   </div>
 
-  <p class="need">You need a TI-84 Plus CE, its USB cable, and Chrome or Edge on a computer. The page reads your OS and chooses the installer: v2.1 through 5.8.4, v3 on 5.8.5. <strong>Installing erases the calculator's apps and archived files.</strong></p>
+  <div class="packs" id="packs" hidden>
+    <h3>Choose what's in FlowCE</h3>
+    <p class="packs-always">Always in it: exact answers with steps for calculus and algebra, graphs, the applications of calculus, <code>analyze</code> and the themes. Add what your classes need. The calculator has room for some of these at a time.</p>
+    <div class="pack-list" role="group" aria-label="Packs">
+      <label class="pack" data-pack="stats">
+        <input type="checkbox" value="stats">
+        <span class="pack-head"><strong>Statistics and probability</strong> <span class="pack-kb"></span></span>
+        <span class="pack-text">Data, box plots, fitted curves with r&sup2;, the normal, t, chi-square, binomial and Poisson distributions, intervals and tests.</span>
+        <span class="pack-why"></span>
+      </label>
+      <label class="pack" data-pack="diffeq">
+        <input type="checkbox" value="diffeq">
+        <span class="pack-head"><strong>Differential equations</strong> <span class="pack-kb"></span></span>
+        <span class="pack-text">First and second order, with initial values, and Laplace transforms.</span>
+        <span class="pack-why"></span>
+      </label>
+      <label class="pack" data-pack="vectors">
+        <input type="checkbox" value="vectors">
+        <span class="pack-head"><strong>Vectors, lines and curves</strong> <span class="pack-kb"></span></span>
+        <span class="pack-text">Dot and cross products, projections and angles; lines in space, tangent lines, arc length and r(t) as forms you fill in, with steps.</span>
+        <span class="pack-why"></span>
+      </label>
+      <label class="pack" data-pack="series">
+        <input type="checkbox" value="series">
+        <span class="pack-head"><strong>Series and sequences</strong> <span class="pack-kb"></span></span>
+        <span class="pack-text">Power series with their radius and interval of convergence, Taylor series in sigma notation, f<sup>(n)</sup>(a) from a series, sequences typed as a<sub>n</sub> or by a recurrence, and the convergence tests written out in more detail. Without it, sums keep 2.4's steps.</span>
+        <span class="pack-why"></span>
+      </label>
+    </div>
+    <div class="meter" aria-live="polite">
+      <div class="meter-bar" id="pk-bar"></div>
+      <p class="meter-text" id="pk-size"></p>
+    </div>
+    <p class="pk-note" id="pk-note" aria-live="polite" hidden></p>
+  </div>
+
+  <p class="need">You need a TI-84 Plus CE, a USB cable that carries data (the one it came with: some phone charging cables don't), and Chrome or Edge on a computer. The page reads your OS and chooses the installer: v2.1 through 5.8.4, v3 on 5.8.5. <strong>Installing erases the calculator's apps and archived files.</strong></p>
 
   <div class="installer" id="installer">
     <div class="notice" id="no-usb" hidden>
@@ -176,7 +215,7 @@
     <summary>Install with TI Connect CE: OS 5.3–5.8.4</summary>
     <ol>
       <li>Clear the archive: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
-      <li>Download <a id="dl" href="files/FlowCE.b84" download>FlowCE.b84</a> and send it with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>.</li>
+      <li>Download <a id="dl" href="files/FlowCE.b84" download>FlowCE.b84</a> (the version and packs picked above) and send it with <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a>. On a Mac, TI Connect CE only sends bundles on Windows: use this page's installer in Chrome, or rename the file to .zip, open it, and send all its files (the AppIns files to Archive).</li>
       <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens arTIfiCE. <kbd>enter</kbd> starts INST, <kbd>enter</kbd> again installs.</li>
       <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>. Then <kbd>clear</kbd>, <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
     </ol>
@@ -201,7 +240,7 @@
       <li>Clear the archive before starting: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → ▶ <strong>ARCHIVE</strong> → <kbd>3</kbd> → <kbd>2</kbd>.</li>
       <li>Follow the <a href="https://yvantt.github.io/arTIfiCE/">official arTIfiCE v3 instructions for OS 5.8.5</a>: install Inequalz, reset RAM, send <code>arTIfiCE.8xp</code> to RAM, open Inequalz's Functions screen, then send <code>INEQUVAR.8xv</code>. After the restart, press <kbd>on</kbd> if the screen stays black.</li>
       <li><kbd>apps</kbd> → <strong>AsmHook2</strong>. Dismiss “Installation successful!” to return to the home screen.</li>
-      <li>Download the version selected above: <a href="files/FlowCE.b84" download data-goatcounter-click="download-normal" data-goatcounter-title="Download (FlowCE)">FlowCE</a> or <a href="files/KhiCAS-Flow.b84" download data-goatcounter-click="download-khicas" data-goatcounter-title="Download (KhiCAS + Flow)">KhiCAS + Flow</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
+      <li>Download the version selected above: <a id="dl-585" href="files/FlowCE.b84" download data-goatcounter-click="download-normal" data-goatcounter-title="Download (FlowCE)">FlowCE</a> or <a href="files/KhiCAS-Flow.b84" download data-goatcounter-click="download-khicas" data-goatcounter-title="Download (KhiCAS + Flow)">KhiCAS + Flow</a>. Send the bundle with TI Connect CE. Keep <strong>INST in RAM</strong> and <strong>AppIns files in Archive</strong>. Keep AsmHook2 until you run INST; do not reset or erase again between these steps.</li>
       <li><kbd>prgm</kbd> → select <strong>INST by name</strong> → <kbd>enter</kbd> → <kbd>enter</kbd>. Ignore the bundle's program A; it is for older OS versions. Press <kbd>enter</kbd> at the install prompt, then wait for the countdown to finish.</li>
       <li>At “Success! Will now reset”, press <kbd>enter</kbd>. After “RAM Cleared”, <kbd>clear</kbd>, then <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
     </ol>
@@ -211,13 +250,15 @@
   <details class="manual">
     <summary>Trouble?</summary>
     <ul>
+      <li><strong>"No compatible devices found":</strong> the browser doesn't see the calculator. Turn it on, use a USB cable that carries data (the one it came with), unplug and plug it back in. On Windows, close TI Connect CE; if the list stays empty, install TI Connect CE 6.1 or newer (its driver), close it, and try again.</li>
       <li><strong>Connect fails on Windows:</strong> update TI Connect CE to 6.1 or newer, then unplug and replug the calculator.</li>
       <li><strong>Connect fails on a Mac or Chromebook:</strong> close TI Connect CE, then unplug and replug.</li>
       <li><strong>Linux:</strong> add a udev rule such as <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then replug.</li>
       <li><strong>Still not enough memory after the erase:</strong> TI's language apps survive it. The page offers to delete them (<strong>Delete the language apps and continue</strong>); by hand: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → Apps, <kbd>del</kbd> on each.</li>
       <li><strong>"RAM Cleared" but this page still waits:</strong> it is installed. Press <kbd>apps</kbd> → <strong class="app">FlowCE</strong>.</li>
       <li><strong>Frozen at "Success! Will now reset":</strong> press the reset button on the back (a pen tip). FlowCE stays installed.</li>
-      <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed.</li>
+      <li><strong>The calculator acts strangely:</strong> clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> → <kbd>1</kbd> → <kbd>2</kbd>. FlowCE stays installed: clearing the RAM never deletes apps.</li>
+      <li><strong>Deleting FlowCE:</strong> <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>2</kbd> → <strong>Apps</strong>, then <kbd>del</kbd> on it. To change its packs, install again from this page.</li>
       <li><strong>OS 5.8.5:</strong> the page selects v3. Follow its calculator prompts, or use <a href="#manual-585">TI Connect CE</a>. OS 5.8.4.0058 uses v2.1.</li>
       <li><strong>INST says “Unknown OS version”:</strong> see <a href="#os-help">OS help and update instructions</a>. Updating is not a confirmed fix for newer boot code.</li>
     </ul>
@@ -249,6 +290,8 @@
     <li><kbd>enter</kbd> after an answer: its steps</li>
     <li><kbd>&#9654;</kbd> after an answer: what next</li>
     <li><kbd>on</kbd> stops a calculation</li>
+    <li><kbd>mode</kbd> degrees or radians</li>
+    <li><kbd>2nd</kbd> <kbd>mode</kbd> quits</li>
   </ul>
 </section>
 </main>

@@ -414,11 +414,11 @@ static void t_operators() {
   L = lay("a*b");
   const mi_op & dot = OP(opc(L, MI_DOT));
   CHECKEQ(dot.x, 8); CHECKEQ(dot.w, 8 / 2 + 2);
-  CHECKEQ(2 * dot.y + dot.h, 2 * -(14 / 4)); // centered at mid x-height
+  CHECKEQ(2 * dot.y + dot.h, 1); // on the math axis (b0c15db, 2026-10-20: y - ax - 1, 3 px high; ax 0 here)
   CHECKEQ(OP(text(L, "a*b", "b")).x, 14);
   L = lay("x!+n'");
   CHECKEQ(OP(text(L, "x!+n'", "!")).x, 8);
-  CHECKEQ(OP(text(L, "x!+n'", "'")).x, 16 + 2 + 8 + 2 + 8);
+  CHECKEQ(OP(text(L, "x!+n'", "'")).x, 16 + 2 + 8 + 2 + 8 + 8 / 4); // a gap for n's lean (7ba11a9, 2026-10-20: adv/4)
 }
 
 static void t_blanks_utf8_strings() {
@@ -937,7 +937,7 @@ static int pw(const char * s, int n, int sm, int st) { // a proportional test fo
     if (((unsigned char)s[i] & 0xc0) != 0x80) w += (st == MI_IT ? 7 : 6) + ((unsigned char)s[i] % 4);
   return sm ? w * 2 / 3 : w;
 }
-static const mi_metrics PM = {{16, 22, 7}, {10, 14, 4}, 6, pw, 2, 4, 18, 16, MI_F_IMPLDOT};
+static const mi_metrics PM = {{16, 22, 7, 0}, {10, 14, 4, 0}, 6, pw, 2, 4, 18, 16, MI_F_IMPLDOT};
 static void t_proportional() {
   mi_layout L;
   const char * s = "x+sin(y)";

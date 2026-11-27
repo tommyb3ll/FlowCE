@@ -275,15 +275,33 @@ static __attribute__((noinline)) char * plain_pows(const char * s) {
   *q = 0;
   return t;
 }
+void deriv_notation(char * buf, int cap); // answer.cc: f^(95)(0) of a defined f
 int focus_steps_able(const char * s, const char * ans) {
+  char * d = strstr(s, ")(") || strstr(s, "+)") || strstr(s, "-)") ? (char *)malloc(2 * strlen(s) + 64) : 0; // (f^(n)(a): its derivative, before plain_pows reads n as a power; limit(f,x,0+))
+  if (d) { strcpy(d, s); deriv_notation(d, 2 * strlen(s) + 64); s = d; }
   char * t = plain_pows(s);
   const int r = steps_able(t ? t : s, ans);
   free(t);
+  free(d);
   return r;
 }
+#ifdef FLOWCE_SERIES
+extern char ti_seq_names[4]; // (tiinput_glue.cc: the sequences' names)
+#endif
 static int steps_able(const char * s, const char * ans) {
   if (strstr(s, "desolve(")) return 0; // (its diff(y,x) is the equation, not a derivative to work out)
+#ifdef FLOWCE_SERIES
+  if (isalpha((unsigned char)*s) && (s[1] == '(' || s[1] == '_') && strchr(ti_seq_names, *s)) return 1; // (a_3 of a recurrence: its terms one by one)
+#endif
   if (starts(s, "implicitdiff(")) return 1;
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  { // (M3: vectors, typed or the answer one; their computations and the lines' and curves' forms)
+    static const char * const vops[] = {"\xc3\x97", "\xc2\xb7", "proj_", "scal_", "angle(", "pn(", "cross(", "lines(", "tanline(",
+                                        "arclen(", "arcparam(", "posvel(", "meets(", "oncurve(", "line2p(", "param(", "domr(", "[", "abs(("};
+    for (unsigned k = 0; k < sizeof(vops) / sizeof(*vops); ++k) if (strstr(s, vops[k])) return 1;
+    if (ans && *ans == '[') return 1;
+  }
+#endif
   if (!starts(s, "solve(") && strlen(s) < 200 && relation(s)) { // as solve(...)
     char b[210];
     strcpy(b, "solve("); strcat(b, s); strcat(b, ")");
@@ -298,6 +316,7 @@ static int steps_able(const char * s, const char * ans) {
       for (unsigned k = 0; k < sizeof(ops) / sizeof(ops[0]); ++k)
         if (starts(p, ops[k])) return 1;
   if ((starts(s, "solve(") || (starts(s, "factor(") && !strchr(s, '.'))) && alg_able(s)) return 1; // (factor(0.5x^2-2): decimals)
+  if (isalpha((unsigned char)*s) && strchr(s, '(') && steps_user_series(s, contextptr)) return 1; // (f(1) of a series f defined)
   return div_able(s, ans);
 }
 
@@ -309,7 +328,7 @@ enum { K_HEAD, K_LINE, K_LABEL, K_TITLE, K_FORM, K_WORK, K_EQ, K_BOX, K_ANS, K_T
 // (K_TEXT: a text of the analysis, num 0 gray (a label, " or "), 1 ink; K_MATH: its math beside a label;
 // K_TABLE: a synthetic division's table, steps_table's text; K_CHIP: the method, F4 the next one)
 struct item {
-  char * s;      // math or label text (malloc), a title or formula (static), or 0
+  char * s;      // its text (malloc), or 0
   int x, y, w, h, base, eqx; // box; base: the baseline below y; eqx: an equation's = after x, -1
   int kind, lv, num, grp, sec; // num: K_EQ 1, a line going on (= first); K_WORK 2, the second
 };                             // item of its line; K_LABEL 1, "back to"; K_ANS: + C after it
@@ -319,7 +338,7 @@ static int NP, CAPN, PH, GRP, SEC; // items, capacity, page height, the group, t
 static item * put(int kind, char * s, int x, int y, int w, int h, int base, int lv) {
   if (NP == CAPN) {
     item * q = (item *)realloc(P, (CAPN + 16) * sizeof(item));
-    if (!q) { if (kind != K_TITLE && kind != K_FORM) free(s); return 0; }
+    if (!q) { free(s); return 0; }
     P = q; CAPN += 16;
   }
   item & it = P[NP++];
@@ -331,7 +350,7 @@ static item * put(int kind, char * s, int x, int y, int w, int h, int base, int 
 static void drop_layouts();
 static void clear_page() {
   drop_layouts(); // (the items' layouts: keyed by their places in P)
-  for (item * p = P; p < P + NP; ++p) if (p->kind != K_TITLE && p->kind != K_FORM) free(p->s);
+  for (item * p = P; p < P + NP; ++p) free(p->s); // (a formula's text too: add_math copies it, and it was never freed)
   free(P); P = 0; NP = CAPN = PH = 0;
 }
 static char * dup(const char * s, int n) {
@@ -576,7 +595,7 @@ static __attribute__((noinline)) void lay_steps(const char * head, const std::ve
       k0 = NP;
       section(lb, !*title, y);
       if (*title) {
-        put(K_TITLE, (char *)title, X, y, 0, 14, 11, 0);
+        put(K_TITLE, dup(title, strlen(title)), X, y, 0, 14, 11, 0); // (steps_title's text lasts till its next call)
         y += 22;
         const char * f = steps_formula(v[i]);
         if (f) y += add_math(f, strlen(f), X, y, W, 5, K_FORM) + 14;
@@ -598,7 +617,11 @@ static __attribute__((noinline)) void lay_steps(const char * head, const std::ve
       continue;
     }
     const int eq = top(s, '=');
-    if (eq > 0 && top(s, ',') < 0 && (starts(s, "integrate(") || starts(s, "diff(") || starts(s, "derive(") || starts(s, "int("))) {
+    if (eq > 0 && top(s, ',') < 0 && (starts(s, "integrate(") || starts(s, "diff(") || starts(s, "derive(") || starts(s, "int(")
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+        || (v[i].rule >= steps_m3_rule0 && v[i].rule != steps_m3_noalign) // (M3: u x v = det(...), then = i(...)-j(...)+k(...) under it, as on paper)
+#endif
+        )) {
       if (fe >= 0 && eq == eqn && !strncmp(s, P[fe].s, eq)) { // = under the = above
         const int ex = P[fe].x + P[fe].eqx, lv0 = P[fe].lv, n = strlen(s + eq + 1);
         mi_layout L;
@@ -649,9 +672,9 @@ static __attribute__((noinline)) void lay_steps(const char * head, const std::ve
     const int b = NP;
     if (put(K_BOX, 0, X - 4, y, W + 8, 0, 0, 0)) {
       ++GRP;
-      static const char DNE[] = "does not exist", DIV[] = "diverges", NOS[] = "no solution"; // (a limit's, a series', an equation's text answer)
-      const char * tx = starts(ans, DNE) || starts(ans, "no limit") ? DNE : starts(ans, DIV) ? DIV : starts(ans, NOS) ? NOS : 0; // (sin(1/x) at 0: "no limit (it oscillates)")
-      const int h = tx ? (put(K_TITLE, (char *)tx, X + (W - ui_text_width(&ui_tb12, tx, -1)) / 2, y + 14, 0, 16, 13, 0), 16)
+      static const char DNE[] = "does not exist", DIV[] = "diverges", CNV[] = "converges", NOS[] = "no solution"; // (a limit's, a series', an equation's text answer)
+      const char * tx = starts(ans, DNE) || starts(ans, "no limit") ? DNE : starts(ans, DIV) ? DIV : starts(ans, CNV) ? CNV : starts(ans, NOS) ? NOS : 0; // (sin(1/x) at 0: "no limit (it oscillates)")
+      const int h = tx ? (put(K_TITLE, dup(tx, strlen(tx)), X + (W - ui_text_width(&ui_tb12, tx, -1)) / 2, y + 14, 0, 16, 13, 0), 16)
                        : add_math(ans, strlen(ans), X, y + 14, W - 12 - (plusc ? 44 : 0), 2, K_ANS);
       if (plusc && NP > b + 1) { // + C after the last line
         item & l = P[NP - 1];
@@ -848,8 +871,15 @@ static __attribute__((noinline)) const char * build(const char * in, const char 
     std::string a2; // the answer box: the steps' value for a sum left as is, a series without O(...)
     if (ans && strstr(ans, "sum(") && !v.empty() && (!*steps_title(v.back()) || !strcmp(steps_title(v.back()), "Its limit")))
       ans = (a2 = v.back().b.print(contextptr)).c_str();
-    else if (ans && (starts(p, "series(") || starts(p, "taylor(")) && !v.empty()) // (the steps' polynomial: 1-(x-1)+(x-1)^2,
-      ans = (a2 = v.back().b.print(contextptr)).c_str(); // not giac's 1-x+1+(x-1)^2+O((x-1)^3))
+    else if (ans && (starts(p, "series(") || starts(p, "taylor(")) && !v.empty()) { // (the steps' polynomial: 1-(x-1)+(x-1)^2,
+      if (!giac::is_zero(v.back().b)) ans = (a2 = v.back().b.print(contextptr)).c_str(); // not giac's 1-x+1+(x-1)^2+O((x-1)^3))
+      else { // (a last line "p_3(x) = ...", the interval of a series in sigma: the answer as the console has it, no O)
+        a2 = ans;
+        const size_t o = a2.rfind("+O(");
+        if (o != std::string::npos && o && a2[a2.size() - 1] == ')') a2.erase(o);
+        ans = a2.c_str();
+      }
+    }
     else if (ans && steps_answer(v, sa)) // (DeltaCE: a division typed, quotient plus remainder over the divisor)
       ans = (a2 = sa.print(contextptr)).c_str();
     lay_steps(head.c_str(), v, ans, c == 1);

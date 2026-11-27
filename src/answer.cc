@@ -1731,6 +1731,17 @@ static __attribute__((noinline)) giac::gen less_terms(giac::gen s,const giac::ge
     s=s-sbs(f,n,k);
   return s;
 }
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// a power series' closed form by the known patterns (c r^n, c/n, c n, c/n!), factored as the console wrote it;
+// 0 if none (steps.cc: the power series' last line)
+giac::gen steps_power_closed(const giac::gen & f,const giac::gen & n,int a){
+  using namespace giac;
+  gen r=power_series(f,n,a);
+  if (is_zero(r)) return 0;
+  const gen fa=_factor(normal(r,contextptr),contextptr);
+  return fa.print(contextptr).find("sqrt")==std::string::npos?fa:normal(r,contextptr); // (20x^2/(4x(1+4x^2)^2): 5x/(4x^2+1)^2; x^3/(1-2x^2) not over sqrt(2))
+}
+#endif
 static giac::gen known_sum(const giac::gen & g,std::string & msg){
   using namespace giac;
   if (!isv(g,at_sum,4))
@@ -2135,6 +2146,33 @@ void set_approx_for(const std::string & s){
   *approx_for=s;
   console_approx_for=approx_for->c_str();
 }
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// p/q to sig significant digits, exactly by integer division (the calculator's floats keep 7: s_50 of
+// sum((k+1)2^k/3^k) was 8.0, 7.99999983 on paper); "" when too long
+static __attribute__((noinline)) std::string exact_dec(const giac::gen & f,int sig,const giac::context * contextptr){
+  using namespace giac;
+  gen p=f._FRACptr->num,q=f._FRACptr->den;
+  if ((p.type!=_INT_ && p.type!=_ZINT) || (q.type!=_INT_ && q.type!=_ZINT)) return ""; // ((1+3i)/2: not integers, iquo's error)
+  const bool neg=is_strictly_positive(-p,contextptr)!=is_strictly_positive(-q,contextptr);
+  p=abs(p,contextptr); q=abs(q,contextptr);
+  int d=sig; // (the decimals: sig less the integer part's digits, more for 0.0000117's zeros)
+  const gen t=iquo(p,q);
+  for (gen u=t;!is_zero(u) && d>0;u=iquo(u,gen(10))) --d;
+  if (is_zero(t)) for (gen u=p*gen(10);is_strictly_greater(q,u,contextptr) && d<40;u=u*gen(10)) ++d;
+  const std::string ms=iquo(p*pow(gen(10),gen(d),contextptr)*gen(2)+q,q*gen(2)).print(contextptr); // (rounded)
+  const int n=ms.size();
+  if (n+d>80) return std::string();
+  char buf[96];
+  int k=0;
+  const char * c=ms.c_str();
+  if (neg) buf[k++]='-';
+  if (n<=d){ buf[k++]='0'; buf[k++]='.'; for (int i=n;i<d;++i) buf[k++]='0'; for (int i=0;i<n;++i) buf[k++]=c[i]; }
+  else { for (int i=0;i<n-d;++i) buf[k++]=c[i]; if (d){ buf[k++]='.'; for (int i=n-d;i<n;++i) buf[k++]=c[i]; } }
+  if (d){ while (buf[k-1]=='0') --k; if (buf[k-1]=='.') --k; } // (no trailing zeros)
+  buf[k]=0;
+  return buf;
+}
+#endif
 void result_approx(const giac::gen & g){
   using namespace giac;
   if (!approx_text)
@@ -2149,9 +2187,12 @@ void result_approx(const giac::gen & g){
     return; // 5+5i: nothing to add
   if (fn_tree(g) && free_name(g)) // (no number: x^3-3x, atan(x))
     return;
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  if (g.type==_FRAC){ *approx_text=exact_dec(g,10,contextptr); if (!approx_text->empty()) return; } // (10 digits, exact, as the TI-84)
+#endif
   const gen a=evf(g);
-  if (a.type!=_DOUBLE_ && a.type!=_CPLX)
-    return;
+  if ((a.type!=_DOUBLE_ && a.type!=_CPLX) || (a.type==_CPLX && (is_undef(*a._CPLXptr) || is_undef(*(a._CPLXptr+1)))))
+    return; // (DeltaCE: atan(i) in an antiderivative gave "undef-undefi")
   const int dd=decimal_digits(contextptr);
   decimal_digits(6,contextptr);
   *approx_text=a.print(contextptr);
@@ -2261,6 +2302,9 @@ static __attribute__((noinline)) void sum_index_i(char * buf){
 
 // desolve's constants c_0, c_1 as textbooks write them: C1, C2 (plain C: uSTL's substr bites)
 __attribute__((noinline)) void textbook_constants(std::string & str){
+#ifndef WITH_DESOLVE
+  return; // (no differential equations in this build)
+#endif
   const char * s=str.c_str();
   if (!strstr(s,"c_"))
     return;
@@ -2399,7 +2443,8 @@ static __attribute__((noinline)) giac::gen system_as_equations(const giac::gen &
       return s;
     vecteur r;
     for (unsigned k=0;k<xs._VECTptr->size();++k)
-      r.push_back(symb_equal((*xs._VECTptr)[k],(*it->_VECTptr)[k]));
+      if (!((*it->_VECTptr)[k]==(*xs._VECTptr)[k])) // (DeltaCE: a free letter, y, is not y=y)
+        r.push_back(symb_equal((*xs._VECTptr)[k],(*it->_VECTptr)[k]));
     rows.push_back(gen(r,_SEQ__VECT));
   }
   if (rows.size()==1)
@@ -2407,6 +2452,21 @@ static __attribute__((noinline)) giac::gen system_as_equations(const giac::gen &
   for (unsigned k=0;k<rows.size();++k)
     rows[k]=gen(*rows[k]._VECTptr);
   return gen(rows,_SEQ__VECT);
+}
+// the end of a bound written from s[*a0]: the ')' closing its inequality (the parentheses inside
+// it balanced: sqrt(2)/2); *a0 skips one pair around all of it ((-1/3) is -1/3: the end is then
+// that pair's ')')
+static int bound_end(const char * s,int * a0,int n){
+  int a=*a0,d=0;
+  for (;a<n;++a)
+    if (s[a]=='(') ++d;
+    else if (s[a]==')'){ if (!d) break; --d; }
+  if (a<n && s[*a0]=='(' && s[a-1]==')'){ // (...) around the whole bound?
+    int e=*a0+1;
+    for (d=0;e<a-1;++e){ if (s[e]=='(') ++d; else if (s[e]==')' && !d--) break; }
+    if (e==a-1){ ++*a0; return a-1; }
+  }
+  return a;
 }
 // (x>-2) and (x<2) as -2<x<2 (and <=, >=), in the printed solutions of an inequality
 static __attribute__((noinline)) void chain_inequalities(std::string & str){
@@ -2427,16 +2487,13 @@ static __attribute__((noinline)) void chain_inequalities(std::string & str){
     if (p2 && v1>v0 && (s[j]=='>' || s[j]=='<')){
       const bool gt=s[j]=='>';
       const bool e1=s[j+1]=='=';
-      int a0=j+1+e1,a1=a0;
-      while (a1<n && s[a1]!=')' && s[a1]!='(') ++a1;
+      int a0=j+1+e1,a1=bound_end(s,&a0,n),c1=a1+(a0>j+1+e1); // (c1: its inequality's ')')
       const int vl=v1-v0;
-      if (a1<n && s[a1]==')' && !strncmp(s+a1+1," and (",6) && !strncmp(s+a1+7,s+v0,vl) && s[a1+7+vl]==(gt?'<':'>')){
-        int b0=a1+8+vl;
-        const bool e2=s[b0]=='=';
-        b0+=e2;
-        int b1=b0;
-        while (b1<n && s[b1]!=')' && s[b1]!='(') ++b1;
-        if (b1<n && s[b1]==')'){
+      if (c1<n && s[c1]==')' && !strncmp(s+c1+1," and (",6) && !strncmp(s+c1+7,s+v0,vl) && s[c1+7+vl]==(gt?'<':'>')){
+        const int bb=c1+8+vl;
+        const bool e2=s[bb]=='=';
+        int b0=bb+e2,b1=bound_end(s,&b0,n),d1=b1+(b0>bb+e2);
+        if (d1<n && s[d1]==')'){
           // gt: a<v<b with v>a, v<b; else v<a and v>b: b<v<a
           const int lo0=gt?a0:b0,lo1=gt?a1:b1,hi0=gt?b0:a0,hi1=gt?b1:a1;
           const bool elo=gt?e1:e2,ehi=gt?e2:e1;
@@ -2445,7 +2502,7 @@ static __attribute__((noinline)) void chain_inequalities(std::string & str){
           memcpy(out+k,s+v0,vl); k+=vl;
           out[k++]='<'; if (ehi) out[k++]='=';
           memcpy(out+k,s+hi0,hi1-hi0); k+=hi1-hi0;
-          i=b1+1+(p2==2 && s[b1+1]==')');
+          i=d1+1+(p2==2 && s[d1+1]==')');
           continue;
         }
       }
@@ -2704,7 +2761,7 @@ static __attribute__((noinline)) bool fully_expanded(const giac::gen & r){
 static bool top_sum(const giac::gen & r){
   using namespace giac;
   const gen & t=r.is_symb_of_sommet(at_neg)?r._SYMBptr->feuille:r;
-  return t.is_symb_of_sommet(at_plus);
+  return t.is_symb_of_sommet(at_plus) && t._SYMBptr->feuille.type==_VECT; // (DeltaCE: x/0 is +(oo), one argument)
 }
 // (factored: two factors with x or more above the bar or below it, or a power of a sum:
 // (cos(x)ln|..|+tan(x))/(2cos(x)) is one fraction, not factored)
@@ -2936,7 +2993,7 @@ static giac::gen completed_square(const giac::gen & g){
 // a fraction a/b with |a|>b as a mixed number: 7/2 is 3+1/2, -7/2 is -3-1/2
 static giac::gen mixed_number(const giac::gen & g){
   using namespace giac;
-  if (g.type!=_FRAC)
+  if (g.type!=_FRAC || (g._FRACptr->num.type!=_INT_ && g._FRACptr->num.type!=_ZINT)) // ((1+3i)/2: not i+(1+i)/2; DeltaCE)
     return undef;
   const gen & d=g._FRACptr->den;
   const bool neg=isneg(g._FRACptr->num);
@@ -2982,6 +3039,8 @@ static __attribute__((noinline)) void form_compute(answer_forms & F,int k){
   F.done[k]=1;
   F.text[k].clear();
   const int f=F.order[k];
+  if ((f==FORM_RAT && has_i(F.g)) || (f==FORM_DEC && !F.number && (contains(F.g,at_log10) || F.g.print(contextptr).find("ln(10)")!=std::string::npos))) // (DeltaCE) (-i)/(1-i) for
+    return; // 1/2-i/2; log(x)+log(y) in decimals: 0.434294*ln(x)+...
   const gen & g=F.g;
   if (f==FORM_CHECK || f==FORM_CHECKD){ // (DeltaCE) the derivative of an antiderivative
     if (!F.chk) return;
@@ -3531,7 +3590,7 @@ static bool floor_const(const giac::gen & g,const giac::gen & x){ // x in floors
         return false;
     return true;
   }
-  return g.is_symb_of_sommet(giac::at_floor) || (g.type==giac::_SYMB?floor_const(g._SYMBptr->feuille,x):!(g==x));
+  return g.is_symb_of_sommet(giac::at_floor) || g.is_symb_of_sommet(giac::at_sign) || (g.type==giac::_SYMB?floor_const(g._SYMBptr->feuille,x):!(g==x)); // (DeltaCE: a sign too)
 }
 // k ln(c h) or k ln|c h| (k and c constants, c > 0) as k ln(h): k ln(c) goes into + C. The integral
 // of 1/(5x) is ln|x|/5, as textbooks write it (giac: ln(5|x|)/5); x ln(5x) stays (x ln(5) varies)
@@ -3675,11 +3734,303 @@ static __attribute__((noinline)) void unit_convert(char * buf,int cap){
   strcpy(buf,s.c_str());
 }
 #endif
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// f^(n)(a) for a function the user defined (f(x)=...), as on paper: its n-th derivative at a,
+// subst(diff(f(x),x,n),x=a) (the course's f^(95)(0); giac read it as f to the power 95*0). The
+// editor writes both power keys' powers as f^(n); sin^(2)(x) (no user function) stays a power
+void deriv_notation(char * buf,int cap){
+  using namespace giac;
+  for (char * p=buf;*p;++p){
+    if (p[0]!='^' || p[1]!='(' || !isdigit((unsigned char)p[2])) continue;
+    char * q=p+2;
+    while (isdigit((unsigned char)*q)) ++q;
+    if (q[0]!=')' || q[1]!='(') continue;
+    char * s=p;
+    while (s>buf && (isalnum((unsigned char)s[-1]) || s[-1]=='_')) --s;
+    if (s==p || !isalpha((unsigned char)*s)) continue;
+    const std::string name(s,p-s);
+    if (!eval(gen(identificateur(name)),1,contextptr).is_symb_of_sommet(at_program)) continue;
+    char * e=q+1; // its argument, the parentheses balanced
+    for (int d=0;*e;++e) if (*e=='(') ++d; else if (*e==')' && !--d) break;
+    if (!*e) continue;
+    const std::string r="subst(diff("+name+"(x),x,"+std::string(p+2,q-p-2)+"),x="+std::string(q+2,e-q-2)+")";
+    const int tail=strlen(e+1);
+    if ((s-buf)+(int)r.size()+tail+1>cap) return;
+    memmove(s+r.size(),e+1,tail+1);
+    memcpy(s,r.c_str(),r.size());
+    p=s+r.size()-1;
+  }
+  // f'(a), f''(a) of f defined as a series (f(x)=sum(...)): the same, its derivative from the series
+  for (char * p=buf;*p;++p){
+    if (*p!='\'') continue;
+    char * q=p+1; int nd=1;
+    if (*q=='\'') { ++q; ++nd; }
+    if (*q!='(') continue;
+    char * s=p;
+    while (s>buf && (isalnum((unsigned char)s[-1]) || s[-1]=='_')) --s;
+    if (s==p || !isalpha((unsigned char)*s)) continue;
+    const std::string name(s,p-s);
+    const gen fv=eval(gen(identificateur(name)),1,contextptr);
+    if (!fv.is_symb_of_sommet(at_program) || fv._SYMBptr->feuille.type!=_VECT || fv._SYMBptr->feuille._VECTptr->size()<3) continue;
+    gen body=(*fv._SYMBptr->feuille._VECTptr)[2];
+    if (body.is_symb_of_sommet(at_return)) body=body._SYMBptr->feuille;
+    if (!body.is_symb_of_sommet(at_sum)) continue;
+    char * e=q; // its argument, the parentheses balanced
+    for (int d=0;*e;++e) if (*e=='(') ++d; else if (*e==')' && !--d) break;
+    if (!*e) continue;
+    const std::string r="subst(diff("+name+"(x),x,"+(nd==1?"1":"2")+"),x="+std::string(q+1,e-q-1)+")";
+    const int tail=strlen(e+1);
+    if ((s-buf)+(int)r.size()+tail+1>cap) return;
+    memmove(s+r.size(),e+1,tail+1);
+    memcpy(s,r.c_str(),r.size());
+    p=s+r.size()-1;
+  }
+  // a one-sided limit typed as on paper, limit(f,x,0+): limit(f,x,0,1) (0- the left: -1)
+  for (char * p=strstr(buf,"limit(");p;p=strstr(p+1,"limit(")){
+    char * e=p+6,* c=0;
+    for (int d=1;*e && d;++e){ if (*e=='(') ++d; else if (*e==')') --d; else if (*e==',' && d==1) c=e; }
+    --e; // (its closing parenthesis)
+    if (!c || *e!=')' || e-c<3 || (e[-1]!='+' && e[-1]!='-')) continue;
+    const bool r=e[-1]=='+';
+    const int tail=strlen(e);
+    if ((e-buf)+tail+3>cap) return;
+    memmove(e+(r?1:2),e,tail+1); // (A+) -> A,1)  A-) -> A,-1)
+    memcpy(e-1,r?",1":",-1",r?2:3);
+  }
+}
+#endif
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+extern char ti_seq_names[4]; // (tiinput_glue.cc, steps.cc: the sequences' names)
+// a_n, a_(n+1), a_12 (a subscript after one letter: the (-) key) as a(n), a(n+1), a(12); a line of a
+// sequence, X(1)=3 or X(n+1)=X(n)+2n (X only before its parentheses, never in them), names X: its
+// X(...) stay calls in the implicit products (steps.cc steps_seqdef)
+static __attribute__((noinline)) void seq_subs(char * buf,int cap){
+  int n=strlen(buf);
+  for (int i=1;i+1<n;++i){
+    if (buf[i]!='_' || !isalpha((unsigned char)buf[i-1]) || (i>1 && (isalpha((unsigned char)buf[i-2]) || buf[i-2]=='_'))) // (2a_n: 2 times a_n)
+      continue;
+    if (buf[i+1]=='('){ memmove(buf+i,buf+i+1,n-i); --n; continue; }
+    int j=i+1;
+    if (isdigit((unsigned char)buf[j])) while (j<n && isdigit((unsigned char)buf[j])) ++j;
+    else if (isalpha((unsigned char)buf[j])) ++j;
+    else continue;
+    if (n+2>=cap) return;
+    memmove(buf+j+1,buf+j,n-j+1);
+    buf[j]=')'; buf[i]='('; ++n;
+  }
+  const char * s=buf;
+  // one = in the line; a one-letter name X there only before "(": twice (a(n+1)-a(n)=4, a(n)=a(n-1)+2),
+  // or once as X(k)= at its start (a(1)=3); never alone (x(x+1)=6: a product)
+  const char * eq=strchr(s,'=');
+  if (!eq || eq[1]=='=' || strchr(eq+1,'=')) return;
+  for (int X='a';X<='z';++X){
+    int calls=0;
+    bool alone=false;
+    for (const char * t=s;*t;++t)
+      if (*t==X && (t==s || (!isalpha((unsigned char)t[-1]) && t[-1]!='_')) && !isalnum((unsigned char)t[1]) && t[1]!='_'){ if (t[1]=='(') ++calls; else alone=true; }
+    if (alone || !calls || strchr(ti_seq_names,X)) continue;
+    bool init=false;
+    if (calls==1 && *s==X){ const char * t=s+2; if (*t=='-') ++t; while (isdigit((unsigned char)*t)) ++t; init=t>s+2 && *t==')'; }
+    const int k=strlen(ti_seq_names);
+    if ((calls>1 || init) && k<3){ ti_seq_names[k]=X; ti_seq_names[k+1]=0; }
+  }
+}
+#endif
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+// (M3) the course's vector notation typed: u.v (U+00B7, the vectors card's dot) as u*v, giac's dot
+// product; proj_v u and scal_v u (proj_(v)u: the (-) key's subscript) as proj(v,u), scal(v,u) (the
+// steps' own: steps_m3_answer); u x v (U+00D7) as cross(u,v). An operand as the layout reads it: a
+// name with its calls and indexes (abs(u), r(t), r'(t)), a group (..) or [..], a number.
+static int m3_close(const char * b,int i){ // b[i] opens a group: after its closer (or the end)
+  int d=0;
+  for (;b[i];++i){
+    const char c=b[i];
+    if (c=='(' || c=='[' || c=='{') ++d;
+    else if (c==')' || c==']' || c=='}'){ if (--d==0) return i+1; }
+  }
+  return i;
+}
+static int m3_open(const char * b,int i){ // b[i] closes a group: its opener (or 0)
+  int d=0;
+  for (;i>=0;--i){
+    const char c=b[i];
+    if (c==')' || c==']' || c=='}') ++d;
+    else if (c=='(' || c=='[' || c=='{'){ if (--d==0) return i; }
+  }
+  return 0;
+}
+static bool m3_namec(char c){ return isalnum((unsigned char)c) || c=='_' || c=='.' || c=='\''; }
+static int m3_right(const char * b,int i){ // the operand starting at i: its end
+  while (b[i]==' ') ++i;
+  if (b[i]=='-' || b[i]=='+') ++i;
+  if (b[i]=='(' || b[i]=='[' || b[i]=='{') return m3_close(b,i);
+  while (m3_namec(b[i])) ++i;
+  while (b[i]=='(' || b[i]=='[') i=m3_close(b,i); // (a call, an index)
+  return i;
+}
+static int m3_left(const char * b,int e){ // the operand ending before e: its start
+  int i=e-1;
+  while (i>=0 && b[i]==' ') --i;
+  while (i>=0 && (b[i]==')' || b[i]==']' || b[i]=='}')) i=m3_open(b,i)-1; // (its groups, then its name)
+  while (i>=0 && m3_namec(b[i])) --i;
+  return i+1;
+}
+// b[a,e) replaced by r (0 if it does not fit)
+static bool m3_put(char * b,int cap,int a,int e,const std::string & r){
+  const int n=strlen(b);
+  if (n-(e-a)+(int)r.size()+1>cap) return false;
+  memmove(b+a+r.size(),b+e,n-e+1);
+  memcpy(b+a,r.data(),r.size());
+  return true;
+}
+static void m3_vec(std::string & s){ // a box's list 3,1,2 as the vector [3,1,2]
+  int d=0;
+  for (size_t j=0;j<s.size();++j){ const char c=s[j]; if (c=='(' || c=='[' || c=='{') ++d; else if (c==')' || c==']' || c=='}') --d; else if (!d && c==','){ s="["+s+"]"; return; } }
+}
+static __attribute__((noinline)) void m3_subs(char * b,int cap){
+  // a point or vector typed with parentheses, (1,2,3) as the page writes it (the ( ) keys, no 2nd):
+  // [1,2,3]. A group with a comma at its top that is no call's (after a letter, ) or ]) and none of
+  // proj_'s boxes
+  for (int i=0;b[i];++i){
+    if (b[i]!='(') continue;
+    int k=i-1;
+    while (k>=0 && b[k]==' ') --k;
+    if (k>=0){
+      const unsigned char c=b[k];
+      bool call=c=='_' || c==']' || c=='\'';
+      int j=k;
+      if (isalnum(c)){ while (j>=0 && isalnum((unsigned char)b[j])) { if (isalpha((unsigned char)b[j])) call=true; --j; } } // (2(1,2,3): a product; f2(1,2): a call)
+      const bool par=k==j+1 && (c=='t' || c=='s') && (j<0 || !(isalnum((unsigned char)b[j]) || b[j]=='_')); // (P+t(4,4,2): t times the vector)
+      if (par) call=false;
+      if (c>=0x80 && !(k>0 && (((unsigned char)b[k-1]==0xc3 && c==0x97) || ((unsigned char)b[k-1]==0xc2 && c==0xb7)))) call=true; // (after x or .: a vector)
+      if (call) continue;
+    }
+    const int e=m3_close(b,i)-1;
+    if (e<=i || b[e]!=')') continue;
+    int d=0; bool comma=false;
+    for (int j=i+1;j<e;++j){ const char c=b[j]; if (c=='(' || c=='[' || c=='{') ++d; else if (c==')' || c==']' || c=='}') --d; else if (!d && c==',') comma=true; }
+    if (comma){
+      b[i]='['; b[e]=']';
+      bool prod=k>=0 && (b[k]==')' || isalpha((unsigned char)b[k]));
+      if (prod && b[k]==')'){ const int o=m3_open(b,k); if (o>=5 && (!strncmp(b+o-5,"proj_",5) || !strncmp(b+o-5,"scal_",5))) prod=false; } // (proj_(v)(3,1,2): its second box)
+      if (prod && (int)strlen(b)+2<cap){ memmove(b+i+1,b+i,strlen(b+i)+1); b[i]='*'; ++i; } // ((u.w)[2,1,0], t[4,4,2]: products)
+    }
+  }
+  for (char * p=strstr(b,"\xc2\xb7");p;p=strstr(b,"\xc2\xb7")){ *p='*'; memmove(p+1,p+2,strlen(p+2)+1); }
+  for (int guard=0;guard<16;++guard){ // proj_(v)u, scal_v u
+    char * p=strstr(b,"proj_"),* q=strstr(b,"scal_");
+    if (!p || (q && q<p)) p=q;
+    if (!p) break;
+    const int a=p-b;
+    if (a && (isalnum((unsigned char)b[a-1]) || b[a-1]=='_')) break;
+    int i=a+5,j,k,l;
+    std::string sub,arg;
+    if (b[i]=='('){ j=m3_close(b,i); sub.assign(b+i+1,j-i-2>0?j-i-2:0); m3_vec(sub); }
+    else { j=m3_right(b,i); sub.assign(b+i,j-i); }
+    k=j; while (b[k]==' ') ++k;
+    if (b[k]=='('){ l=m3_close(b,k); arg.assign(b+k+1,l-k-2>0?l-k-2:0); m3_vec(arg); }
+    else { l=m3_right(b,k); arg.assign(b+k,l-k); }
+    std::string r(b+a,4); r+="("; r+=sub; r+=","; r+=arg; r+=")";
+    if (!m3_put(b,cap,a,l,r)) break;
+  }
+  for (char * p=strchr(b,'[');p;p=strchr(p+1,'[')) // (3[0,2,1] typed: 3*[0,2,1]; after proj_(v)[..]: proj(v,[..]))
+    if (p>b && (isdigit((unsigned char)p[-1]) || p[-1]==')') && (int)strlen(b)+2<cap){ memmove(p+1,p,strlen(p)+1); *p='*'; ++p; }
+  for (int guard=0;guard<16;++guard){ // u x v: cross(u,v), the first one first (left to right)
+    char * p=strstr(b,"\xc3\x97");
+    if (!p) break;
+    const int o=p-b,s=m3_left(b,o),e=m3_right(b,o+2);
+    std::string r("cross(");
+    r.append(b+s,o-s); r+=","; r.append(b+o+2,e-o-2); r+=")";
+    if (!m3_put(b,cap,s,e,r)) break;
+  }
+}
+#endif
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+static bool sci_in; // (sci_exact) the line's numbers read exactly: the answer in E notation (answer_after)
+// a line of numbers only (digits, ., E notation, + - * / ^ by whole powers, parentheses), one of them
+// in E notation: each number written exactly (5.97E24: (597*10^22), 6.67E-11: (667/10^13), 0.5: (5/10)),
+// so it is worked out in integers. The calculator's floats end at 3.4e38 and 1.2e-38: 1E40 was 2.35e-37,
+// 5.97E24*7.35E22/(3.84E8)^2 overflowed in its product. A letter or a function: as before.
+static __attribute__((noinline)) void sci_exact(char * buf,int cap){
+  bool any=false;
+  for (const char * p=buf;*p;++p){
+    const char c=*p;
+    if (c=='^'){ const char * q=p+1; while (*q=='(' || *q=='-') ++q; while (*q>='0' && *q<='9') ++q; if (*q=='.' || *q=='E') return; continue; } // (2^0.5: as before)
+    if ((c>='0' && c<='9') || c=='.' || c=='+' || c=='-' || c=='*' || c=='/' || c=='(' || c==')' || c==' ') continue;
+    if (c=='E' && p>buf && ((p[-1]>='0' && p[-1]<='9') || p[-1]=='.')){ any=true; continue; }
+    return;
+  }
+  if (!any) return;
+  std::string o;
+  for (const char * p=buf;*p;){
+    if ((*p>='0' && *p<='9') || (*p=='.' && p[1]>='0' && p[1]<='9')){
+      std::string d;
+      int sh=0;
+      bool dot=false;
+      for (;(*p>='0' && *p<='9') || (*p=='.' && !dot);++p){
+        if (*p=='.') dot=true;
+        else { if (!(d.empty() && *p=='0')) d+=*p; if (dot) --sh; }
+      }
+      if (*p=='E'){
+        int s=1,x=0;
+        ++p;
+        if (*p=='+' || *p=='-'){ s=*p=='-'?-1:1; ++p; }
+        while (*p>='0' && *p<='9'){ x=x*10+(*p-'0'); ++p; }
+        sh+=s*x;
+      }
+      if (d.empty()){ o+="0"; continue; }
+      char e[8];
+      sprintf(e,"%d",sh<0?-sh:sh);
+      o+="("; o+=d;
+      if (sh>0){ o+="*10^"; o+=e; } else if (sh<0){ o+="/10^"; o+=e; }
+      o+=")";
+    }
+    else o+=*p++;
+  }
+  if ((int)o.size()<cap){ strcpy(buf,o.c_str()); sci_in=true; }
+}
+// f (an integer or a fraction) to sig significant digits, rounded, by integer division (no float
+// range): the digits as "1.4576" and the power of ten in e10; "" if f is not one
+static __attribute__((noinline)) std::string exact_sci(const giac::gen & f,int sig,int & e10,const giac::context * contextptr){
+  using namespace giac;
+  gen p=f.type==_FRAC?f._FRACptr->num:f,q=f.type==_FRAC?f._FRACptr->den:gen(1);
+  if ((p.type!=_INT_ && p.type!=_ZINT) || (q.type!=_INT_ && q.type!=_ZINT) || is_zero(p)) return "";
+  const bool neg=is_strictly_positive(-p,contextptr)!=is_strictly_positive(-q,contextptr);
+  p=abs(p,contextptr); q=abs(q,contextptr);
+  int e=(int)p.print(contextptr).size()-(int)q.print(contextptr).size();
+  gen m;
+  for (int k=0;k<3;++k){ // (the digits' counts give e or e-1)
+    const int s=sig-1-e;
+    const gen n=s>=0?p*pow(gen(10),s,contextptr):p,d=s>=0?q:q*pow(gen(10),-s,contextptr);
+    m=iquo(2*n+d,2*d);
+    if (is_greater(m,pow(gen(10),sig,contextptr),contextptr)) ++e;
+    else if (is_strictly_greater(pow(gen(10),sig-1,contextptr),m,contextptr)) --e;
+    else break;
+  }
+  std::string t=m.print(contextptr);
+  if ((int)t.size()>sig){ t=t.substr(0,sig); ++e; } // (9.999995 rounded up to 10.0000: 1e1)
+  while (t.size()>1 && t[t.size()-1]=='0') t.resize(t.size()-1); // (uSTL's erase(pos) does not clamp its length)
+  std::string r=neg?"-":"";
+  r+=t[0];
+  if (t.size()>1){ r+='.'; r+=t.substr(1,t.size()-1); } // (uSTL's substr does not clamp npos)
+  e10=e;
+  return r;
+}
+#endif
 void answer_prepass(char * buf,int cap,bool focus){
   // paper notation and TI implicit multiplication (2sinx -> 2*sin(x), f(x)=... -> f(x):=...)
   // here and not in the console, so that the history keeps what the user typed
 #if defined FLOWCE_STEPS || defined HOSTGIAC
+  sci_in=false;
+  if (focus) sci_exact(buf,cap); // (5.97E24*7.35E22: worked out exactly, past the floats)
   app_empties(buf);
+  if (focus) deriv_notation(buf,cap); // (before the implicit products: f^(95)*(0))
+#endif
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  m3_subs(buf,cap); // (before the subscripts of sequences: proj_v u)
+#endif
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  if (focus) seq_subs(buf,cap);
 #endif
   khicas_implicit_mult(buf,cap);
   if (focus){ // TI and textbooks: log is base 10 (giac's log is ln): log(100) is 2
@@ -3830,6 +4181,16 @@ __attribute__((noinline)) giac::gen limit_simp(const giac::gen & g){ // (one cop
 }
 #if defined FLOWCE_STEPS || defined HOSTGIAC
 giac::gen steps_app(const giac::gen & g,const char ** msg,const giac::context * contextptr); // steps.cc
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+bool steps_m3_answer(giac::gen & g,const char ** msg,const giac::context * contextptr); // steps.cc (steps_m3.inc)
+#endif
+giac::gen steps_series_value(const giac::gen & s,const giac::context * contextptr); // steps.cc
+giac::gen steps_series_answer(const giac::gen & g,const giac::context * contextptr); // steps.cc
+giac::gen steps_fixvar(const giac::gen & g,const giac::context * contextptr); // steps.cc
+giac::gen steps_epow(const giac::gen & g,const giac::context * contextptr); // steps.cc
+bool steps_seqdef(const giac::gen & g,const giac::context * contextptr); // steps.cc
+giac::gen steps_seqval(const giac::gen & g,const giac::context * contextptr); // steps.cc
+extern const char * steps_divmsg; // steps.cc: why the series diverges (steps_series_answer)
 #endif
 // (DeltaCE) solve(eq,x) with sin, cos or tan of x, in radians: the solutions in [0, 2pi), as
 // textbooks ask (giac gives one period around 0: -2pi/3, 2pi/3; tan(x) = 1 only pi/4). One angle u =
@@ -3916,12 +4277,128 @@ static __attribute__((noinline)) giac::gen trig_interval(const giac::gen & g){
   }
   return out.empty()?g:gen(out,0); // (none in [0, 2pi): sin(x/4) = 1, giac's)
 }
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// integrate(c*t^E,t,0,U), E with another name in it (a series' term, 4k+2): c U^(E+1)/(E+1), the
+// course's term by term integration (giac had no value: "diverges" was said); 0 if not that
+static giac::gen term_integral(const giac::gen & g){
+  using namespace giac;
+  if (!g.is_symb_of_sommet(at_integrate) || g._SYMBptr->feuille.type!=_VECT || g._SYMBptr->feuille._VECTptr->size()!=4)
+    return 0;
+  const vecteur & v=*g._SYMBptr->feuille._VECTptr;
+  const gen & t=v[1];
+  if (t.type!=_IDNT || !is_zero(eval(v[2],1,contextptr)))
+    return 0;
+  const gen f=eval(v[0],1,contextptr);
+  vecteur w=f.is_symb_of_sommet(at_prod) && f._SYMBptr->feuille.type==_VECT?*f._SYMBptr->feuille._VECTptr:vecteur(1,f);
+  gen E=undef,c=1;
+  for (const_iterateur it=w.begin();it!=w.end();++it){
+    if (it->is_symb_of_sommet(at_pow) && it->_SYMBptr->feuille._VECTptr->front()==t && lidnt(it->_SYMBptr->feuille._VECTptr->back()).size() && free_of(it->_SYMBptr->feuille._VECTptr->back(),t) && is_undef(E))
+      E=it->_SYMBptr->feuille._VECTptr->back();
+    else if (free_of(*it,t))
+      c=c*(*it);
+    else
+      return 0;
+  }
+  if (is_undef(E))
+    return 0;
+  const gen E1=normal(E+1,contextptr);
+  return c*sym2(at_pow,v[3],E1)/E1;
+}
+#endif
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+// p_n about a != 0 written in powers of x-a, as on paper: c_0 + c_1 (x-a) + ..., -(x-1) kept whole
+// (giac's sum made it 1-x+1); P itself if not a polynomial
+static giac::gen taylor_form(const giac::gen & P,const giac::gen & tin){
+  using namespace giac;
+  if (!tin.is_symb_of_sommet(at_series) && !tin.is_symb_of_sommet(at_taylor)) return P;
+  const vecteur & v=*tin._SYMBptr->feuille._VECTptr;
+  gen x=v[1],a=v.size()>2?v[2]:gen(0);
+  if (x.is_symb_of_sommet(at_equal)){ a=x._SYMBptr->feuille[1]; x=x._SYMBptr->feuille[0]; }
+  a=eval(a,1,contextptr);
+  if (x.type!=_IDNT || is_zero(a) || !lidnt(a).empty() || P.type!=_SYMB || !lop(P,at_order_size).empty()) return P;
+  { const vecteur ids=lidnt(P); if (ids.size()!=1 || !(ids.front()==x)) return P; }
+  const gen t(identificateur(" t"));
+  const gen Q=expand(subst(P,x,t+a,false,contextptr),contextptr),d=_degree(makesequence(Q,t),contextptr);
+  if (d.type!=_INT_ || d.val<1 || d.val>40 || !is_zero(_degree(makesequence(_denom(Q,contextptr),t),contextptr))) return P;
+  const gen h=symbolic(at_plus,gen(makevecteur(x,is_strictly_positive(a,contextptr)?symbolic(at_neg,a):-a),_SEQ__VECT)); // (x-1, x+2)
+  vecteur ts;
+  for (int k=0;k<=d.val;++k){
+    const gen c=ratnormal(_coeff(makesequence(Q,t,k),contextptr),contextptr);
+    if (is_zero(c)) continue;
+    const gen hk=k==1?h:symbolic(at_pow,gen(makevecteur(h,k),_SEQ__VECT));
+    const bool ng=is_strictly_positive(-c,contextptr);
+    const gen ac=ng?-c:c;
+    gen term;
+    if (!k) term=ac;
+    else if (is_one(ac)) term=hk;
+    else if (ac.type==_FRAC){ const gen nu=ac._FRACptr->num,de=ac._FRACptr->den; term=symbolic(at_prod,gen(makevecteur(is_one(nu)?hk:symbolic(at_prod,gen(makevecteur(nu,hk),_SEQ__VECT)),symbolic(at_inv,de)),_SEQ__VECT)); } // ((x-2)/4, 3*(x+2)^2/2)
+    else term=symbolic(at_prod,gen(makevecteur(ac,hk),_SEQ__VECT));
+    ts.push_back(ng?symbolic(at_neg,term):term);
+  }
+  if (ts.empty()) return 0;
+  return ts.size()==1?ts[0]:symbolic(at_plus,gen(ts,_SEQ__VECT)); // (after eval: printed as built)
+}
+#endif
 void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   using namespace giac;
+  a.taylor=(g.is_symb_of_sommet(at_series) || g.is_symb_of_sommet(at_taylor)) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()>=3
+    && !is_inf(eval(g._SYMBptr->feuille._VECTptr->back(),1,contextptr));
+  if (a.taylor) a.tin=g;
 #if defined FLOWCE_STEPS || defined HOSTGIAC
+  trace_time("before answer_before");
   const gen app=steps_app(g,&a.appmsg,contextptr); // area(...) and the other applications: their integral
+  trace_time("steps_app");
   if (!is_zero(app)) g=app;
   if (a.appmsg) g=0; // (a call it cannot read: its message instead of an answer)
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+  if (!a.appmsg){ // (M3: proj_v u, scal_v u, the angle, u = P+N: the steps' own values)
+    if (steps_m3_answer(g,&a.appmsg,contextptr) && a.appmsg) g=0;
+  }
+#endif
+  if (focus){ const gen ti=term_integral(g); if (!is_zero(ti)) g=ti; } // (integrate((-1)^k*t^(4k+2)/(2k+1)!,t,0,2x))
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  if (focus && ti_seq_names[0]){
+    if (steps_seqdef(g,contextptr)){ // a(1)=3, a(n+1)=a(n)+2n: kept, shown back
+      a.tabled=true;
+      const gen r=g._SYMBptr->feuille._VECTptr->back(),k=eval(g._SYMBptr->feuille._VECTptr->front()._SYMBptr->feuille._VECTptr->back(),1,contextptr);
+      if (k.type==_INT_) g=symbolic(at_equal,makesequence(g._SYMBptr->feuille._VECTptr->front(),eval(r,1,contextptr)));
+      return;
+    }
+    g=steps_seqval(g,contextptr); // (a(3): 9, sum(a(k),k,1,3): a(1)+a(2)+a(3))
+  }
+#endif
+  trace_time("term_integral");
+  if (focus) g=steps_fixvar(g,contextptr); // (a sequence's limit typed in the x template: its n)
+  trace_time("steps_fixvar");
+  // the course's Taylor series in summation notation (series(f,x,a,inf)) and f^(n)(a) from the
+  // series' coefficient (-3*95!/30!), by the steps' known series; shown as the steps write them
+  // (giac summed the series back to f, worked the 140-digit integer out or differentiated 2025 times)
+#ifdef FLOWCE_SERIES // (the series and sequences pack)
+  if (focus && (g.is_symb_of_sommet(at_series) || g.is_symb_of_sommet(at_taylor) || g.is_symb_of_sommet(at_subst) || g.is_symb_of_sommet(at_sum) || g.is_symb_of_sommet(at_of) || g.is_symb_of_sommet(at_limit))){
+    steps_divmsg=0;
+    const gen r=steps_series_answer(g,contextptr);
+    trace_time("steps_series_answer");
+    if (steps_divmsg){ a.appmsg=steps_divmsg; g=0; } // (a divergent series: the steps' test says so, giac's sum not run)
+    else if (!is_undef(r)) // (0 is an answer; a polynomial p_n as itself: Ans in Value at x = ...)
+      g=r.type<_IDNT || r.type==_FRAC || a.taylor?r:gen(identificateur(r.print(contextptr)));
+  }
+  // a power series (a name besides the index): its closed form by the known patterns (c r^n, c/n,
+  // c n, c/n!), else its interval by the steps' ratio test; never giac's sum (minutes on the
+  // calculator for the course's sum((k^2+1)/8^k*(x-1)^(3k),k,0,inf), to no value)
+  if (focus && g.is_symb_of_sommet(at_sum) && g._SYMBptr->feuille.type==_VECT && g._SYMBptr->feuille._VECTptr->size()==4){
+    const vecteur & v=*g._SYMBptr->feuille._VECTptr;
+    const gen f=eval(v[0],1,contextptr),a0=eval(v[2],1,contextptr);
+    bool px=false; // (a name besides the index that is no number: x, not pi)
+    { const vecteur ids=lidnt(f); for (const_iterateur it=ids.begin();it!=ids.end();++it) if (!(*it==v[1]) && evalf(*it,1,contextptr).type!=_DOUBLE_) px=true; }
+    if (v[1].type==_IDNT && is_inf(eval(v[3],1,contextptr)) && a0.type==_INT_ && px){
+      gen r=steps_series_value(g,contextptr); // (the course asks its interval: the function it adds up to is the steps' last line)
+      if (is_zero(r))
+        r=steps_power_closed(f,v[1],a0.val);
+      if (!is_zero(r))
+        g=r.type==_IDNT || r.type<_IDNT?r:sym1(at_quote,r);
+    }
+  }
+#endif
 #endif
   if (strstr(buf,"perm(") || strstr(buf,"nPr("))
     g=map_nodes(g,perms,0);
@@ -3930,7 +4407,9 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   a.typed_sum=strstr(buf,"sum(");
   a.typed_sec=strstr(buf,"sec(") || strstr(buf,"csc(") || strstr(buf,"cot(");
   a.typed_limit=strstr(buf,"limit(");
+  trace_time("hooks");
   g=limit_simp(g);
+  trace_time("limit_simp");
   if (isv(g,at_sum,4)
       && g._SYMBptr->feuille._VECTptr->at(1).type==_IDNT){ // (-1)^n (-2)^n/(n 2^n): 1/n (numpows)
     vecteur v=*g._SYMBptr->feuille._VECTptr;
@@ -3951,6 +4430,7 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   if (focus && unknown.type==_IDNT) // (an equation alone is solved: not in KhiCAS's reading)
     g=sym2(at_solve,g,unknown);
   a.var=unknown; // solve(eq,x) typed explicitly: its solutions are shown as x=... too
+  a.sol_eq=0;
   a.vars=0;      // solve(eqs,[x,y]): x=2, y=1
   if (isv(g,at_solve,2) && g._SYMBptr->feuille._VECTptr->back().type==_VECT)
     a.vars=g._SYMBptr->feuille._VECTptr->back();
@@ -3960,6 +4440,8 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
     else if (g._SYMBptr->feuille.type!=_VECT) // solve(expr): giac solves for x
       a.var=gen("x",contextptr);
   }
+  if (a.var.type==_IDNT && isv(g,at_solve,2))
+    a.sol_eq=g._SYMBptr->feuille._VECTptr->front();
   g=trig_interval(g); // (DeltaCE) sin(x) = 1/2: pi/6, 5pi/6
   // decimals: giac's solve fails (solve(x^2=0.5,x): "Bad Argument Value"): solved exactly, the
   // solutions in decimals
@@ -3980,9 +4462,12 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
     }
   }
 #endif
+  trace_time("to ftc");
   g=ftc(g);
   g=numeric_hard_integrals(g);
+  trace_time("ftc");
   gen tab=table_integral(g); // sec, csc, sin(x)^3*cos(x)^2: the textbook form, at once
+  trace_time("table_integral");
   if (is_zero(tab))
     tab=power_sum(g); // sum(1/sqrt(n),n,1,inf)
   if (is_zero(tab) && a.ivar.type==_IDNT)
@@ -3991,7 +4476,9 @@ void answer_before(giac::gen & g,answer_ctx & a,const char * buf,bool focus){
   if (is_zero(tab) && is_zero(parts) && a.definite)
     parts=table_definite(g); // sec(x)^3 from 0 to pi/4 (normalized as giac's: sqrt(2), not 2/sqrt(2))
   a.tabled=!is_zero(tab);
+  trace_time("tables");
   const gen ga=add_autosimplify(g,contextptr);
+  trace_time("add_autosimplify");
   // unchanged for programs and explicit forms (factor, expand, diff...); derivatives are
   // simplified anyway: diff(sqrt(y/4),y) is 1/(4*sqrt(y)), not (sqrt(y/4))^-1/8. Simplify
   // answers off: ga is g, nothing is simplified
@@ -4047,8 +4534,33 @@ static __attribute__((noinline)) const char * unit_kind(const giac::gen & q){
   return "";
 }
 #endif
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+// the complex solutions of eq in x when it has no real one: csolve's, kept only as numbers with an i
+// (a polynomial's: e^x = -1 has n_1 in its, more than six is not a polynomial the course solves); 0 if none
+static __attribute__((noinline)) giac::gen complex_solutions(const giac::gen & eq,const giac::gen & x,const giac::context * contextptr){
+  using namespace giac;
+  if (is_zero(eq) || x.type!=_IDNT) return 0;
+  gen c;
+#ifndef NO_STDEXCEPT
+  try {
+#endif
+    c=_cSolve(makesequence(eq,x),contextptr);
+#ifndef NO_STDEXCEPT
+  } catch (std::runtime_error &) { return 0; }
+#endif
+  if (c.type!=_VECT || c._VECTptr->empty() || c._VECTptr->size()>6) return 0;
+  for (unsigned i=0;i<c._VECTptr->size();++i){
+    const gen & v=(*c._VECTptr)[i];
+    if (!lidnt(v).empty() || !has_i(v) || is_undef(v) || taille(v,100)>60) return 0;
+  }
+  return c;
+}
+#endif
 void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen & graw){
   using namespace giac;
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  if (ti_seq_names[0] && !a.tabled) g=steps_seqval(g,contextptr); // (s(3), s(n) = sum(a(k),k,1,n): a's terms)
+#endif
 #if defined FLOWCE_STEPS || defined HOSTGIAC
   if (a.appmsg){ // area(x^2): how to call it
     msg=a.appmsg;
@@ -4067,14 +4579,36 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
     return;
   }
 #endif
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  // the Taylor polynomial p_n (series(f,x,a,n)): its terms as on paper, no O(x^5); p_4 of 4x^5/5+... is 0
+  if (a.taylor && contains(g,at_order_size)){
+    vecteur t=g.is_symb_of_sommet(at_plus) && g._SYMBptr->feuille.type==_VECT?*g._SYMBptr->feuille._VECTptr:vecteur(1,g),q;
+    for (const_iterateur it=t.begin();it!=t.end();++it)
+      if (!contains(*it,at_order_size))
+        q.push_back(*it);
+    g=q.empty()?gen(0):q.size()==1?q[0]:symbolic(at_plus,gen(q,_SEQ__VECT));
+  }
+  if (a.taylor) g=taylor_form(g,a.tin); // (1-(x-1)-(x-1)^2/2: giac's sum distributed -(x-1) as 1-x+1)
+#endif
   answer_simplify(); // autosimplify(0) typed: the status bar shows it with this answer
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+  if (sci_in && (g.type==_INT_ || g.type==_ZINT || g.type==_FRAC)){ // (numbers in E notation, worked out exactly)
+    int e10=0;
+    const std::string m=exact_sci(g,6,e10,contextptr);
+    char e[8];
+    sprintf(e,"%d",e10);
+    if (!m.empty())
+      g=e10>-30 && e10<30?gen(m+"e"+e,contextptr):gen(identificateur((m=="1"?std::string():m=="-1"?std::string("-"):m+"*")+"10^("+e+")")); // (in the floats' range: a decimal, as before; past it: as on paper, 1.4576*10^(-49))
+  }
+  sci_in=false;
+#endif
   if (a.definite && a.real_in && has_i(g) && !has_inf_or_undef(g))
     g=real_ftc(a.gin,g); // x^(-1/3) from -1 to 8: 9/2
   if (interrupted) // ON (main.cc says Interrupted): none of the steps below on giac's errors
     return;
   if (contains(g,at_bounded_function)) // lim sin(x) at infinity, sum((-1)^n)
     msg=a.typed_sum?"diverges (the terms do not go to 0)":a.typed_limit?"no limit (it oscillates)":"";
-  else if (g.is_symb_of_sommet(at_sum)) // an infinite sum giac could not do
+  else if (g.is_symb_of_sommet(at_sum)) // an infinite sum giac could not do (every build: 2.4's sum(1/n^2) = pi^2/6)
     g=known_sum(g,msg);
   else if (is_undef(g) && isv(a.gin,at_sum,4)){
     vecteur w(*a.gin._SYMBptr->feuille._VECTptr); // sum(n*x^n,n,1,inf): giac's undef
@@ -4088,6 +4622,19 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   }
   else
     limit_dne(a.gin,g,msg); // lim 1/x at 0: does not exist (giac: an unsigned infinity)
+  if (msg.empty() && g==unsigned_inf && !a.typed_limit && !a.typed_sum) // (DeltaCE) 1/0, x/0: giac's unsigned infinity
+    msg="undefined (a division by 0)";
+  if (msg.empty() && is_undef(g) && g.type!=_STRNG && g.type!=_VECT && !a.typed_limit && !a.typed_sum) // (DeltaCE) 0/0: giac's undef (not its errors)
+    msg="undefined";
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  // a power series giac has no value for (undef, the sum left): its interval of convergence, by
+  // the steps' ratio test (the course's sum((k^2+1)/8^k*(x-1)^(3k),k,0,inf): -1 < x < 3)
+  if (msg.empty() && (is_undef(g) || g.is_symb_of_sommet(at_sum)) && a.gin.is_symb_of_sommet(at_sum)){
+    const gen r=steps_series_value(a.gin,contextptr);
+    if (!is_zero(r))
+      g=r;
+  }
+#endif
   if (msg.empty() && (g==plus_inf || g==minus_inf) && a.gin.is_symb_of_sommet(at_sum)) // a series
     msg=g==plus_inf?"diverges (to +infinity)":"diverges (to -infinity)"; // that diverges says so
   if (!msg.empty()) // "diverges": g is not shown (evalf below re-ran giac's sum of it: 40 s)
@@ -4099,8 +4646,14 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
       && (g.type==_STRNG || (g.type==_FRAC && g.print(contextptr).size()>40))){
     const vecteur & v=*a.gin._SYMBptr->feuille._VECTptr;
     const gen lo=evl(v[2]),hi=evl(v[3]),f=evl(v[0]);
-    if (g.type==_FRAC)
+    if (g.type==_FRAC){
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+      msg=exact_dec(g,10,contextptr); // (its digits exact: 7.999999829, not the floats' 8.0)
+      if (!msg.empty())
+        return;
+#endif
       g=evf(g);
+    }
     else if (lo.type==_INT_ && hi.type==_INT_ && hi.val-lo.val<1000000 && v[1].type==_IDNT){
       double s=0;
       for (int k=lo.val;k<=hi.val;++k){
@@ -4135,6 +4688,9 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
 #endif
   if (a.autosimp && !a.tabled){
     g=auto_simplify(g);
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+    g=steps_epow(g,contextptr); // ((2e^2-2)/(e^3-e^2): (2e+2)/e^2)
+#endif
     focus_phase=112;
     g=collect_rational(power_sums(g)); // -7x^(5/2)+4x^(1/3)/3+28/(9x^(5/9))
   }
@@ -4202,13 +4758,18 @@ void answer_after(giac::gen & g,const answer_ctx & a,std::string & msg,giac::gen
   if (!a.tabled && (g.type==_SYMB || g.type==_VECT) && taille(g,200)<200)
     g=map_nodes(g,frac_root,0); // (81/16)^(1/4): 3/2
   focus_phase=116;
-  if (g.type==_SYMB && taille(g,200)<200 && !contains(g,at_order_size)) // (series: as is)
+  if (g.type==_SYMB && taille(g,200)<200 && !contains(g,at_order_size) && !a.taylor) // (series: as is, 1+x-2x^2 also without its O)
     g=positive_first(g);
   trace_step("positive_first",g);
   focus_phase=85;
   if (a.var.type==_IDNT){
-    if (g.type==_VECT && g._VECTptr->empty())
+    if (g.type==_VECT && g._VECTptr->empty()){
       msg="no solution";
+#if defined FLOWCE_STEPS || defined HOSTGIAC
+      const gen c=complex_solutions(a.sol_eq,a.var,contextptr); // (x^2+9=0: x=3i, x=-3i, not "no solution": issue #3)
+      if (c.type==_VECT && !c._VECTptr->empty()){ msg.clear(); g=solutions_as_equations(c,a.var); }
+#endif
+    }
     else
       g=solutions_as_equations(g,a.var);
   }
@@ -4275,7 +4836,7 @@ std::string answer_print(const giac::gen & g,const giac::gen & graw,const answer
   using namespace giac;
   std::string printed=g.print(contextptr);
   plain_decimal(g,printed);
-  if (a.var.type==_IDNT || a.vars.type==_VECT){ // solutions: x=-sqrt(2),x=sqrt(2), not
+  if (a.var.type==_IDNT || a.vars.type==_VECT || g.is_symb_of_sommet(at_and)){ // solutions: x=-sqrt(2),x=sqrt(2), not
     strip_equation_parens(printed);              // x=(-sqrt(2)),x=(sqrt(2))
     chain_inequalities(printed);
   }
@@ -4295,6 +4856,22 @@ std::string answer_print(const giac::gen & g,const giac::gen & graw,const answer
   focus_phase=86;
   textbook(printed);
   textbook_constants(printed);
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+  if (ti_seq_names[0]){ // a sequence's terms as the course writes them: a(3) as a_3, a(n+1) as a_(n+1)
+    std::string o;
+    const char * s=printed.c_str();
+    for (int i=0;s[i];++i){
+      o+=s[i];
+      if (s[i+1]!='(' || !strchr(ti_seq_names,s[i]) || (i && (isalnum((unsigned char)s[i-1]) || s[i-1]=='_')))
+        continue;
+      int j=i+2;
+      while (isalnum((unsigned char)s[j])) ++j;
+      if (s[j]==')' && j>i+2 && (isdigit((unsigned char)s[i+2]) || j==i+3)){ o+='_'; o.append(s+i+2,j-i-2); i=j; } // (a_3, a_n)
+      else o+='_';
+    }
+    printed=o;
+  }
+#endif
 #ifdef WITH_UNITS
   if (printed.find('_')!=std::string::npos)
     units_text(printed);

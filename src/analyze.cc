@@ -255,6 +255,18 @@ static NOINL signed char beside(const pts & v,const std::vector<signed char> & s
   return j>=0 && j<=k?s[j]:2;
 }
 
+// g has a power whose root is odd and 5 or more (x^1.2 is x^(6/5)): giac's limit at -inf of a root
+// of such a power never ends (sqrt(x^(6/5)+1)), so that side is not asked (DeltaCE)
+static NOINL bool root5(const gen & g){
+  if (g.type==_VECT){ for (unsigned i=0;i<g._VECTptr->size();++i) if (root5((*g._VECTptr)[i])) return true; return false; }
+  if (g.type!=_SYMB) return false;
+  const gen & f=g._SYMBptr->feuille;
+  if (g._SYMBptr->sommet==at_pow && f.type==_VECT && f._VECTptr->size()==2){
+    const gen e=exact(f._VECTptr->back(),CTX);
+    if (e.type==_FRAC && e._FRACptr->den.type==_INT_ && e._FRACptr->den.val>=5 && e._FRACptr->den.val%2) return true;
+  }
+  return root5(f);
+}
 // d is inside the domain (defined on both sides): B, sd its edges and chart
 static NOINL bool interior(const pts & B,const std::vector<signed char> & sd,double d){
   unsigned j=0;
@@ -351,7 +363,7 @@ static NOINL gen period(const gen & f,bool & trig){
     if ((k.type!=_INT_ && k.type!=_FRAC) || is_zero(k) || dep(ev(a-k*X))) return 0;
     gen r=ev(gen(i<nst?2:1)/abs(k,CTX)); // over pi
     gen rn=r.type==_FRAC?r._FRACptr->num:r, rd=r.type==_FRAC?r._FRACptr->den:gen(1);
-    num=is_zero(num)?rn:lcm(num,rn); den=gcd(den,rd);
+    if (is_zero(num)){ num=rn; den=rd; } else { num=lcm(num,rn); den=gcd(den,rd); } // (DeltaCE: den from the first, sin(3x) had 2 pi)
   }
   if (!trig) return 0;
   gen p=ev(num*cst_pi/den);
@@ -493,7 +505,7 @@ const char * analyze_of(const gen & f0,std::vector<an_line> & out,GIAC_CONTEXT){
       std::string side[2];
       const char * kind[2]={0,0};
       for (int s=0;s<2 && !stop();++s){
-        if (sd[s?sd.size()-1:0]==2) continue;
+        if (sd[s?sd.size()-1:0]==2 || (!s && root5(f))) continue;
         const gen inf=s?plus_inf:minus_inf;
         gen L=lim(f,inf,0);
         double d;

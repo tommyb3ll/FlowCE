@@ -19,9 +19,9 @@ extern "C" {
 #define FOCUS_CONSOLE 1 // the console's layout: the history from the top, the edit line under it, no answer shown large
 #endif
 #ifdef FLOWCE_STEPS
-#define FLOWCE_VERSION "2.4" // the step-by-step build (FlowCE; the Python build is the 1.9 line)
+#define FLOWCE_VERSION "3.0" // the step-by-step build (FlowCE; its packs picked at build time, makefile)
 #elif defined FLOWCE_KHICAS
-#define FLOWCE_VERSION "1.2" // KhiCAS + Flow: KhiCAS arranged as Bernard Parisse made it, in FlowCE's look (its own line; it replaces FlowCE Python)
+#define FLOWCE_VERSION "1.3" // KhiCAS + Flow: KhiCAS arranged as Bernard Parisse made it, in FlowCE's look (its own line; it replaces FlowCE Python)
 #else
 #define FLOWCE_VERSION "1.9.1" // in the status bar and on the start screen: bump it at each release
 #endif
@@ -130,7 +130,7 @@ int focus_chip(int bank, int x, int cy, const char * w, const char * k, int on, 
 // focus_menu.cc: F1-F5 and the math key open a popover over the dimmed stage. Returns FA_NONE
 // (closed), FA_INSERT with the template to insert (*text, then the caret back *back chars), or
 // an action for the console.
-enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_APPS, FA_RUN };
+enum { FA_NONE, FA_INSERT, FA_CATALOG, FA_PLOT, FA_FILE, FA_CLEAR, FA_GRAPH, FA_THEME, FA_STATS, FA_PROB, FA_APPS, FA_VEC, FA_VAPPS, FA_QUIT, FA_RUN };
 // FA_RUN: *text is a calculation to run (an application's form, the calculus card's Applications),
 // which took the line typed when the menu opened (focus_form_line, set by the console)
 extern const char * focus_form_line;

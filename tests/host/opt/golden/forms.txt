@@ -11,8 +11,8 @@ diff(x^3*sin(x),x) -> x^3*cos(x)+3*x^2*sin(x) | factored: x^2*(x*cos(x)+3*sin(x)
 diff(ln(x)/x,x) -> (1-ln(x))/x^2 | back
 limit(sin(x)/x,x,0) -> 1 | back
 limit((1+1/x)^x,x,inf) -> e  ~ 2.71828 | decimal: 2.71828 | back
-sum(1/n^2,n,1,inf) -> pi^2/6  ~ 1.64493 | decimal: 1.64493 | back
-series(e^x,x,0,4) -> 1+x+x^2/2+x^3/6+x^4/24+O(x^5) | one fraction: (x^4+4*x^3+12*x^2+24*x+24*O(x^5)+24)/24 | back
+sum(1/n^2,n,1,inf) -> converges (p-series) | back
+series(e^x,x,0,4) -> 1+x+x^2/2+x^3/6+x^4/24 | one fraction: (x^4+4*x^3+12*x^2+24*x+24)/24 | back
 solve(x^2-5x+6=0,x) -> x=2, x=3 | back
 solve(x^2=2,x) -> x=-sqrt(2), x=sqrt(2) | decimal: x=-1.41421, x=1.41421 | back
 solve(2x+3=7,x) -> x=2 | back

@@ -16,6 +16,7 @@ using namespace giac;
 extern giac::context * contextptr;
 extern "C" { volatile unsigned char focus_phase; } // focus.cc's phase probe (answer.cc sets it)
 
+double host_ms(){ struct timespec t; clock_gettime(CLOCK_MONOTONIC,&t); return t.tv_sec*1e3+t.tv_nsec/1e6; } // (steps.cc's HOSTGIAC_TT timers)
 std::string khicas_do_run(const char * s){
   const int S=strlen(s),cap=2*S+32>256?2*S+32:256;
   char * buf=(char *)malloc(cap);
@@ -24,11 +25,17 @@ std::string khicas_do_run(const char * s){
   ctrl_c=kbd_interrupted=interrupted=false;
   std::string printed;
   {
+    struct timespec kt0,kt1,kt2,kt3; const bool kt=getenv("KTIME")!=0; // (KTIME: each part's time on stderr)
+    clock_gettime(CLOCK_MONOTONIC,&kt0);
     gen g(buf,contextptr);
     answer_ctx a;
+    clock_gettime(CLOCK_MONOTONIC,&kt1);
     answer_before(g,a,buf,true);
+    clock_gettime(CLOCK_MONOTONIC,&kt2);
     if (!a.tabled)
       g=eval(g,eval_level(contextptr),contextptr); // do_eval
+    clock_gettime(CLOCK_MONOTONIC,&kt3);
+    if (kt) fprintf(stderr,"  [parse %.1f before %.1f eval %.1f]\n",(kt1.tv_sec-kt0.tv_sec)*1e3+(kt1.tv_nsec-kt0.tv_nsec)/1e6,(kt2.tv_sec-kt1.tv_sec)*1e3+(kt2.tv_nsec-kt1.tv_nsec)/1e6,(kt3.tv_sec-kt2.tv_sec)*1e3+(kt3.tv_nsec-kt2.tv_nsec)/1e6);
     const bool stopped=interrupted,deep=stack_hit;
     ctrl_c=kbd_interrupted=interrupted=stack_hit=false;
     std::string msg;

@@ -188,6 +188,11 @@ static bool is_text(const char * s) {
   if (*s == '"') return false;
   for (const char * p = s; *p; ++p)
     if (*p == ' ' && ((p[1] | 32) >= 'a' && (p[1] | 32) <= 'z') && p > s && p[-1] != ',') return true;
+  { // a word, then a space: words too ("converges (p-series)", "diverges (to -infinity)": drawn as math, p - series)
+    const char * p = s;
+    while (*p >= 'a' && *p <= 'z') ++p;
+    if (p - s >= 3 && *p == ' ') return true;
+  }
   if (*s >= 'A' && *s <= 'Z') {
     const char * p = s + 1;
     while (*p >= 'a' && *p <= 'z') ++p;
@@ -248,7 +253,13 @@ static int NE;
 static const char * steps_input(const fent & e) {
   const char * r = e.out < 0 ? 0 : shown((const char *)Line[e.out].str);
   if (const char * f = e.out < 0 ? 0 : console_form_steps((const char *)Line[e.out].str)) return focus_steps_able(f) ? f : 0; // (DeltaCE: F4's completed square, long division, factored)
-  if (e.in < 0 || !r || (is_text(r) && strncmp(r, "does not exist", 14) && strncmp(r, "diverges", 8) && strncmp(r, "no limit", 8) && strncmp(r, "no solution", 11))) return 0; // (a limit's "does not exist" or "no limit", a series' "diverges", an equation's "no solution" too)
+  if (e.in < 0 || !r || (is_text(r) && strncmp(r, "does not exist", 14) && strncmp(r, "diverges", 8) && strncmp(r, "converges", 9) && strncmp(r, "no limit", 8) && strncmp(r, "no solution", 11)
+#ifdef FLOWCE_VECTORS
+                                    && strncmp(r, "only ", 5) && strncmp(r, "the whole curve", 15) && strncmp(r, "the curve does not", 18) && strncmp(r, "not on the curve", 16)
+                                    && strncmp(r, "skew", 4) && strncmp(r, "parallel", 8) && strncmp(r, "the same line", 13) && strncmp(r, "intersects", 10)
+                                    && strncmp(r, "domain", 6) && strncmp(r, "every t", 7) && strncmp(r, "no ", 3) && strncmp(r, "it meets", 8) && !(r[0] >= 'a' && r[0] <= 'z' && r[1] == ' ' && r[2] == '=')
+#endif
+                                    )) return 0; // (a limit's "does not exist" or "no limit", a series' "diverges" or "converges (by the ratio test)", an equation's "no solution" too)
   const char * s = (const char *)Line[e.in].str;
   return focus_steps_able(s, r) ? s : 0;
 }

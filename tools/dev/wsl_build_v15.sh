@@ -33,6 +33,9 @@ case "$VARIANT" in
   en-steps-v15) ARGS="APPLANG=en STEPS=1" ;;
   en-units-v15) ARGS="APPLANG=en UNITS=1" ;;
   en-steps-tilook-v15) ARGS="APPLANG=en STEPS=1 TILOOK=1" ;;
+  en-steps-p[01][01][01][01]-v15) P=${VARIANT#en-steps-p}; ARGS="APPLANG=en STEPS=1 SERIES=${P:0:1} VECTORS=${P:1:1} STATS=${P:2:1} DIFFEQ=${P:3:1}" ;; # (3.0's packs: series, vectors, statistics, differential equations)
+  en-steps-p[01][01][01][01]-i[0-9]*-v15) P=${VARIANT#en-steps-p}; I=${P#*-i}; I=${I%-v15}; B=0; [ "${I%b}" != "$I" ] && { B=1; I=${I%b}; }
+    ARGS="APPLANG=en STEPS=1 SERIES=${P:0:1} VECTORS=${P:1:1} STATS=${P:2:1} DIFFEQ=${P:3:1} LTOINL=-$I BARRETT=$B" ;; # (a pack combination with less inlining at the link, -i30: -30; -i20b: and Barrett's reduction only, for it to fit)
   en-khicas-v15) ARGS="APPLANG=en KHICAS=1"; export APP_NAME=KhiFlow APP_INFO="KhiCAS + Flow - CAS - GNU GPL" ;; # (its own name in APPS)
   *) echo "unknown variant $VARIANT"; exit 2 ;;
 esac
@@ -48,6 +51,9 @@ t0=$(date +%s)
 # the catalog's English descriptions, packed from menufr.cc's D("...") (DeltaCE's tools/catpack.py;
 # the header is rewritten only when they changed)
 python3 tools/catpack.py src/menufr.cc src/catalog_text.h >> "$LOG/build_$LV.log" || { echo "[build] tools/catpack.py failed"; exit 1; }
+if grep -q '#include "steps_text.h"' src/steps.cc; then # (the steps' texts packed, 3.0; an older tree has none)
+  python3 tools/catpack.py src/steps.cc src/steps_text.h ST st SP >> "$LOG/build_$LV.log" || { echo "[build] tools/catpack.py (the steps' texts) failed"; exit 1; }
+fi
 PAD=0 # 0xFF bytes after the code (a last AppIns under 1 KB: below)
 link() { # <load address>
   rm -f bin/DEMO.obj

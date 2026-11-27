@@ -108,6 +108,15 @@ void mi_draw(const mi_layout & L,const char * s,int bx,int by,int x0,int y0,int 
       mi_line(xi,y+h-1-q,xo,y+h-1,x0,y0,x1,y1,MI_INK);
       break;
     }
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+    case MI_LANGLE: case MI_RANGLE: { // (M3: a vector's < >)
+      const bool l=o.code==MI_LANGLE;
+      const int xo=l?x+w-1:x,xi=l?x+1:x+w-2;
+      mi_line(xo,y,xi,y+h/2,x0,y0,x1,y1,MI_INK);
+      mi_line(xi,y+h/2,xo,y+h-1,x0,y0,x1,y1,MI_INK);
+      break;
+    }
+#endif
     case MI_LBRACKET: case MI_RBRACKET: {
       const bool l=o.code==MI_LBRACKET;
       const int xs=l?x+1:x+w-2,xe=l?x+w-1:x;

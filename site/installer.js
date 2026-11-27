@@ -1,7 +1,8 @@
 // The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// version picked (files/FlowCE.b84, or files/KhiCAS-Flow.b84 for KhiCAS + Flow) over WebUSB
-// and opens its installer, which then needs one key press on the calculator. Steps and texts:
-// index.html.
+// version picked (files/FlowCE.b84, or files/KhiCAS-Flow.b84 for KhiCAS + Flow; from 3.0, FlowCE
+// with the packs picked: files/packs.json lists a bundle for each combination that fits) over
+// WebUSB and opens its installer, which then needs one key press on the calculator. Steps and
+// texts: index.html.
 import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile, readAppFile } from './dusb.js';
 
 const $ = id => document.getElementById(id);
@@ -25,6 +26,25 @@ const BUILDS = { // (app: its name in the calculator's apps menu)
 };
 const versions = {};      // their version texts once read ('' if the site doesn't have it)
 let build = 'normal';     // the version picked
+
+// FlowCE's packs (3.0, the customizer): files/packs.json (site/packs.py) gives the bundle built for
+// each combination that fits in an app (43 flash pages), by its code: a digit for each pack of
+// packs.packs, 1 in ('0011': statistics and differential equations, FlowCE.b84). Without that file
+// (a site from before 3.0), FlowCE.b84 alone and no customizer.
+const PACK_NAMES = { series: 'Series and sequences', vectors: 'Vectors, lines and curves', stats: 'Statistics and probability', diffeq: 'Differential equations' };
+const PACK_SHORT = { series: 'Series', vectors: 'Vectors', stats: 'Statistics', diffeq: 'Differential equations' };
+let packs = null;         // packs.json: { packs: ['series', 'vectors', 'stats', 'diffeq'], default: '0011', max, builds: { code: { file, size } } }
+let code = null;          // the combination picked
+let picked = [];          // its packs, in the order they were checked (one that doesn't fit: the oldest go first)
+let lastDrop = null;      // { p, off }: checking p turned off these; unchecking p brings them back
+let note = '';            // what the last change turned off
+const KB = n => Math.round(n / 1000) + ' KB';
+const inCode = (c, p) => c[packs.packs.indexOf(p)] === '1';
+const codeWith = (c, p, on) => { const i = packs.packs.indexOf(p); return c.slice(0, i) + (on ? '1' : '0') + c.slice(i + 1); };
+const packsOf = c => packs.packs.filter(p => inCode(c, p));
+const listText = a => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+// the file sent for a version: FlowCE's for the packs picked
+const fileOf = b => (b === 'normal' && packs && code ? packs.builds[code].file : BUILDS[b].file);
 
 let calc = null;          // the connected calculator
 let vars = null;          // the bundle's variables, in sending order
@@ -69,8 +89,11 @@ const INST_PATCHES = [
 // TI Connect link). Blocked or absent: nothing.
 function count(what) {
   try {
-    if (window.goatcounter && window.goatcounter.count)
+    if (window.goatcounter && window.goatcounter.count) {
       window.goatcounter.count({ path: `${what}-${build}`, title: `${what} (${BUILDS[build].name})`, event: true });
+      if (what === 'sent' && build === 'normal' && packs && code) // (which packs people install: sent-packs-0011)
+        window.goatcounter.count({ path: `sent-packs-${code}`, title: `sent (FlowCE: ${packsOf(code).join(' + ') || 'no packs'})`, event: true });
+    }
   } catch (e) { /* (counting never stops an install) */ }
 }
 
@@ -170,6 +193,9 @@ function friendly(e) {
       'Then press Connect calculator again.';
   if (e && e.name === 'NetworkError')
     return 'The calculator was disconnected. Plug it back in and press Connect calculator again.';
+  // (a visitor saw "Failed to execute 'transferOut' on 'USBDevice': The device must be opened first", 2026-11-10)
+  if (e && (e.name === 'InvalidStateError' || /must be opened first/i.test(msg)))
+    return 'The connection to the calculator was lost. Unplug it, plug it back in, and press Connect calculator again.';
   if (e && e.name === 'SecurityError')
     return 'The browser blocked the connection to the calculator.';
   return msg;
@@ -189,9 +215,9 @@ function problem(e) {
 }
 
 async function loadBundle() {
-  const b = build;
-  if (vars && varsOf === b) return vars;
-  const res = await fetch('files/' + BUILDS[b].file, { cache: 'no-store' });
+  const b = build, file = fileOf(b);
+  if (vars && varsOf === file) return vars;
+  const res = await fetch('files/' + file, { cache: 'no-store' });
   if (!res.ok) throw new Error(`could not download ${BUILDS[b].name} (${res.status})`);
   const files = await readBundle(await res.arrayBuffer());
   const list = [];
@@ -207,24 +233,138 @@ async function loadBundle() {
   if (patched) inst.data = patched;
   autoInst = !!patched;
   vars = list;
-  varsOf = b;
+  varsOf = file;
   return vars;
 }
 
 // INST counts down from the last AppIns' number (42 for 43 of them) to 0
 const countdown = () => (vars ? vars.filter(v => v.name.startsWith('AppIns')).length - 1 : 42);
 
-// The version picked, in the texts that name it: the install button, "Sends ...", the download
+// The version picked, in the texts that name it: the install button, "Sends ...", the downloads
 function showBuild() {
-  const b = BUILDS[build];
+  const b = BUILDS[build], file = fileOf(build);
+  const pk = build === 'normal' && packs && code ? packsOf(code) : null;
   $('btn-install').textContent = 'Install ' + b.name;
-  $('version').textContent = (b.name + ' ' + (versions[build] || '')).trim();
+  $('version').textContent = (b.name + ' ' + (versions[build] || '')).trim() +
+    (!pk ? '' : pk.length ? ' with ' + listText(pk.map(p => PACK_SHORT[p])) : ', no packs');
   const dl = $('dl');
-  dl.href = 'files/' + b.file;
-  dl.textContent = b.file;
-  dl.setAttribute('download', b.file);
+  dl.href = 'files/' + file;
+  dl.textContent = file;
+  dl.setAttribute('download', file);
+  const d585 = $('dl-585');
+  if (d585 && build === 'normal') { d585.href = 'files/' + file; d585.setAttribute('download', file); }
   document.querySelectorAll('.app').forEach(e => { e.textContent = b.app; }); // (its name in the apps menu)
   document.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', o.querySelector('input').checked));
+  showPacks();
+}
+
+// The customizer: each pack checked or not, what one not checked would turn off, and the bar: the
+// room for packs (the most an app can be, less FlowCE without them), each pack picked its part
+function showPacks() {
+  const box = $('packs');
+  box.hidden = !(packs && build === 'normal');
+  if (!packs) return;
+  const b = packs.builds[code], max = packs.max || 2818045;
+  const none = '0'.repeat(packs.packs.length), base = packs.builds[none];
+  box.querySelectorAll('.pack').forEach(l => {
+    if (l.hidden) return;
+    const p = l.dataset.pack, on = inCode(code, p);
+    l.querySelector('input').checked = on;
+    l.classList.toggle('on', on);
+    let why = '';
+    if (!on && !packs.builds[codeWith(code, p, true)]) {
+      const r = withPack(code, p, true);
+      const off = r ? packsOf(code).filter(q => !inCode(r, q)) : [];
+      const n = packsOf(code).length + 1; // (the packs checked and this one: no room for them together)
+      if (off.length) why = `Turns off ${listText(off.map(q => PACK_SHORT[q]))}: not enough room for ${n > 2 ? 'all ' + ['three', 'four'][n - 3] : 'both'}.`;
+    }
+    l.querySelector('.pack-why').textContent = why;
+  });
+  const bar = $('pk-bar');
+  if (base) {
+    const room = max - base.size, used = Math.max(0, b.size - base.size), on = packsOf(code);
+    const own = on.map(p => { const one = packs.builds[codeWith(none, p, true)]; return one ? one.size - base.size : 0; });
+    const sum = own.reduce((a, x) => a + x, 0) || 1; // (each pack's part: its own size, scaled to the combination's)
+    bar.innerHTML = on.map((p, i) => `<span title="${PACK_NAMES[p]}" style="width:${Math.min(100, 100 * used * own[i] / sum / room).toFixed(2)}%"></span>`).join('');
+    $('pk-size').innerHTML = on.length
+      ? `<strong>${KB(used)}</strong> of the ${KB(room)} of room for packs` + (room - used >= 1000 ? `, ${KB(room - used)} left` : '') + `. FlowCE with ${on.length > 1 ? 'them' : 'it'}: ${MB(b.size)}.`
+      : `No packs: ${KB(room)} of room for them. FlowCE without them: ${MB(b.size)}.`;
+  } else { // (no bundle without packs to measure from: the app against the most it can be)
+    bar.innerHTML = `<span style="width:${Math.min(100, 100 * b.size / max).toFixed(2)}%"></span>`;
+    $('pk-size').innerHTML = `<strong>${MB(b.size)}</strong> of ${MB(max)}, the most an app can be.`;
+  }
+  $('pk-note').hidden = !note;
+  $('pk-note').textContent = note;
+}
+
+// The combination with p in (on) or out: the one asked for if it was built, else, among those built
+// with p so, the one keeping the most of the packs checked, then those checked last
+function withPack(c, p, on) {
+  const want = codeWith(c, p, on);
+  if (packs.builds[want]) return want;
+  let best = null, score = -1;
+  for (const k of Object.keys(packs.builds)) {
+    if (k.length !== want.length || inCode(k, p) !== on || packs.packs.some(q => inCode(k, q) && !inCode(want, q))) continue;
+    const kept = packsOf(k).filter(q => q !== p);
+    const sc = kept.length * 100 + kept.reduce((a, q) => a + picked.indexOf(q) + 1, 0);
+    if (sc > score) { best = k; score = sc; }
+  }
+  return best;
+}
+
+// A pack checked or unchecked: the combination that has room, then the calculator checked again
+// (the memory it needs) if one is connected
+async function togglePack(p, on) {
+  if (busy || waitingReset || v3Stage) { showPacks(); return; } // (the boxes are disabled then anyway)
+  let next;
+  if (!on && lastDrop && lastDrop.p === p) { // (the pack that turned others off: they come back)
+    next = codeWith(code, p, false);
+    for (const q of lastDrop.off) if (packs.builds[codeWith(next, q, true)]) next = codeWith(next, q, true);
+  } else next = withPack(code, p, on);
+  if (!next) { showPacks(); return; }
+  const off = packsOf(code).filter(q => q !== p && !inCode(next, q));
+  if (on) picked = picked.filter(q => q !== p).concat(p);
+  picked = picked.filter(q => inCode(next, q));
+  picked = picked.concat(packsOf(next).filter(q => !picked.includes(q)));
+  lastDrop = on && off.length ? { p, off } : null;
+  note = off.length ? `${PACK_SHORT[p]} doesn't fit with ${listText(off.map(q => PACK_SHORT[q]))}, so ` +
+    `${off.length > 1 ? 'they are' : 'it is'} off now. Uncheck ${PACK_SHORT[p]} to bring ${off.length > 1 ? 'them' : 'it'} back.` : '';
+  code = next;
+  showBuild();
+  if (!calc) return;
+  try {
+    say('st-connect', 'Checking the calculator…');
+    await loadBundle();
+    await check(calc);
+  } catch (e) {
+    say('st-connect', problem(e));
+  }
+}
+
+// files/packs.json read: the customizer shows, with the packs a link asks for (?packs=vectors,stats;
+// ?packs=none) if they were built together
+function setupPacks(j) {
+  if (!j || !Array.isArray(j.packs) || !j.builds || !j.builds[j.default] || j.packs.some(p => !PACK_NAMES[p])) return;
+  packs = j;
+  code = j.default;
+  const asked = new URLSearchParams(location.search).get('packs');
+  if (asked !== null) {
+    const names = asked.toLowerCase().split(/[\s,+]+/).filter(Boolean);
+    let c = '0'.repeat(j.packs.length);
+    for (const n of names) if (j.packs.includes(n)) c = codeWith(c, n, true);
+    if (j.builds[c]) code = c;
+  }
+  picked = packsOf(code);
+  const none = '0'.repeat(j.packs.length), base = j.builds[none];
+  document.querySelectorAll('#packs .pack').forEach(l => {
+    const p = l.dataset.pack, one = j.packs.includes(p) ? j.builds[codeWith(none, p, true)] : null;
+    if (!one) { l.hidden = true; return; } // (no bundle has it)
+    l.querySelector('.pack-kb').textContent = base ? '+' + KB(one.size - base.size) : '';
+    const box = l.querySelector('input');
+    box.addEventListener('change', () => togglePack(p, box.checked));
+  });
+  showBuild();
+  updateInstall();
 }
 
 // Another version picked: if a calculator is connected, check it again (the memory it needs)
@@ -252,6 +392,8 @@ function updateInstall() {
   $('btn-install').disabled = locked || !calc || !state || state.blocked ||
     ((state.needErase || state.route === 'v3') && !$('erase-ok').checked);
   document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = locked || r.dataset.off === '1'; });
+  document.querySelectorAll('#packs input').forEach(i => { i.disabled = locked; });
+  $('packs').classList.toggle('locked', locked);
   $('btn-v3-next').disabled = busy;
 }
 
@@ -299,7 +441,12 @@ async function connect() {
   try {
     c = await Calculator.request(); // must come first: the browser needs the click
   } catch (e) {
-    if (e && e.name === 'NotFoundError') return; // the picker was closed
+    if (e && e.name === 'NotFoundError') { // the picker was closed: maybe it was empty ("No compatible devices
+      say('st-connect', 'No calculator picked. Was the list empty? Turn the calculator on, use a USB cable that ' + // found",
+        'carries data (the one it came with), unplug it and plug it back in.' + // 16 visitors in the chat, 2026-10/11)
+        (WINDOWS ? ' On Windows, close TI Connect CE; if the list stays empty, install TI Connect CE 6.1 or newer, close it, and try again.' : ''));
+      return;
+    }
     say('st-connect', problem(e));
     return;
   }
@@ -716,6 +863,7 @@ function init() {
     r.checked = r.value === build;
     r.addEventListener('change', () => { if (r.checked) choose(r.value); });
   });
+  fetch('files/packs.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then(setupPacks);
   for (const k of Object.keys(BUILDS)) {
     fetch('files/' + BUILDS[k].ver).then(r => (r.ok ? r.text() : '')).catch(() => '').then(t => {
       versions[k] = t.trim();

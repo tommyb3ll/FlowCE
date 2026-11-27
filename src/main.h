@@ -36,6 +36,7 @@ int find_color(const char * s);
 std::string khicas_state();
 bool textedit(char * s);
 void run(const char * s,int do_logo_graph_eqw=7);
+void flowce_angle_from_os(); // (the Config menu's Degrees: giac takes the OS's angle unit)
 bool stringtodouble(const std::string & s1,double & d);
 std::string remove_extension(const std::string &);
 

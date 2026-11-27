@@ -9,6 +9,9 @@
 #include "main.h"
 
 extern giac::context * contextptr;
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+char ti_seq_names[4]; // (M2) the sequences' one-letter names (steps.cc, answer.cc)
+#endif
 using namespace giac;
 
 namespace {
@@ -40,6 +43,14 @@ namespace {
       return TI_NAME_UNKNOWN;
     memcpy(s,name,len);
     s[len]=0;
+#if defined FLOWCE_SERIES || defined HOSTGIAC
+    if (len==1 && strchr(ti_seq_names,s[0])) // (a sequence's name: a(n+1) a term, not a product)
+      return TI_NAME_USERFN;
+#endif
+#if defined FLOWCE_VECTORS || defined HOSTGIAC
+    { static const char * const m3[]={"proj","scal","angle","pn","lines","tanline","arclen","arcparam","posvel","meets","oncurve","line2p","param","domr"};
+      for (unsigned k=0;k<sizeof(m3)/sizeof(*m3);++k) if (!strcmp(s,m3[k])) return TI_NAME_USERFN; } // (M3: the steps' own calls, not products)
+#endif
     if (in_list(keywords,sizeof(keywords)/sizeof(*keywords),s))
       return TI_NAME_KEYWORD;
     if (in_list(flex_values,sizeof(flex_values)/sizeof(*flex_values),s))

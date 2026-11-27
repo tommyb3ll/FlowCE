@@ -26,7 +26,7 @@
   = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
   Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
   = integrate(x-x^2,x,0,1)=(1/6)
-   FlowCE answer: 1/6  ~ 0.166667
+   FlowCE answer: 1/6  ~ 0.1666666667
 == area(sin(x),0,pi)   [ok, 4 steps]
   Area between curves:  A=(integrate(sin(x),x,0,pi))
   Known integral:  integrate(sin(x),x)=(-cos(x))
@@ -43,7 +43,7 @@
   = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
   Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
   = integrate(x-x^2,x,0,1)=(1/6)
-   FlowCE answer: 1/6  ~ 0.166667
+   FlowCE answer: 1/6  ~ 0.1666666667
 == area(x^2,2x)   [ok, 9 steps]
   Where the curves meet:  x^2=(2*x)
   = x=0, x=2
@@ -54,7 +54,7 @@
   = integrate(2*x-x^2,x)=(x^2-1/3*x^3)
   Evaluate from a to b:  integrate(2*x-x^2,x,0,2)=(2^2-1/3*2^3)
   = integrate(2*x-x^2,x,0,2)=(4/3)
-   FlowCE answer: 4/3  ~ 1.33333
+   FlowCE answer: 4/3  ~ 1.333333333
 == area(x,x^2,0,1)   [ok, 7 steps]
   Area between curves:  A=(integrate(x-x^2,x,0,1))
   Sum rule:  integrate(x-x^2,x)=(integrate(x,x)-integrate(x^2,x))
@@ -63,7 +63,7 @@
   = integrate(x-x^2,x)=(1/2*x^2-1/3*x^3)
   Evaluate from a to b:  integrate(x-x^2,x,0,1)=(1/2*1^2-1/3*1^3)
   = integrate(x-x^2,x,0,1)=(1/6)
-   FlowCE answer: 1/6  ~ 0.166667
+   FlowCE answer: 1/6  ~ 0.1666666667
 == area(x^3,x,-1,1)   [ok, 18 steps]
   Where the curves meet:  x^3=x
   = seq[x=0]
@@ -92,7 +92,7 @@
   = integrate(sqrt(x)-x^2,x)=(2/3*x^(3/2)-1/3*x^3)
   Evaluate from a to b:  integrate(sqrt(x)-x^2,x,0,1)=(2/3*sqrt(1)-1/3*1^3)
   = integrate(sqrt(x)-x^2,x,0,1)=(1/3)
-   FlowCE answer: 1/3  ~ 0.333333
+   FlowCE answer: 1/3  ~ 0.3333333333
 == area(x=y^2,x=2y,0,2)   [ok, 7 steps]
   Area between curves:  A=(integrate(2*y-y^2,y,0,2))
   Sum rule:  integrate(2*y-y^2,y)=(integrate(2*y,y)-integrate(y^2,y))
@@ -101,7 +101,7 @@
   = integrate(2*y-y^2,y)=(y^2-1/3*y^3)
   Evaluate from a to b:  integrate(2*y-y^2,y,0,2)=(2^2-1/3*2^3)
   = integrate(2*y-y^2,y,0,2)=(4/3)
-   FlowCE answer: 4/3  ~ 1.33333
+   FlowCE answer: 4/3  ~ 1.333333333
 == area(x^2-4,0,2)   [ok, 7 steps]
   Area between curves:  A=(integrate(4-x^2,x,0,2))
   Sum rule:  integrate(4-x^2,x)=(integrate(4,x)-integrate(x^2,x))
@@ -110,7 +110,7 @@
   = integrate(4-x^2,x)=(4*x-1/3*x^3)
   Evaluate from a to b:  integrate(4-x^2,x,0,2)=(8-1/3*2^3)
   = integrate(4-x^2,x,0,2)=(16/3)
-   FlowCE answer: 16/3  ~ 5.33333
+   FlowCE answer: 16/3  ~ 5.333333333
 == area(e^x,1,0,1)   [ok, 7 steps]
   Area between curves:  A=(integrate(exp(x)-1,x,0,1))
   Sum rule:  integrate(exp(x)-1,x)=(integrate(exp(x),x)+integrate(-1,x))

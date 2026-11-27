@@ -933,7 +933,7 @@ void menu_setup(){
   // KhiCAS's items in KhiCAS's places (B. Parisse presses 3 for "2D history"), ours after them
   enum { TIME, CLEAR, HIST, SIMP, ARROWS, SHORT, ABOUT, QUIT, N };
 #else
-  enum { SIMP, TIME, CLEAR, SHORT, ABOUT, QUIT, N };
+  enum { SIMP, DEG, TIME, CLEAR, SHORT, ABOUT, QUIT, N }; // (DEG: the angles in degrees, the OS's setting, RAD in the status bar)
 #endif
   Menu smallmenu;
   smallmenu.numitems=N;
@@ -948,6 +948,10 @@ void menu_setup(){
   // off: an answer stays as giac gives it (B. Parisse: to store a result with sto as it is)
   smallmenuitems[SIMP].type = MENUITEM_CHECKBOX;
   smallmenuitems[SIMP].text = (char*)(lang?"Simplifier":"Simplify answers");
+#ifndef FLOWCE_KHICAS
+  smallmenuitems[DEG].type = MENUITEM_CHECKBOX;
+  smallmenuitems[DEG].text = (char*)(lang?"Degres":"Degrees");
+#endif
 #ifdef FLOWCE_KHICAS
   smallmenuitems[HIST].type = MENUITEM_CHECKBOX;
   smallmenuitems[HIST].text = (char*)(lang?"Historique 2D":"2D history");
@@ -961,6 +965,9 @@ void menu_setup(){
   smallmenuitems[QUIT].text = (char*) "Quit";
   while(1) {
     smallmenuitems[SIMP].value = answer_simplify();
+#ifndef FLOWCE_KHICAS
+    smallmenuitems[DEG].value = !os_get_angle_unit();
+#endif
 #ifdef FLOWCE_KHICAS
     smallmenuitems[HIST].value = focus_hist2d;
     smallmenuitems[ARROWS].value = focus_text_arrows;
@@ -974,6 +981,13 @@ void menu_setup(){
         answer_set_simplify(!answer_simplify());
         continue;
       }
+#ifndef FLOWCE_KHICAS
+      if (c==DEG){ // (four visitors asked: the angle unit without leaving for the OS's MODE)
+        os_set_angle_unit(!os_get_angle_unit());
+        flowce_angle_from_os();
+        continue;
+      }
+#endif
 #ifdef FLOWCE_KHICAS
       if (c==HIST){ // the history drawn again, in 2D or as text (and the edit line: KhiCAS's command line)
         focus_set_hist2d(!focus_hist2d); // (the console is drawn again when the menu closes)
@@ -2552,11 +2566,18 @@ static int console_apply_action(const char * text){
   bool at_end=len && caret>=0;
   for (int i=caret;at_end && i<len;++i)
     at_end=e[i]==')';
+#ifdef FLOWCE_STEPS // (the caret in an empty box, |[]|: the action goes in it, |d/dt(r(t))| for a speed)
+  if (at_end && caret>0 && caret<len && e[caret-1]=='(') at_end=false;
+#endif
   std::string s(text,open+1-text); // factor(
   std::string expr;
   if (at_end && console_wrappable(e,text[0]=='s' && text[1]=='o'))
     expr=e;
-  else if (!len && focus_result_line()>=0)
+  else if (!len && focus_result_line()>=0
+#ifdef FLOWCE_SERIES // (not after a definition or an equation, a_n=(2n+1)/(3n): lim Ans a_n was typed)
+           && !strchr((const char *)Line[focus_result_line()].str,'=') && !strstr((const char *)Line[focus_result_line()].str,"defined")
+#endif
+           )
     expr="ans()";
   else {
     if (caret>0 && (isalpha((unsigned char)e[caret-1]) || e[caret-1]=='_'))
@@ -2843,9 +2864,13 @@ int Console_GetKey(){
       }
       if (a==FA_PLOT)
         return Console_FMenu(KEY_CTRL_F3);
+      if (a==FA_QUIT) // ("more"'s Quit: as 2nd mode)
+        return -2;
 #ifdef FLOWCE_STEPS
       if (a==FA_STATS || a==FA_PROB){ // (DeltaCE) statistics, probability (focus_stats.cc)
+#ifdef WITH_STATS // (the statistics pack)
         if (a==FA_STATS) focus_stats(); else focus_prob();
+#endif
         Console_Disp(1);
         continue;
       }
@@ -3591,6 +3616,10 @@ int Console_GetKey(){
           Console_Disp(1);
           continue;
         }
+        if (focus_on && Edit_Line && !Edit_Line[0] && focus_result_line()>=0){ // after an answer with no steps: said, as when
+          focus_status_msg("No steps for this one");                         // they fail (it did nothing: 6 people wrote
+          continue;                                                          // "enter does nothing", 2026-11)
+        }
 #endif
 #ifdef FLOWCE_KHICAS
         if (Edit_Line && !console_python_mode()) khicas_accept((char *)Edit_Line);
@@ -3652,11 +3681,12 @@ int Console_GetKey(){
         Console_Disp(0);
         continue;
       }
+      const char cl=p>0?s[p-1]:0,op=cl==')'?'(':cl==']'?'[':0;
       int depth=0;
-      for (int i=0;i<p-1;++i)
-        depth+=s[i]=='('?1:s[i]==')'?-1:0;
-      if (p>0 && s[p-1]==')' && depth>0){ // sin(x)| -> sin(x|): into the group, as into an exponent
-        console_set_caret(p-1);           // (deleting the ) left sin(x unclosed); a stray ) goes
+      for (int i=0;op && i<p-1;++i)
+        depth+=s[i]==op?1:s[i]==cl?-1:0;
+      if (depth>0){ // sin(x)| -> sin(x|), [1,2]| -> [1,2|] (DeltaCE): into the group, as into an exponent
+        console_set_caret(p-1);           // (deleting the ) left sin(x unclosed, the ] a list); a stray ) goes
         Console_Disp(0);
         continue;
       }
@@ -3748,6 +3778,13 @@ int Console_GetKey(){
                                             // not the name pisin; a sin: a*sin, not asin), but not x: names
                                             // typed letter by letter take it (exp, max); the pre-pass in do_run
                                             // does the rest and the input keeps reading 2pi
+#ifdef FLOWCE_SERIES
+        if (key==KEY_CHAR_PMINUS && focus_on && !Line[Current_Line].readonly){ // (-) right after one letter: a subscript's _ (a_n, s_n, a_(n+1): a sequence, answer.cc)
+          const int pos=Console_GetActualPos(Edit_Line,Current_Col);
+          if (pos>0 && isalpha(Edit_Line[pos-1]) && (pos<2 || (!isalpha(Edit_Line[pos-2]) && Edit_Line[pos-2]!='_'))) // (2a_n too)
+            ptr="_";
+        }
+#endif
 #ifdef FLOWCE_KHICAS
         if (key==KEY_CHAR_PMINUS && focus_on && !Line[Current_Line].readonly){ // (-) right after a number: KhiCAS's _ (a unit: 5_m)
           const int pos=Console_GetActualPos(Edit_Line,Current_Col);
@@ -3756,8 +3793,8 @@ int Console_GetKey(){
         }
 #endif
         const int pl=strlen(ptr);
-        if (console_input2d() && pl<60 && (!strcmp(ptr,"^") || (pl>1 && ptr[pl-1]=='('))){
-          char buf[64]; // 2D: ^ -> ^(), sin( -> sin(), the caret inside
+        if (console_input2d() && pl<60 && (!strcmp(ptr,"^") || !strcmp(ptr,"_") || (pl>1 && ptr[pl-1]=='('))){
+          char buf[64]; // 2D: ^ -> ^(), sin( -> sin(), a subscript _ -> _() (a_(n+1) typed a, (-), n+1), the caret inside
           strcpy(buf,ptr);
           strcat(buf,ptr[pl-1]=='('?")":"()");
           Console_Input((const Char *)buf);

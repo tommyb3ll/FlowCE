@@ -1141,7 +1141,7 @@
   Substitute back:  integrate(tan(x)*sec(x)^6,x)=(1/6*sec(x)^6)
   Evaluate from a to b:  integrate(tan(x)*sec(x)^6,x,0,1/4*pi)=(1/6*sec(1/4*pi)^6-1/6*sec(0)^6)
   = integrate(tan(x)*sec(x)^6,x,0,1/4*pi)=(7/6)
-   FlowCE answer: 7/6  ~ 1.16667
+   FlowCE answer: 7/6  ~ 1.166666667
 == integrate(1/(x^2*sqrt(x^2-25)),x,10,20)   [ok, 8 steps]
   Trig substitution:  x=(5*sec(t)), dx=(5*sin(t)*dt/cos(t)^2)
   = sqrt(x^2-25)=(5*tan(t))
@@ -1319,7 +1319,7 @@
   Known integral:  integrate(cos(3*x),x)=(1/3*sin(3*x))
   Evaluate from a to b:  integrate(cos(3*x),x,0,1/6*pi)=(1/3*sin(1/2*pi))
   = integrate(cos(3*x),x,0,1/6*pi)=(1/3)
-   FlowCE answer: 1/3  ~ 0.333333
+   FlowCE answer: 1/3  ~ 0.3333333333
 == integrate(1/sqrt(4-4*x-x^2),x)   [ok, 5 steps]
   Complete the square:  4-4*x-x^2=(-(x+2)^2+8)
   Substitution:  u=(x+2), du=dx
@@ -1487,7 +1487,7 @@
   Substitute back:  integrate(x*exp(-3*x^2),x)=(-1/6*exp(-3*x^2))
   Improper integral: a limit:  integrate(x*exp(-3*x^2),x,0,+infinity)=(limit(-1/6*exp(-3*x^2),x,+infinity)+1/6)
   = integrate(x*exp(-3*x^2),x,0,+infinity)=(1/6)
-   FlowCE answer: 1/6  ~ 0.166667
+   FlowCE answer: 1/6  ~ 0.1666666667
 == integrate(tan(x)^3*sec(x)^5,x,0,pi/4)   [ok, 9 steps]
   Substitution:  u=(sec(x)), du=(sin(x)*dx/cos(x)^2)
   = integrate(tan(x)^3*sec(x)^5,x)=(integrate(u^6-u^4,u))
@@ -1587,7 +1587,7 @@
       Back to x with a right triangle:  sin(t)=(u/sqrt(5)), cos(t)=(sqrt(-u^2+5)/sqrt(5))
       = integrate(sqrt(-u^2+5),u)=(1/10*(5*u*sqrt(-u^2+5)+25*asin(u/sqrt(5))))
   Substitute back:  integrate(sqrt(-(x-2)^2+5),x)=(1/10*(5*(x-2)*sqrt(-(x-2)^2+5)+25*asin((x-2)/sqrt(5))))
-   FlowCE answer: (x-2)*sqrt(-x^2+4*x+1)/2+5*asin((x-2)/sqrt(5))/2
+   FlowCE answer: 5*asin((x-2)/sqrt(5))/2+(x-2)*sqrt(-x^2+4*x+1)/2
 == integrate(tan(x)^5*sec(x)^3,x)   [ok, 8 steps]
   Substitution:  u=(sec(x)), du=(sin(x)*dx/cos(x)^2)
   = integrate(tan(x)^5*sec(x)^3,x)=(integrate(u^6-2*u^4+u^2,u))
@@ -2216,7 +2216,7 @@
   = integrate(3*ln(x)^6/x,x)=(3/7*ln(x)^7)
   Evaluate from a to b:  integrate(3*ln(x)^6/x,x,1,exp(1))=(3/7*ln(exp(1))^7)
   = integrate(3*ln(x)^6/x,x,1,exp(1))=(3/7)
-   FlowCE answer: 3/7  ~ 0.428571
+   FlowCE answer: 3/7  ~ 0.4285714286
 == integrate(4*x*sec(2*x^2)^2,x)   [ok, 6 steps]
   Constant multiple:  integrate(4*x*sec(2*x^2)^2,x)=(4*integrate(x*sec(2*x^2)^2,x))
   Substitution:  u=(tan(2*x^2)), du=(4*x*(1+tan(2*x^2)^2)*dx)
@@ -2368,7 +2368,7 @@
   Known integral:  integrate(exp(5*x+2),x)=(1/5*exp(5*x+2))
   Evaluate from a to b:  integrate(exp(5*x+2),x,0,1)=(1/5*exp(5+2)-1/5*exp(0+2))
   = integrate(exp(5*x+2),x,0,1)=(1/5*(exp(1)^7-exp(1)^2))
-   FlowCE answer: (exp(7)-exp(2))/5  ~ 217.849
+   FlowCE answer: e^7/5-e^2/5  ~ 217.849
 == integrate(sqrt(x^2+4),x)   [ok, 6 steps]
   Trig substitution:  x=(2*tan(t)), dx=(2*(1+tan(t)^2)*dt)
   = sqrt(x^2+4)=(2*sec(t))
@@ -2394,7 +2394,7 @@
   = integrate(x^6+7*x^2,x)=(1/7*x^7+7/3*x^3)
   Evaluate from a to b:  integrate(x^6+7*x^2,x,0,2)=(1/7*2^7+7/3*2^3)
   = integrate(x^6+7*x^2,x,0,2)=(776/21)
-   FlowCE answer: 776/21  ~ 36.9524
+   FlowCE answer: 776/21  ~ 36.95238095
 == integrate(sin(5*x)*sin(2*x),x)   [ok, 5 steps]
   Trig identity:  sin(2*x)*sin(5*x)=(1/2*cos(3*x)-1/2*cos(7*x))
   Sum rule:  integrate(1/2*cos(3*x)-1/2*cos(7*x),x)=(integrate(1/2*cos(3*x),x)-integrate(1/2*cos(7*x),x))
@@ -2488,7 +2488,7 @@
   = integrate(x^5-6*x^2+2/x^3,x)=(1/6*x^6-2*x^3-1/x^2)
   Evaluate from a to b:  integrate(x^5-6*x^2+2/x^3,x,1,4)=(1/6*4^6-2*4^3-1/4^2-(1/6*1^6-2*1^3-1/1^2))
   = integrate(x^5-6*x^2+2/x^3,x,1,4)=(8919/16)
-   FlowCE answer: 8919/16  ~ 557.438
+   FlowCE answer: 8919/16  ~ 557.4375
 == integrate(tan(5*x),x)   [ok, 1 steps]
   Known integral:  integrate(tan(5*x),x)=(-1/5*ln(abs(cos(5*x))))
    FlowCE answer: -ln(abs(cos(5*x)))/5
@@ -2618,7 +2618,7 @@
       = du=(-sin(x)*dx), v=(-exp(-x))
       = integrate(-cos(x)*exp(-x),x)=(cos(x)*exp(-x)+integrate(exp(-x)*sin(x),x))
   The integral comes back: solve for it:  integrate(exp(-x)*sin(x),x)=(1/2*(-sin(x)*exp(-x)-cos(x)*exp(-x)))
-   FlowCE answer: -exp(-x)*(sin(x)+cos(x))/2
+   FlowCE answer: -exp(-x)*(cos(x)+sin(x))/2
 == integrate(1/sqrt(9-x^2),x,0,3)   [ok, 3 steps]
   Arcsine formula:  integrate(1/sqrt(9-x^2),x)=(asin(1/3*x))
   Evaluate from a to b:  integrate(1/sqrt(9-x^2),x,0,3)=(asin(1))
@@ -2736,7 +2736,7 @@
   = integrate(4*x^(3/2)-5*sqrt(x),x)=(8/5*x^(5/2)-10/3*x^(3/2))
   Evaluate from a to b:  integrate((4*x-5)*sqrt(x),x,1,4)=(8/5*4^(5/2)-40/3*sqrt(4)-(8/5*1^(5/2)-10/3*sqrt(1)))
   = integrate((4*x-5)*sqrt(x),x,1,4)=(394/15)
-   FlowCE answer: 394/15  ~ 26.2667
+   FlowCE answer: 394/15  ~ 26.26666667
 == integrate(1/(sqrt(x)*(1+x)),x)   [ok, 4 steps]
   Substitution:  u=(sqrt(x)), du=(dx/(2*sqrt(x)))
   = integrate(1/(sqrt(x)*(1+x)),x)=(integrate(2/(u^2+1),u))
@@ -2860,7 +2860,7 @@
   = integrate(1/x^3-9,x)=(-1/(2*x^2)-9*x)
   Evaluate from a to b:  integrate(1/x^3-9,x,1,4)=(-1/(2*4^2)-36-(-1/(2*1^2)-9))
   = integrate(1/x^3-9,x,1,4)=(-849/32)
-   FlowCE answer: -849/32  ~ -26.5313
+   FlowCE answer: -849/32  ~ -26.53125
 == integrate(sqrt(2-x^2)/x,x)   [ok, 12 steps]
   Substitution:  u=(2-x^2), du=(-2*x*dx)
   = integrate(sqrt(2-x^2)/x,x)=(integrate(sqrt(u)/(2*u-4),u))
@@ -2903,7 +2903,7 @@
   Substitute back:  integrate(tan(3*x)^4*sec(3*x)^2,x)=(1/15*tan(3*x)^5)
   Evaluate from a to b:  integrate(tan(3*x)^4*sec(3*x)^2,x,0,1/12*pi)=(1/15*tan(1/4*pi)^5)
   = integrate(tan(3*x)^4*sec(3*x)^2,x,0,1/12*pi)=(1/15)
-   FlowCE answer: 1/15  ~ 0.0666667
+   FlowCE answer: 1/15  ~ 0.06666666667
 == integrate(cot(2*x)^5,x,pi/8,pi/4)   [ok, 17 steps]
   Pythagorean identity:  cot(2*x)^5=(-tan(2*x)^-3+1/(tan(2*x)^3*sin(2*x)^2))
   Sum rule:  integrate(-tan(2*x)^-3+1/(tan(2*x)^3*sin(2*x)^2),x)=(-integrate(tan(2*x)^-3,x)+integrate(1/(tan(2*x)^3*sin(2*x)^2),x))
@@ -2940,7 +2940,7 @@
   = integrate(x^5-sqrt(x)+1/x^(3/2),x)=(1/6*x^6-2/3*x^(3/2)-2/sqrt(x))
   Evaluate from a to b:  integrate(x^5-sqrt(x)+1/x^(3/2),x,1,4)=(1/6*4^6-8/3*sqrt(4)-2/sqrt(4)-(1/6*1^6-2/3*sqrt(1)-2/sqrt(1)))
   = integrate(x^5-sqrt(x)+1/x^(3/2),x,1,4)=(4073/6)
-   FlowCE answer: 4073/6  ~ 678.833
+   FlowCE answer: 4073/6  ~ 678.8333333
 == integrate(6*x^(4/3)+2*x^(2/5)+3/x+3,x)   [ok, 6 steps]
   Sum rule:  integrate(6*x^(4/3)+2*x^(2/5)+3/x+3,x)=(integrate(6*x^(4/3),x)+integrate(2*x^(2/5),x)+integrate(3/x,x)+integrate(3,x))
       Power rule:  integrate(6*x^(4/3),x)=(18/7*x^(7/3))
@@ -3239,7 +3239,7 @@
       Back to x with a right triangle:  sin(t)=(1/2*u), cos(t)=(1/2*sqrt(-u^2+4))
       = integrate(sqrt(-u^2+4),u)=(1/2*(u*sqrt(-u^2+4)+4*asin(1/2*u)))
   Substitute back:  integrate(sqrt(-(x-2)^2+4),x)=(1/2*((x-2)*sqrt(-(x-2)^2+4)+4*asin(1/2*(x-2))))
-   FlowCE answer: (x-2)*sqrt(4*x-x^2)/2+2*asin((x-2)/2)
+   FlowCE answer: 2*asin((x-2)/2)+(x-2)*sqrt(4*x-x^2)/2
 == integrate(exp(3*x)*cos(4*x),x)   [ok, 7 steps]
   Integration by parts:  u=(cos(4*x)), dv=(exp(3*x)*dx)
   = du=(-4*sin(4*x)*dx), v=(1/3*exp(3*x))
@@ -3319,7 +3319,7 @@
       = integrate(-2*x/(x^2+8)-8/(x^2+8),x)=(-ln(x^2+8)-4*atan(1/4*x*sqrt(2))/sqrt(2))
       = integrate((-2*x-8)/(3*(x^2+8)),x)=(1/3*(-ln(x^2+8)-4*atan(1/4*x*sqrt(2))/sqrt(2)))
   = integrate(5/(3*(x+5))+(-2*x-8)/(3*(x^2+8)),x)=(5/3*ln(abs(x+5))+1/3*(-ln(x^2+8)-4*atan(1/4*x*sqrt(2))/sqrt(2)))
-   FlowCE answer: -4*atan(x/(2*sqrt(2)))/(3*sqrt(2))-ln(x^2+8)/3+5*ln(abs(x+5))/3
+   FlowCE answer: -4*atan(x/(2*sqrt(2)))/(3*sqrt(2))+5*ln(abs(x+5))/3-ln(x^2+8)/3
 == integrate(cos(4*x)*sin(2*x),x)   [ok, 5 steps]
   Trig identity:  cos(4*x)*sin(2*x)=(1/2*sin(6*x)-1/2*sin(2*x))
   Sum rule:  integrate(1/2*sin(6*x)-1/2*sin(2*x),x)=(integrate(1/2*sin(6*x),x)-integrate(1/2*sin(2*x),x))
@@ -3362,7 +3362,7 @@
   Known integral:  integrate(exp(3*x),x)=(1/3*exp(3*x))
   Evaluate from a to b:  integrate(exp(3*x),x,0,ln(2))=(1/3*exp(3*ln(2))-1/3*exp(0))
   = integrate(exp(3*x),x,0,ln(2))=(7/3)
-   FlowCE answer: 7/3  ~ 2.33333
+   FlowCE answer: 7/3  ~ 2.333333333
 == integrate(3*exp(sqrt(x))/sqrt(x),x)   [ok, 6 steps]
   Constant multiple:  integrate(3*exp(sqrt(x))/sqrt(x),x)=(3*integrate(exp(sqrt(x))/sqrt(x),x))
   Substitution:  u=(sqrt(x)), du=(dx/(2*sqrt(x)))
@@ -3520,7 +3520,7 @@
   Substitute back:  integrate(sqrt(x)*ln(x),x)=(2*(1/3*ln(x)*x^(3/2)-2/9*x^(3/2)))
   Evaluate from a to b:  integrate(sqrt(x)*ln(x),x,1,exp(1))=(2*(1/3*ln(exp(1))*exp(1)^(3/2)-2/9*exp(1)^(3/2))-2*(1/3*ln(1)*sqrt(1)-2/9*sqrt(1)))
   = integrate(sqrt(x)*ln(x),x,1,exp(1))=(1/9*(2*exp(1/2)^3+4))
-   FlowCE answer: 2*(e*exp(1/2)+2)/9  ~ 1.44038
+   FlowCE answer: 2*exp(1/2)*e/9+4/9  ~ 1.44038
 == integrate(sqrt(7-2*x-x^2),x)   [ok, 16 steps]
   Complete the square:  7-2*x-x^2=(-(x+1)^2+8)
   Substitution:  u=(x+1), du=dx
@@ -3538,7 +3538,7 @@
       Back to x with a right triangle:  sin(t)=(u/(2*sqrt(2))), cos(t)=(sqrt(-u^2+8)/(2*sqrt(2)))
       = integrate(sqrt(-u^2+8),u)=(1/2*(u*sqrt(-u^2+8)+8*asin(u/(2*sqrt(2)))))
   Substitute back:  integrate(sqrt(-(x+1)^2+8),x)=(1/2*((x+1)*sqrt(-(x+1)^2+8)+8*asin((x+1)/(2*sqrt(2)))))
-   FlowCE answer: (x+1)*sqrt(-x^2-2*x+7)/2+4*asin((x+1)/(2*sqrt(2)))
+   FlowCE answer: 4*asin((x+1)/(2*sqrt(2)))+(x+1)*sqrt(-x^2-2*x+7)/2
 == integrate(5*x^(3/2)-9/sqrt(x)+3/x-4,x)   [ok, 6 steps]
   Sum rule:  integrate(5*x^(3/2)-9/sqrt(x)+3/x-4,x)=(integrate(5*x^(3/2),x)-integrate(9/sqrt(x),x)+integrate(3/x,x)+integrate(-4,x))
       Power rule:  integrate(5*x^(3/2),x)=(2*x^(5/2))
@@ -3570,7 +3570,7 @@
       = du=(-4*sin(4*x)*dx), v=(-1/4*exp(-4*x))
       = integrate(-cos(4*x)*exp(-4*x),x)=(1/4*cos(4*x)*exp(-4*x)+integrate(exp(-4*x)*sin(4*x),x))
   The integral comes back: solve for it:  integrate(exp(-4*x)*sin(4*x),x)=(1/2*(-1/4*sin(4*x)*exp(-4*x)-1/4*cos(4*x)*exp(-4*x)))
-   FlowCE answer: -exp(-4*x)*(sin(4*x)+cos(4*x))/8
+   FlowCE answer: -exp(-4*x)*(cos(4*x)+sin(4*x))/8
 == integrate(7*cot(4*x-1),x)   [ok, 1 steps]
   Known integral:  integrate(7*cot(4*x-1),x)=(7/4*ln(abs(sin(4*x-1))))
    FlowCE answer: 7*ln(abs(sin(4*x-1)))/4
@@ -4114,7 +4114,7 @@
   Substitute back:  integrate(1/(x*ln(x^2)),x)=(1/2*ln(abs(ln(x^2))))
    FlowCE answer: ln(abs(ln(abs(x))))/2
 == integrate(5/sqrt(x^4-16*x^2),x)   [NO STEPS, 0 steps]
-   FlowCE answer: 5*(atan(sqrt(x^2-16)/4)-atan(i)*sign(x)^2)/sign(x)/4  ~ undef-undefi
+   FlowCE answer: 5*atan(sqrt(x^2-16)/4)/(4*sign(x))
 == integrate(2/sqrt(-x^2+6*x+7),x)   [ok, 7 steps]
   Constant multiple:  integrate(2/sqrt(-x^2+6*x+7),x)=(2*integrate(1/sqrt(-x^2+6*x+7),x))
   Complete the square:  -x^2+6*x+7=(-(x-3)^2+16)
@@ -4568,7 +4568,7 @@
   Substitute back:  integrate(((x+2)^2+9)^(-3/2),x)=((x+2)/(9*sqrt((x+2)^2+9)))
    FlowCE answer: (x+2)/(9*sqrt(x^2+4*x+13))
 == integrate(x*sqrt(-8+6*x-x^2),x)   [NO STEPS, 0 steps]
-   FlowCE answer: (2*x^2-3*x-11)*sqrt(-x^2+6*x-8)/6+3*asin(x-3)/2
+   FlowCE answer: 3*asin(x-3)/2+(2*x^2-3*x-11)*sqrt(-x^2+6*x-8)/6
 == integrate((9*x^2+11*x+7)/(x*(x+1)^2),x)   [ok, 6 steps]
   Partial fractions:  (9*x^2+11*x+7)/(x*(x+1)^2)=(7/x-5/(x+1)^2+2/(x+1))
   Sum rule:  integrate(7/x-5/(x+1)^2+2/(x+1),x)=(integrate(7/x,x)-integrate(5/(x+1)^2,x)+integrate(2/(x+1),x))
@@ -4630,7 +4630,7 @@
       Power rule:  integrate(2/x^2,x)=(-2/x)
       Integral of 1/x:  integrate(1/x,x)=(ln(abs(x)))
   = integrate((-x+2)/(x^2+1)-2/x^2+1/x,x)=(-1/2*ln(x^2+1)+2*atan(x)+2/x+ln(abs(x)))
-   FlowCE answer: 2*atan(x)-ln(x^2+1)/2+ln(abs(x))+2/x
+   FlowCE answer: 2*atan(x)+ln(abs(x))-ln(x^2+1)/2+2/x
 == integrate((x^3+x+1)/(x^4-1),x)   [ok, 6 steps]
   Partial fractions:  (x^3+x+1)/(x^4-1)=(3/(4*(x-1))+1/(4*(x+1))-1/(2*(x^2+1)))
   Sum rule:  integrate(3/(4*(x-1))+1/(4*(x+1))-1/(2*(x^2+1)),x)=(integrate(3/(4*(x-1)),x)+integrate(1/(4*(x+1)),x)-integrate(1/(2*(x^2+1)),x))
@@ -4716,7 +4716,7 @@
       Back to x with a right triangle:  sin(t)=(u/sqrt(4+u^2)), cos(t)=(2/sqrt(4+u^2))
       = integrate(sqrt(4+u^2),u)=(1/2*(u*sqrt(4+u^2)+4*ln(1/2*u+1/2*sqrt(4+u^2))))
   Substitute back:  integrate(exp(x)*sqrt(4+exp(2*x)),x)=(1/2*(exp(x)*sqrt(4+exp(x)^2)+4*ln(1/2*exp(x)+1/2*sqrt(4+exp(x)^2))))
-   FlowCE answer: exp(x)*sqrt(exp(x)^2+4)/2+2*ln(sqrt(exp(x)^2+4)+exp(x))
+   FlowCE answer: exp(x)*sqrt(exp(x)^2+4)/2+2*ln(exp(x)+sqrt(exp(x)^2+4))
 == integrate(tan(x)/sqrt(9-cos(x)^2),x)   [ok, 10 steps]
   Substitution:  u=(sqrt(9-cos(x)^2)), du=(sin(x)*cos(x)*dx/sqrt(9-cos(x)^2))
   = integrate(tan(x)/sqrt(9-cos(x)^2),x)=(integrate(-1/(u^2-9),u))
@@ -4763,7 +4763,7 @@
   Substitute back:  integrate(x*sqrt(x-2),x)=(2/5*(x-2)^(5/2)+4/3*(x-2)^(3/2))
   Evaluate from a to b:  integrate(x*sqrt(x-2),x,2,6)=(2/5*(6-2)^(5/2)+4/3*(6-2)^(3/2))
   = integrate(x*sqrt(x-2),x,2,6)=(352/15)
-   FlowCE answer: 352/15  ~ 23.4667
+   FlowCE answer: 352/15  ~ 23.46666667
 == integrate(1/(x^2-6*x+10),x,2,4)   [ok, 7 steps]
   Complete the square:  x^2-6*x+10=((x-3)^2+1)
   Substitution:  u=(x-3), du=dx
@@ -4794,7 +4794,7 @@
   = integrate(7/128*cos(x)-1/32*cos(5*x)-5/256*cos(7*x)-1/256*cos(9*x),x)=(7/128*sin(x)-1/160*sin(5*x)-5/1792*sin(7*x)-1/2304*sin(9*x))
   Evaluate from a to b:  integrate(sin(x)^2*cos(x)^7,x,-1/2*pi,1/2*pi)=(7/128*sin(1/2*pi)-1/160*sin(5/2*pi)-5/1792*sin(7/2*pi)-1/2304*sin(9/2*pi)-(7/128*sin(-1/2*pi)-1/160*sin(-5/2*pi)-5/1792*sin(-7/2*pi)-1/2304*sin(-9/2*pi)))
   = integrate(sin(x)^2*cos(x)^7,x,-1/2*pi,1/2*pi)=(32/315)
-   FlowCE answer: 32/315  ~ 0.101587
+   FlowCE answer: 32/315  ~ 0.1015873016
 == integrate(sqrt(x^2+4),x,0,2)   [ok, 8 steps]
   Trig substitution:  x=(2*tan(t)), dx=(2*(1+tan(t)^2)*dt)
   = sqrt(x^2+4)=(2*sec(t))
@@ -4817,7 +4817,7 @@
   = integrate(1/(x-10)+1/(x^2+4*x+5),x)=(ln(abs(x-10))+atan(x+2))
   Evaluate from a to b:  integrate((x^2+5*x-5)/((x-10)*(x^2+4*x+5)),x,-1,1)=(ln(abs(1-10))+atan(1+2)-(ln(abs(-1-10))+atan(-1+2)))
   = integrate((x^2+5*x-5)/((x-10)*(x^2+4*x+5)),x,-1,1)=(1/4*(-pi+4*atan(3)+ln(6561/14641)))
-   FlowCE answer: -(4*ln(11)+pi)/4+atan(3)+ln(9)  ~ 0.262977
+   FlowCE answer: atan(3)-(4*ln(11)+pi)/4+ln(9)  ~ 0.262977
 == integrate(exp(5-2*x),x,0,inf)   [ok, 3 steps]
   Known integral:  integrate(exp(5-2*x),x)=(-1/2*exp(5-2*x))
   Improper integral: a limit:  integrate(exp(5-2*x),x,0,+infinity)=(limit(-1/2*exp(5-2*x),x,+infinity)+1/2*exp(5))
@@ -4842,7 +4842,7 @@
   = integrate(x^2*ln(x),x)=(1/3*x^3*ln(x)-1/9*x^3)
   Improper integral: a limit:  integrate(x^2*ln(x),x,0,1)=(-1/9-limit(1/3*x^3*ln(x)-1/9*x^3,x,0,1))
   = integrate(x^2*ln(x),x,0,1)=(-1/9)
-   FlowCE answer: -1/9  ~ -0.111111
+   FlowCE answer: -1/9  ~ -0.1111111111
 == integrate(2*sin(x)-4*cos(x)+sec(x)^2-pi,x,0,pi/3)   [ok, 8 steps]
   Sum rule:  integrate(2*sin(x)-4*cos(x)+sec(x)^2-pi,x)=(integrate(2*sin(x),x)-integrate(4*cos(x),x)+integrate(sec(x)^2,x)-integrate(pi,x))
       Known integral:  integrate(2*sin(x),x)=(-2*cos(x))
@@ -4870,7 +4870,7 @@
   = integrate(x^(3/2)+x^(5/4),x)=(2/5*x^(5/2)+4/9*x^(9/4))
   Evaluate from a to b:  integrate(x*(sqrt(x)+x^(1/4)),x,0,1)=(2/5*1^(5/2)+4/9*1^(9/4))
   = integrate(x*(sqrt(x)+x^(1/4)),x,0,1)=(38/45)
-   FlowCE answer: 38/45  ~ 0.844444
+   FlowCE answer: 38/45  ~ 0.8444444444
 == integrate(exp(-x)*(2*exp(-x)+3)^9,x,0,1)   [ok, 8 steps]
   Substitution:  u=(2*exp(-x)+3), du=(-2*exp(-x)*dx)
   = integrate(exp(-x)*(2*exp(-x)+3)^9,x)=(integrate(-1/2*u^9,u))
@@ -4880,7 +4880,7 @@
   Substitute back:  integrate(exp(-x)*(2*exp(-x)+3)^9,x)=(-1/20*(2*exp(-x)+3)^10)
   Evaluate from a to b:  integrate(exp(-x)*(2*exp(-x)+3)^9,x,0,1)=(-1/20*(2*exp(-1)+3)^10-(-1/20*(2*exp(-0)+3)^10))
   = integrate(exp(-x)*(2*exp(-x)+3)^9,x,0,1)=((2426644*exp(1)^10-98415*exp(1)^9-295245*exp(1)^8-524880*exp(1)^7-612360*exp(1)^6-489888*exp(1)^5-272160*exp(1)^4-103680*exp(1)^3-25920*exp(1)^2-3840*exp(1)-256)/(5*exp(1)^10))
-   FlowCE answer: (2426644*e^10-98415*e^9-295245*e^8-524880*e^7-612360*e^6-489888*e^5-272160*e^4-103680*e^3-25920*e^2-3840*e-256)/(5*e^10)
+   FlowCE answer: -19683/e-59049/e^2-104976/e^3-122472/e^4-489888/(5*e^5)-54432/e^6-20736/e^7-5184/e^8-768/e^9-256/(5*e^10)+2426644/5
 == integrate(cos(1/x)/x^2,x,2/pi,4/pi)   [ok, 8 steps]
   Substitution:  u=(1/x), du=(-dx/x^2)
   = integrate(cos(1/x)/x^2,x)=(integrate(-cos(u),u))
@@ -4918,7 +4918,7 @@
   Substitute back:  integrate(x^2*exp(-x^3),x)=(-1/3*exp(-x^3))
   Improper integral: a limit:  integrate(x^2*exp(-x^3),x,0,+infinity)=(limit(-1/3*exp(-x^3),x,+infinity)+1/3)
   = integrate(x^2*exp(-x^3),x,0,+infinity)=(1/3)
-   FlowCE answer: 1/3  ~ 0.333333
+   FlowCE answer: 1/3  ~ 0.3333333333
 == integrate(exp(3*x)/(1+exp(3*x)),x,-inf,2)   [ok, 6 steps]
   Substitution:  u=(exp(3*x)), du=(3*exp(3*x)*dx)
   = integrate(exp(3*x)/(1+exp(3*x)),x)=(integrate(1/(3*u+3),u))
@@ -4941,7 +4941,7 @@
   Substitute back:  integrate(sin(x)/(2+cos(x))^3,x)=(1/(2*(2+cos(x))^2))
   Evaluate from a to b:  integrate(sin(x)/(2+cos(x))^3,x,0,pi)=(1/(2*(2+cos(pi))^2)-1/(2*(2+cos(0))^2))
   = integrate(sin(x)/(2+cos(x))^3,x,0,pi)=(4/9)
-   FlowCE answer: 4/9  ~ 0.444444
+   FlowCE answer: 4/9  ~ 0.4444444444
 == integrate(1/(x^2-34*x+289),x,18,19)   [ok, 7 steps]
   Complete the square:  x^2-34*x+289=((x-17)^2)
   Substitution:  u=(x-17), du=dx
@@ -4975,7 +4975,7 @@
   = integrate(1/2*sin(3*x)-1/2*sin(x),x)=(-1/6*cos(3*x)+1/2*cos(x))
   Evaluate from a to b:  integrate(sin(x)*cos(2*x),x,0,pi)=(-1/6*cos(3*pi)+1/2*cos(pi)-(-1/6*cos(0)+1/2*cos(0)))
   = integrate(sin(x)*cos(2*x),x,0,pi)=(-2/3)
-   FlowCE answer: -2/3  ~ -0.666667
+   FlowCE answer: -2/3  ~ -0.6666666667
 == integrate(1/(1+sin(x))^2,x,0,pi)   [ok, 10 steps]
   Substitution t = tan(x/2):  integrate(1/(1+sin(x))^2,x)=(integrate((2*t^2+2)/(t^4+4*t^3+6*t^2+4*t+1),t))
       Partial fractions:  (2*t^2+2)/(t^4+4*t^3+6*t^2+4*t+1)=(4/(t+1)^4-4/(t+1)^3+2/(t+1)^2)
@@ -4987,7 +4987,7 @@
   Substitute back:  integrate(1/(1+sin(x))^2,x)=(-4/(3*(tan(1/2*x)+1)^3)+2/(tan(1/2*x)+1)^2-2/(tan(1/2*x)+1))
   Evaluate from a to b:  integrate(1/(1+sin(x))^2,x,0,pi)=(-4/(3*(tan(1/2*pi)+1)^3)+2/(tan(1/2*pi)+1)^2-2/(tan(1/2*pi)+1)-(-4/(3*(tan(0)+1)^3)+2/(tan(0)+1)^2-2/(tan(0)+1)))
   = integrate(1/(1+sin(x))^2,x,0,pi)=(4/3)
-   FlowCE answer: 4/3  ~ 1.33333
+   FlowCE answer: 4/3  ~ 1.333333333
 == integrate(exp(-2*x)*cos(x),x,0,inf)   [ok, 9 steps]
   Integration by parts:  u=(cos(x)), dv=(exp(-2*x)*dx)
   = du=(-sin(x)*dx), v=(-1/2*exp(-2*x))
@@ -5015,7 +5015,7 @@
 == limit((x^2-16)/(x^2-4*x-32),x,-4)   [ok, 2 steps]
   Factor and cancel:  limit((x^2-16)/(x^2-4*x-32),x,-4)=(limit((x-4)/(x-8),x,-4))
   Direct substitution:  limit((x-4)/(x-8),x,-4)=(2/3)
-   FlowCE answer: 2/3  ~ 0.666667
+   FlowCE answer: 2/3  ~ 0.6666666667
 == limit((x^2-1)/(x^2-x-6),x,3,-1)   [ok, 1 steps]
   The denominator goes to 0, the numerator does not:  limit((x^2-1)/(x^2-x-6),x,3,-1)=(-infinity)
    FlowCE answer: -infinity
@@ -5081,7 +5081,7 @@
   Multiply by the conjugate:  limit((sqrt(9+x)-3)/x,x,0)=(limit(x/(x*(sqrt(9+x)+3)),x,0))
   Factor and cancel:  limit(x/(x*(sqrt(9+x)+3)),x,0)=(limit(1/(sqrt(9+x)+3),x,0))
   Direct substitution:  limit(1/(sqrt(9+x)+3),x,0)=(1/6)
-   FlowCE answer: 1/6  ~ 0.166667
+   FlowCE answer: 1/6  ~ 0.1666666667
 == limit(1/(x+8)+(x-8)/(x^2-64),x,8)   [ok, 1 steps]
   Limit laws:  limit(1/(x+8)+(x-8)/(x^2-64),x,8)=(1/8)
    FlowCE answer: 1/8  ~ 0.125
@@ -5101,16 +5101,13 @@
   L'Hopital's rule:  limit(2*ln(x)/(1-exp(x-1)),x,1)=(limit(2/(x*(-exp(x-1))),x,1))
   Direct substitution:  limit(2/(x*(-exp(x-1))),x,1)=-2
    FlowCE answer: -2
-== limit((sin(x)-x)/(cos(2*x)-1),x,0)   [ok, 9 steps]
-  Indeterminate form:  limit(sin(x)-x,x,0)=0, limit(cos(2*x)-1,x,0)=0
-  = diff(sin(x)-x, x)=(cos(x)-1)
-  = diff(cos(2*x)-1, x)=(-2*sin(2*x))
-  L'Hopital's rule:  limit((sin(x)-x)/(cos(2*x)-1),x,0)=(limit((cos(x)-1)/(-2*sin(2*x)),x,0))
-  Indeterminate form:  limit(cos(x)-1,x,0)=0, limit(-2*sin(2*x),x,0)=0
-  = diff(cos(x)-1, x)=(-sin(x))
-  = diff(-2*sin(2*x), x)=(-4*cos(2*x))
-  L'Hopital's rule:  limit((cos(x)-1)/(-2*sin(2*x)),x,0)=(limit(-sin(x)/(-4*cos(2*x)),x,0))
-  Direct substitution:  limit(-sin(x)/(-4*cos(2*x)),x,0)=0
+== limit((sin(x)-x)/(cos(2*x)-1),x,0)   [ok, 6 steps]
+  Use the Taylor series of the top and the bottom:  sin(x)=x-1/6*x^3+...
+  = sin(x)-x=-1/6*x^3+...
+  = cos(2*x)=1-2*x^2+...
+  = cos(2*x)-1=-2*x^2+...
+  The lowest powers decide the limit:  limit((sin(x)-x)/(cos(2*x)-1),x,0)=(limit(-1/6*x^3/(-2*x^2),x,0))
+  Direct substitution:  limit(1/12*x,x,0)=0
    FlowCE answer: 0
 == limit((exp(x)+x)/(2*exp(x)+x^2),x,inf)   [ok, 2 steps]
   Divide by the highest power:  limit((exp(x)+x)/(2*exp(x)+x^2),x,+infinity)=(limit((x/(2*exp(x))+1/2)/(x^2/(2*exp(x))+1),x,+infinity))
@@ -5160,13 +5157,11 @@
   L'Hopital's rule:  limit(cot(1/2*x)/(2*2*(x-pi)),x,pi)=(limit(1/2*(-1/4-cos(1/2*x)^2/(4*sin(1/2*x)^2)),x,pi))
   Direct substitution:  limit(1/2*(-1/4-cos(1/2*x)^2/(4*sin(1/2*x)^2)),x,pi)=(-1/8)
    FlowCE answer: -1/8  ~ -0.125
-== limit((1+3*x)^(10/x),x,0,1)   [ok, 7 steps]
+== limit((1+3*x)^(10/x),x,0,1)   [ok, 5 steps]
   Write the power with e:  limit((1+3*x)^(10/x),x,0,1)=(exp(limit(10*ln(1+3*x)/x,x,0,1)))
-  Indeterminate form:  limit(10*ln(1+3*x),x,0,1)=0, limit(x,x,0,1)=0
-  = diff(10*ln(1+3*x), x)=(30/(1+3*x))
-  = diff(x, x)=1
-  L'Hopital's rule:  limit(10*ln(1+3*x)/x,x,0,1)=(limit(30/(1+3*x),x,0,1))
-  Direct substitution:  limit(30/(1+3*x),x,0,1)=30
+  Use the Taylor series of the top and the bottom:  10*ln(1+3*x)=30*x+...
+  The lowest powers decide the limit:  limit(10*ln(1+3*x)/x,x,0,1)=(limit(30*x/x,x,0,1))
+  Direct substitution:  limit(30,x,0,1)=30
   = limit((1+3*x)^(10/x),x,0,1)=(exp(30))
    FlowCE answer: exp(3)^10  ~ 1.06865e13
 == limit((x/sin(x))^(1/x^2),x,0,1)   [ok, 11 steps]
@@ -5194,105 +5189,149 @@
   L'Hopital's rule:  limit(-x/(2*(2*cos(x)*sin(x)*(sqrt(1+x)+1+1/2*x)+sin(x)^2*(1/(2*sqrt(1+x))+1/2))),x,0)=(limit(-1/(2*(-2*sin(x)^2*(sqrt(1+x)+1+1/2*x)+2*cos(x)^2*(sqrt(1+x)+1+1/2*x)+2*cos(x)*sin(x)*(1/(2*sqrt(1+x))+1/2)+2*cos(x)*sin(x)*(1/(2*sqrt(1+x))+1/2)-sin(x)^2/(4*sqrt(1+x)*(1+x)))),x,0))
   Direct substitution:  limit(-1/(2*(-2*sin(x)^2*(sqrt(1+x)+1+1/2*x)+2*cos(x)^2*(sqrt(1+x)+1+1/2*x)+2*cos(x)*sin(x)*(1/(2*sqrt(1+x))+1/2)+2*cos(x)*sin(x)*(1/(2*sqrt(1+x))+1/2)-sin(x)^2/(4*sqrt(1+x)*(1+x)))),x,0)=(-1/8)
    FlowCE answer: -1/8  ~ -0.125
-== limit((cos(x)-1)/(ln(1+x)-x),x,0)   [ok, 9 steps]
-  Indeterminate form:  limit(cos(x)-1,x,0)=0, limit(ln(1+x)-x,x,0)=0
-  = diff(cos(x)-1, x)=(-sin(x))
-  = diff(ln(1+x)-x, x)=(1/(1+x)-1)
-  L'Hopital's rule:  limit((cos(x)-1)/(ln(1+x)-x),x,0)=(limit(-sin(x)/(1/(1+x)-1),x,0))
-  Indeterminate form:  limit(-sin(x),x,0)=0, limit(1/(1+x)-1,x,0)=0
-  = diff(-sin(x), x)=(-cos(x))
-  = diff(1/(1+x)-1, x)=(-1/(1+x)^2)
-  L'Hopital's rule:  limit(-sin(x)/(1/(1+x)-1),x,0)=(limit(-cos(x)/(-1/(1+x)^2),x,0))
-  Direct substitution:  limit(-cos(x)/(-1/(1+x)^2),x,0)=1
+== limit((cos(x)-1)/(ln(1+x)-x),x,0)   [ok, 6 steps]
+  Use the Taylor series of the top and the bottom:  cos(x)=1-1/2*x^2+...
+  = cos(x)-1=-1/2*x^2+...
+  = ln(1+x)=x-1/2*x^2+...
+  = ln(1+x)-x=-1/2*x^2+...
+  The lowest powers decide the limit:  limit((cos(x)-1)/(ln(1+x)-x),x,0)=(limit(-1/2*x^2/(-1/2*x^2),x,0))
+  Direct substitution:  limit(1,x,0)=1
    FlowCE answer: 1
-== sum(3*k^2-2*k,k,1,10)   [NO STEPS, 0 steps]
+== sum(3*k^2-2*k,k,1,10)   [ok, 2 steps]
+  Write out the terms:  sum(3*k^2-2*k,k,1,10)=(1+8+21+40+65+96+133+176+225+280)
+  = sum(3*k^2-2*k,k,1,10)=1045
    FlowCE answer: 1045
-== sum(-4*k^3+10*k^2-7*k+11,k,1,10)   [NO STEPS, 0 steps]
+== sum(-4*k^3+10*k^2-7*k+11,k,1,10)   [ok, 2 steps]
+  Write out the terms:  sum(-4*k^3+10*k^2-7*k+11,k,1,10)=(10+5-28-113-274-535-920-1453-2158-3059)
+  = sum(-4*k^3+10*k^2-7*k+11,k,1,10)=-8525
    FlowCE answer: -8525
-== sum(k^3,k,16,25)   [NO STEPS, 0 steps]
+== sum(k^3,k,16,25)   [ok, 2 steps]
+  Write out the terms:  sum(k^3,k,16,25)=(4096+4913+5832+6859+8000+9261+10648+12167+13824+15625)
+  = sum(k^3,k,16,25)=91225
    FlowCE answer: 91225
 == sum((k/n)^3*(1/n),k,1,n)   [NO STEPS, 0 steps]
    FlowCE answer: (n+1)^2/(4*n^2)
 == sum((2*(1+3*(k-1)/n)^2-3)*(3/n),k,1,n)   [NO STEPS, 0 steps]
    FlowCE answer: 3*(11*n^2-15*n+3)/n^2
-== sum((1/3)^k,k,5,13)   [NO STEPS, 0 steps]
-   FlowCE answer: 9841/1594323  ~ 0.00617253
-== sum(5*(3/4)^k,k,0,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  5*(3/4)^(k+1)/(5*(3/4)^k)=(3/4)
-  Geometric series with |r| < 1:  sum(5*(3/4)^k,k,0,+infinity)=(5/(1-3/4))
+== sum((1/3)^k,k,5,13)   [ok, 2 steps]
+  Write out the terms:  sum((1/3)^k,k,5,13)=(1/243+1/729+1/2187+1/6561+1/19683+1/59049+1/177147+1/531441+1/1594323)
+  = sum((1/3)^k,k,5,13)=(9841/1594323)
+   FlowCE answer: 9841/1594323  ~ 0.006172525893
+== sum(5*(3/4)^k,k,0,inf)   [ok, 4 steps]
+  A geometric series:  a=5,r=3/4
+  = abs(r)=3/4<1
+  |r| < 1: it converges to:  sum(5*(3/4)^k,k,0,+infinity)=5/(1-3/4)
   = sum(5*(3/4)^k,k,0,+infinity)=20
    FlowCE answer: 20
-== sum(-2*(-2/3)^k,k,1,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  -2*(-2/3)^(k+1)/(-2*(-2/3)^k)=(-2/3)
-  Geometric series with |r| < 1:  sum(-2*(-2/3)^k,k,1,+infinity)=(4/(3*(1+2/3)))
+== sum(-2*(-2/3)^k,k,1,inf)   [ok, 4 steps]
+  A geometric series:  a=-2,r=-2/3
+  = abs(r)=2/3<1
+  |r| < 1: it converges to:  sum(-2*(-2/3)^k,k,1,+infinity)=(-2)*(-2/3)^1/(1+2/3)
   = sum(-2*(-2/3)^k,k,1,+infinity)=(4/5)
    FlowCE answer: 4/5  ~ 0.8
-== sum(2^(k+4)/9^(k-1),k,1,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  2^(k+1+4)*9^(k-1)/(9^(k+1-1)*2^(k+4))=(2/9)
-  Geometric series with |r| < 1:  sum(2^(k+4)/9^(k-1),k,1,+infinity)=(32/(1-2/9))
+== sum(2^(k+4)/9^(k-1),k,1,inf)   [ok, 5 steps]
+  Rules of exponents: the form:  2^(k+4)/9^(k-1)=2^k*2^4*9/9^k=144*(2/9)^k
+  A geometric series:  a=144,r=2/9
+  = abs(r)=2/9<1
+  |r| < 1: it converges to:  sum(2^(k+4)/9^(k-1),k,1,+infinity)=144*(2/9)^1/(1-2/9)
   = sum(2^(k+4)/9^(k-1),k,1,+infinity)=(288/7)
-   FlowCE answer: 288/7  ~ 41.1429
-== sum(sin(1)^k,k,0,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  sin(1)^(k+1)/sin(1)^k=(sin(1))
-  Geometric series with |r| < 1:  sum(sin(1)^k,k,0,+infinity)=(1/(1-sin(1)))
-  = sum(sin(1)^k,k,0,+infinity)=(1/(1-sin(1)))
-   FlowCE answer: 1/(1-sin(1))  ~ 6.30799
-== sum(1/(k*(k+3)),k,1,inf)   [ok, 3 steps]
-  Partial fractions:  1/(k*(k+3))=(1/(3*k)-1/(3*(k+3)))
-  Partial sum: the middle terms cancel:  sum(1/(3*k)-1/(3*(k+3)),k,1,N)=(1/3+1/6+1/9-1/(3*(N+1))-1/(3*(N+2))-1/(3*(N+3)))
-  Its limit:  limit(1/3+1/6+1/9-1/(3*(N+1))-1/(3*(N+2))-1/(3*(N+3)),N,+infinity)=(11/18)
-   FlowCE answer: 11/18  ~ 0.611111
+   FlowCE answer: 288/7  ~ 41.14285714
+== sum(sin(1)^k,k,0,inf)   [ok, 4 steps]
+  A geometric series:  a=1,r=sin(1)
+  = abs(r)=sin(1)<1
+  |r| < 1: it converges to:  sum(sin(1)^k,k,0,+infinity)=1/(1-sin(1))
+  = sum(sin(1)^k,k,0,+infinity)=(-1/(sin(1)-1))
+   FlowCE answer: -1/(sin(1)-1)
+== sum(1/(k*(k+3)),k,1,inf)   [ok, 17 steps]
+      Factor the denominator:  k^2+3*k=k*(k+3)
+      A fraction for each factor:  1/(k*(k+3))=A/k+B/(k+3)
+      Multiply both sides by the denominator:  1=A*(k+3)+B*k
+      Put in a root of the denominator:  k=0,1=3*A,A=1/3
+      Put in a root of the denominator:  k=-3,1=-3*B,B=-1/3
+      Put the values in:  1/(3*k)-1/(3*(k+3))
+  Write out some terms:  a_1=1/3-1/3/4
+  = a_2=1/3/2-1/3/5
+  = a_3=1/3/3-1/3/6
+  = a_4=1/3/4-1/3/7
+  Write out some partial sums: cancel what cancels:  s_1=1/3-1/3/4
+  = s_2=1/3+1/3/2-1/3/4-1/3/5
+  = s_3=1/3+1/3/2+1/3/3-1/3/4-1/3/5-1/3/6
+  = s_4=1/3+1/3/2+1/3/3-1/3/5-1/3/6-1/3/7
+  The pattern: a formula for the partial sums:  s_n=1/3+1/3/2+1/3/3-1/3/(n+1)-1/3/(n+2)-1/3/(n+3)
+  Definition of convergence:  limit(s_n,n,+infinity)=limit(1/3+1/3/2+1/3/3-1/3/(n+1)-1/3/(n+2)-1/3/(n+3),n,+infinity)=1/3+1/3/2+1/3/3-0-0-0=11/18
+  Add the fractions: a common denominator:  1/3+1/3/2+1/3/3=1/3+1/6+1/9=6/18+3/18+2/18=11/18
+   FlowCE answer: 11/18  ~ 0.6111111111
 == sum(2/(2*k+8)^2,k,1,inf)   [ok, 2 steps]
   Limit comparison with the p-series:  limit(2/(2*k+8)^2/(1/k^2),k,+infinity)=(1/2)
   p-series: converges for p > 1, diverges for p <= 1:  p=2
-   FlowCE answer: 0.11071
+   FlowCE answer: converges (like a p-series)
 == sum(1/(2*k),k,1,inf)   [ok, 1 steps]
   p-series: converges for p > 1, diverges for p <= 1:  p=1
    FlowCE answer: diverges (to +infinity)
-== sum(ln(k/(k+1)),k,1,inf)   [ok, 3 steps]
+== sum(ln(k/(k+1)),k,1,inf)   [ok, 11 steps]
   Log of a quotient:  ln(k/(k+1))=(ln(k)-ln(k+1))
-  Partial sum: the middle terms cancel:  sum(ln(k)-ln(k+1),k,1,N)=(-ln(N+1))
-  Its limit:  limit(-ln(N+1),N,+infinity)=(-infinity)
+  Write out some terms:  a_1=ln(1)-ln(2)
+  = a_2=ln(2)-ln(3)
+  = a_3=ln(3)-ln(4)
+  = a_4=ln(4)-ln(5)
+  Write out some partial sums: cancel what cancels:  s_1=ln(1)-ln(2)
+  = s_2=ln(1)-ln(3)
+  = s_3=ln(1)-ln(4)
+  = s_4=ln(1)-ln(5)
+  The pattern: a formula for the partial sums:  s_n=ln(1)-ln(n+1)
+  Definition of convergence:  limit(s_n,n,+infinity)=limit(ln(1)-ln(n+1),n,+infinity)=ln(1)-infinity=-infinity
    FlowCE answer: diverges (to -infinity)
 == sum(1/k^5,k,1,inf)   [ok, 1 steps]
   p-series: converges for p > 1, diverges for p <= 1:  p=5
-   FlowCE answer: 1.03693
-== sum(cos(pi/k)-cos(pi/(k+1)),k,3,inf)   [ok, 2 steps]
-  Partial sum: the middle terms cancel:  sum(cos(pi/k)-cos(pi/(k+1)),k,3,N)=(1/2-cos(pi/(N+1)))
-  Its limit:  limit(1/2-cos(pi/(N+1)),N,+infinity)=(-1/2)
-   FlowCE answer: sum(cos(pi/k)-cos(pi/(k+1)),k,3,+infinity)
+   FlowCE answer: converges (p-series)
+== sum(cos(pi/k)-cos(pi/(k+1)),k,3,inf)   [ok, 10 steps]
+  Write out some terms:  a_3=cos(pi/3)-cos(pi/4)
+  = a_4=cos(pi/4)-cos(pi/5)
+  = a_5=cos(pi/5)-cos(pi/6)
+  = a_6=cos(pi/6)-cos(pi/7)
+  Write out some partial sums: cancel what cancels:  s_3=cos(pi/3)-cos(pi/4)
+  = s_4=cos(pi/3)-cos(pi/5)
+  = s_5=cos(pi/3)-cos(pi/6)
+  = s_6=cos(pi/3)-cos(pi/7)
+  The pattern: a formula for the partial sums:  s_n=cos(pi/3)-cos(pi/(n+1))
+  Definition of convergence:  limit(s_n,n,+infinity)=limit(cos(pi/3)-cos(pi/(n+1)),n,+infinity)=cos(pi/3)-1=-1/2
+   FlowCE answer: -1/2  ~ -0.5
 == sum(ln(2^(1/k)),k,1,inf)   [ok, 1 steps]
   p-series: converges for p > 1, diverges for p <= 1:  p=1
    FlowCE answer: diverges (to +infinity)
-== sum(2^(k-1)/3^k,k,1,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  2^(k+1-1)*3^k/(3^(k+1)*2^(k-1))=(2/3)
-  Geometric series with |r| < 1:  sum(2^(k-1)/3^k,k,1,+infinity)=(1/(3*(1-2/3)))
+== sum(2^(k-1)/3^k,k,1,inf)   [ok, 5 steps]
+  Rules of exponents: the form:  2^(k-1)/3^k=2^k/(2*3^k)=1/2*(2/3)^k
+  A geometric series:  a=1/2,r=2/3
+  = abs(r)=2/3<1
+  |r| < 1: it converges to:  sum(2^(k-1)/3^k,k,1,+infinity)=(1/2)*(2/3)^1/(1-2/3)
   = sum(2^(k-1)/3^k,k,1,+infinity)=1
    FlowCE answer: 1
-== sum((-1)^k/3^k,k,0,inf)   [ok, 3 steps]
-  Ratio of consecutive terms:  (-1)^(k+1)*3^k/(3^(k+1)*(-1)^k)=(-1/3)
-  Geometric series with |r| < 1:  sum((-1)^k/3^k,k,0,+infinity)=(1/(1+1/3))
+== sum((-1)^k/3^k,k,0,inf)   [ok, 5 steps]
+  Rules of exponents: the form:  (-1)^k/3^k=(-1/3)^k
+  A geometric series:  a=1,r=-1/3
+  = abs(r)=1/3<1
+  |r| < 1: it converges to:  sum((-1)^k/3^k,k,0,+infinity)=1/(1+1/3)
   = sum((-1)^k/3^k,k,0,+infinity)=(3/4)
    FlowCE answer: 3/4  ~ 0.75
-== sum(1/sqrt(k)-1/sqrt(k+1),k,1,inf)   [ok, 2 steps]
-  Partial sum: the middle terms cancel:  sum(1/sqrt(k)-1/sqrt(k+1),k,1,N)=(1-1/sqrt(N+1))
-  Its limit:  limit(1-1/sqrt(N+1),N,+infinity)=1
-   FlowCE answer: 1.0
-== series(x*exp(x),x,0,5)   [ok, 12 steps]
-  Derivatives:  diff(x*exp(x), x)=(exp(x)+x*exp(x))
-  = diff(exp(x)+x*exp(x), x)=(exp(x)+x*exp(x)+exp(x))
-  = diff(exp(x)+x*exp(x)+exp(x), x)=(x*exp(x)+3*exp(x))
-  = diff(x*exp(x)+3*exp(x), x)=(x*exp(x)+4*exp(x))
-  = diff(x*exp(x)+4*exp(x), x)=(x*exp(x)+5*exp(x))
-  Their values at the center:  0*exp(0)=0
-  = exp(0)+0*exp(0)=1
-  = exp(0)+0*exp(0)+exp(0)=2
-  = 0*exp(0)+3*exp(0)=3
-  = 0*exp(0)+4*exp(0)=4
-  = 0*exp(0)+5*exp(0)=5
-  Taylor polynomial:  x+2*x^2/(2!)+3*x^3/(3!)+4*x^4/(4!)+5*x^5/(5!)=(x+x^2+1/2*x^3+1/6*x^4+1/24*x^5)
-   FlowCE answer: x+x^2+x^3/2+x^4/6+x^5/24+O(x^6)
-== series(sqrt(x),x,1,4)   [ok, 10 steps]
+== sum(1/sqrt(k)-1/sqrt(k+1),k,1,inf)   [ok, 10 steps]
+  Write out some terms:  a_1=1/sqrt(1)-1/sqrt(2)
+  = a_2=1/sqrt(2)-1/sqrt(3)
+  = a_3=1/sqrt(3)-1/sqrt(4)
+  = a_4=1/sqrt(4)-1/sqrt(5)
+  Write out some partial sums: cancel what cancels:  s_1=1/sqrt(1)-1/sqrt(2)
+  = s_2=1/sqrt(1)-1/sqrt(3)
+  = s_3=1/sqrt(1)-1/sqrt(4)
+  = s_4=1/sqrt(1)-1/sqrt(5)
+  The pattern: a formula for the partial sums:  s_n=1/sqrt(1)-1/sqrt(n+1)
+  Definition of convergence:  limit(s_n,n,+infinity)=limit(1/sqrt(1)-1/sqrt(n+1),n,+infinity)=1/sqrt(1)-0=1
+   FlowCE answer: 1
+== series(x*exp(x),x,0,5)   [ok, 4 steps]
+  Known series, written out:  exp(x)=1+x+x^2/(2!)+x^3/(3!)+x^4/(4!)+x^5/(5!)+...
+  Multiply each term:  x*exp(x)=x*(1+x+x^2/2+x^3/6+x^4/24+x^5/120+...)
+  = x*exp(x)=x+x^2+x^3/2+x^4/6+x^5/24+x^6/120+...
+  The Taylor polynomial: the terms up to that degree:  p_5(x)=x+x^2+1/2*x^3+1/6*x^4+1/24*x^5
+   FlowCE answer: x+x^2+x^3/2+x^4/6+x^5/24
+== series(sqrt(x),x,1,4)   [ok, 11 steps]
   Derivatives:  diff(sqrt(x), x)=(1/(2*sqrt(x)))
   = diff(1/(2*sqrt(x)), x)=(-1/(4*x^(3/2)))
   = diff(-1/(4*x^(3/2)), x)=(3*sqrt(x)/(8*x^3))
@@ -5302,9 +5341,10 @@
   = -1/(4*sqrt(1))=(-1/4)
   = 3*sqrt(1)/(8*1^3)=(3/8)
   = -15*sqrt(1)/(16*1^4)=(-15/16)
+  The coefficients:  a_0=1,a_1=1/2,a_2=(-1/4)/(2!)=-1/8,a_3=(3/8)/(3!)=1/16,a_4=(-15/16)/(4!)=-5/128
   Taylor polynomial:  1+1/2*(x-1)-(x-1)^2/(4*2!)+3*(x-1)^3/(8*3!)-15*(x-1)^4/(16*4!)=(1+1/2*(x-1)-1/8*(x-1)^2+1/16*(x-1)^3-5/128*(x-1)^4)
-   FlowCE answer: 1+(x-1)/2-(x-1)^2/8+(x-1)^3/16-5*(x-1)^4/128+O((x-1)^5)
-== series(cos(x),x,pi/4,6)   [ok, 14 steps]
+   FlowCE answer: 1+(x-1)/2-(x-1)^2/8+(x-1)^3/16-5*(x-1)^4/128
+== series(cos(x),x,pi/4,6)   [ok, 15 steps]
   Derivatives:  diff(cos(x), x)=(-sin(x))
   = diff(-sin(x), x)=(-cos(x))
   = diff(-cos(x), x)=(sin(x))
@@ -5318,29 +5358,17 @@
   = cos(1/4*pi)=(1/2*sqrt(2))
   = -sin(1/4*pi)=(-1/2*sqrt(2))
   = -cos(1/4*pi)=(-1/2*sqrt(2))
+  The coefficients:  a_0=sqrt(2)/2,a_1=-sqrt(2)/2,a_2=(-sqrt(2)/2)/(2!)=-sqrt(2)/4,a_3=sqrt(2)/2/(3!)=sqrt(2)/12,a_4=sqrt(2)/2/(4!)=sqrt(2)/48,a_5=(-sqrt(2)/2)/(5!)=-sqrt(2)/240,a_6=(-sqrt(2)/2)/(6!)=-sqrt(2)/1440
   Taylor polynomial:  1/2*sqrt(2)-1/2*sqrt(2)*(x-1/4*pi)-sqrt(2)*(x-1/4*pi)^2/(2*2!)+sqrt(2)*(x-1/4*pi)^3/(2*3!)+sqrt(2)*(x-1/4*pi)^4/(2*4!)-sqrt(2)*(x-1/4*pi)^5/(2*5!)-sqrt(2)*(x-1/4*pi)^6/(2*6!)=(1/2*sqrt(2)-1/2*sqrt(2)*(x-1/4*pi)-1/4*sqrt(2)*(x-1/4*pi)^2+1/12*sqrt(2)*(x-1/4*pi)^3+1/48*sqrt(2)*(x-1/4*pi)^4-1/240*sqrt(2)*(x-1/4*pi)^5-1/1440*sqrt(2)*(x-1/4*pi)^6)
-   FlowCE answer: sqrt(2)/2-sqrt(2)/2*(x-pi/4)-sqrt(2)/4*(x-pi/4)^2+sqrt(2)/12*(x-pi/4)^3+sqrt(2)/48*(x-pi/4)^4-sqrt(2)/240*(x-pi/4)^5-sqrt(2)/1440*(x-pi/4)^6+O((x-pi/4)^7)
-== series(1/x^2,x,1,8)   [ok, 18 steps]
-  Derivatives:  diff(1/x^2, x)=(-2/x^3)
-  = diff(-2/x^3, x)=(6/x^4)
-  = diff(6/x^4, x)=(-24/x^5)
-  = diff(-24/x^5, x)=(120/x^6)
-  = diff(120/x^6, x)=(-720/x^7)
-  = diff(-720/x^7, x)=(5040/x^8)
-  = diff(5040/x^8, x)=(-40320/x^9)
-  = diff(-40320/x^9, x)=(362880/x^10)
-  Their values at the center:  1/1^2=1
-  = -2/1^3=-2
-  = 6/1^4=6
-  = -24/1^5=-24
-  = 120/1^6=120
-  = -720/1^7=-720
-  = 5040/1^8=5040
-  = -40320/1^9=-40320
-  = 362880/1^10=362880
-  Taylor polynomial:  1-2*(x-1)+6*(x-1)^2/(2!)-24*(x-1)^3/(3!)+120*(x-1)^4/(4!)-720*(x-1)^5/(5!)+5040*(x-1)^6/(6!)-40320*(x-1)^7/(7!)+362880*(x-1)^8/(8!)=(1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8)
-   FlowCE answer: 1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8+O((x-1)^9)
-== series(1/(x^2+1),x,-1,3)   [ok, 8 steps]
+   FlowCE answer: sqrt(2)/2-sqrt(2)/2*(x-pi/4)-sqrt(2)/4*(x-pi/4)^2+sqrt(2)/12*(x-pi/4)^3+sqrt(2)/48*(x-pi/4)^4-sqrt(2)/240*(x-pi/4)^5-sqrt(2)/1440*(x-pi/4)^6
+== series(1/x^2,x,1,8)   [ok, 5 steps]
+  The geometric series, differentiated, written out:  1/(1-x)^2=1+2*x+3*x^2+4*x^3+5*x^4+6*x^5+7*x^6+8*x^7+9*x^8+10*x^9+...
+  Replace x by the inside:  x->-(x-1)
+  = 1/x^2=1+2*(-x+1)+3*(-(x-1))^2+4*(-(x-1))^3+5*(-(x-1))^4+6*(-(x-1))^5+7*(-(x-1))^6+8*(-(x-1))^7+9*(-(x-1))^8+10*(-(x-1))^9+...
+  Simplify each term: the rules of exponents:  1/x^2=1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8-10*(x-1)^9+...
+  The Taylor polynomial: the terms up to that degree:  p_8(x)=1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8
+   FlowCE answer: 1-2*(x-1)+3*(x-1)^2-4*(x-1)^3+5*(x-1)^4-6*(x-1)^5+7*(x-1)^6-8*(x-1)^7+9*(x-1)^8
+== series(1/(x^2+1),x,-1,3)   [ok, 9 steps]
   Derivatives:  diff(1/(x^2+1), x)=(-2*x/(x^2+1)^2)
   = diff(-2*x/(x^2+1)^2, x)=((6*x^2-2)/(x^6+3*x^4+3*x^2+1))
   = diff((6*x^2-2)/(x^6+3*x^4+3*x^2+1), x)=((-24*x^3+24*x)/(x^8+4*x^6+6*x^4+4*x^2+1))
@@ -5348,17 +5376,19 @@
   = 2/((-1)^2+1)^2=(1/2)
   = (6*(-1)^2-2)/((-1)^6+3*(-1)^4+3*(-1)^2+1)=(1/2)
   = (-24*(-1)^3-24)/((-1)^8+4*(-1)^6+6*(-1)^4+4*(-1)^2+1)=0
+  The coefficients:  a_0=1/2,a_1=1/2,a_2=(1/2)/(2!)=1/4,a_3=0
   Taylor polynomial:  1/2+1/2*(x+1)+(x+1)^2/(2*2!)=(1/2+1/2*(x+1)+1/4*(x+1)^2)
-   FlowCE answer: 1/2+(x+1)/2+(x+1)^2/4+O((x+1)^4)
-== series(x^2*cos(x),x,pi,2)   [ok, 6 steps]
+   FlowCE answer: 1/2+(x+1)/2+(x+1)^2/4
+== series(x^2*cos(x),x,pi,2)   [ok, 7 steps]
   Derivatives:  diff(x^2*cos(x), x)=(2*x*cos(x)-x^2*sin(x))
   = diff(2*x*cos(x)-x^2*sin(x), x)=(-x^2*cos(x)-4*x*sin(x)+2*cos(x))
   Their values at the center:  pi^2*cos(pi)=(-pi^2)
   = 2*pi*cos(pi)-pi^2*sin(pi)=(-2*pi)
   = -pi^2*cos(pi)-4*pi*sin(pi)+2*cos(pi)=(pi^2-2)
+  The coefficients:  a_0=-pi^2,a_1=-2*pi,a_2=(pi^2-2)/(2!)=(pi^2-2)/2
   Taylor polynomial:  -pi^2-2*pi*(x-pi)+(pi^2-2)*(x-pi)^2/(2!)=(-pi^2-2*pi*(x-pi)+1/2*(pi^2-2)*(x-pi)^2)
-   FlowCE answer: -pi^2-2*pi*(x-pi)+(1/2*pi^2-1)*(x-pi)^2+O((x-pi)^3)
-== series(sqrt(1+x)*cos(x),x,0,3)   [ok, 8 steps]
+   FlowCE answer: -pi^2-2*pi*(x-pi)+(1/2*pi^2-1)*(x-pi)^2
+== series(sqrt(1+x)*cos(x),x,0,3)   [ok, 9 steps]
   Derivatives:  diff(sqrt(1+x)*cos(x), x)=((-2*(1+x)*sin(x)+cos(x))/(2*sqrt(1+x)))
   = diff((-2*(1+x)*sin(x)+cos(x))/(2*sqrt(1+x)), x)=((-4*x*(1+x)*cos(x)+2*x*sin(x)-4*(1+x)*cos(x)-6*(1+x)*sin(x)-cos(x)+2*sin(x))/(4*(1+x)^(3/2)))
   = diff((-4*x*(1+x)*cos(x)+2*x*sin(x)-4*(1+x)*cos(x)-6*(1+x)*sin(x)-cos(x)+2*sin(x))/(4*(1+x)^(3/2)), x)=(((-12*x^2-24*x-9)*sqrt(x+1)*cos(x)+(8*x^3+24*x^2+30*x+14)*sqrt(x+1)*sin(x))/(8*x^3+24*x^2+24*x+8))
@@ -5366,9 +5396,10 @@
   = (-2*(1+0)*sin(0)+cos(0))/(2*sqrt(1+0))=(1/2)
   = (-0*(1+0)*cos(0)+0*sin(0)-4*(1+0)*cos(0)-6*(1+0)*sin(0)-cos(0)+2*sin(0))/(4*(1+0)^(3/2))=(-5/4)
   = ((-12*0^2-0-9)*sqrt(0+1)*cos(0)+(8*0^3+24*0^2+0+14)*sqrt(0+1)*sin(0))/(8*0^3+24*0^2+0+8)=(-9/8)
+  The coefficients:  a_0=1,a_1=1/2,a_2=(-5/4)/(2!)=-5/8,a_3=(-9/8)/(3!)=-3/16
   Taylor polynomial:  1+1/2*x-5*x^2/(4*2!)-9*x^3/(8*3!)=(1+1/2*x-5/8*x^2-3/16*x^3)
-   FlowCE answer: 1+x/2-5*x^2/8-3*x^3/16+O(x^4)
-== series(ln(x+1),x,7,3)   [ok, 8 steps]
+   FlowCE answer: 1+x/2-5*x^2/8-3*x^3/16
+== series(ln(x+1),x,7,3)   [ok, 9 steps]
   Derivatives:  diff(ln(x+1), x)=(1/(x+1))
   = diff(1/(x+1), x)=(-1/(x+1)^2)
   = diff(-1/(x+1)^2, x)=(2/(x+1)^3)
@@ -5376,9 +5407,10 @@
   = 1/(7+1)=(1/8)
   = -1/(7+1)^2=(-1/64)
   = 2/(7+1)^3=(1/256)
+  The coefficients:  a_0=ln(8),a_1=1/8,a_2=(-1/64)/(2!)=-1/128,a_3=(1/256)/(3!)=1/1536
   Taylor polynomial:  ln(8)+1/8*(x-7)-(x-7)^2/(64*2!)+(x-7)^3/(256*3!)=(ln(8)+1/8*(x-7)-1/128*(x-7)^2+1/1536*(x-7)^3)
-   FlowCE answer: ln(8)+(x-7)/8-(x-7)^2/128+(x-7)^3/1536+O((x-7)^4)
-== series(sin(x),x,pi/2,6)   [ok, 14 steps]
+   FlowCE answer: ln(8)+(x-7)/8-(x-7)^2/128+(x-7)^3/1536
+== series(sin(x),x,pi/2,6)   [ok, 15 steps]
   Derivatives:  diff(sin(x), x)=(cos(x))
   = diff(cos(x), x)=(-sin(x))
   = diff(-sin(x), x)=(-cos(x))
@@ -5392,27 +5424,32 @@
   = sin(1/2*pi)=1
   = cos(1/2*pi)=0
   = -sin(1/2*pi)=-1
+  The coefficients:  a_0=1,a_1=0,a_2=(-1)/(2!)=-1/2,a_3=0,a_4=1/(4!)=1/24,a_5=0,a_6=(-1)/(6!)=-1/720
   Taylor polynomial:  1-(x-1/2*pi)^2/(2!)+(x-1/2*pi)^4/(4!)-(x-1/2*pi)^6/(6!)=(1-1/2*(x-1/2*pi)^2+1/24*(x-1/2*pi)^4-1/720*(x-1/2*pi)^6)
-   FlowCE answer: 1-(x-pi/2)^2/2+(x-pi/2)^4/24-(x-pi/2)^6/720+O((x-pi/2)^7)
-== series(x^2*ln(1+x^4),x,0,14)   [NO STEPS, 0 steps]
-   FlowCE answer: x^6-x^10/2+x^14/3+O(x^18)
-== series((exp(3*x)-1)/(3*x),x,0,4)   [NO STEPS, 9 steps]
-   FlowCE answer: 1+3*x/2+3*x^2/2+9*x^3/8+27*x^4/40+O(x^5)
-== series(2*x*atan(5*x),x,0,4)   [ok, 10 steps]
-  Derivatives:  diff(2*x*atan(5*x), x)=(2*atan(5*x)+10*x/(1+(5*x)^2))
-  = diff(2*atan(5*x)+10*x/(1+(5*x)^2), x)=(20/(625*x^4+50*x^2+1))
-  = diff(20/(625*x^4+50*x^2+1), x)=(-2000*x/(15625*x^6+1875*x^4+75*x^2+1))
-  = diff(-2000*x/(15625*x^6+1875*x^4+75*x^2+1), x)=((250000*x^2-2000)/(390625*x^8+62500*x^6+3750*x^4+100*x^2+1))
-  Their values at the center:  0*atan(0)=0
-  = 2*atan(0)+0/(1+0^2)=0
-  = 20/(625*0^4+50*0^2+1)=20
-  = -0/(15625*0^6+1875*0^4+75*0^2+1)=0
-  = (250000*0^2-2000)/(390625*0^8+62500*0^6+3750*0^4+100*0^2+1)=-2000
-  Taylor polynomial:  20*x^2/(2!)-2000*x^4/(4!)=(10*x^2-250/3*x^4)
-   FlowCE answer: 10*x^2-250*x^4/3+O(x^6)
-== series(cos(sqrt(x)),x,0,3)   [NO STEPS, 7 steps]
-   FlowCE answer: 1-x/2+x^2/24+O(x^3)
-== series(cos(x)^2,x,0,6)   [ok, 14 steps]
+   FlowCE answer: 1-(x-pi/2)^2/2+(x-pi/2)^4/24-(x-pi/2)^6/720
+== series(x^2*ln(1+x^4),x,0,14)   [ok, 7 steps]
+  The series of 1/(1+x), integrated, written out:  ln(1+x)=x-x^2/2+x^3/3-x^4/4+...
+  Replace x by the inside:  x->x^4
+  = ln(1+x^4)=x^4-(x^4)^2/2+(x^4)^3/3-(x^4)^4/4+...
+  Simplify each term: the rules of exponents:  ln(1+x^4)=x^4-x^8/2+x^12/3-x^16/4+...
+  Multiply each term:  x^2*ln(1+x^4)=x^2*(x^4-x^8/2+x^12/3-x^16/4+...)
+  = x^2*ln(1+x^4)=x^6-x^10/2+x^14/3-x^18/4+...
+  The Taylor polynomial: the terms up to that degree:  p_14(x)=x^6-1/2*x^10+1/3*x^14
+   FlowCE answer: x^6-x^10/2+x^14/3
+== series((exp(3*x)-1)/(3*x),x,0,4)   [NO STEPS, 10 steps]
+   FlowCE answer: 1+3*x/2+3*x^2/2+9*x^3/8+27*x^4/40
+== series(2*x*atan(5*x),x,0,4)   [ok, 7 steps]
+  The arctangent: a series integrated, written out:  atan(x)=x-x^3/3+x^5/5+...
+  Replace x by the inside:  x->5*x
+  = atan(5*x)=5*x-(5*x)^3/3+(5*x)^5/5+...
+  Simplify each term: the rules of exponents:  atan(5*x)=5*x-125*x^3/3+625*x^5+...
+  Multiply each term:  2*x*atan(5*x)=2*x*(5*x-125*x^3/3+625*x^5+...)
+  = 2*x*atan(5*x)=10*x^2-250*x^4/3+1250*x^6+...
+  The Taylor polynomial: the terms up to that degree:  p_4(x)=10*x^2-250/3*x^4
+   FlowCE answer: 10*x^2-250*x^4/3
+== series(cos(sqrt(x)),x,0,3)   [NO STEPS, 8 steps]
+   FlowCE answer: 1-x/2+x^2/24
+== series(cos(x)^2,x,0,6)   [ok, 15 steps]
   Derivatives:  diff(cos(x)^2, x)=(-2*sin(x)*cos(x))
   = diff(-2*sin(x)*cos(x), x)=(-2*cos(x)^2+2*sin(x)^2)
   = diff(-2*cos(x)^2+2*sin(x)^2, x)=(8*cos(x)*sin(x))
@@ -5426,15 +5463,13 @@
   = -8*sin(0)^2+8*cos(0)^2=8
   = -32*cos(0)*sin(0)=0
   = 32*sin(0)^2-32*cos(0)^2=-32
+  The coefficients:  a_0=1,a_1=0,a_2=(-2)/(2!)=-1,a_3=0,a_4=8/(4!)=1/3,a_5=0,a_6=(-32)/(6!)=-2/45
   Taylor polynomial:  1-2*x^2/(2!)+8*x^4/(4!)-32*x^6/(6!)=(1-x^2+1/3*x^4-2/45*x^6)
-   FlowCE answer: 1-x^2+x^4/3-2*x^6/45+O(x^7)
-== series(sin(x)/(1-x),x,0,3)   [ok, 8 steps]
-  Derivatives:  diff(sin(x)/(1-x), x)=(((1-x)*cos(x)+sin(x))/(1-x)^2)
-  = diff(((1-x)*cos(x)+sin(x))/(1-x)^2, x)=((x^2*sin(x)+2*x*cos(x)-2*x*sin(x)-2*cos(x)-sin(x))/(x^3-3*x^2+3*x-1))
-  = diff((x^2*sin(x)+2*x*cos(x)-2*x*sin(x)-2*cos(x)-sin(x))/(x^3-3*x^2+3*x-1), x)=((x^3*cos(x)-3*x^2*cos(x)-3*x^2*sin(x)-3*x*cos(x)+6*x*sin(x)+5*cos(x)+3*sin(x))/(x^4-4*x^3+6*x^2-4*x+1))
-  Their values at the center:  sin(0)/(1-0)=0
-  = ((1-0)*cos(0)+sin(0))/(1-0)^2=1
-  = (0^2*sin(0)+0*cos(0)-0*sin(0)-2*cos(0)-sin(0))/(0^3-3*0^2+0-1)=2
-  = (0^3*cos(0)-3*0^2*cos(0)-3*0^2*sin(0)-0*cos(0)+0*sin(0)+5*cos(0)+3*sin(0))/(0^4-4*0^3+6*0^2-0+1)=5
-  Taylor polynomial:  x+2*x^2/(2!)+5*x^3/(3!)=(x+x^2+5/6*x^3)
-   FlowCE answer: x+x^2+5*x^3/6+O(x^4)
+   FlowCE answer: 1-x^2+x^4/3-2*x^6/45
+== series(sin(x)/(1-x),x,0,3)   [ok, 5 steps]
+  Known series, written out:  sin(x)=x-x^3/6+x^5/120+...
+  = 1/(1-x)=1+x+x^2+x^3+x^4+...
+  Multiply the series, up to that degree:  sin(x)/(1-x)=(x-x^3/6+x^5/120+...)*(1+x+x^2+x^3+x^4+...)
+  = sin(x)/(1-x)=x+x^2+5/6*x^3+...
+  The Taylor polynomial: the terms up to that degree:  p_3(x)=x+x^2+5/6*x^3
+   FlowCE answer: x+x^2+5*x^3/6

@@ -1,4 +1,12 @@
 #include <tommath.h>
+#ifdef FLOWCE_BARRETT /* (DeltaCE) Barrett's reduction for every modulus: Montgomery's and the diminished
+                         radix code are out (7.6 KB); only mod powers of huge numbers (isprime) are slower.
+                         FlowCE: only in a pack combination that fits no other way (makefile BARRETT=1) */
+#undef BN_MP_EXPTMOD_FAST_C
+#undef BN_MP_DR_IS_MODULUS_C
+#undef BN_MP_REDUCE_IS_2K_C
+#undef BN_MP_REDUCE_IS_2K_L_C
+#endif
 #ifdef BN_MP_EXPTMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *

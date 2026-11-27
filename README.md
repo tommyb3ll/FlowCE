@@ -38,7 +38,8 @@ pick one, click Install, and follow the short calculator prompts.
 
 ## What's new
 
-- **Factoring, step by step (this fork):** `factor(` now explains the common factor with several variables, grouping of any four terms, trinomials and special patterns in two variables (`x²+5xy+6y²`, `4x²−9y²`, `8x³+27y³`), and problems that combine them. Each step is checked against a second evaluation on a PC (see [Factoring, step by step](#factoring-step-by-step)). The calculator build of this change has not been tested.
+- **3.0:** choose what's in it when you install from the [web page](https://tommyb3ll.github.io/FlowCE/#install): *Series and sequences* (power series and their interval of convergence, Taylor series in sigma notation, sequences typed as aₙ or by a recurrence, the convergence tests in more detail; without it, sums keep 2.4's steps), *Vectors, lines and curves* (products, projections, lines in space, tangent lines, arc length, r(t), as forms with steps), *Statistics and probability*, *Differential equations*, as many as the calculator holds (`FlowCE.b84` has statistics and differential equations, as 2.4). Also [factoring steps](#factoring-step-by-step) with several variables, grouping and special patterns; complex solutions when an equation has no real one (x²+9=0: x = 3i, x = −3i); arccos of a decimal fixed; numbers in E notation past 10³⁸ worked out exactly; `mode` → Degrees; *more* → Quit.
+- **KhiCAS + Flow 1.3:** the periodic table's names spelled right (Iodine, Thallium...) and Moscovium's symbol Mc, arccos of a decimal fixed, backspace after `]` steps into the list.
 - **2.4:** logs with any base: `math`, `0` (or `log`, the number, a comma, the base) draws log₂(8) as textbooks write it, with exact answers (log₄ 8 is 3/2) and steps for log equations; algebra's steps show for problems typed with `^` or `x²` (they did not); the TI-83 Premium CE's trig key offers all six functions.
 - **2.3:** the normal line and the osculating circle on the graph screen, the TI-83 Premium CE's own keys (trig, résol, frac), a start screen that flows into the app, and the installer's leftover files deleted at the first start (256 KB of archive back).
 - **KhiCAS + Flow 1.2:** the graph shows the slope m and the radius R (`X,T,θ,n`: the full equation), the Config in khicasce's order, the TI-83 Premium CE's trig key offers sin, cos, tan and their inverses, faster menus.
@@ -80,8 +81,9 @@ What it does not explain (the screen says "No steps for this one"): three or mor
 common factor and grouping, factoring over radicals in two variables, decimals, grouping of six or
 more terms. Very large coefficients (products beyond about 10⁶ to 10⁷) may also have no steps.
 
-The calculator build with these steps was not tested: there is no CE toolchain on the machine they were
-written on. The steps and the steps screen were tested through the host build described below.
+The steps and the steps screen were tested through the host build described below, and in 3.0 on an
+emulated TI-84 Plus CE (grouping, the common factor then a difference of squares, a sum of cubes,
+several variables).
 
 ### Running the factoring tests on a PC
 
@@ -111,14 +113,15 @@ To see what the binary does by hand:
 
 | | **FlowCE** | **KhiCAS + Flow** |
 |---|---|---|
-| Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities) | |
+| Step-by-step solutions | calculus (derivatives, integrals, limits, sums, Taylor series) and algebra (equations, factoring, systems, inequalities); series tests and vectors in their packs | |
 | Graphs | the graph screen: key points, pan and zoom, conics, parametric, polar, slope fields | the graph screen; small graphs kept in the history |
 | Calculus → Applications | area, volumes, arc length, surface area, average value | |
-| Statistics and probability | data, box plots, regressions, distributions, tests | KhiCAS's spreadsheet and statistics |
+| Statistics and probability | data, box plots, regressions, distributions, tests (a pack) | KhiCAS's spreadsheet and statistics |
+| Packs (3.0) | Series and sequences, Vectors, lines and curves, Statistics and probability, Differential equations: as many as fit, chosen on the [web page](https://tommyb3ll.github.io/FlowCE/#install) | |
 | Menus and keys | FlowCE's | KhiCAS's, as Bernard Parisse arranged them (`mode` → Shortcuts lists them) |
 | Programs (the program editor, the debugger) | | yes, in Xcas syntax |
 | Themes | nine | Paper |
-| Download | [`FlowCE.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE.b84) | [`KhiCAS-Flow.b84`](https://tommyb3ll.github.io/FlowCE/files/KhiCAS-Flow.b84) |
+| Download | [`FlowCE.b84`](https://tommyb3ll.github.io/FlowCE/files/FlowCE.b84) (statistics, differential equations; the others: `FlowCE-*.b84` in the release) | [`KhiCAS-Flow.b84`](https://tommyb3ll.github.io/FlowCE/files/KhiCAS-Flow.b84) |
 
 FlowCE is the one for class. KhiCAS + Flow is Bernard Parisse's KhiCAS as he made it, drawn in
 FlowCE's look and at its speed: for KhiCAS users and for programs. It replaces FlowCE Python.

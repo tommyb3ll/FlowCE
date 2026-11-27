@@ -19,6 +19,9 @@ struct answer_ctx {
   bool simp;         // Simplify answers is on (answer_simplify)
   bool typed_sum, typed_limit; // the text has sum( or limit( (an oscillating result's message)
   bool typed_sec;    // the text has sec(, csc( or cot(: the answer is written with them too
+  bool taylor;       // series(f,x,a,n), taylor(f,x=a,n): the polynomial p_n as on paper (no O, its terms in order)
+  giac::gen tin;     // (taylor) that input: p_n written in powers of x-a
+  giac::gen sol_eq;  // solve(eq,x)'s eq: no real solution, its complex ones (x^2+9=0: x=3i, x=-3i)
 #if defined FLOWCE_STEPS || defined HOSTGIAC
   const char * appmsg; // an application called wrongly (area(x^2)): how to call it, shown instead
 #endif
