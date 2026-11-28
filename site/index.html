@@ -117,7 +117,7 @@
     <label class="opt">
       <input type="radio" name="build" value="normal" checked>
       <span class="opt-head"><strong>FlowCE</strong> <span class="ver" data-ver="normal"></span></span>
-      <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs and the Applications menu, with the add-ons you choose below.</span>
+      <span class="opt-text">Exact answers with worked steps for calculus and algebra, graphs and the Applications menu.</span>
     </label>
     <label class="opt">
       <input type="radio" name="build" value="khicas">
@@ -126,9 +126,9 @@
     </label>
   </div>
 
-  <div class="packs" id="packs" hidden>
-    <h3>Add-ons</h3>
-    <p class="pk-lead">Add what your class needs. Some don't fit together.</p>
+  <details class="packs" id="packs" hidden>
+    <summary><span class="pk-title">Add-ons</span> <span class="pk-state" id="pk-state">Standard</span></summary>
+    <div class="pk-body">
     <div class="addons" role="group" aria-label="Add-ons">
       <button type="button" class="addon" data-pack="stats" aria-pressed="false" style="--pkc: var(--pk-stats)">
         <span class="addon-ico" aria-hidden="true">&sigma;</span>
@@ -152,7 +152,9 @@
       </button>
     </div>
     <p class="pk-note" id="pk-note" aria-live="polite" hidden></p>
-  </div>
+    <button type="button" class="pk-reset" id="pk-reset" hidden>Back to standard</button>
+    </div>
+  </details>
 
   <p class="need">You need a TI-84 Plus CE, a USB cable that carries data (the one it came with: some phone charging cables don't), and Chrome or Edge on a computer. The page reads your OS and chooses the installer: v2.1 through 5.8.4, v3 on 5.8.5. <strong>Installing erases the calculator's apps and archived files.</strong></p>
 
@@ -268,7 +270,7 @@
     <details class="faq-item"><summary>It says "No compatible devices found", or the calculator doesn't show up.</summary><p>Turn the calculator on, use a USB cable that carries data (the one it came with: some phone charging cables don't), then unplug it and plug it back in. On Windows, close TI Connect CE (it keeps the calculator, even from the taskbar's corner) and other tabs of this page; still nothing: install <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> 6.1 or newer (its driver), close it, and try again. School Chromebooks often block USB devices.</p></details>
     <details class="faq-item"><summary>I'm on a Mac and TI Connect CE says the bundle only works on Windows.</summary><p>Use this page's installer in Chrome on the Mac: it doesn't need TI Connect CE. With only USB-C ports you need a USB-C adapter or cable. (Or rename the <code>.b84</code> to <code>.zip</code>, open it and send all its files with TI Connect CE, the AppIns files to Archive.)</p></details>
     <details class="faq-item"><summary>Why does installing erase my apps?</summary><p>FlowCE takes about 2.7 to 2.8 MB, almost all of the calculator's storage, so TI's apps and your archived files have to go. Back up your files first. TI's apps can come back later: delete FlowCE, then send TI's bundle from <a href="https://education.ti.com/en/software/update/84-ce-software-update">education.ti.com</a> with TI Connect CE.</p></details>
-    <details class="faq-item"><summary>Which add-ons should I pick?</summary><p>The ones your class covers. Series &amp; sequences needs the room of the other three, so it goes alone. The default, <code>FlowCE.b84</code>, has Statistics and Differential equations. Install again any time to change them.</p></details>
+    <details class="faq-item"><summary>Which add-ons should I pick?</summary><p>None, if you're not sure: leave Add-ons closed and you get the standard FlowCE, which has Statistics and Differential equations. Vectors &amp; curves takes the place of one of those two, and Series &amp; sequences of both. Install again any time to change them.</p></details>
     <details class="faq-item"><summary>How do I quit FlowCE?</summary><p><kbd>2nd</kbd> then <kbd>mode</kbd>, or <em>more</em> &rarr; Quit.</p></details>
     <details class="faq-item"><summary>How do I see the steps?</summary><p>Press <kbd>enter</kbd> right after an answer ("steps &middot; enter" shows under it). <kbd>&#9650;</kbd> <kbd>&#9660;</kbd> move through them, <kbd>&#9664;</kbd> <kbd>&#9654;</kbd> a whole step at a time. Derivatives, integrals, limits, sums, equations, factoring, systems and more have steps; when a problem has none, FlowCE says "No steps for this one".</p></details>
     <details class="faq-item"><summary>How do I switch to degrees?</summary><p><kbd>mode</kbd> &rarr; Degrees. The status bar says DEG.</p></details>

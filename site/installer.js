@@ -257,15 +257,32 @@ function showBuild() {
   showPacks();
 }
 
-// The add-ons: each tile on or off (its pack in the combination), and the line saying what the last one
-// turned on turned off
+// The add-ons (closed at first: the standard FlowCE, FlowCE.b84): in the closed row, "Standard" or the
+// packs picked; opened, each tile on or off (its pack in the combination), the line saying what the last
+// one turned on turned off, and the way back to the standard one
 function showPacks() {
   const box = $('packs');
   box.hidden = !(packs && build === 'normal');
   if (!packs) return;
+  const std = code === packs.default, pk = packsOf(code);
+  $('pk-state').textContent = std ? 'Standard' : pk.length ? pk.map(p => PACK_SHORT[p]).join(', ') : 'None';
+  $('pk-state').classList.toggle('changed', !std);
   box.querySelectorAll('.addon').forEach(t => { t.setAttribute('aria-pressed', String(inCode(code, t.dataset.pack))); });
   $('pk-note').hidden = !note;
   $('pk-note').textContent = note;
+  $('pk-reset').hidden = std;
+}
+
+// a calculator connected: checked again for the version or packs picked (the memory it needs)
+async function recheck() {
+  if (!calc) return;
+  try {
+    say('st-connect', 'Checking the calculator…');
+    await loadBundle();
+    await check(calc);
+  } catch (e) {
+    say('st-connect', problem(e));
+  }
 }
 
 // The combination with p in (on) or out: the one asked for if it was built, else, among those built
@@ -301,14 +318,18 @@ async function togglePack(p, on) {
   note = off.length ? `${listText(off.map(q => PACK_SHORT[q]))} turned off: ${off.length > 1 ? "they don't" : "it doesn't"} fit with ${PACK_SHORT[p]}.` : '';
   code = next;
   showBuild();
-  if (!calc) return;
-  try {
-    say('st-connect', 'Checking the calculator…');
-    await loadBundle();
-    await check(calc);
-  } catch (e) {
-    say('st-connect', problem(e));
-  }
+  await recheck();
+}
+
+// Back to standard: the default combination (FlowCE.b84)
+async function resetPacks() {
+  if (busy || waitingReset || v3Stage || code === packs.default) return;
+  code = packs.default;
+  picked = packsOf(code);
+  lastDrop = null;
+  note = '';
+  showBuild();
+  await recheck();
 }
 
 // files/packs.json read: the add-ons show, with the packs a link asks for (?packs=vectors,stats; ?packs=none)
@@ -331,6 +352,8 @@ function setupPacks(j) {
     if (!j.packs.includes(p) || !j.builds[codeWith(none, p, true)]) { t.hidden = true; return; }
     t.addEventListener('click', () => togglePack(p, !inCode(code, p)));
   });
+  $('pk-reset').addEventListener('click', resetPacks);
+  if (code !== j.default) $('packs').open = true; // (a link's packs: shown)
   showBuild();
   updateInstall();
 }
@@ -344,14 +367,7 @@ async function choose(b) {
   }
   build = b;
   showBuild();
-  if (!calc) return;
-  try {
-    say('st-connect', 'Checking the calculator…');
-    await loadBundle();
-    await check(calc);
-  } catch (e) {
-    say('st-connect', problem(e));
-  }
+  await recheck();
 }
 
 // (nothing to click while INST runs: whatever reaches the calculator then could cancel its reset)
@@ -360,7 +376,7 @@ function updateInstall() {
   $('btn-install').disabled = locked || !calc || !state || state.blocked ||
     ((state.needErase || state.route === 'v3') && !$('erase-ok').checked);
   document.querySelectorAll('input[name="build"]').forEach(r => { r.disabled = locked || r.dataset.off === '1'; });
-  document.querySelectorAll('#packs .addon').forEach(i => { i.disabled = locked; });
+  document.querySelectorAll('#packs .addon, #pk-reset').forEach(i => { i.disabled = locked; });
   $('packs').classList.toggle('locked', locked);
   $('btn-v3-next').disabled = busy;
 }

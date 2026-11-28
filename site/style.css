@@ -220,16 +220,47 @@ kbd {
   text-transform: uppercase;
   vertical-align: middle;
 }
-/* the customizer (installer.js, from files/packs.json): FlowCE's packs, each with its checkbox, the one
-   picked outlined; under them the app's size against the most an app can be */
+/* the add-ons (installer.js, from files/packs.json): a row, closed at first (the standard FlowCE), naming
+   what is picked; opened, the tiles (below), a line when one turned others off, the way back */
 .packs {
   margin: 0 0 1.2rem;
-  padding: 1rem 1.2rem 1.1rem;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
+.packs > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: .75rem;
+  padding: .85rem 1.2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  list-style: none;
+}
+.packs > summary::-webkit-details-marker { display: none; }
+.packs > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.packs > summary::after { /* the chevron: down when closed, up when open */
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin: 0 4px 4px 0;
+  border-right: 2px solid var(--sub);
+  border-bottom: 2px solid var(--sub);
+  transform: rotate(45deg);
+  transition: transform .15s;
+}
+.packs[open] > summary::after { margin: 4px 4px 0 0; transform: rotate(-135deg); }
+.packs > summary:hover::after { border-color: var(--acc); }
+.pk-title { font-weight: 700; font-size: 1.05rem; }
+.pk-state { color: var(--sub); font-size: .92rem; line-height: 1.35; }
+.pk-state.changed { color: var(--acc); font-weight: 650; }
+.pk-body { padding: .1rem 1.2rem 1.1rem; }
 .pk-note { margin: .7rem 0 0; padding: .55rem .8rem; border-radius: 10px; background: var(--beta-bg); color: var(--beta-ink); font-size: .92rem; }
+.pk-reset { display: block; margin: .75rem 0 0; padding: 0; border: 0; background: none; color: var(--acc); font: inherit; font-size: .92rem; font-weight: 650; cursor: pointer; }
+.pk-reset:hover:not(:disabled) { text-decoration: underline; }
+.pk-reset:disabled { opacity: .5; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .packs > summary::after { transition: none; } }
 .need { max-width: 760px; color: var(--sub); }
 .need strong { color: var(--ink); }
 .installer {
@@ -306,7 +337,8 @@ details.manual li { margin-bottom: .45rem; }
   .whatsnew > summary { flex-direction: column; align-items: flex-start; gap: .9rem; padding: 1.1rem 1.1rem; }
   .wn-body { padding: .4rem 1.1rem 1.3rem; }
   .pick { grid-template-columns: 1fr; }
-  .packs { padding: .9rem 1rem 1rem; }
+  .packs > summary { padding: .8rem 1rem; }
+  .pk-body { padding: .1rem 1rem 1rem; }
   .top nav a:not([href="#install"]) { display: none; }
   .installer { padding: .2rem 1rem; }
   .step-body { padding-left: 0; }
@@ -511,8 +543,6 @@ details.manual li { margin-bottom: .45rem; }
 .qa-a .reply-from::after { display: none; }
 
 /* the add-ons (installer.js): a tile per pack, on or off (its color); a line when one turned others off */
-.packs h3 { margin: 0 0 .2rem; font-size: 1.15rem; }
-.pk-lead { margin: 0 0 12px; color: var(--sub); font-size: .95rem; }
 .addons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .addon {
   --pkc: var(--acc);
